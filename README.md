@@ -66,6 +66,23 @@ python -m http.server 8000
 - ✅ **关键要点** — 每课小结
 - 顶部进度条 + 上一课 / 下一课导航
 
+## 📁 项目结构
+
+```
+langchain-visual-guide/
+├── index.html              ← 入口（目录页），从这里开始
+├── lessons/                ← 14 课图解页面
+│   ├── 01-what-is-langchain.html
+│   ├── 02-monorepo.html
+│   └── …  14-contributing.html
+├── src/                    ← 无依赖的 Python 生成器（可重建全部 HTML）
+│   ├── shell.py            共享外壳：CSS 设计系统、导航、index 页
+│   ├── part1.py … part4.py 各部分课程内容
+│   └── build.py            构建脚本
+├── README.md
+└── LICENSE
+```
+
 ## 🛠️ 重新生成
 
 所有 HTML 由 `src/` 下的 Python 生成器产出，无第三方依赖（仅需 Python 3）：
@@ -75,9 +92,8 @@ cd src
 python build.py
 ```
 
-- `src/shell.py` — 共享外壳：CSS 设计系统、导航、index 页
-- `src/part1.py … part4.py` — 各部分课程内容
-- `src/build.py` — 构建脚本，输出到项目根目录
+构建脚本会把 `index.html` 写到项目根目录，14 课写入 `lessons/`。
+页面之间用相对链接互联，因此整体可直接拷贝、部署到任意静态服务器或 GitHub Pages。
 
 ## 📄 许可
 

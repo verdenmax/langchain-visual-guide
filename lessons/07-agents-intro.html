@@ -2,7 +2,7 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>01 · LangChain 是什么 — LangChain 图解教程</title>
+<title>07 · Agent 入门 — LangChain 图解教程</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -187,121 +187,98 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
-    <a class="home" href="index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第一部分 · 宏观全景</span>
-    <span class="pill">01 / 14</span>
+    <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第二部分 · 用户视角</span>
+    <span class="pill">07 / 14</span>
   </div>
-  <div class="progress"><span style="width:7%"></span></div>
+  <div class="progress"><span style="width:50%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第一部分 · 宏观全景</div>
-    <h1>LangChain 是什么</h1>
+    <div class="part">第二部分 · 用户视角</div>
+    <h1>Agent 入门</h1>
   </div>
   
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-LangChain 是一个用 Python（和 JS）写的<strong>开源框架</strong>，帮你把"大语言模型（LLM）"
-接进真实的应用里。它不替你训练模型，而是负责模型<strong>周边的所有管道</strong>。
+把前三课（消息 + 模型 + 工具）<strong>组装并自动化</strong>，就是 Agent。
+一个函数 <span class="inline">create_agent</span> 帮你编排"思考 → 调工具 → 看结果 → 再思考"的循环，直到任务完成。
 </p>
 
 <div class="card analogy">
-  <div class="tag">🔌 生活类比</div>
-  把大语言模型（如 GPT、Claude）想成一台<strong>很强但很孤立的发动机</strong>。它能输出文字，
-  但不知道你的数据库、不会自己调用工具、不同品牌发动机接口还都不一样。
-  LangChain 就是那套<strong>标准化的"传动系统 + 仪表盘 + 配件接口"</strong>：
-  让你用同一套代码驱动任何品牌的发动机，并把它接到油箱、轮子和导航上。
+  <div class="tag">🕵️ 生活类比</div>
+  Agent 就像一个<strong>会用工具的助理</strong>：你交代任务，他自己判断"需要先查个天气"，
+  拿起工具电话拨号，看到结果后再决定"够了，可以回答了"还是"还得再查一个"。
+  你不用一步步指挥——<strong>循环由他自己跑</strong>。
 </div>
 
-<h2>它到底解决什么问题？</h2>
-<p>直接调用某个厂商的 API（比如 OpenAI 的 SDK）当然能用，但真实应用里你很快会遇到四类麻烦，
-这正是 LangChain 要替你抹平的：</p>
+<h2>一行创建 Agent</h2>
+<pre class="code"><span class="kw">from</span> langchain.agents <span class="kw">import</span> create_agent
 
-<table class="t">
-  <tr><th>痛点</th><th>没有框架时</th><th>LangChain 的做法</th></tr>
-  <tr><td><strong>厂商锁定</strong></td><td>换模型要重写一大片调用代码</td><td>统一接口 <span class="mono">invoke()</span>，换模型只改一行</td></tr>
-  <tr><td><strong>对话拼装</strong></td><td>手动拼 role/content 的字典</td><td>结构化<strong>消息对象</strong>（Human/AI/Tool）</td></tr>
-  <tr><td><strong>调用工具</strong></td><td>自己解析模型要调哪个函数、传什么参</td><td><strong>工具(Tool)</strong> + 自动生成 schema + 解析</td></tr>
-  <tr><td><strong>多步推理</strong></td><td>手写"想—做—再想"的循环</td><td><strong>Agent</strong> 帮你编排循环</td></tr>
-</table>
+agent = create_agent(
+    model=<span class="st">"openai:gpt-5.1"</span>,        <span class="cm"># 模型（字符串或模型对象都行）</span>
+    tools=[get_weather],            <span class="cm"># 一组工具</span>
+    system_prompt=<span class="st">"你是天气助手"</span>,  <span class="cm"># 可选的系统设定</span>
+)
 
-<h2>核心心智模型：四个名词</h2>
-<p>整个框架你只要先记住<strong>四个概念</strong>，后面所有内容都是它们的展开。下面这张图是你之后
-反复会用到的"骨架图"：</p>
+result = agent.invoke(
+    {<span class="st">"messages"</span>: [{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"北京和上海哪个更热？"</span>}]}
+)
+print(result[<span class="st">"messages"</span>][-1].content)   <span class="cm"># 最终答案</span>
+</pre>
 
-<div class="flow">
-  <div class="node hl"><div class="nt">Messages</div><div class="nd">对话的"原子"<br>谁说了什么</div></div>
-  <div class="arrow">→</div>
-  <div class="node hl"><div class="nt">Chat Model</div><div class="nd">包裹 LLM<br>输入/输出都是消息</div></div>
-  <div class="arrow">→</div>
-  <div class="node hl"><div class="nt">Tools</div><div class="nd">模型能调用的<br>外部能力</div></div>
-  <div class="arrow">→</div>
-  <div class="node hl"><div class="nt">Agent</div><div class="nd">把上面三者<br>编成自动循环</div></div>
+<div class="card detail">
+  <div class="tag">🔬 细节 / 代码对应</div>
+  <ul>
+    <li><span class="mono">create_agent</span> 在 <span class="mono">langchain_v1/langchain/agents/factory.py</span>，
+      由 <span class="mono">agents/__init__.py</span> 导出。</li>
+    <li>它的输入/输出都是一个带 <span class="mono">"messages"</span> 键的状态字典——即 <span class="mono">AgentState</span>。</li>
+    <li>核心签名（节选）：
+      <pre class="code" style="margin:.5rem 0"><span class="kw">def</span> <span class="fn">create_agent</span>(
+    model: str | BaseChatModel,
+    tools=None,
+    *,
+    system_prompt=None,
+    middleware=(),         <span class="cm"># 可插拔的中间件（第 12 课）</span>
+    response_format=None,  <span class="cm"># 结构化输出</span>
+    ...
+)</pre></li>
+  </ul>
+</div>
+
+<h2>Agent 循环：它到底在转什么？</h2>
+<p>这张图是 Agent 的灵魂。注意它<strong>就是第 6 课那个工具往返，只是自动重复</strong>，
+直到模型不再请求工具为止：</p>
+
+<div class="flow" style="flex-direction:column;gap:.7rem;align-items:center">
+  <div class="node hl" style="flex:0 0 auto;min-width:200px">① 模型思考<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">看当前消息，决定下一步</span></div>
+  <div class="arrow" style="transform:rotate(90deg)">→</div>
+  <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;justify-content:center">
+    <div class="node" style="min-width:200px;border-color:var(--amber)">要调工具？→ ② 执行工具<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">运行后把 ToolMessage 加回消息，<b>回到 ①</b></span></div>
+    <div class="node" style="min-width:160px;border-color:var(--accent)">不调工具？→ ③ 结束<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">返回最终 AIMessage</span></div>
+  </div>
 </div>
 
 <div class="card macro">
   <div class="tag">🌍 宏观理解</div>
   <ul>
-    <li><strong>Messages（消息）</strong>：对话由一条条消息组成。你说的是 <span class="inline">HumanMessage</span>，
-      模型回的是 <span class="inline">AIMessage</span>，工具返回的是 <span class="inline">ToolMessage</span>。</li>
-    <li><strong>Chat Model（聊天模型）</strong>：对 LLM 的<strong>统一封装</strong>。喂给它一串消息，它吐回一条 AI 消息。
-      无论底层是 OpenAI 还是 Anthropic，用法完全一样。</li>
-    <li><strong>Tools（工具）</strong>：你写的普通 Python 函数，包装后模型就能"请求调用"它（查天气、查数据库……）。</li>
-    <li><strong>Agent（智能体）</strong>：让模型在"思考 → 调用工具 → 看结果 → 再思考"之间自动循环，直到完成任务。</li>
-  </ul>
-</div>
-
-<h2>最小可运行例子</h2>
-<p>先不用懂细节，感受一下"四个名词"在代码里长什么样。这段代码就是后面所有课的浓缩：</p>
-
-<pre class="code"><span class="kw">from</span> langchain.chat_models <span class="kw">import</span> init_chat_model
-<span class="kw">from</span> langchain.agents <span class="kw">import</span> create_agent
-
-<span class="cm"># 1) 一个工具：就是普通函数</span>
-<span class="kw">def</span> <span class="fn">get_weather</span>(city: str) -> str:
-    <span class="st">&quot;&quot;&quot;查询某城市的天气。&quot;&quot;&quot;</span>
-    <span class="kw">return</span> <span class="st">f"{city} 今天晴，25°C"</span>
-
-<span class="cm"># 2) 一个聊天模型：换厂商只改这一行字符串</span>
-model = init_chat_model(<span class="st">"openai:gpt-5.1"</span>)
-
-<span class="cm"># 3) 一个 Agent：把模型 + 工具编成自动循环</span>
-agent = create_agent(model, tools=[get_weather])
-
-<span class="cm"># 4) 跑起来：底层就是一串 Messages 在流动</span>
-result = agent.invoke({<span class="st">"messages"</span>: [{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"北京天气怎么样？"</span>}]})
-</pre>
-
-<div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应</div>
-  这三个入口函数你会在后面反复见到，记住它们来自哪里：
-  <table class="t" style="margin-top:.6rem">
-    <tr><th>函数</th><th>来源包</th><th>文件</th></tr>
-    <tr><td class="mono">init_chat_model</td><td>langchain</td><td class="mono">chat_models/base.py</td></tr>
-    <tr><td class="mono">create_agent</td><td>langchain</td><td class="mono">agents/factory.py</td></tr>
-    <tr><td class="mono">@tool / 普通函数</td><td>langchain-core</td><td class="mono">tools/convert.py</td></tr>
-  </table>
-</div>
-
-<h2>LangChain 不是什么</h2>
-<div class="card warn">
-  <div class="tag">⚠️ 常见误解</div>
-  <ul>
-    <li>它<strong>不训练、不托管模型</strong>——模型仍跑在 OpenAI / Anthropic 等厂商那里，LangChain 只是客户端。</li>
-    <li>它<strong>不是只能做聊天机器人</strong>——它是通用的"LLM 应用编排层"，可做 RAG、数据抽取、工作流等。</li>
-    <li>它<strong>不强制你用全部功能</strong>——可以只用聊天模型封装，也可以一路用到复杂 Agent。</li>
+    <li>Agent = <strong>模型 + 工具 + 一个自动循环</strong>。循环的"判断条件"很简单：
+      <strong>模型回复里还有没有 <span class="mono">tool_calls</span></strong>？有就执行并继续，没有就结束。</li>
+    <li>你只管<strong>声明</strong>"用哪个模型、给哪些工具、什么系统设定"，循环的编排交给框架。</li>
+    <li>底层其实是一张 <strong>LangGraph 状态图</strong>（节点："model" 与 "tools"）——这是第 12 课的内容，现在只需理解它在转一个循环。</li>
   </ul>
 </div>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li>LangChain = LLM 的<strong>标准化管道与编排层</strong>，让你"换模型只改一行、调工具不写胶水、多步推理不手搓循环"。</li>
-    <li>记住四个名词的<strong>流向</strong>：Messages → Chat Model → Tools → Agent。这是整套教程的骨架。</li>
-    <li>下一课我们拉远镜头，看看这些概念在<strong>代码仓库的哪一层</strong>。</li>
+    <li><span class="mono">create_agent(model, tools, system_prompt=...)</span> 一行得到一个会自动循环的 Agent。</li>
+    <li>输入/输出都是 <span class="mono">{"messages": [...]}</span> 状态字典（<span class="mono">AgentState</span>）。</li>
+    <li>循环判据：<strong>AIMessage 里还有没有 tool_calls</strong>。这把第 4–6 课串成了闭环。</li>
+    <li><strong>第二部分（用户视角）到此结束</strong>。接下来掀开盖子，看这些便利背后的源码机制。</li>
   </ul>
 </div>
 
-  <div class="footnav"><a class="prev" href="index.html"><div class="dir">← 返回</div><div class="ttl">目录</div></a><a class="next" href="02-monorepo.html"><div class="dir">下一课 →</div><div class="ttl">Monorepo 全景</div></a></div>
+  <div class="footnav"><a class="prev" href="06-tools.html"><div class="dir">← 上一课</div><div class="ttl">工具 Tools</div></a><a class="next" href="08-runnable.html"><div class="dir">下一课 →</div><div class="ttl">Runnable 万物之基</div></a></div>
 </div>
 
 </body></html>

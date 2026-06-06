@@ -2,7 +2,7 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>09 · Runnable 如何组合 — LangChain 图解教程</title>
+<title>04 · 消息系统 — LangChain 图解教程</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -187,125 +187,117 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
-    <a class="home" href="index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第三部分 · 内部源码</span>
-    <span class="pill">09 / 14</span>
+    <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第二部分 · 用户视角</span>
+    <span class="pill">04 / 14</span>
   </div>
-  <div class="progress"><span style="width:64%"></span></div>
+  <div class="progress"><span style="width:28%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第三部分 · 内部源码</div>
-    <h1>Runnable 如何组合</h1>
+    <div class="part">第二部分 · 用户视角</div>
+    <h1>消息系统</h1>
   </div>
   
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-上一课我们用 <span class="inline">a | b | c</span> 拼了链。那么——<strong>拼出来的到底是什么？</strong>
-答案是一个 <span class="inline">RunnableSequence</span> 对象。这一课拆解"顺序"与"并行"两种核心组合，
-以及几个最常用的"胶水" Runnable。
+进入"用户视角"，我们从最小的积木开始：<strong>消息（Message）</strong>。在 LangChain 里，
+一段对话不是一坨字符串，而是<strong>一串结构化的消息对象</strong>。理解了消息，后面的模型、工具、Agent 全都顺了。
 </p>
 
 <div class="card analogy">
-  <div class="tag">🏭 生活类比</div>
-  <strong>顺序组合</strong>像<strong>流水线</strong>：上一站的产出是下一站的原料，一站接一站。
-  <strong>并行组合</strong>像<strong>多个窗口同时办理</strong>：同一份输入分发给几条线<strong>同时</strong>处理，最后把各自结果汇总成一张表。
+  <div class="tag">💬 生活类比</div>
+  把对话想象成<strong>群聊记录</strong>：每条消息都标着"谁发的"。你发的标"用户"，
+  机器人回的标"助手"，系统设定标"系统"，而某个被 @ 的工具返回结果标"工具"。
+  LangChain 把这个"谁发的 + 发了什么"固化成不同的<strong>消息类</strong>。
 </div>
 
-<h2>顺序组合：RunnableSequence</h2>
-<p>当你写 <span class="inline">a | b | c</span>，<span class="inline">__or__</span> 会把它们打包成一个
-<span class="inline">RunnableSequence</span>。它的 <span class="inline">invoke</span> 做的事极其朴素——<strong>依次调用、首尾相接</strong>：</p>
+<h2>四种核心消息</h2>
+<p>99% 的场景你只会用到这四种。记住它们各自代表"谁在说话"：</p>
 
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/runnables/base.py</span><span class="ln">class RunnableSequence</span></div>
-<pre><span class="kw">class</span> <span class="fn">RunnableSequence</span>(RunnableSerializable):
-    <span class="kw">def</span> <span class="fn">invoke</span>(self, input, config=None):
-        <span class="kw">for</span> step <span class="kw">in</span> self.steps:        <span class="cm"># 依次跑每一步</span>
-            input = step.invoke(input)   <span class="cm"># 上一步输出 = 下一步输入</span>
-        <span class="kw">return</span> input
-</pre>
-</div>
+<table class="t">
+  <tr><th>消息类</th><th>代表谁</th><th>典型内容</th></tr>
+  <tr><td class="mono">SystemMessage</td><td>系统设定</td><td>"你是一个友好的助手"</td></tr>
+  <tr><td class="mono">HumanMessage</td><td>用户（你）</td><td>"北京天气怎么样？"</td></tr>
+  <tr><td class="mono">AIMessage</td><td>模型</td><td>回复正文 + 可能的工具调用</td></tr>
+  <tr><td class="mono">ToolMessage</td><td>工具结果</td><td>"北京 晴 25°C"</td></tr>
+</table>
 
-<div class="flow">
-  <div class="node">input</div><div class="arrow">→</div>
-  <div class="node hl">step1</div><div class="arrow">→</div>
-  <div class="node hl">step2</div><div class="arrow">→</div>
-  <div class="node hl">step3</div><div class="arrow">→</div>
-  <div class="node">output</div>
-</div>
+<h2>它们的家谱：都继承自 BaseMessage</h2>
+<p>所有消息类都从同一个基类派生。看懂这张继承图，你就知道"为什么它们用法这么一致"：</p>
 
-<h2>并行组合：RunnableParallel</h2>
-<p>当你把<strong>一个字典</strong>放进链里（值都是 Runnable），就得到 <span class="inline">RunnableParallel</span>：
-同一份输入<strong>同时</strong>喂给每个分支，结果合并成一个字典。</p>
-
-<pre class="code"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnableParallel
-
-parallel = RunnableParallel(
-    weather=get_weather_chain,   <span class="cm"># 分支 1</span>
-    news=get_news_chain,         <span class="cm"># 分支 2</span>
-)
-parallel.invoke(<span class="st">"北京"</span>)
-<span class="cm"># → {"weather": ..., "news": ...}  两条分支并发执行</span>
-</pre>
-
-<div class="flow" style="flex-direction:column;gap:.6rem;align-items:center">
-  <div class="node hl" style="flex:0 0 auto">同一份 input</div>
+<div class="flow" style="flex-direction:column;gap:.7rem">
+  <div class="node hl" style="flex:0 0 auto">BaseMessage<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">公共字段：content（内容）+ 角色标识</span></div>
   <div class="arrow" style="transform:rotate(90deg)">→</div>
-  <div style="display:flex;gap:1rem">
-    <div class="node">分支 weather</div>
-    <div class="node">分支 news</div>
-  </div>
-  <div class="arrow" style="transform:rotate(90deg)">→</div>
-  <div class="node hl" style="flex:0 0 auto">合并成 {weather, news}</div>
-</div>
-
-<h2>两个最常用的"胶水"</h2>
-<div class="cols">
-  <div class="col">
-    <h4>RunnableLambda</h4>
-    <p>把<strong>任意普通函数</strong>变成 Runnable，好塞进链里。</p>
-    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnableLambda
-upper = RunnableLambda(<span class="kw">lambda</span> x: x.upper())
-chain = upper | model</pre>
-  </div>
-  <div class="col">
-    <h4>RunnablePassthrough</h4>
-    <p>原样透传输入，常用于"<strong>保留原值 + 旁加一个新字段</strong>"。</p>
-    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnablePassthrough
-RunnablePassthrough.assign(
-  weather=get_weather_chain)</pre>
+  <div style="display:flex;gap:.6rem;width:100%">
+    <div class="node">SystemMessage</div>
+    <div class="node">HumanMessage</div>
+    <div class="node">AIMessage</div>
+    <div class="node">ToolMessage</div>
   </div>
 </div>
 
 <div class="card detail">
   <div class="tag">🔬 细节 / 代码对应</div>
-  全部在 <span class="mono">core/langchain_core/runnables/</span> 下：
+  每个消息类都在 <span class="mono">langchain-core</span> 的 <span class="mono">messages/</span> 目录下一个独立文件里：
   <table class="t" style="margin-top:.6rem">
-    <tr><th>类</th><th>文件</th><th>作用</th></tr>
-    <tr><td class="mono">RunnableSequence</td><td class="mono">base.py</td><td>顺序（<span class="mono">|</span> 的产物）</td></tr>
-    <tr><td class="mono">RunnableParallel</td><td class="mono">base.py</td><td>并行（别名 <span class="mono">RunnableMap</span>）</td></tr>
-    <tr><td class="mono">RunnableLambda</td><td class="mono">base.py</td><td>包装函数</td></tr>
-    <tr><td class="mono">RunnablePassthrough</td><td class="mono">passthrough.py</td><td>透传 / assign</td></tr>
+    <tr><th>类</th><th>文件</th></tr>
+    <tr><td class="mono">BaseMessage</td><td class="mono">messages/base.py</td></tr>
+    <tr><td class="mono">HumanMessage</td><td class="mono">messages/human.py</td></tr>
+    <tr><td class="mono">AIMessage</td><td class="mono">messages/ai.py</td></tr>
+    <tr><td class="mono">SystemMessage</td><td class="mono">messages/system.py</td></tr>
+    <tr><td class="mono">ToolMessage / ToolCall</td><td class="mono">messages/tool.py</td></tr>
   </table>
 </div>
 
+<h2>AIMessage：信息量最大的一条</h2>
+<p>模型的回复 <span class="inline">AIMessage</span> 不只是一段文字。它还可能携带<strong>工具调用请求</strong>和
+<strong>token 用量</strong>。这正是它能驱动 Agent 的关键：</p>
+
+<pre class="code"><span class="cm"># 一个 AIMessage 里可能有什么</span>
+AIMessage(
+    content=<span class="st">""</span>,                       <span class="cm"># 正文（要调工具时常为空）</span>
+    tool_calls=[                       <span class="cm"># ★ 模型"想调用"的工具</span>
+        {<span class="st">"name"</span>: <span class="st">"get_weather"</span>,
+         <span class="st">"args"</span>: {<span class="st">"city"</span>: <span class="st">"北京"</span>},
+         <span class="st">"id"</span>: <span class="st">"call_abc"</span>}
+    ],
+    usage_metadata={<span class="st">"input_tokens"</span>: 12,  <span class="cm"># token 统计</span>
+                    <span class="st">"output_tokens"</span>: 8},
+)
+</pre>
+
 <div class="card macro">
   <div class="tag">🌍 宏观理解</div>
-  所有复杂的"链"，本质都是这几种基础 Runnable 的<strong>嵌套套娃</strong>：
-  顺序里套并行、并行的分支里又是顺序……因为<strong>组合的产物还是 Runnable</strong>，
-  所以可以无限拼下去，且整体永远支持 invoke/stream/batch。
+  <ul>
+    <li><strong>消息是"通用货币"</strong>：模型的输入是 <span class="mono">list[BaseMessage]</span>，输出是一条 <span class="mono">AIMessage</span>。
+      无论 OpenAI 还是 Anthropic，进出都是这套统一格式。</li>
+    <li><strong>tool_calls 是 Agent 的引擎</strong>：模型不直接执行工具，而是在 AIMessage 里"请求"调用，
+      由你的程序去执行，再把结果包成 ToolMessage 喂回去。这就是 Agent 循环的本质（第 7、12 课）。</li>
+    <li><strong>content 可以是多模态</strong>：除了文本，还能放图片等内容块（定义在 <span class="mono">messages/content.py</span>）。</li>
+  </ul>
 </div>
+
+<h2>动手：构造一段对话</h2>
+<pre class="code"><span class="kw">from</span> langchain_core.messages <span class="kw">import</span> SystemMessage, HumanMessage
+
+conversation = [
+    SystemMessage(<span class="st">"你是一个简洁的天气助手。"</span>),
+    HumanMessage(<span class="st">"北京天气怎么样？"</span>),
+]
+<span class="cm"># 把这串消息交给模型，它会还你一条 AIMessage（下一课）</span>
+</pre>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li><span class="mono">a | b | c</span> 的产物是 <span class="mono">RunnableSequence</span>，invoke = 依次调用、首尾相接。</li>
-    <li>字典形式得到 <span class="mono">RunnableParallel</span>：同输入并发多分支，输出合并为字典。</li>
-    <li><span class="mono">RunnableLambda</span>（包函数）和 <span class="mono">RunnablePassthrough</span>（透传/assign）是最常用胶水。</li>
-    <li>下一课：深入聊天模型的 <span class="mono">invoke</span> 内部，看那条完整调用链。</li>
+    <li>对话 = <strong>一串结构化消息</strong>，四种核心：System / Human / AI / Tool，全部继承 <span class="mono">BaseMessage</span>。</li>
+    <li><span class="mono">AIMessage</span> 除了正文，还能带 <span class="mono">tool_calls</span> 和 <span class="mono">usage_metadata</span>。</li>
+    <li><span class="mono">tool_calls</span> 是连接"模型"与"工具"的桥梁，也是 Agent 自动循环的起点。</li>
+    <li>下一课：把这串消息真正喂给<strong>聊天模型</strong>。</li>
   </ul>
 </div>
 
-  <div class="footnav"><a class="prev" href="08-runnable.html"><div class="dir">← 上一课</div><div class="ttl">Runnable 万物之基</div></a><a class="next" href="10-chat-internals.html"><div class="dir">下一课 →</div><div class="ttl">聊天模型内部</div></a></div>
+  <div class="footnav"><a class="prev" href="03-lifecycle.html"><div class="dir">← 上一课</div><div class="ttl">一次调用的生命周期</div></a><a class="next" href="05-chat-models.html"><div class="dir">下一课 →</div><div class="ttl">聊天模型</div></a></div>
 </div>
 
 </body></html>

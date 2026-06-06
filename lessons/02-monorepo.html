@@ -2,7 +2,7 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>06 · 工具 Tools — LangChain 图解教程</title>
+<title>02 · Monorepo 全景 — LangChain 图解教程</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -187,97 +187,139 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
-    <a class="home" href="index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第二部分 · 用户视角</span>
-    <span class="pill">06 / 14</span>
+    <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第一部分 · 宏观全景</span>
+    <span class="pill">02 / 14</span>
   </div>
-  <div class="progress"><span style="width:42%"></span></div>
+  <div class="progress"><span style="width:14%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第二部分 · 用户视角</div>
-    <h1>工具 Tools</h1>
+    <div class="part">第一部分 · 宏观全景</div>
+    <h1>Monorepo 全景</h1>
   </div>
   
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-工具（Tool）让模型<strong>突破"只会聊天"的边界</strong>——查数据库、调 API、做计算。
-神奇之处在于：你只写一个<strong>普通 Python 函数</strong>，LangChain 自动把它变成模型能理解、能"请求调用"的工具。
+LangChain 的代码不是一个大包，而是一个 <strong>monorepo（单仓库、多包）</strong>：
+一个 Git 仓库里装着十几个<strong>各自独立发版</strong>的 Python 包。看懂这张"分层地图"，
+你就再也不会在目录里迷路。
 </p>
 
 <div class="card analogy">
-  <div class="tag">🧰 生活类比</div>
-  模型像个<strong>聪明但被关在房间里的顾问</strong>：它知识渊博，却拿不到实时信息、碰不到外部系统。
-  工具就是你递进房间的一部部<strong>专用电话</strong>——一部打给天气台、一部打给数据库。
-  你贴上"这部电话能干嘛、要拨什么号"的说明（schema），顾问就会在需要时<strong>请你帮他拨号</strong>。
+  <div class="tag">🏗️ 生活类比</div>
+  把它想成一栋<strong>分层的大楼</strong>：地基层（core）定义所有"接口标准"，
+  楼上的主套间（langchain）放你日常用的高级功能，
+  而每个厂商（partners/openai、partners/anthropic）是<strong>可插拔的配件房间</strong>，
+  都按地基层的标准接口来装修，所以能随意替换。
 </div>
 
-<h2>把函数变成工具：@tool</h2>
-<p>最常用的方式是 <span class="inline">@tool</span> 装饰器。它会自动从你的函数里<strong>提取三样东西</strong>：</p>
+<h2>仓库的物理结构</h2>
+<p>所有包都在 <span class="inline">libs/</span> 下。你现在只需认得这几个最重要的：</p>
 
-<pre class="code"><span class="kw">from</span> langchain_core.tools <span class="kw">import</span> tool
-
-<span class="nb">@tool</span>
-<span class="kw">def</span> <span class="fn">get_weather</span>(city: str) -> str:
-    <span class="st">&quot;&quot;&quot;查询某城市的当前天气。&quot;&quot;&quot;</span>
-    <span class="kw">return</span> <span class="st">f"{city} 晴，25°C"</span>
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">langchain/libs/</span><span class="ln">目录结构</span></div>
+<pre><span class="cm"># 在仓库根目录执行 ls libs/ 就能看到</span>
+libs/
+├── <span class="fn">core/</span>            <span class="cm"># langchain-core：地基，所有抽象与接口</span>
+├── <span class="fn">langchain/</span>       <span class="cm"># langchain-classic：旧版（维护中，无新功能）</span>
+├── <span class="fn">langchain_v1/</span>    <span class="cm"># langchain：当前主力包，你日常 import 的就是它</span>
+├── <span class="fn">partners/</span>        <span class="cm"># 各厂商集成：openai / anthropic / ollama ...</span>
+│   ├── openai/
+│   ├── anthropic/
+│   └── ...
+├── <span class="fn">text-splitters/</span>  <span class="cm"># 文档切块工具</span>
+├── <span class="fn">standard-tests/</span>  <span class="cm"># 给所有 partner 共用的标准测试套件</span>
+└── <span class="fn">model-profiles/</span>  <span class="cm"># 模型能力档案（上下文长度、是否支持工具等）</span>
 </pre>
-
-<div class="flow">
-  <div class="node hl"><div class="nt">函数名</div><div class="nd">get_weather<br>→ 工具名</div></div>
-  <div class="arrow">+</div>
-  <div class="node hl"><div class="nt">docstring</div><div class="nd">"查询天气"<br>→ 工具描述</div></div>
-  <div class="arrow">+</div>
-  <div class="node hl"><div class="nt">类型注解</div><div class="nd">city: str<br>→ 参数 schema</div></div>
 </div>
 
-<div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应</div>
-  <ul>
-    <li><span class="mono">@tool</span> 定义在 <span class="mono">core/tools/convert.py</span>，把函数包装成一个 <span class="mono">BaseTool</span>。</li>
-    <li>实际生成的是 <span class="mono">StructuredTool</span>（<span class="mono">core/tools/structured.py</span>），
-      它用 <span class="mono">create_schema_from_function</span> 从函数签名<strong>自动推断出 pydantic 参数 schema</strong>。</li>
-    <li>所以"写好类型注解 + docstring"很重要——它们直接决定模型看到的工具说明。</li>
-  </ul>
-</div>
+<h2>核心三层：地基 / 主力 / 配件</h2>
+<p>十几个包里，理解 LangChain 你<strong>主要只需盯住三层</strong>。它们的依赖方向<strong>永远从上往下</strong>
+——上层依赖下层，下层<strong>绝不</strong>反过来依赖上层：</p>
 
-<h2>工具自己也能被调用</h2>
-<p>包装后的工具是个对象，有 <span class="inline">name</span>、<span class="inline">description</span>、
-<span class="inline">args_schema</span>，并且可以像函数一样 <span class="inline">invoke</span>：</p>
-<pre class="code">print(get_weather.name)         <span class="cm"># "get_weather"</span>
-print(get_weather.description)  <span class="cm"># "查询某城市的当前天气。"</span>
-print(get_weather.invoke({<span class="st">"city"</span>: <span class="st">"北京"</span>}))  <span class="cm"># "北京 晴，25°C"</span>
-</pre>
-
-<h2>模型如何"使用"工具：完整往返</h2>
-<p>关键认知：<strong>模型不会自己执行工具</strong>，它只会"请求"。真正的执行由你的程序（或 Agent）完成。
-这一来一回是整个工具机制的核心：</p>
-
-<div class="vflow">
-  <div class="step"><div class="num">1</div><div class="sc"><h4>绑定</h4><p><span class="mono">model.bind_tools([get_weather])</span>：把工具的 schema 告诉模型。</p></div></div>
-  <div class="step"><div class="num">2</div><div class="sc"><h4>请求</h4><p>模型回一条 <span class="mono">AIMessage</span>，其中 <span class="mono">tool_calls=[{name, args, id}]</span>——"我想调 get_weather('北京')"。</p></div></div>
-  <div class="step"><div class="num">3</div><div class="sc"><h4>执行</h4><p>你的程序按请求真正运行 <span class="mono">get_weather.invoke(args)</span>，拿到结果。</p></div></div>
-  <div class="step"><div class="num">4</div><div class="sc"><h4>回传</h4><p>把结果包成 <span class="mono">ToolMessage</span>（带上对应的 <span class="mono">tool_call_id</span>）追加到消息列表。</p></div></div>
-  <div class="step"><div class="num">5</div><div class="sc"><h4>再问</h4><p>把更新后的消息再喂给模型，它据此给出最终自然语言回答。</p></div></div>
+<div class="layers">
+  <div class="layer l-part">
+    <div class="lh"><span class="badge">集成层</span><span class="name">langchain-openai / langchain-anthropic …</span></div>
+    <div class="ld">每个厂商一个独立包，把厂商 SDK 适配成 core 定义的标准接口。
+      位置：<span class="mono">libs/partners/*/</span>。换厂商 = 换这一层的包。</div>
+  </div>
+  <div class="layer l-main">
+    <div class="lh"><span class="badge">实现层</span><span class="name">langchain（主力包）</span></div>
+    <div class="ld">面向用户的高级功能：<span class="mono">create_agent</span>、<span class="mono">init_chat_model</span>、中间件等。
+      位置：<span class="mono">libs/langchain_v1/langchain/</span>。这是你日常写代码 import 的包。</div>
+  </div>
+  <div class="layer l-core">
+    <div class="lh"><span class="badge">地基层</span><span class="name">langchain-core</span></div>
+    <div class="ld">最底层抽象：<span class="mono">Runnable</span>、<span class="mono">BaseChatModel</span>、各种
+      <span class="mono">Message</span>、<span class="mono">BaseTool</span>。位置：<span class="mono">libs/core/langchain_core/</span>。
+      <strong>用户通常不直接 import 它</strong>，但所有东西都建在它之上。</div>
+  </div>
 </div>
 
 <div class="card macro">
-  <div class="tag">🌍 宏观理解</div>
-  这套"请求 → 执行 → 回传 → 再问"的循环，<strong>手写也能实现，但很繁琐</strong>。
-  第 7 课的 <span class="mono">create_agent</span> 就是把这整个循环<strong>自动化</strong>。
-  也就是说：<strong>工具 + 这个循环 = Agent</strong>。
+  <div class="tag">🌍 宏观理解：为什么要分这么多包？</div>
+  <ul>
+    <li><strong>依赖隔离</strong>：你只装 OpenAI，就不会被迫装上 Anthropic 的 SDK。每个 partner 是独立包，按需安装。</li>
+    <li><strong>独立发版</strong>：OpenAI 出了新功能，<span class="mono">langchain-openai</span> 可以自己发版，不用等整个框架。</li>
+    <li><strong>稳定地基</strong>：<span class="mono">core</span> 很少变，给所有上层一个稳定的"接口契约"。</li>
+  </ul>
+</div>
+
+<h2>用依赖关系验证这套分层</h2>
+<p>不用记，<strong>看每个包的 <span class="inline">pyproject.toml</span> 就能验证</strong>谁依赖谁。下面是真实内容：</p>
+
+<div class="cols">
+  <div class="col">
+    <h4>🟢 core 依赖谁？</h4>
+    <pre class="code" style="margin:.4rem 0"><span class="cm"># libs/core/pyproject.toml</span>
+dependencies = [
+  <span class="st">"langsmith"</span>,    <span class="cm"># 追踪</span>
+  <span class="st">"pydantic"</span>,     <span class="cm"># 数据校验</span>
+  <span class="st">"tenacity"</span>,     <span class="cm"># 重试</span>
+  ...
+]</pre>
+    <p style="font-size:.85rem;color:var(--muted)">没有任何 langchain 包——它是<strong>地基</strong>，谁都不依赖。</p>
+  </div>
+  <div class="col">
+    <h4>🔵 主力包 / partner 依赖谁？</h4>
+    <pre class="code" style="margin:.4rem 0"><span class="cm"># langchain_v1/pyproject.toml</span>
+dependencies = [
+  <span class="st">"langchain-core"</span>,  <span class="cm"># ↓ 依赖地基</span>
+  <span class="st">"langgraph"</span>,       <span class="cm"># Agent 引擎</span>
+]
+<span class="cm"># partners/openai/pyproject.toml</span>
+dependencies = [
+  <span class="st">"langchain-core"</span>,  <span class="cm"># ↓ 依赖地基</span>
+  <span class="st">"openai"</span>,          <span class="cm"># 厂商 SDK</span>
+]</pre>
+  </div>
+</div>
+
+<div class="card detail">
+  <div class="tag">🔬 细节：开发工具栈</div>
+  这个仓库用一套现代 Python 工具链，后面"贡献"那一课会细讲，先混个眼熟：
+  <table class="t" style="margin-top:.6rem">
+    <tr><th>工具</th><th>作用</th></tr>
+    <tr><td class="mono">uv</td><td>装依赖 / 管理虚拟环境（比 pip 快）</td></tr>
+    <tr><td class="mono">ruff</td><td>代码检查 + 格式化</td></tr>
+    <tr><td class="mono">mypy</td><td>静态类型检查</td></tr>
+    <tr><td class="mono">pytest</td><td>测试框架</td></tr>
+    <tr><td class="mono">make</td><td>把上面命令打包成 <span class="mono">make test</span> / <span class="mono">make lint</span></td></tr>
+  </table>
+  每个包<strong>各自有一份</strong> <span class="mono">pyproject.toml</span> 和 <span class="mono">uv.lock</span>。
 </div>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li><span class="mono">@tool</span> 把普通函数变成工具，自动提取<strong>名字 / 描述(docstring) / 参数 schema(类型注解)</strong>。</li>
-    <li>底层是 <span class="mono">StructuredTool</span>，用 pydantic 从函数签名推断 schema。</li>
-    <li>模型只<strong>请求</strong>调用（写在 <span class="mono">AIMessage.tool_calls</span>），<strong>执行靠你的程序</strong>，结果用 <span class="mono">ToolMessage</span> 回传。</li>
-    <li>把这个往返自动化，就得到了 Agent —— 下一课登场。</li>
+    <li>一个 Git 仓库 = 多个独立发版的包，全在 <span class="mono">libs/</span> 下。</li>
+    <li>盯住三层：<strong>core（地基）→ langchain（主力）→ partners（配件）</strong>，依赖永远从上往下。</li>
+    <li>想验证依赖关系，直接读各包的 <span class="mono">pyproject.toml</span>，不用猜。</li>
+    <li>下一课：跟着一次真实调用，看数据如何<strong>穿过这三层</strong>。</li>
   </ul>
 </div>
 
-  <div class="footnav"><a class="prev" href="05-chat-models.html"><div class="dir">← 上一课</div><div class="ttl">聊天模型</div></a><a class="next" href="07-agents-intro.html"><div class="dir">下一课 →</div><div class="ttl">Agent 入门</div></a></div>
+  <div class="footnav"><a class="prev" href="01-what-is-langchain.html"><div class="dir">← 上一课</div><div class="ttl">LangChain 是什么</div></a><a class="next" href="03-lifecycle.html"><div class="dir">下一课 →</div><div class="ttl">一次调用的生命周期</div></a></div>
 </div>
 
 </body></html>

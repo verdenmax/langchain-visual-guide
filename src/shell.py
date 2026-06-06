@@ -213,30 +213,35 @@ NAV_SCRIPT = """
 """
 
 
-def page(filename, content, standalone=False):
+def page(filename, content, standalone=False, home_href=None):
     """Wrap lesson content in the full HTML shell with nav.
 
     When ``standalone`` is True, navigation uses plain relative ``href`` links
     (works via file:// and any static server). Otherwise it uses ``data-nav``
     plus a script that targets the brainstorm companion's ``/files/`` route.
+
+    ``home_href`` overrides the link back to the index (use ``"../index.html"``
+    when lesson pages live in a subdirectory). Sibling lesson links always use
+    bare filenames, so lessons must share one directory.
     """
     idx = next(i for i, p in enumerate(PAGES) if p[0] == filename)
     fname, title, part = PAGES[idx]
     total = len(PAGES)
     pct = int((idx + 1) / total * 100)
+    home = home_href or INDEX_FILE
 
     prev_link = (
         f'<a class="prev" data-nav="{PAGES[idx-1][0]}"><div class="dir">← 上一课</div>'
         f'<div class="ttl">{PAGES[idx-1][1]}</div></a>'
         if idx > 0 else
-        f'<a class="prev" data-nav="{INDEX_FILE}"><div class="dir">← 返回</div>'
+        f'<a class="prev" data-nav="{home}"><div class="dir">← 返回</div>'
         f'<div class="ttl">目录</div></a>'
     )
     next_link = (
         f'<a class="next" data-nav="{PAGES[idx+1][0]}"><div class="dir">下一课 →</div>'
         f'<div class="ttl">{PAGES[idx+1][1]}</div></a>'
         if idx + 1 < total else
-        f'<a class="next" data-nav="{INDEX_FILE}"><div class="dir">完成 →</div>'
+        f'<a class="next" data-nav="{home}"><div class="dir">完成 →</div>'
         f'<div class="ttl">返回目录</div></a>'
     )
 
@@ -250,7 +255,7 @@ def page(filename, content, standalone=False):
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
-    <a class="home" data-nav="{INDEX_FILE}">📘 LangChain 图解教程 · <b>目录</b></a>
+    <a class="home" data-nav="{home}">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">{part}</span>
     <span class="pill">{idx+1:02d} / {total:02d}</span>
   </div>
@@ -271,7 +276,7 @@ def page(filename, content, standalone=False):
     return html
 
 
-def index_page(standalone=False):
+def index_page(standalone=False, lesson_prefix=""):
     parts = {}
     order = []
     for i, (fname, title, part) in enumerate(PAGES):
@@ -302,7 +307,7 @@ def index_page(standalone=False):
         for num, fname, title in parts[part]:
             sub = subtitles.get(fname, "")
             blocks.append(
-                f'<a data-nav="{fname}"><span class="n">{num:02d}</span>'
+                f'<a data-nav="{lesson_prefix}{fname}"><span class="n">{num:02d}</span>'
                 f'<span class="tt">{title}</span>'
                 f'<span class="ts">{sub}</span></a>'
             )

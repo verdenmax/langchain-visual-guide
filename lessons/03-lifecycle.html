@@ -2,7 +2,7 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>10 · 聊天模型内部 — LangChain 图解教程</title>
+<title>03 · 一次调用的生命周期 — LangChain 图解教程</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -187,97 +187,130 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
-    <a class="home" href="index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第三部分 · 内部源码</span>
-    <span class="pill">10 / 14</span>
+    <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第一部分 · 宏观全景</span>
+    <span class="pill">03 / 14</span>
   </div>
-  <div class="progress"><span style="width:71%"></span></div>
+  <div class="progress"><span style="width:21%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第三部分 · 内部源码</div>
-    <h1>聊天模型内部</h1>
+    <div class="part">第一部分 · 宏观全景</div>
+    <h1>一次调用的生命周期</h1>
   </div>
   
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-第 3 课我们鸟瞰过"一次调用的生命周期"。现在放大到<strong>聊天模型内部</strong>，
-逐方法追踪 <span class="inline">model.invoke(...)</span> 真正经过的调用链——这是理解"统一接口 + 厂商实现"分工的关键。
+现在把前两课接起来：当你写下 <span class="inline">model.invoke("你好")</span> 的那一刻，
+数据具体<strong>穿过哪些层、变成什么形状、最后怎么回来</strong>？这一课用一张"生命周期图"讲透。
 </p>
 
 <div class="card analogy">
-  <div class="tag">🏛️ 生活类比</div>
-  把 <span class="mono">BaseChatModel</span> 想成<strong>政务大厅的标准办事流程</strong>：取号、填表、缓存查重、记录档案——
-  这些<strong>通用步骤对所有窗口都一样</strong>（写在地基层）。只有最后"具体盖哪个部门的章"
-  （<span class="mono">_generate</span>）才由各窗口（各厂商）自己实现。
+  <div class="tag">✉️ 生活类比</div>
+  这趟旅程就像<strong>寄一封跨国信</strong>：你写中文信（字符串）→ 邮局装进标准信封并贴上规范地址（消息标准化）→
+  翻译成目的国语言（厂商 API 格式）→ 寄出、对方回信 → 再翻译回中文 → 装进标准信封交还给你（AIMessage）。
+  你只面对"中文信"，<strong>中间的翻译与信封都被框架藏起来了</strong>。
 </div>
 
-<h2>调用链：从 invoke 到厂商实现</h2>
-<p>一条 <span class="inline">invoke</span> 会层层下钻，最终落到每个厂商<strong>各自实现的</strong> <span class="inline">_generate</span>：</p>
+<h2>一次调用的完整生命周期</h2>
+<p>下面每一步都标注了它发生在<strong>哪一层</strong>。重点是数据形状的三次变身：
+<strong>字符串 → 标准消息 → 厂商格式 → 标准消息</strong>。</p>
 
 <div class="vflow">
-  <div class="step"><div class="num">1</div><div class="sc"><h4>invoke()</h4>
-    <p>统一入口。把你的输入规整成消息，调用 <span class="mono">generate_prompt</span>。</p>
-    <p class="mono">BaseChatModel.invoke</p></div></div>
-  <div class="step"><div class="num">2</div><div class="sc"><h4>generate_prompt() → generate()</h4>
-    <p>组织本次调用：准备回调管理器、合并参数。<span class="mono">generate</span> 是处理一批输入的模板方法。</p>
-    <p class="mono">generate_prompt → generate</p></div></div>
-  <div class="step"><div class="num">3</div><div class="sc"><h4>_generate_with_cache()</h4>
-    <p>缓存包装层：先查缓存，命中就直接返回；未命中才真正请求，拿到结果后写入缓存。</p>
-    <p class="mono">_generate_with_cache</p></div></div>
-  <div class="step"><div class="num">4</div><div class="sc"><h4>_generate()　← 厂商在这里实现</h4>
-    <p><strong>抽象方法</strong>。<span class="mono">ChatOpenAI</span> / <span class="mono">ChatAnthropic</span> 各自实现：
-      翻译成厂商格式、发 HTTP、把响应转回 <span class="mono">ChatResult</span>（内含 AIMessage）。</p>
-    <p class="mono">ChatOpenAI._generate（集成层）</p></div></div>
+  <div class="step"><div class="num">1</div><div class="sc">
+    <h4>你的代码：传入字符串或消息</h4>
+    <p>你调用 <span class="mono">model.invoke("北京天气怎么样？")</span>。输入可以是字符串、字典或消息对象。</p>
+    <p class="mono">📍 实现层 langchain</p>
+  </div></div>
+  <div class="step"><div class="num">2</div><div class="sc">
+    <h4>标准化：一切都变成 Messages</h4>
+    <p>框架把你的输入统一转成一串<strong>标准消息对象</strong>（如 <span class="mono">[HumanMessage("北京天气怎么样？")]</span>）。
+      从这里开始，内部只认消息，不认裸字符串。</p>
+    <p class="mono">📍 地基层 langchain-core · messages/</p>
+  </div></div>
+  <div class="step"><div class="num">3</div><div class="sc">
+    <h4>进入统一入口 invoke → generate</h4>
+    <p><span class="mono">BaseChatModel.invoke()</span> 调用 <span class="mono">generate_prompt → generate</span>，
+      这是<strong>所有厂商共享</strong>的模板流程（含缓存、回调、重试）。</p>
+    <p class="mono">📍 地基层 · language_models/chat_models.py</p>
+  </div></div>
+  <div class="step"><div class="num">4</div><div class="sc">
+    <h4>翻译成厂商格式并发请求</h4>
+    <p>具体 partner（如 <span class="mono">ChatOpenAI._generate</span>）把标准消息<strong>翻译成 OpenAI 的 JSON</strong>，
+      通过厂商 SDK 发出 HTTP 请求。</p>
+    <p class="mono">📍 集成层 langchain-openai</p>
+  </div></div>
+  <div class="step"><div class="num">5</div><div class="sc">
+    <h4>厂商返回 → 翻译回标准消息</h4>
+    <p>OpenAI 返回原始 JSON，partner 把它<strong>翻译回</strong> <span class="mono">AIMessage</span>
+      （含正文、可能的工具调用、token 用量等）。</p>
+    <p class="mono">📍 集成层 → 地基层</p>
+  </div></div>
+  <div class="step"><div class="num">6</div><div class="sc">
+    <h4>回调触发 + 缓存写入 + 返回给你</h4>
+    <p>沿途的<strong>回调（callbacks）</strong>记录这次调用（用于 LangSmith 追踪），结果可能写入缓存，
+      最后把 <span class="mono">AIMessage</span> 交还给你。</p>
+    <p class="mono">📍 地基层 → 你的代码</p>
+  </div></div>
 </div>
 
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/language_models/chat_models.py</span><span class="ln">分工示意</span></div>
-<pre><span class="kw">class</span> <span class="fn">BaseChatModel</span>(BaseLanguageModel, ABC):
-    <span class="kw">def</span> <span class="fn">invoke</span>(self, input, config=None) -> AIMessage:
-        <span class="cm"># 规整输入 → generate_prompt → generate</span>
-        ...
-    <span class="kw">def</span> <span class="fn">_generate_with_cache</span>(self, messages, ...) -> ChatResult:
-        <span class="cm"># 查缓存；未命中则调用下面的 _generate</span>
-        ...
-    <span class="nb">@abstractmethod</span>
-    <span class="kw">def</span> <span class="fn">_generate</span>(self, messages, ...) -> ChatResult:
-        <span class="cm"># ★ 由每个厂商子类实现（OpenAI / Anthropic / ...）</span>
-        ...
-</pre>
+<h2>用一张层级图再看一遍</h2>
+<p>同样的旅程，换成"数据穿过三层"的视角。注意<strong>请求往下走、响应往上回</strong>，
+core 提供的统一接口让你的代码<strong>完全不碰最右边的厂商细节</strong>：</p>
+
+<div class="flow" style="flex-direction:column;gap:.6rem">
+  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
+    <div class="node hl" style="flex:0 0 130px">你的代码</div>
+    <div class="arrow">→</div>
+    <div class="node" style="flex:1">字符串 / dict</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
+    <div class="node hl" style="flex:0 0 130px">langchain (主力)</div>
+    <div class="arrow">→</div>
+    <div class="node" style="flex:1">标准化为 Messages</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
+    <div class="node hl" style="flex:0 0 130px">core (地基)</div>
+    <div class="arrow">→</div>
+    <div class="node" style="flex:1">invoke → generate（缓存/回调/重试的通用模板）</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
+    <div class="node hl" style="flex:0 0 130px">openai (配件)</div>
+    <div class="arrow">→</div>
+    <div class="node" style="flex:1">翻译成厂商 JSON → 发 HTTP → 翻译回 AIMessage</div>
+  </div>
+  <div style="text-align:center;color:var(--faint);font-size:.85rem">↑ 响应原路返回，每一层把数据"还原"成上一层认识的形状 ↑</div>
 </div>
 
 <div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应</div>
-  全部位于地基层 <span class="mono">core/language_models/chat_models.py</span>（用方法名定位）：
+  <div class="tag">🔬 细节 / 代码对应：关键调用链</div>
+  这条链是第三部分"内部源码"的预告，记住这几个方法名即可：
   <table class="t" style="margin-top:.6rem">
-    <tr><th>方法</th><th>角色</th></tr>
-    <tr><td class="mono">invoke</td><td>统一入口，返回单条 AIMessage</td></tr>
-    <tr><td class="mono">generate_prompt / generate</td><td>模板流程：回调、批处理、参数合并</td></tr>
-    <tr><td class="mono">_generate_with_cache</td><td>缓存层（命中即返回）</td></tr>
-    <tr><td class="mono">_generate（abstract）</td><td>厂商各自实现，真正发请求</td></tr>
+    <tr><th>步骤</th><th>方法</th><th>文件</th></tr>
+    <tr><td>统一入口</td><td class="mono">BaseChatModel.invoke</td><td class="mono">core · chat_models.py</td></tr>
+    <tr><td>模板流程</td><td class="mono">generate_prompt → generate</td><td class="mono">core · chat_models.py</td></tr>
+    <tr><td>缓存包装</td><td class="mono">_generate_with_cache</td><td class="mono">core · chat_models.py</td></tr>
+    <tr><td>厂商实现</td><td class="mono">ChatOpenAI._generate</td><td class="mono">partners/openai/…</td></tr>
   </table>
-  返回值类型 <span class="mono">ChatResult</span> 来自 <span class="mono">core/outputs/</span>，里面包着 AIMessage。
 </div>
 
 <div class="card macro">
-  <div class="tag">🌍 宏观理解：模板方法模式</div>
-  这是经典的<strong>"模板方法"设计模式</strong>：地基层把<strong>不变的流程</strong>
-  （缓存、回调、重试、批处理）写死成模板，把<strong>会变的那一步</strong>（怎么和具体厂商对话）
-  留成抽象方法 <span class="mono">_generate</span> 交给子类。<br>
-  这正是<strong>第 2 课"三层架构"在方法级别的体现</strong>：要支持新厂商，只需在集成层实现一个 <span class="mono">_generate</span>。
+  <div class="tag">🌍 宏观理解：为什么要这么多次"变身"？</div>
+  每一次形状转换都对应一层的<strong>单一职责</strong>：主力层只管"把用户输入规整成消息"，
+  地基层只管"通用流程（缓存/回调/重试）"，配件层只管"和某个厂商对话"。
+  正因为职责被切干净，<strong>换厂商时只有最底层那一块需要替换</strong>，你上面的代码一行都不用动。
 </div>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li>调用链：<span class="mono">invoke → generate_prompt → generate → _generate_with_cache → _generate</span>。</li>
-    <li>前几步是<strong>所有厂商共享</strong>的模板（缓存/回调/重试）；只有 <span class="mono">_generate</span> 由厂商各自实现。</li>
-    <li>这是"模板方法模式"，也是三层架构在代码里的落点。</li>
-    <li>下一课：工具调用在内部如何完成"函数 → schema → tool_calls → 执行"。</li>
+    <li>一次调用 = 数据三次变身：<strong>字符串 → 标准消息 → 厂商格式 → 标准消息</strong>。</li>
+    <li>请求往下穿三层、响应原路返回；你的代码只接触最上层的统一接口。</li>
+    <li>"统一入口 + 厂商专属 <span class="mono">_generate</span>"是 LangChain 可替换性的核心机关。</li>
+    <li>第一部分（宏观）到此结束。下一部分进入<strong>用户视角</strong>，从最小的"消息"开始动手。</li>
   </ul>
 </div>
 
-  <div class="footnav"><a class="prev" href="09-runnable-compose.html"><div class="dir">← 上一课</div><div class="ttl">Runnable 如何组合</div></a><a class="next" href="11-tool-internals.html"><div class="dir">下一课 →</div><div class="ttl">工具调用内部</div></a></div>
+  <div class="footnav"><a class="prev" href="02-monorepo.html"><div class="dir">← 上一课</div><div class="ttl">Monorepo 全景</div></a><a class="next" href="04-messages.html"><div class="dir">下一课 →</div><div class="ttl">消息系统</div></a></div>
 </div>
 
 </body></html>

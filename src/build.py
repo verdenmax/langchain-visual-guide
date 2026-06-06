@@ -1,8 +1,13 @@
 """Build the LangChain visual guide as a standalone static site.
 
-Generates all 14 lesson pages plus index.html into the project root,
-using plain relative links so the pages work via file:// or any static
-HTTP server (no companion required).
+Layout produced (relative to the project root):
+
+    index.html           entry point (table of contents)
+    lessons/NN-*.html    the 14 lesson pages
+
+Pages use relative links so the site works via file:// or any static HTTP
+server. Index links to ``lessons/NN-*.html``; lesson pages link to siblings
+by bare filename and back home via ``../index.html``.
 
 Usage:
     cd src && python build.py
@@ -11,7 +16,8 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.abspath(os.path.join(HERE, ".."))  # project root
+ROOT = os.path.abspath(os.path.join(HERE, ".."))  # project root
+LESSONS_DIR = os.path.join(ROOT, "lessons")
 sys.path.insert(0, HERE)
 
 import shell  # noqa: E402
@@ -26,14 +32,17 @@ def register(module_name, mapping):
 
 
 def build():
+    os.makedirs(LESSONS_DIR, exist_ok=True)
     written = []
     for fname, _title, _part in shell.PAGES:
-        html = shell.page(fname, CONTENT[fname], standalone=True)
-        with open(os.path.join(OUT, fname), "w", encoding="utf-8") as f:
+        html = shell.page(
+            fname, CONTENT[fname], standalone=True, home_href="../index.html"
+        )
+        with open(os.path.join(LESSONS_DIR, fname), "w", encoding="utf-8") as f:
             f.write(html)
-        written.append(fname)
-    with open(os.path.join(OUT, shell.INDEX_FILE), "w", encoding="utf-8") as f:
-        f.write(shell.index_page(standalone=True))
+        written.append(os.path.join("lessons", fname))
+    with open(os.path.join(ROOT, shell.INDEX_FILE), "w", encoding="utf-8") as f:
+        f.write(shell.index_page(standalone=True, lesson_prefix="lessons/"))
     written.append(shell.INDEX_FILE)
     return written
 
@@ -62,6 +71,6 @@ if __name__ == "__main__":
         "14-contributing.html": "LESSON_14",
     })
     done = build()
-    print("Wrote", len(done), "files to", OUT)
+    print("Wrote", len(done), "files under", ROOT)
     for f in done:
         print("  -", f)

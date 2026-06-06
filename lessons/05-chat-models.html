@@ -2,7 +2,7 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>11 · 工具调用内部 — LangChain 图解教程</title>
+<title>05 · 聊天模型 — LangChain 图解教程</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -187,103 +187,110 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
-    <a class="home" href="index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第三部分 · 内部源码</span>
-    <span class="pill">11 / 14</span>
+    <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第二部分 · 用户视角</span>
+    <span class="pill">05 / 14</span>
   </div>
-  <div class="progress"><span style="width:78%"></span></div>
+  <div class="progress"><span style="width:35%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第三部分 · 内部源码</div>
-    <h1>工具调用内部</h1>
+    <div class="part">第二部分 · 用户视角</div>
+    <h1>聊天模型</h1>
   </div>
   
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-第 6 课你学会了用 <span class="inline">@tool</span>。这一课深入源码，看清楚两件"魔法"到底怎么发生：
-<strong>① 你的函数怎么变成模型能读的 JSON Schema</strong>，<strong>② 模型返回的 tool_calls 怎么被解析和执行</strong>。
+聊天模型（Chat Model）是你<strong>最常打交道的对象</strong>：喂给它一串消息，它还你一条 <span class="inline">AIMessage</span>。
+LangChain 的杀手锏是——<strong>所有厂商的模型，用法一模一样</strong>。
 </p>
 
 <div class="card analogy">
-  <div class="tag">🌐 生活类比</div>
-  你的 Python 函数说"中文"，大模型 API 只认"JSON 方言"。这中间需要一个<strong>翻译官</strong>：
-  去程把函数签名翻成 JSON Schema 给模型看，回程把模型说的"我要调这个函数、参数是这些"翻回成你能执行的调用。
-  这两段翻译，就是工具机制的核心。
+  <div class="tag">🔁 生活类比</div>
+  就像<strong>万能遥控器</strong>：电视、空调、音响牌子各不相同，但遥控器上的"开机/音量+"按钮是统一的。
+  <span class="mono">init_chat_model</span> 就是这只万能遥控器，按钮（<span class="mono">invoke</span>/<span class="mono">stream</span>）永远一样，
+  换设备只改一个型号字符串。
 </div>
 
-<h2>去程：函数 → JSON Schema</h2>
-<p>当你 <span class="inline">@tool</span> 一个函数，<span class="inline">StructuredTool</span> 会用
-<span class="inline">create_schema_from_function</span> 读取<strong>函数签名 + 类型注解 + docstring</strong>，
-自动生成一个 pydantic schema：</p>
+<h2>一行代码拿到任意模型</h2>
+<p>核心入口是 <span class="inline">init_chat_model</span>，用 <span class="inline">"厂商:型号"</span> 的字符串指定模型：</p>
 
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/tools/structured.py</span><span class="ln">推断 schema</span></div>
-<pre><span class="kw">if</span> args_schema <span class="kw">is</span> None <span class="kw">and</span> infer_schema:
-    <span class="cm"># 从函数签名自动推断参数 schema</span>
-    args_schema = create_schema_from_function(name, func, ...)
+<pre class="code"><span class="kw">from</span> langchain.chat_models <span class="kw">import</span> init_chat_model
+
+model = init_chat_model(<span class="st">"openai:gpt-5.1"</span>)        <span class="cm"># OpenAI</span>
+<span class="cm"># model = init_chat_model("anthropic:claude-sonnet-4-5")  # 换厂商只改这里</span>
 </pre>
-</div>
 
-<div class="flow">
-  <div class="node hl"><div class="nt">Python 函数</div><div class="nd">get_weather(city: str)</div></div>
-  <div class="arrow">→</div>
-  <div class="node"><div class="nt">pydantic schema</div><div class="nd">推断参数类型</div></div>
-  <div class="arrow">→</div>
-  <div class="node"><div class="nt">JSON Schema</div><div class="nd">{city: {type: string}}</div></div>
-  <div class="arrow">→</div>
-  <div class="node hl"><div class="nt">发给模型</div><div class="nd">bind_tools</div></div>
-</div>
-
-<p><span class="inline">model.bind_tools([get_weather])</span> 就是把上面生成的 JSON Schema 塞进请求，
-告诉模型"你有这么个工具可用"。</p>
-
-<h2>回程：tool_calls → 执行 → ToolMessage</h2>
-<p>模型决定用工具时，会在响应里返回结构化的工具调用。partner 把它解析成
-<span class="inline">AIMessage.tool_calls</span>，其中每一项是一个 <span class="inline">ToolCall</span>：</p>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/messages/tool.py</span><span class="ln">ToolCall 结构</span></div>
-<pre><span class="kw">class</span> <span class="fn">ToolCall</span>(TypedDict):
-    name: str               <span class="cm"># 要调用的工具名</span>
-    args: dict[str, Any]    <span class="cm"># 参数（已是 Python dict）</span>
-    id: str | None          <span class="cm"># 本次调用的唯一 id</span>
-</pre>
-</div>
-
-<div class="vflow">
-  <div class="step"><div class="num">1</div><div class="sc"><h4>解析</h4><p>厂商响应中的工具调用被解析成 <span class="mono">AIMessage.tool_calls = [ToolCall, ...]</span>。</p></div></div>
-  <div class="step"><div class="num">2</div><div class="sc"><h4>匹配</h4><p>按 <span class="mono">name</span> 找到对应的工具对象。</p></div></div>
-  <div class="step"><div class="num">3</div><div class="sc"><h4>执行</h4><p><span class="mono">tool.invoke(tool_call["args"])</span> 真正运行你的函数。</p></div></div>
-  <div class="step"><div class="num">4</div><div class="sc"><h4>封装</h4><p>结果包成 <span class="mono">ToolMessage(content=..., tool_call_id=id)</span>，用 id 与请求一一对应。</p></div></div>
-</div>
+<table class="t">
+  <tr><th>前缀写法</th><th>实际用到的集成包</th></tr>
+  <tr><td class="mono">"openai:gpt-5.1"</td><td class="mono">langchain-openai</td></tr>
+  <tr><td class="mono">"anthropic:claude-sonnet-4-5"</td><td class="mono">langchain-anthropic</td></tr>
+  <tr><td class="mono">"ollama:llama3"</td><td class="mono">langchain-ollama</td></tr>
+</table>
 
 <div class="card detail">
   <div class="tag">🔬 细节 / 代码对应</div>
   <ul>
-    <li><span class="mono">@tool</span> → <span class="mono">tools/convert.py</span>；底层 <span class="mono">StructuredTool</span> → <span class="mono">tools/structured.py</span>。</li>
-    <li><span class="mono">ToolCall</span> / <span class="mono">ToolCallChunk</span> → <span class="mono">messages/tool.py</span>；<span class="mono">ToolMessage</span> 同文件。</li>
-    <li>在 Agent 里，这套"匹配 + 执行 + 封装"由 LangGraph 的 <span class="mono">ToolNode</span> 节点完成（下一课）。</li>
+    <li><span class="mono">init_chat_model</span> 在 <span class="mono">langchain_v1/langchain/chat_models/base.py</span>。
+      它解析前缀、按需导入对应 partner 包、返回一个 <span class="mono">BaseChatModel</span> 实例。</li>
+    <li>返回的对象类型（如 <span class="mono">ChatOpenAI</span>）来自<strong>集成层</strong>，但都实现了<strong>地基层</strong>
+      <span class="mono">core/language_models/chat_models.py</span> 里的 <span class="mono">BaseChatModel</span> 接口。</li>
   </ul>
 </div>
 
-<div class="card macro">
-  <div class="tag">🌍 宏观理解</div>
-  工具机制 = <strong>两段翻译 + 一个 id 配对</strong>。<span class="mono">tool_call_id</span> 像快递单号，
-  保证"哪个请求对应哪个结果"不会错乱（尤其当模型一次请求<strong>多个</strong>工具时）。
-  这套机制纯靠<strong>结构化消息</strong>运转——又一次印证"消息是通用货币"。
+<h2>三种调用方式：invoke / stream / batch</h2>
+<p>拿到模型后，有三种跑法。它们其实来自更底层的 <strong>Runnable 接口</strong>（第 8 课会揭晓）：</p>
+
+<div class="cols">
+  <div class="col">
+    <h4>🟢 invoke：一问一答</h4>
+    <pre class="code" style="margin:.4rem 0">resp = model.invoke(
+  <span class="st">"北京天气怎么样？"</span>
+)
+print(resp.content)
+<span class="cm"># 返回一条完整 AIMessage</span></pre>
+  </div>
+  <div class="col">
+    <h4>🔵 stream：逐字流式</h4>
+    <pre class="code" style="margin:.4rem 0"><span class="kw">for</span> chunk <span class="kw">in</span> model.stream(
+    <span class="st">"讲个故事"</span>):
+  print(chunk.content, end=<span class="st">""</span>)
+<span class="cm"># 一块块吐 AIMessageChunk</span></pre>
+  </div>
 </div>
+<pre class="code"><span class="cm"># batch：一次并发跑多个输入</span>
+answers = model.batch([<span class="st">"北京天气？"</span>, <span class="st">"上海天气？"</span>, <span class="st">"广州天气？"</span>])
+</pre>
+
+<div class="card macro">
+  <div class="tag">🌍 宏观理解：输入很灵活，输出很统一</div>
+  <ul>
+    <li><strong>输入</strong>可以偷懒：传<strong>字符串</strong>（自动当成 HumanMessage）、传<strong>消息列表</strong>、
+      或传 <span class="mono">[("system","..."),("human","...")]</span> 这样的元组列表。</li>
+    <li><strong>输出</strong>永远统一：<span class="mono">invoke</span> → 一条 <span class="mono">AIMessage</span>；
+      <span class="mono">stream</span> → 一串 <span class="mono">AIMessageChunk</span>。</li>
+    <li><strong>异步版</strong>同样齐全：<span class="mono">ainvoke</span> / <span class="mono">astream</span> / <span class="mono">abatch</span>。</li>
+  </ul>
+</div>
+
+<h2>给模型装上工具：bind_tools</h2>
+<p>聊天模型本身不会执行工具，但可以被告知"你有哪些工具可用"。这一步叫 <span class="inline">bind_tools</span>，
+是通往 Agent 的关键一跳：</p>
+<pre class="code">model_with_tools = model.bind_tools([get_weather])
+resp = model_with_tools.invoke(<span class="st">"北京天气怎么样？"</span>)
+print(resp.tool_calls)   <span class="cm"># 模型会在这里"请求"调用 get_weather</span>
+</pre>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li>去程：函数签名 → <span class="mono">create_schema_from_function</span> → pydantic → JSON Schema → <span class="mono">bind_tools</span>。</li>
-    <li>回程：<span class="mono">AIMessage.tool_calls</span>（ToolCall）→ 匹配 → 执行 → <span class="mono">ToolMessage</span>，靠 <span class="mono">id</span> 配对。</li>
-    <li>类型注解和 docstring 直接决定模型看到的工具说明，<strong>务必写好</strong>。</li>
-    <li>下一课：看 Agent 把这套循环编成一张 LangGraph 状态图。</li>
+    <li><span class="mono">init_chat_model("厂商:型号")</span> 一行拿到任意厂商模型，用法完全统一。</li>
+    <li>三种跑法：<strong>invoke</strong>（一次）/<strong>stream</strong>（流式）/<strong>batch</strong>（批量），均有 async 版。</li>
+    <li>输入灵活（字符串/消息/元组），输出统一（AIMessage / AIMessageChunk）。</li>
+    <li><span class="mono">bind_tools</span> 让模型"知道"有哪些工具——下一课正式认识工具。</li>
   </ul>
 </div>
 
-  <div class="footnav"><a class="prev" href="10-chat-internals.html"><div class="dir">← 上一课</div><div class="ttl">聊天模型内部</div></a><a class="next" href="12-agent-internals.html"><div class="dir">下一课 →</div><div class="ttl">Agent 内部</div></a></div>
+  <div class="footnav"><a class="prev" href="04-messages.html"><div class="dir">← 上一课</div><div class="ttl">消息系统</div></a><a class="next" href="06-tools.html"><div class="dir">下一课 →</div><div class="ttl">工具 Tools</div></a></div>
 </div>
 
 </body></html>
