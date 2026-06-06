@@ -321,6 +321,34 @@ agent = create_agent(model, tools=[search_kb])   <span class="cm"># Agent 自己
   </div>
 </details>
 
+<details class="accordion">
+  <summary><span class="badge-num">4</span> 上手不用装库：InMemoryVectorStore + 增量索引 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 零依赖向量库（教学/测试首选）</div>
+      <div class="a">不想先装一个向量数据库？core 自带一个纯内存实现，几行就能跑通整条 RAG：
+<pre class="code"><span class="kw">from</span> langchain_core.vectorstores <span class="kw">import</span> InMemoryVectorStore
+
+vs = InMemoryVectorStore.from_texts(["北京晴", "上海雨"], embedding=embeddings)
+vs.similarity_search("北京天气", k=1)</pre>
+        位置：<span class="mono">core/vectorstores/in_memory.py:34</span>。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 真实项目：怎么避免每次全量重嵌入</div>
+      <div class="a">文档会更新，但大部分没变。core 的<strong>索引 API</strong> 用一个 <span class="mono">RecordManager</span> 记录"哪些文档已入库"，
+        <span class="mono">index()</span> 只对<strong>新增/变更</strong>的文档重新嵌入入库，并清理已删除的：
+<pre class="code"><span class="kw">from</span> langchain_core.indexing <span class="kw">import</span> index   <span class="cm"># indexing/api.py:296</span>
+index(docs, record_manager, vectorstore, cleanup=<span class="st">"incremental"</span>)</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 为什么重要</div>
+      <div class="a">这正是"<strong>玩具 RAG</strong> ↔ <strong>可维护 RAG</strong>"的分水岭：避免重复嵌入（省钱省时）、自动去重、同步删除。
+        <span class="mono">RecordManager</span> 在 <span class="mono">indexing/base.py:22</span>（含内存版 <span class="mono">InMemoryRecordManager</span>）。</div>
+    </div>
+  </div>
+</details>
+
 <h2>🔬 实现细节与亮点</h2>
 <p>RAG 的三个零件在源码里各有精巧之处——看 Retriever 如何"白嫖"Runnable 能力，以及切分器如何在语义边界下刀。</p>
 
@@ -381,7 +409,7 @@ agent = create_agent(model, tools=[search_kb])   <span class="cm"># Agent 自己
 # ---------------------------------------------------------------------------
 LESSON_17 = r"""
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-第 7、12 课我们<strong>用</strong>过内置中间件（限流、人审、重试…）。当它们不够用时，
+第 7、13 课我们<strong>用</strong>过内置中间件（限流、人审、重试…）。当它们不够用时，
 定制自己 Agent 的<strong>核心钥匙</strong>就是——<strong>写你自己的中间件</strong>。这是 Agent 最强大的扩展点。
 </p>
 
@@ -694,7 +722,7 @@ model = strong.with_fallbacks([cheap])
     </div>
     <div class="qa">
       <div class="q">✅ 关联</div>
-      <div class="a">这建立在第 13 课的流式与 <span class="mono">astream_events</span> 之上——Agent 是 Runnable，所以天然支持流式，只是多了"按节点"的粒度。</div>
+      <div class="a">这建立在第 14 课的流式与 <span class="mono">astream_events</span> 之上——Agent 是 Runnable，所以天然支持流式，只是多了"按节点"的粒度。</div>
     </div>
   </div>
 </details>

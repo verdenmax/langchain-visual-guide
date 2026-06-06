@@ -1,7 +1,7 @@
 # LangChain 图解教程 · 从零理解整个项目
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
-![Lessons](https://img.shields.io/badge/lessons-18-blue.svg)
+![Lessons](https://img.shields.io/badge/lessons-19-blue.svg)
 ![Parts](https://img.shields.io/badge/parts-5-9cf.svg)
 ![Built with](https://img.shields.io/badge/built%20with-Python%203-3776AB.svg?logo=python&logoColor=white)
 ![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
@@ -34,7 +34,7 @@ python -m http.server 8000
 # 然后访问 http://localhost:8000/
 ```
 
-## 📚 教程结构（5 部分 · 18 课）
+## 📚 教程结构（5 部分 · 19 课）
 
 ### 第一部分 · 宏观全景
 1. **LangChain 是什么** — 解决什么问题 · 核心心智模型
@@ -49,20 +49,21 @@ python -m http.server 8000
 
 ### 第三部分 · 内部源码
 8. **Runnable 万物之基** — invoke/stream/batch · LCEL 管道 `|`
-9. **Runnable 如何组合** — Sequence / Parallel 组合
-10. **聊天模型内部** — `BaseChatModel` 调用链
-11. **工具调用内部** — 函数 → JSON Schema → `tool_calls`
-12. **Agent 内部** — LangGraph 状态图 + middleware
-13. **Streaming 与 Callbacks** — 流式输出与回调追踪
+9. **Runnable 如何组合** — Sequence / Parallel / Branch 组合
+10. **输出解析器 Output Parsers** — `StrOutputParser` · `JsonOutputParser` · 闭环
+11. **聊天模型内部** — `BaseChatModel` 调用链
+12. **工具调用内部** — 函数 → JSON Schema → `tool_calls`
+13. **Agent 内部** — LangGraph 状态图 + middleware
+14. **Streaming 与 Callbacks** — 流式输出与回调追踪
 
 ### 第四部分 · 进阶实战
-14. **读源码 / 调试 / 测试 / 贡献** — `uv` · 测试 · 调试 · 贡献规范
+15. **读源码 / 调试 / 测试 / 贡献** — `uv` · 测试 · 调试 · 贡献规范
 
 ### 第五部分 · 自己动手做 Agent
-15. **提示词 Prompts** — `ChatPromptTemplate` · `MessagesPlaceholder` · few-shot
-16. **RAG 检索增强** — `Document` → 切块 → `Embeddings` → `VectorStore` → `Retriever`
-17. **写自己的中间件** — `AgentMiddleware` 钩子（before/after/wrap）· `dynamic_prompt`
-18. **运行时上下文与健壮性** — `context_schema` · `with_fallbacks` · `stream_mode`
+16. **提示词 Prompts** — `ChatPromptTemplate` · `MessagesPlaceholder` · few-shot
+17. **RAG 检索增强** — `Document` → 切块 → `Embeddings` → `VectorStore` → `Retriever`
+18. **写自己的中间件** — `AgentMiddleware` 钩子（before/after/wrap）· `dynamic_prompt`
+19. **运行时上下文与健壮性** — `context_schema` · `with_fallbacks` · `stream_mode`
 
 ## 🎨 每页包含
 
@@ -77,10 +78,10 @@ python -m http.server 8000
 ```
 langchain-visual-guide/
 ├── index.html              ← 入口（目录页），从这里开始
-├── lessons/                ← 18 课图解页面
+├── lessons/                ← 19 课图解页面
 │   ├── 01-what-is-langchain.html
 │   ├── 02-monorepo.html
-│   └── …  18-runtime-context.html
+│   └── …  19-runtime-context.html
 ├── src/                    ← 无依赖的 Python 生成器（可重建全部 HTML）
 │   ├── shell.py            共享外壳：CSS 设计系统、导航、index 页
 │   ├── part1.py … part4.py 各部分课程内容
@@ -98,7 +99,7 @@ cd src
 python build.py
 ```
 
-构建脚本会把 `index.html` 写到项目根目录，18 课写入 `lessons/`。
+构建脚本会把 `index.html` 写到项目根目录，19 课写入 `lessons/`。
 页面之间用相对链接互联，因此整体可直接拷贝、部署到任意静态服务器或 GitHub Pages。
 
 ## 📄 许可

@@ -217,9 +217,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第二部分 · 用户视角</span>
-    <span class="pill">04 / 18</span>
+    <span class="pill">04 / 19</span>
   </div>
-  <div class="progress"><span style="width:22%"></span></div>
+  <div class="progress"><span style="width:21%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
@@ -300,7 +300,7 @@ AIMessage(
     <li><strong>消息是"通用货币"</strong>：模型的输入是 <span class="mono">list[BaseMessage]</span>，输出是一条 <span class="mono">AIMessage</span>。
       无论 OpenAI 还是 Anthropic，进出都是这套统一格式。</li>
     <li><strong>tool_calls 是 Agent 的引擎</strong>：模型不直接执行工具，而是在 AIMessage 里"请求"调用，
-      由你的程序去执行，再把结果包成 ToolMessage 喂回去。这就是 Agent 循环的本质（第 7、12 课）。</li>
+      由你的程序去执行，再把结果包成 ToolMessage 喂回去。这就是 Agent 循环的本质（第 7、13 课）。</li>
     <li><strong>content 可以是多模态</strong>：除了文本，还能放图片等内容块（定义在 <span class="mono">messages/content.py</span>）。</li>
   </ul>
 </div>
@@ -322,7 +322,7 @@ conversation = [
   <div class="col">
     <h4>① 流式块 Message Chunk</h4>
     <p>流式输出时，模型不是一次给完整 <span class="inline">AIMessage</span>，而是一串
-      <span class="inline">AIMessageChunk</span>。它们能用 <span class="inline">+</span> 累加成完整消息（第 13 课详解）。</p>
+      <span class="inline">AIMessageChunk</span>。它们能用 <span class="inline">+</span> 累加成完整消息（第 14 课详解）。</p>
     <p class="mono" style="font-size:.8rem;color:var(--muted)">messages/ai.py · AIMessageChunk</p>
   </div>
   <div class="col">
@@ -571,7 +571,7 @@ agent = create_agent(model, tools, middleware=[SummarizationMiddleware(model)])<
       <div class="q">✅ 代码对应</div>
       <div class="a"><span class="mono">SummarizationMiddleware</span> → <span class="mono">agents/middleware/summarization.py</span>；
         <span class="mono">ContextEditingMiddleware</span> → <span class="mono">agents/middleware/context_editing.py</span>；
-        <span class="mono">checkpointer</span> 是 <span class="mono">create_agent</span> 的参数（持久化由 LangGraph 提供，第 12 课）。</div>
+        <span class="mono">checkpointer</span> 是 <span class="mono">create_agent</span> 的参数（持久化由 LangGraph 提供，第 13 课）。</div>
     </div>
   </div>
 </details>

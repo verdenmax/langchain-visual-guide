@@ -2,7 +2,7 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>07 · Agent 入门 — LangChain 图解教程</title>
+<title>18 · 写自己的中间件 — LangChain 图解教程</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -216,274 +216,217 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第二部分 · 用户视角</span>
-    <span class="pill">07 / 19</span>
+    <span class="pill">第五部分 · 自己动手做 Agent</span>
+    <span class="pill">18 / 19</span>
   </div>
-  <div class="progress"><span style="width:36%"></span></div>
+  <div class="progress"><span style="width:94%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第二部分 · 用户视角</div>
-    <h1>Agent 入门</h1>
+    <div class="part">第五部分 · 自己动手做 Agent</div>
+    <h1>写自己的中间件</h1>
   </div>
   
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-把前三课（消息 + 模型 + 工具）<strong>组装并自动化</strong>，就是 Agent。
-一个函数 <span class="inline">create_agent</span> 帮你编排"思考 → 调工具 → 看结果 → 再思考"的循环，直到任务完成。
+第 7、13 课我们<strong>用</strong>过内置中间件（限流、人审、重试…）。当它们不够用时，
+定制自己 Agent 的<strong>核心钥匙</strong>就是——<strong>写你自己的中间件</strong>。这是 Agent 最强大的扩展点。
 </p>
 
 <div class="card analogy">
-  <div class="tag">🕵️ 生活类比</div>
-  Agent 就像一个<strong>会用工具的助理</strong>：你交代任务，他自己判断"需要先查个天气"，
-  拿起工具电话拨号，看到结果后再决定"够了，可以回答了"还是"还得再查一个"。
-  你不用一步步指挥——<strong>循环由他自己跑</strong>。
+  <div class="tag">🧅 生活类比</div>
+  中间件就像<strong>洋葱的一层层皮</strong>，也像 Web 框架的 middleware：每次请求都<strong>从外向里穿过每一层</strong>，
+  再<strong>从里向外穿回来</strong>。每一层都能在"进去前"和"出来后"做点事——记录、改写、拦截、重试。
 </div>
 
-<h2>一行创建 Agent</h2>
-<pre class="code"><span class="kw">from</span> langchain.agents <span class="kw">import</span> create_agent
+<h2>六个钩子：在循环的关键点插入逻辑</h2>
+<p>一个中间件可以实现下面任意几个<strong>钩子方法</strong>，框架会在对应时机自动调用：</p>
 
-agent = create_agent(
-    model=<span class="st">"openai:gpt-5.1"</span>,        <span class="cm"># 模型（字符串或模型对象都行）</span>
-    tools=[get_weather],            <span class="cm"># 一组工具</span>
-    system_prompt=<span class="st">"你是天气助手"</span>,  <span class="cm"># 可选的系统设定</span>
-)
+<table class="t">
+  <tr><th>钩子</th><th>触发时机</th><th>典型用途</th></tr>
+  <tr><td class="mono">before_agent</td><td>整个 Agent 开始时（一次）</td><td>初始化、鉴权</td></tr>
+  <tr><td class="mono">before_model</td><td>每次调用模型<strong>前</strong></td><td>裁剪历史、注入提示</td></tr>
+  <tr><td class="mono">wrap_model_call</td><td><strong>包裹</strong>整个模型调用</td><td>改请求/响应、重试、降级</td></tr>
+  <tr><td class="mono">after_model</td><td>每次调用模型<strong>后</strong></td><td>校验/改写模型输出</td></tr>
+  <tr><td class="mono">wrap_tool_call</td><td><strong>包裹</strong>每次工具调用</td><td>工具级重试、审计</td></tr>
+  <tr><td class="mono">after_agent</td><td>整个 Agent 结束时（一次）</td><td>收尾、记录指标</td></tr>
+</table>
 
-result = agent.invoke(
-    {<span class="st">"messages"</span>: [{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"北京和上海哪个更热？"</span>}]}
-)
-print(result[<span class="st">"messages"</span>][-1].content)   <span class="cm"># 最终答案</span>
-</pre>
-
-<div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应</div>
-  <ul>
-    <li><span class="mono">create_agent</span> 在 <span class="mono">langchain_v1/langchain/agents/factory.py</span>，
-      由 <span class="mono">agents/__init__.py</span> 导出。</li>
-    <li>它的输入/输出都是一个带 <span class="mono">"messages"</span> 键的状态字典——即 <span class="mono">AgentState</span>。</li>
-    <li>核心签名（节选）：
-      <pre class="code" style="margin:.5rem 0"><span class="kw">def</span> <span class="fn">create_agent</span>(
-    model: str | BaseChatModel,
-    tools=None,
-    *,
-    system_prompt=None,
-    middleware=(),         <span class="cm"># 可插拔的中间件（第 13 课）</span>
-    response_format=None,  <span class="cm"># 结构化输出</span>
-    ...
-)</pre></li>
-  </ul>
+<div class="flow" style="flex-direction:column;gap:.5rem;align-items:stretch">
+  <div style="text-align:center;color:var(--muted);font-size:.82rem">before_agent → 〔循环：before_model → (wrap_model_call) 模型 → after_model → (wrap_tool_call) 工具 〕→ after_agent</div>
 </div>
 
-<h2>Agent 循环：它到底在转什么？</h2>
-<p>这张图是 Agent 的灵魂。注意它<strong>就是第 6 课那个工具往返，只是自动重复</strong>，
-直到模型不再请求工具为止：</p>
+<h2>两种写法</h2>
+<div class="cols">
+  <div class="col">
+    <h4>① 装饰器（轻量）</h4>
+    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> before_model
 
-<div class="flow" style="flex-direction:column;gap:.7rem;align-items:center">
-  <div class="node hl" style="flex:0 0 auto;min-width:200px">① 模型思考<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">看当前消息，决定下一步</span></div>
-  <div class="arrow" style="transform:rotate(90deg)">→</div>
-  <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;justify-content:center">
-    <div class="node" style="min-width:200px;border-color:var(--amber)">要调工具？→ ② 执行工具<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">运行后把 ToolMessage 加回消息，<b>回到 ①</b></span></div>
-    <div class="node" style="min-width:160px;border-color:var(--accent)">不调工具？→ ③ 结束<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">返回最终 AIMessage</span></div>
+<span class="nb">@before_model</span>
+<span class="kw">def</span> <span class="fn">log_turns</span>(state, runtime):
+    print(len(state[<span class="st">"messages"</span>]))
+    <span class="kw">return</span> None   <span class="cm"># None = 不改状态</span></pre>
+  </div>
+  <div class="col">
+    <h4>② 类（功能全）</h4>
+    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> AgentMiddleware
+
+<span class="kw">class</span> <span class="fn">Guard</span>(AgentMiddleware):
+    <span class="kw">def</span> <span class="fn">before_model</span>(self, state, runtime):
+        ...
+    <span class="kw">def</span> <span class="fn">wrap_model_call</span>(self, request, handler):
+        <span class="kw">return</span> handler(request)</pre>
   </div>
 </div>
+<pre class="code">agent = create_agent(model, tools, middleware=[Guard()])   <span class="cm"># 装上即生效</span></pre>
 
-<div class="card macro">
-  <div class="tag">🌍 宏观理解</div>
+<div class="card detail">
+  <div class="tag">🔬 代码对应</div>
   <ul>
-    <li>Agent = <strong>模型 + 工具 + 一个自动循环</strong>。循环的"判断条件"很简单：
-      <strong>模型回复里还有没有 <span class="mono">tool_calls</span></strong>？有就执行并继续，没有就结束。</li>
-    <li>你只管<strong>声明</strong>"用哪个模型、给哪些工具、什么系统设定"，循环的编排交给框架。</li>
-    <li>底层其实是一张 <strong>LangGraph 状态图</strong>（节点："model" 与 "tools"）——这是第 13 课的内容，现在只需理解它在转一个循环。</li>
+    <li><span class="mono">AgentMiddleware</span> 基类与全部钩子 → <span class="mono">agents/middleware/types.py</span></li>
+    <li>装饰器 <span class="mono">before_model / after_model / wrap_model_call / wrap_tool_call / before_agent / after_agent / dynamic_prompt</span>
+      与 <span class="mono">ModelRequest / ModelResponse</span> → 从 <span class="mono">langchain.agents.middleware</span> 导出</li>
   </ul>
 </div>
 
 <h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入 create_agent 的三个常用能力。</p>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，逐个吃透中间件机制。</p>
 
 <details class="accordion">
-  <summary><span class="badge-num">1</span> system_prompt：怎么给 Agent 定"人设"和规则 <span class="hint">点击展开详解</span></summary>
+  <summary><span class="badge-num">1</span> 六个钩子分别在何时触发 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 执行顺序</div>
+      <div class="a">
+<pre class="code">before_agent                <span class="cm"># 仅一次</span>
+└─ 循环开始
+   before_model             <span class="cm"># 每轮模型调用前</span>
+   wrap_model_call ─ 模型 ─┐ <span class="cm"># 包在模型调用外层</span>
+   after_model  ◄──────────┘ <span class="cm"># 每轮模型调用后</span>
+   wrap_tool_call ─ 工具      <span class="cm"># 每次工具调用外层</span>
+└─ 循环结束
+after_agent                 <span class="cm"># 仅一次</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ before_model vs wrap_model_call 区别</div>
+      <div class="a"><span class="mono">before_model</span> 只能在调用<strong>前</strong>改状态（返回一个 state 更新）；
+        <span class="mono">wrap_model_call</span> <strong>同时掌控前后</strong>：能改请求、决定是否调用、还能改/重试响应——更强但也更重。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 多个中间件怎么叠</div>
+      <div class="a">多个中间件像洋葱<strong>层层包裹</strong>：靠前的在最外层。<span class="mono">wrap_*</span> 钩子可决定"是否、何时"调用内层（<span class="mono">handler</span>）。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> wrap_model_call：拦截并改写模型调用 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 模式：改请求 → 调 handler → 改响应</div>
+      <div class="a">
+<pre class="code"><span class="kw">def</span> <span class="fn">wrap_model_call</span>(self, request, handler):
+    <span class="cm"># request 里有 model / messages / tools / system_prompt / state / runtime</span>
+    request.messages = trim(request.messages)   <span class="cm"># 改请求</span>
+    response = handler(request)                  <span class="cm"># 真正调用模型（内层）</span>
+    <span class="cm"># 这里可检查 response，必要时改写或用不同 request 重试</span>
+    <span class="kw">return</span> response</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 它为什么这么关键</div>
+      <div class="a">内置的 <span class="mono">ModelRetryMiddleware</span> / <span class="mono">ModelFallbackMiddleware</span>（第 7 课）
+        正是基于 <span class="mono">wrap_model_call</span> 实现的——失败就换个 <span class="mono">request</span> 再调一次 <span class="mono">handler</span>。
+        你也能用它做"动态换模型、按内容改提示、缓存"等任意定制。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 代码对应</div>
+      <div class="a"><span class="mono">request</span> 是 <span class="mono">ModelRequest</span>（字段：model/messages/system_prompt/tools/tool_choice/state/runtime），
+        定义在 <span class="mono">agents/middleware/types.py</span>。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">3</span> dynamic_prompt：让系统提示词随状态变化 <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
     <div class="qa">
       <div class="q">🧪 示例</div>
       <div class="a">
-<pre class="code">agent = create_agent(
-    model, tools=[get_weather],
-    system_prompt=<span class="st">"你是严谨的天气助手。只用工具返回的数据，不要编造。"</span>,
-)</pre>
+<pre class="code"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> dynamic_prompt
+
+<span class="nb">@dynamic_prompt</span>
+<span class="kw">def</span> <span class="fn">make_prompt</span>(request):
+    user = request.runtime.context.user_id
+    <span class="kw">return</span> <span class="st">f"你在为用户 {user} 服务，回答要个性化。"</span>
+<span class="cm"># 每轮根据运行时上下文/状态，动态生成系统提示词</span></pre>
       </div>
     </div>
     <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">它会作为对话最前面的 <span class="mono">SystemMessage</span> 注入，约束 Agent 的<strong>语气、边界、调用工具的策略</strong>。
-        没有它，模型只能凭默认行为发挥，容易跑偏或乱编。</div>
+      <div class="q">❓ 与固定 system_prompt 的区别</div>
+      <div class="a">固定 <span class="mono">system_prompt</span> 是写死的字符串；<span class="mono">dynamic_prompt</span> 能在<strong>每次调用时</strong>
+        根据当前状态/运行时上下文（如用户身份、检索结果）<strong>实时生成</strong>提示词。</div>
     </div>
     <div class="qa">
       <div class="q">✅ 优点</div>
-      <div class="a">一个字符串就能统一规范整个 Agent 的行为，无需在每条用户消息里重复叮嘱。</div>
+      <div class="a">把"提示词工程"也变成可编程的中间件，适合多租户、个性化、A/B 实验等场景。</div>
     </div>
   </div>
 </details>
 
-<details class="accordion">
-  <summary><span class="badge-num">2</span> response_format：让 Agent 最终输出结构化数据 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">
-<pre class="code"><span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel
-<span class="kw">class</span> <span class="fn">Answer</span>(BaseModel):
-    city: str
-    temp_c: float
+<h2>🔬 实现细节与亮点</h2>
+<p>这是第五部分最值得深挖的一处：<strong>两类钩子用了两种完全不同的实现机制</strong>——这正是 middleware 既灵活又高效的秘密。</p>
 
-agent = create_agent(model, tools=[get_weather], response_format=Answer)
-<span class="cm"># Agent 跑完循环后，给你一个 Answer 对象，而不只是文本</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 与 with_structured_output 的区别</div>
-      <div class="a">第 5 课的 <span class="mono">with_structured_output</span> 约束<strong>单次模型调用</strong>的输出；
-        这里的 <span class="mono">response_format</span> 约束<strong>整个 Agent 循环跑完后</strong>的最终结果——适合"先用工具查、最后给结构化答案"的场景。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">Agent 既能多步用工具，又能把最终结论交成强类型对象，直接对接下游程序。</div>
-    </div>
-  </div>
-</details>
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">langchain/agents/factory.py</span><span class="ln">机制一：before/after 钩子 → 真实图节点</span></div>
+<pre><span class="cm"># 被覆盖的 before_model / after_model 会被编译成 LangGraph 的"节点"</span>
+graph.add_node(f<span class="st">"{m.name}.before_model"</span>, before_node, ...)
+graph.add_node(f<span class="st">"{m.name}.after_model"</span>,  after_node,  ...)
+<span class="cm"># 再用边把它们按顺序串进循环：…before_model → model → after_model…</span>
+</pre>
+</div>
 
-<details class="accordion">
-  <summary><span class="badge-num">3</span> middleware：在循环里插钩子（预告第 13 课） <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 用途举例</div>
-      <div class="a"><span class="mono">create_agent(..., middleware=[...])</span> 可以在"调用模型前后""执行工具前后"插入逻辑：
-        <strong>改写请求、人审(human-in-the-loop)、日志、限流、敏感词过滤</strong>等。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">真实产品需要在 Agent 的标准循环里加"非功能性"逻辑。若没有扩展点，就只能去改核心循环代码——既危险又难维护。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点 & 🔀 其他方案</div>
-      <div class="a">优点：行为可插拔，核心循环保持稳定（第 13 课看它如何映射到 LangGraph 节点）。
-        其他方案：用回调（callbacks，第 14 课）做观测，但 middleware 能真正<strong>改变</strong>流程，回调主要用于<strong>观察</strong>。</div>
-    </div>
-  </div>
-</details>
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">langchain/agents/factory.py</span><span class="ln">机制二：wrap_* 钩子 → 洋葱式函数组合</span></div>
+<pre><span class="kw">def</span> <span class="fn">_chain_model_call_handlers</span>(handlers):
+    <span class="cm"># "第一个 middleware 成为最外层；每层拿到一个 handler 回调去执行内层"</span>
+    <span class="cm"># 组合成嵌套函数：outer(req, handler=inner(req, handler=...真正调模型))</span>
+    ...
+</pre>
+</div>
 
-<h2>🎛️ 进阶专题：如何"驯服"一个 Agent</h2>
-<p>自动循环很强，但生产环境需要给它装上<strong>刹车与护栏</strong>：限制循环次数、关键操作要人审、
-出错能重试或降级。这些大多通过<strong>中间件（middleware）</strong>声明式装上，全部来自 <span class="inline">langchain.agents.middleware</span>。</p>
-
-<table class="t">
-  <tr><th>需求</th><th>中间件 / 机制</th></tr>
-  <tr><td>防止无限循环 / 失控</td><td class="mono">ModelCallLimitMiddleware · ToolCallLimitMiddleware · recursion_limit</td></tr>
-  <tr><td>关键操作要人批准</td><td class="mono">HumanInTheLoopMiddleware</td></tr>
-  <tr><td>出错自动重试</td><td class="mono">ModelRetryMiddleware · ToolRetryMiddleware</td></tr>
-  <tr><td>主模型挂了降级备用</td><td class="mono">ModelFallbackMiddleware</td></tr>
-  <tr><td>工具太多先筛一遍</td><td class="mono">LLMToolSelectorMiddleware</td></tr>
-</table>
-
-<h2>🔍 Agent 控制 · 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，逐个吃透关键护栏。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 防止失控：循环与调用次数上限 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 两道防线</div>
-      <div class="a">
-<pre class="code"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> ModelCallLimitMiddleware
-
-agent = create_agent(model, tools, middleware=[
-    ModelCallLimitMiddleware(max_calls=8),   <span class="cm"># 业务级：最多调 8 次模型</span>
-])
-<span class="cm"># 硬保护：图的递归上限（兜底，超过直接报错）</span>
-agent.invoke(input, config={<span class="st">"recursion_limit"</span>: 25})</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">模型可能陷入"反复调同一个工具"的死循环，既烧钱又卡死。
-        <span class="mono">recursion_limit</span> 是 LangGraph 的兜底硬上限；<span class="mono">ModelCallLimit / ToolCallLimit</span>
-        则是更贴业务的软上限，可控制"最多思考几轮、某工具最多调几次"。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">两层防线：软上限给出友好行为（如到达上限就收尾回答），硬上限保证绝不无限跑。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> 人在回路（HITL）：危险操作前先批准 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">
-<pre class="code"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> HumanInTheLoopMiddleware
-
-agent = create_agent(model, tools=[delete_database], middleware=[
-    HumanInTheLoopMiddleware(...),   <span class="cm"># 调用敏感工具前暂停，等人确认</span>
-], checkpointer=saver)               <span class="cm"># HITL 需要可暂停/恢复，故要 checkpointer</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">有些工具是<strong>不可逆的高风险操作</strong>（删数据、转账、发邮件）。让 Agent 在执行前<strong>暂停等人点头</strong>，
-        是生产环境的安全底线。它依赖图的"中断/恢复"能力（第 13 课）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">把"自动"与"可控"结合：日常自动跑，关键节点交回人类决策，且暂停期间状态被持久化、可随时恢复。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> 健壮性：重试与模型降级 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">
-<pre class="code"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> (
-    ToolRetryMiddleware, ModelFallbackMiddleware,
-)
-agent = create_agent(primary_model, tools, middleware=[
-    ToolRetryMiddleware(max_retries=2),        <span class="cm"># 工具抖动自动重试</span>
-    ModelFallbackMiddleware(backup_model),     <span class="cm"># 主模型失败→切备用</span>
-])</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">网络抖动、限流 429、厂商宕机都会偶发。<span class="mono">Retry</span> 吸收瞬时错误，
-        <span class="mono">Fallback</span> 在主模型彻底不可用时切到备用，保证服务连续。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点 & 🔀 其他方案</div>
-      <div class="a">优点：健壮性以"装中间件"的方式声明式获得，核心逻辑不变。
-        其他方案：在单次模型调用层用 <span class="mono">model.with_retry()</span>（第 5 课），但 Agent 级中间件覆盖整个循环更全面。</div>
-    </div>
-  </div>
-</details>
+<div class="card detail">
+  <div class="tag">🔬 两种机制</div>
+  <ul>
+    <li><strong>状态型钩子</strong>（<span class="mono">before_agent/before_model/after_model/after_agent</span>）：返回一个 state 更新，
+      被编译成<strong>图里的真实节点</strong>，按顺序执行。</li>
+    <li><strong>包裹型钩子</strong>（<span class="mono">wrap_model_call/wrap_tool_call</span>）：不是节点，而是被
+      <span class="mono">_chain_model_call_handlers</span> 组合成<strong>层层嵌套的函数</strong>，每层拿到 <span class="mono">handler</span> 去调内层。</li>
+    <li>哪些钩子被启用？框架检查<strong>子类是否覆盖了该方法</strong>（基类默认是 no-op，返回 <span class="mono">None</span>），没覆盖就<strong>不进图</strong>。</li>
+  </ul>
+</div>
 
 <div class="card spark">
   <div class="tag">💡 设计亮点</div>
   <ul>
-    <li>Agent = 模型 + 工具 + 循环，判据简单到只有一句话：<strong>还有没有 tool_calls</strong>。</li>
-    <li>你只<strong>声明</strong>"用什么"，循环的编排交给框架——这就是声明式的威力。</li>
+    <li><strong>两类钩子两种实现，各取所长</strong>：要"读改状态"的用图节点（清晰、可被 LangGraph 持久化）；要"包裹前后/决定是否调用"的用嵌套函数（能重试、能短路）。</li>
+    <li><strong>洋葱组合解释了 retry/fallback</strong>：<span class="mono">wrap_model_call</span> 拿到 <span class="mono">handler</span> 回调，可<strong>重复调用</strong>内层——这就是 <span class="mono">ModelRetry/ModelFallback</span>"失败再调一次"的实现原理。第一个 middleware 在最外层。</li>
+    <li><strong>零开销原则</strong>：没被覆盖的钩子<strong>根本不会进图</strong>，不写就没成本——既灵活又不拖慢循环。</li>
   </ul>
 </div>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
-    <li>输入/输出都是 <span class="mono">{"messages": [...]}</span> 状态字典（<span class="mono">AgentState</span>）。</li>
-    <li>循环判据：<strong>AIMessage 里还有没有 tool_calls</strong>。这把第 4–6 课串成了闭环。</li>
-    <li><strong>第二部分（用户视角）到此结束</strong>。接下来掀开盖子，看这些便利背后的源码机制。</li>
+  <ul>
+    <li>中间件是 Agent 的核心扩展点：六个钩子 <span class="mono">before_agent / before_model / wrap_model_call / after_model / wrap_tool_call / after_agent</span>。</li>
+    <li>两种写法：<strong>装饰器</strong>（轻量）与<strong>继承 AgentMiddleware</strong>（功能全）。</li>
+    <li><span class="mono">wrap_model_call</span> 能改请求/响应、重试、降级——内置的 retry/fallback 都基于它。</li>
+    <li><span class="mono">dynamic_prompt</span> 让系统提示词随运行时上下文动态生成。</li>
+    <li>下一课：把运行时数据传进去（context）、加降级、把思考流式推给 UI。</li>
   </ul>
 </div>
 
-  <div class="footnav"><a class="prev" href="06-tools.html"><div class="dir">← 上一课</div><div class="ttl">工具 Tools</div></a><a class="next" href="08-runnable.html"><div class="dir">下一课 →</div><div class="ttl">Runnable 万物之基</div></a></div>
+  <div class="footnav"><a class="prev" href="17-rag.html"><div class="dir">← 上一课</div><div class="ttl">RAG 检索增强</div></a><a class="next" href="19-runtime-context.html"><div class="dir">下一课 →</div><div class="ttl">运行时上下文与健壮性</div></a></div>
 </div>
 
 </body></html>

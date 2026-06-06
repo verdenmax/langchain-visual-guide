@@ -217,9 +217,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第三部分 · 内部源码</span>
-    <span class="pill">08 / 18</span>
+    <span class="pill">08 / 19</span>
   </div>
-  <div class="progress"><span style="width:44%"></span></div>
+  <div class="progress"><span style="width:42%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
@@ -377,7 +377,7 @@ chain = prompt.pipe(model).pipe(parser)
       <div class="q">🧪 RunnableConfig 携带什么</div>
       <div class="a">
 <pre class="code">chain.invoke(x, config={
-    <span class="st">"callbacks"</span>: [...],       <span class="cm"># 回调/追踪（第 13 课）</span>
+    <span class="st">"callbacks"</span>: [...],       <span class="cm"># 回调/追踪（第 14 课）</span>
     <span class="st">"tags"</span>: [<span class="st">"prod"</span>],         <span class="cm"># 给这次运行打标签</span>
     <span class="st">"metadata"</span>: {<span class="st">"uid"</span>: 1},   <span class="cm"># 自定义元数据</span>
     <span class="st">"max_concurrency"</span>: 5,    <span class="cm"># 并发上限</span>

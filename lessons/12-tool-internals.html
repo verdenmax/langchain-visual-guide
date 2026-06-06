@@ -2,7 +2,7 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>17 · 写自己的中间件 — LangChain 图解教程</title>
+<title>12 · 工具调用内部 — LangChain 图解教程</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -216,217 +216,159 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第五部分 · 自己动手做 Agent</span>
-    <span class="pill">17 / 18</span>
+    <span class="pill">第三部分 · 内部源码</span>
+    <span class="pill">12 / 19</span>
   </div>
-  <div class="progress"><span style="width:94%"></span></div>
+  <div class="progress"><span style="width:63%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第五部分 · 自己动手做 Agent</div>
-    <h1>写自己的中间件</h1>
+    <div class="part">第三部分 · 内部源码</div>
+    <h1>工具调用内部</h1>
   </div>
   
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-第 7、12 课我们<strong>用</strong>过内置中间件（限流、人审、重试…）。当它们不够用时，
-定制自己 Agent 的<strong>核心钥匙</strong>就是——<strong>写你自己的中间件</strong>。这是 Agent 最强大的扩展点。
+第 6 课你学会了用 <span class="inline">@tool</span>。这一课深入源码，看清楚两件"魔法"到底怎么发生：
+<strong>① 你的函数怎么变成模型能读的 JSON Schema</strong>，<strong>② 模型返回的 tool_calls 怎么被解析和执行</strong>。
 </p>
 
 <div class="card analogy">
-  <div class="tag">🧅 生活类比</div>
-  中间件就像<strong>洋葱的一层层皮</strong>，也像 Web 框架的 middleware：每次请求都<strong>从外向里穿过每一层</strong>，
-  再<strong>从里向外穿回来</strong>。每一层都能在"进去前"和"出来后"做点事——记录、改写、拦截、重试。
+  <div class="tag">🌐 生活类比</div>
+  你的 Python 函数说"中文"，大模型 API 只认"JSON 方言"。这中间需要一个<strong>翻译官</strong>：
+  去程把函数签名翻成 JSON Schema 给模型看，回程把模型说的"我要调这个函数、参数是这些"翻回成你能执行的调用。
+  这两段翻译，就是工具机制的核心。
 </div>
 
-<h2>六个钩子：在循环的关键点插入逻辑</h2>
-<p>一个中间件可以实现下面任意几个<strong>钩子方法</strong>，框架会在对应时机自动调用：</p>
+<h2>去程：函数 → JSON Schema</h2>
+<p>当你 <span class="inline">@tool</span> 一个函数，<span class="inline">StructuredTool</span> 会用
+<span class="inline">create_schema_from_function</span> 读取<strong>函数签名 + 类型注解 + docstring</strong>，
+自动生成一个 pydantic schema：</p>
 
-<table class="t">
-  <tr><th>钩子</th><th>触发时机</th><th>典型用途</th></tr>
-  <tr><td class="mono">before_agent</td><td>整个 Agent 开始时（一次）</td><td>初始化、鉴权</td></tr>
-  <tr><td class="mono">before_model</td><td>每次调用模型<strong>前</strong></td><td>裁剪历史、注入提示</td></tr>
-  <tr><td class="mono">wrap_model_call</td><td><strong>包裹</strong>整个模型调用</td><td>改请求/响应、重试、降级</td></tr>
-  <tr><td class="mono">after_model</td><td>每次调用模型<strong>后</strong></td><td>校验/改写模型输出</td></tr>
-  <tr><td class="mono">wrap_tool_call</td><td><strong>包裹</strong>每次工具调用</td><td>工具级重试、审计</td></tr>
-  <tr><td class="mono">after_agent</td><td>整个 Agent 结束时（一次）</td><td>收尾、记录指标</td></tr>
-</table>
-
-<div class="flow" style="flex-direction:column;gap:.5rem;align-items:stretch">
-  <div style="text-align:center;color:var(--muted);font-size:.82rem">before_agent → 〔循环：before_model → (wrap_model_call) 模型 → after_model → (wrap_tool_call) 工具 〕→ after_agent</div>
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/tools/structured.py</span><span class="ln">推断 schema</span></div>
+<pre><span class="kw">if</span> args_schema <span class="kw">is</span> None <span class="kw">and</span> infer_schema:
+    <span class="cm"># 从函数签名自动推断参数 schema</span>
+    args_schema = create_schema_from_function(name, func, ...)
+</pre>
 </div>
 
-<h2>两种写法</h2>
-<div class="cols">
-  <div class="col">
-    <h4>① 装饰器（轻量）</h4>
-    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> before_model
-
-<span class="nb">@before_model</span>
-<span class="kw">def</span> <span class="fn">log_turns</span>(state, runtime):
-    print(len(state[<span class="st">"messages"</span>]))
-    <span class="kw">return</span> None   <span class="cm"># None = 不改状态</span></pre>
-  </div>
-  <div class="col">
-    <h4>② 类（功能全）</h4>
-    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> AgentMiddleware
-
-<span class="kw">class</span> <span class="fn">Guard</span>(AgentMiddleware):
-    <span class="kw">def</span> <span class="fn">before_model</span>(self, state, runtime):
-        ...
-    <span class="kw">def</span> <span class="fn">wrap_model_call</span>(self, request, handler):
-        <span class="kw">return</span> handler(request)</pre>
-  </div>
+<div class="flow">
+  <div class="node hl"><div class="nt">Python 函数</div><div class="nd">get_weather(city: str)</div></div>
+  <div class="arrow">→</div>
+  <div class="node"><div class="nt">pydantic schema</div><div class="nd">推断参数类型</div></div>
+  <div class="arrow">→</div>
+  <div class="node"><div class="nt">JSON Schema</div><div class="nd">{city: {type: string}}</div></div>
+  <div class="arrow">→</div>
+  <div class="node hl"><div class="nt">发给模型</div><div class="nd">bind_tools</div></div>
 </div>
-<pre class="code">agent = create_agent(model, tools, middleware=[Guard()])   <span class="cm"># 装上即生效</span></pre>
+
+<p><span class="inline">model.bind_tools([get_weather])</span> 就是把上面生成的 JSON Schema 塞进请求，
+告诉模型"你有这么个工具可用"。</p>
+
+<h2>回程：tool_calls → 执行 → ToolMessage</h2>
+<p>模型决定用工具时，会在响应里返回结构化的工具调用。partner 把它解析成
+<span class="inline">AIMessage.tool_calls</span>，其中每一项是一个 <span class="inline">ToolCall</span>：</p>
+
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/messages/tool.py</span><span class="ln">ToolCall 结构</span></div>
+<pre><span class="kw">class</span> <span class="fn">ToolCall</span>(TypedDict):
+    name: str               <span class="cm"># 要调用的工具名</span>
+    args: dict[str, Any]    <span class="cm"># 参数（已是 Python dict）</span>
+    id: str | None          <span class="cm"># 本次调用的唯一 id</span>
+</pre>
+</div>
+
+<div class="vflow">
+  <div class="step"><div class="num">1</div><div class="sc"><h4>解析</h4><p>厂商响应中的工具调用被解析成 <span class="mono">AIMessage.tool_calls = [ToolCall, ...]</span>。</p></div></div>
+  <div class="step"><div class="num">2</div><div class="sc"><h4>匹配</h4><p>按 <span class="mono">name</span> 找到对应的工具对象。</p></div></div>
+  <div class="step"><div class="num">3</div><div class="sc"><h4>执行</h4><p><span class="mono">tool.invoke(tool_call["args"])</span> 真正运行你的函数。</p></div></div>
+  <div class="step"><div class="num">4</div><div class="sc"><h4>封装</h4><p>结果包成 <span class="mono">ToolMessage(content=..., tool_call_id=id)</span>，用 id 与请求一一对应。</p></div></div>
+</div>
 
 <div class="card detail">
-  <div class="tag">🔬 代码对应</div>
+  <div class="tag">🔬 细节 / 代码对应</div>
   <ul>
-    <li><span class="mono">AgentMiddleware</span> 基类与全部钩子 → <span class="mono">agents/middleware/types.py</span></li>
-    <li>装饰器 <span class="mono">before_model / after_model / wrap_model_call / wrap_tool_call / before_agent / after_agent / dynamic_prompt</span>
-      与 <span class="mono">ModelRequest / ModelResponse</span> → 从 <span class="mono">langchain.agents.middleware</span> 导出</li>
+    <li><span class="mono">@tool</span> → <span class="mono">tools/convert.py</span>；底层 <span class="mono">StructuredTool</span> → <span class="mono">tools/structured.py</span>。</li>
+    <li><span class="mono">ToolCall</span> / <span class="mono">ToolCallChunk</span> → <span class="mono">messages/tool.py</span>；<span class="mono">ToolMessage</span> 同文件。</li>
+    <li>在 Agent 里，这套"匹配 + 执行 + 封装"由 LangGraph 的 <span class="mono">ToolNode</span> 节点完成（下一课）。</li>
   </ul>
+</div>
+
+<div class="card macro">
+  <div class="tag">🌍 宏观理解</div>
+  工具机制 = <strong>两段翻译 + 一个 id 配对</strong>。<span class="mono">tool_call_id</span> 像快递单号，
+  保证"哪个请求对应哪个结果"不会错乱（尤其当模型一次请求<strong>多个</strong>工具时）。
+  这套机制纯靠<strong>结构化消息</strong>运转——又一次印证"消息是通用货币"。
 </div>
 
 <h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，逐个吃透中间件机制。</p>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入两个内部机制。</p>
 
 <details class="accordion">
-  <summary><span class="badge-num">1</span> 六个钩子分别在何时触发 <span class="hint">点击展开详解</span></summary>
+  <summary><span class="badge-num">1</span> 类型注解是怎么变成 JSON Schema 的 <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
     <div class="qa">
-      <div class="q">🧪 执行顺序</div>
-      <div class="a">
-<pre class="code">before_agent                <span class="cm"># 仅一次</span>
-└─ 循环开始
-   before_model             <span class="cm"># 每轮模型调用前</span>
-   wrap_model_call ─ 模型 ─┐ <span class="cm"># 包在模型调用外层</span>
-   after_model  ◄──────────┘ <span class="cm"># 每轮模型调用后</span>
-   wrap_tool_call ─ 工具      <span class="cm"># 每次工具调用外层</span>
-└─ 循环结束
-after_agent                 <span class="cm"># 仅一次</span></pre>
+      <div class="q">🧪 映射关系</div>
+      <div class="a"><span class="mono">create_schema_from_function</span> 读取签名，把 Python 类型映射成 JSON Schema 类型：
+<pre class="code">city: str         → {<span class="st">"type"</span>: <span class="st">"string"</span>}
+count: int        → {<span class="st">"type"</span>: <span class="st">"integer"</span>}
+ratio: float      → {<span class="st">"type"</span>: <span class="st">"number"</span>}
+tags: list[str]   → {<span class="st">"type"</span>: <span class="st">"array"</span>, <span class="st">"items"</span>: {<span class="st">"type"</span>: <span class="st">"string"</span>}}
+<span class="cm"># 没有默认值的参数 → required；docstring → description</span></pre>
       </div>
     </div>
     <div class="qa">
-      <div class="q">❓ before_model vs wrap_model_call 区别</div>
-      <div class="a"><span class="mono">before_model</span> 只能在调用<strong>前</strong>改状态（返回一个 state 更新）；
-        <span class="mono">wrap_model_call</span> <strong>同时掌控前后</strong>：能改请求、决定是否调用、还能改/重试响应——更强但也更重。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 多个中间件怎么叠</div>
-      <div class="a">多个中间件像洋葱<strong>层层包裹</strong>：靠前的在最外层。<span class="mono">wrap_*</span> 钩子可决定"是否、何时"调用内层（<span class="mono">handler</span>）。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> wrap_model_call：拦截并改写模型调用 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 模式：改请求 → 调 handler → 改响应</div>
-      <div class="a">
-<pre class="code"><span class="kw">def</span> <span class="fn">wrap_model_call</span>(self, request, handler):
-    <span class="cm"># request 里有 model / messages / tools / system_prompt / state / runtime</span>
-    request.messages = trim(request.messages)   <span class="cm"># 改请求</span>
-    response = handler(request)                  <span class="cm"># 真正调用模型（内层）</span>
-    <span class="cm"># 这里可检查 response，必要时改写或用不同 request 重试</span>
-    <span class="kw">return</span> response</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 它为什么这么关键</div>
-      <div class="a">内置的 <span class="mono">ModelRetryMiddleware</span> / <span class="mono">ModelFallbackMiddleware</span>（第 7 课）
-        正是基于 <span class="mono">wrap_model_call</span> 实现的——失败就换个 <span class="mono">request</span> 再调一次 <span class="mono">handler</span>。
-        你也能用它做"动态换模型、按内容改提示、缓存"等任意定制。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">request</span> 是 <span class="mono">ModelRequest</span>（字段：model/messages/system_prompt/tools/tool_choice/state/runtime），
-        定义在 <span class="mono">agents/middleware/types.py</span>。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> dynamic_prompt：让系统提示词随状态变化 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">
-<pre class="code"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> dynamic_prompt
-
-<span class="nb">@dynamic_prompt</span>
-<span class="kw">def</span> <span class="fn">make_prompt</span>(request):
-    user = request.runtime.context.user_id
-    <span class="kw">return</span> <span class="st">f"你在为用户 {user} 服务，回答要个性化。"</span>
-<span class="cm"># 每轮根据运行时上下文/状态，动态生成系统提示词</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 与固定 system_prompt 的区别</div>
-      <div class="a">固定 <span class="mono">system_prompt</span> 是写死的字符串；<span class="mono">dynamic_prompt</span> 能在<strong>每次调用时</strong>
-        根据当前状态/运行时上下文（如用户身份、检索结果）<strong>实时生成</strong>提示词。</div>
+      <div class="q">❓ 为什么用 pydantic 当中间层</div>
+      <div class="a">pydantic 既能<strong>生成</strong> JSON Schema（给模型看），又能在执行时<strong>校验</strong>模型传回的参数
+        （类型不对就报错）。一举两得，避免脏参数进入你的函数。</div>
     </div>
     <div class="qa">
       <div class="q">✅ 优点</div>
-      <div class="a">把"提示词工程"也变成可编程的中间件，适合多租户、个性化、A/B 实验等场景。</div>
+      <div class="a">你只写普通类型注解，schema 生成与参数校验全自动；想更精细时再用显式 <span class="mono">args_schema</span>。</div>
     </div>
   </div>
 </details>
 
-<h2>🔬 实现细节与亮点</h2>
-<p>这是第五部分最值得深挖的一处：<strong>两类钩子用了两种完全不同的实现机制</strong>——这正是 middleware 既灵活又高效的秘密。</p>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">langchain/agents/factory.py</span><span class="ln">机制一：before/after 钩子 → 真实图节点</span></div>
-<pre><span class="cm"># 被覆盖的 before_model / after_model 会被编译成 LangGraph 的"节点"</span>
-graph.add_node(f<span class="st">"{m.name}.before_model"</span>, before_node, ...)
-graph.add_node(f<span class="st">"{m.name}.after_model"</span>,  after_node,  ...)
-<span class="cm"># 再用边把它们按顺序串进循环：…before_model → model → after_model…</span>
-</pre>
-</div>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">langchain/agents/factory.py</span><span class="ln">机制二：wrap_* 钩子 → 洋葱式函数组合</span></div>
-<pre><span class="kw">def</span> <span class="fn">_chain_model_call_handlers</span>(handlers):
-    <span class="cm"># "第一个 middleware 成为最外层；每层拿到一个 handler 回调去执行内层"</span>
-    <span class="cm"># 组合成嵌套函数：outer(req, handler=inner(req, handler=...真正调模型))</span>
-    ...
-</pre>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 两种机制</div>
-  <ul>
-    <li><strong>状态型钩子</strong>（<span class="mono">before_agent/before_model/after_model/after_agent</span>）：返回一个 state 更新，
-      被编译成<strong>图里的真实节点</strong>，按顺序执行。</li>
-    <li><strong>包裹型钩子</strong>（<span class="mono">wrap_model_call/wrap_tool_call</span>）：不是节点，而是被
-      <span class="mono">_chain_model_call_handlers</span> 组合成<strong>层层嵌套的函数</strong>，每层拿到 <span class="mono">handler</span> 去调内层。</li>
-    <li>哪些钩子被启用？框架检查<strong>子类是否覆盖了该方法</strong>（基类默认是 no-op，返回 <span class="mono">None</span>），没覆盖就<strong>不进图</strong>。</li>
-  </ul>
-</div>
+<details class="accordion">
+  <summary><span class="badge-num">2</span> 流式下工具参数是"碎着来"的：ToolCallChunk <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 为什么会有 ToolCallChunk</div>
+      <div class="a">流式输出时，模型生成的工具参数 JSON 是<strong>一段段</strong>吐出来的（如 <span class="mono">{"ci</span> … <span class="mono">ty": "北</span> … <span class="mono">京"}</span>）。
+        每一段是一个 <span class="mono">ToolCallChunk</span>，累加后才拼成完整的 <span class="mono">ToolCall</span>。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么必要</div>
+      <div class="a">要在 UI 上"边生成边显示工具调用"，就不能等参数全部到齐。分块 + 累加让你能实时呈现，
+        最终再得到可执行的完整调用。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 代码对应</div>
+      <div class="a"><span class="mono">ToolCall</span> 与 <span class="mono">ToolCallChunk</span> 都在 <span class="mono">messages/tool.py</span>；
+        chunk 的累加规则与第 14 课的 <span class="mono">AIMessageChunk</span> 相加是同一套思路。</div>
+    </div>
+  </div>
+</details>
 
 <div class="card spark">
   <div class="tag">💡 设计亮点</div>
   <ul>
-    <li><strong>两类钩子两种实现，各取所长</strong>：要"读改状态"的用图节点（清晰、可被 LangGraph 持久化）；要"包裹前后/决定是否调用"的用嵌套函数（能重试、能短路）。</li>
-    <li><strong>洋葱组合解释了 retry/fallback</strong>：<span class="mono">wrap_model_call</span> 拿到 <span class="mono">handler</span> 回调，可<strong>重复调用</strong>内层——这就是 <span class="mono">ModelRetry/ModelFallback</span>"失败再调一次"的实现原理。第一个 middleware 在最外层。</li>
-    <li><strong>零开销原则</strong>：没被覆盖的钩子<strong>根本不会进图</strong>，不写就没成本——既灵活又不拖慢循环。</li>
+    <li><strong>两段翻译 + id 配对</strong>：函数 ↔ JSON 全自动，pydantic 既生成 schema 又校验参数。</li>
+    <li><strong>ToolCallChunk 可累加</strong>：流式下工具参数碎着来，也能拼回完整调用。</li>
   </ul>
 </div>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li>中间件是 Agent 的核心扩展点：六个钩子 <span class="mono">before_agent / before_model / wrap_model_call / after_model / wrap_tool_call / after_agent</span>。</li>
-    <li>两种写法：<strong>装饰器</strong>（轻量）与<strong>继承 AgentMiddleware</strong>（功能全）。</li>
-    <li><span class="mono">wrap_model_call</span> 能改请求/响应、重试、降级——内置的 retry/fallback 都基于它。</li>
-    <li><span class="mono">dynamic_prompt</span> 让系统提示词随运行时上下文动态生成。</li>
-    <li>下一课：把运行时数据传进去（context）、加降级、把思考流式推给 UI。</li>
+    <li>去程：函数签名 → <span class="mono">create_schema_from_function</span> → pydantic → JSON Schema → <span class="mono">bind_tools</span>。</li>
+    <li>回程：<span class="mono">AIMessage.tool_calls</span>（ToolCall）→ 匹配 → 执行 → <span class="mono">ToolMessage</span>，靠 <span class="mono">id</span> 配对。</li>
+    <li>类型注解和 docstring 直接决定模型看到的工具说明，<strong>务必写好</strong>。</li>
+    <li>下一课：看 Agent 把这套循环编成一张 LangGraph 状态图。</li>
   </ul>
 </div>
 
-  <div class="footnav"><a class="prev" href="16-rag.html"><div class="dir">← 上一课</div><div class="ttl">RAG 检索增强</div></a><a class="next" href="18-runtime-context.html"><div class="dir">下一课 →</div><div class="ttl">运行时上下文与健壮性</div></a></div>
+  <div class="footnav"><a class="prev" href="11-chat-internals.html"><div class="dir">← 上一课</div><div class="ttl">聊天模型内部</div></a><a class="next" href="13-agent-internals.html"><div class="dir">下一课 →</div><div class="ttl">Agent 内部</div></a></div>
 </div>
 
 </body></html>

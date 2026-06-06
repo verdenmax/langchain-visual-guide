@@ -2,7 +2,7 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>16 · RAG 检索增强 — LangChain 图解教程</title>
+<title>14 · Streaming 与 Callbacks — LangChain 图解教程</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -216,207 +216,182 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第五部分 · 自己动手做 Agent</span>
-    <span class="pill">16 / 18</span>
+    <span class="pill">第三部分 · 内部源码</span>
+    <span class="pill">14 / 19</span>
   </div>
-  <div class="progress"><span style="width:88%"></span></div>
+  <div class="progress"><span style="width:73%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第五部分 · 自己动手做 Agent</div>
-    <h1>RAG 检索增强</h1>
+    <div class="part">第三部分 · 内部源码</div>
+    <h1>Streaming 与 Callbacks</h1>
   </div>
   
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-模型只懂它训练时见过的东西，<strong>不知道你的私有文档、公司知识库、最新资料</strong>。
-RAG（检索增强生成）解决这个问题：<strong>先去知识库里检索相关片段，再把它塞进提示词让模型据此回答</strong>。
-这是绝大多数真实 Agent 的标配。
+最后一块内部机制：<strong>流式输出（Streaming）</strong>与<strong>回调（Callbacks）</strong>。
+前者让你"边生成边显示"，后者是 LangSmith 追踪、日志、监控的底层钩子。两者都贯穿前面所有组件。
 </p>
 
 <div class="card analogy">
-  <div class="tag">📖 生活类比</div>
-  RAG 就是把"闭卷考试"变成"<strong>开卷考试</strong>"：不靠模型死记硬背，而是每次答题前
-  先翻书找到相关那几页（检索），再照着这几页作答（生成）。模型负责"会读会写"，知识库负责"提供资料"。
+  <div class="tag">📺 生活类比</div>
+  <strong>Streaming</strong> 像<strong>直播</strong>：不必等整集拍完，画面一帧帧实时推送。
+  <strong>Callbacks</strong> 像<strong>赛事解说</strong>：在"比赛开始 / 进球 / 结束"等关键时刻自动播报，
+  你可以挂上任意多位解说员（处理器），各做各的记录。
 </div>
 
-<h2>RAG 的五个零件 + 一条流水线</h2>
-<p>把文档变成"可被检索的知识"，再到"喂给模型"，要经过五个零件。记住这条流水线，RAG 就不神秘了：</p>
+<h2>Streaming：chunk 是可以相加的</h2>
+<p><span class="inline">stream()</span> 不返回完整结果，而是不断 yield <span class="inline">AIMessageChunk</span>。
+关键设计：<strong>这些 chunk 能用 <span class="mono">+</span> 累加</strong>，拼回一条完整消息：</p>
 
-<div class="vflow">
-  <div class="step"><div class="num">1</div><div class="sc"><h4>Document：装载文档</h4>
-    <p>把原始资料读成 <span class="mono">Document</span>（含 <span class="mono">page_content</span> + <span class="mono">metadata</span>）。</p>
-    <p class="mono">core/documents/base.py</p></div></div>
-  <div class="step"><div class="num">2</div><div class="sc"><h4>Splitter：切成小块</h4>
-    <p>长文档切成若干小片（chunk），便于精准检索与控制 token。</p>
-    <p class="mono">langchain_text_splitters</p></div></div>
-  <div class="step"><div class="num">3</div><div class="sc"><h4>Embeddings：变成向量</h4>
-    <p>把每个文本块编码成一串数字（向量），<strong>语义相近 → 向量相近</strong>。</p>
-    <p class="mono">core/embeddings/embeddings.py</p></div></div>
-  <div class="step"><div class="num">4</div><div class="sc"><h4>VectorStore：存入向量库</h4>
-    <p>把"文本块 + 向量"存起来，支持按相似度快速搜索。</p>
-    <p class="mono">core/vectorstores/base.py</p></div></div>
-  <div class="step"><div class="num">5</div><div class="sc"><h4>Retriever：按问题召回</h4>
-    <p>把用户问题也编码成向量，找出<strong>最相近的几个文本块</strong>返回。</p>
-    <p class="mono">core/retrievers.py</p></div></div>
-</div>
-
-<h2>代码：十几行搭一个 RAG</h2>
-<pre class="code"><span class="kw">from</span> langchain_text_splitters <span class="kw">import</span> RecursiveCharacterTextSplitter
-
-<span class="cm"># 1~2) 文档 → 切块</span>
-splits = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50).split_documents(docs)
-
-<span class="cm"># 3~4) 嵌入 + 存入向量库（embeddings 来自某个 partner，如 OpenAIEmbeddings）</span>
-vectorstore = SomeVectorStore.from_documents(splits, embedding=embeddings)
-
-<span class="cm"># 5) 得到一个检索器</span>
-retriever = vectorstore.as_retriever(search_kwargs={<span class="st">"k"</span>: 4})
-
-docs = retriever.invoke(<span class="st">"北京的退货政策是什么？"</span>)   <span class="cm"># → list[Document]，最相关的 4 块</span>
+<pre class="code">full = None
+<span class="kw">for</span> chunk <span class="kw">in</span> model.stream(<span class="st">"讲个故事"</span>):
+    print(chunk.content, end=<span class="st">""</span>)   <span class="cm"># 实时显示</span>
+    full = chunk <span class="kw">if</span> full <span class="kw">is</span> None <span class="kw">else</span> full + chunk  <span class="cm"># ★ chunk 相加</span>
+<span class="cm"># 循环结束后，full 等价于一次性 invoke 的完整 AIMessage</span>
 </pre>
 
-<div class="card key">
-  <div class="tag">🔑 核心认知</div>
-  <strong>Retriever 本身就是一个 Runnable</strong>（<span class="mono">retriever.invoke(query)</span>）。
-  所以它能像积木一样：① 直接拼进 LCEL 链（<span class="mono">{"context": retriever, ...} | prompt | model</span>），
-  或 ② 包成一个<strong>工具</strong>交给 Agent，让 Agent 自己决定"何时该查知识库"。
+<div class="card detail">
+  <div class="tag">🔬 细节 / 代码对应</div>
+  <ul>
+    <li><span class="mono">stream</span> 定义在 <span class="mono">core/language_models/chat_models.py</span>；
+      产出的 <span class="mono">AIMessageChunk</span> 在 <span class="mono">messages/ai.py</span>（继承 <span class="mono">BaseMessageChunk</span>）。</li>
+    <li><span class="mono">+</span> 能相加，是因为 <span class="mono">BaseMessageChunk</span> 实现了 <span class="mono">__add__</span>（合并内容、工具调用片段、用量）。</li>
+    <li>辅助函数 <span class="mono">generate_from_stream</span>（同文件）把一串 chunk 归并成最终 <span class="mono">ChatResult</span>。</li>
+  </ul>
+</div>
+
+<h2>Callbacks：在生命周期关键点挂钩子</h2>
+<p>还记得第 3 课"沿途触发回调"吗？回调系统在每次调用的关键时刻发出事件，
+你可以注册处理器来响应。最常见的用途就是 <strong>LangSmith 追踪</strong>。</p>
+
+<div class="flow">
+  <div class="node hl"><div class="nt">on_llm_start</div><div class="nd">开始调用模型</div></div>
+  <div class="arrow">→</div>
+  <div class="node"><div class="nt">on_llm_new_token</div><div class="nd">每来一个 token<br>（流式）</div></div>
+  <div class="arrow">→</div>
+  <div class="node hl"><div class="nt">on_llm_end</div><div class="nd">调用结束<br>（含用量）</div></div>
+</div>
+
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/callbacks/</span><span class="ln">BaseCallbackHandler（示意）</span></div>
+<pre><span class="kw">class</span> <span class="fn">BaseCallbackHandler</span>:
+    <span class="kw">def</span> <span class="fn">on_llm_start</span>(self, ...): ...        <span class="cm"># 模型开始</span>
+    <span class="kw">def</span> <span class="fn">on_llm_new_token</span>(self, token, ...): ...  <span class="cm"># 流式逐 token</span>
+    <span class="kw">def</span> <span class="fn">on_llm_end</span>(self, response, ...): ...     <span class="cm"># 模型结束</span>
+    <span class="kw">def</span> <span class="fn">on_tool_start</span>/<span class="fn">on_tool_end</span>(self, ...): ...  <span class="cm"># 工具事件</span>
+</pre>
+</div>
+
+<h2>config：回调/标签如何传进去</h2>
+<p>回调、标签（tags）、元数据通过 <span class="inline">RunnableConfig</span> 这个配置字典在调用时一路传递。
+这就是第 8 课 <span class="mono">invoke(input, config)</span> 里 <span class="inline">config</span> 参数的用途：</p>
+<pre class="code">model.invoke(<span class="st">"你好"</span>, config={
+    <span class="st">"callbacks"</span>: [MyHandler()],
+    <span class="st">"tags"</span>: [<span class="st">"demo"</span>],
+    <span class="st">"metadata"</span>: {<span class="st">"user"</span>: <span class="st">"alice"</span>},
+})
+</pre>
+
+<div class="card macro">
+  <div class="tag">🌍 宏观理解</div>
+  <ul>
+    <li><strong>Streaming 与 Callbacks 是横切能力</strong>：因为一切都是 Runnable，它们对模型、链、Agent <strong>一视同仁</strong>地生效。</li>
+    <li>更细粒度的 <span class="mono">astream_events</span>（<span class="mono">runnables/base.py</span>）能让你订阅<strong>链中每一步</strong>的事件流，是构建复杂 UI（如显示 Agent 思考过程）的基础。</li>
+    <li><span class="mono">RunnableConfig</span> 是"随调用流动的上下文信封"，把回调/标签/并发度一路带到底层。</li>
+  </ul>
 </div>
 
 <h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，吃透 RAG 的关键细节。</p>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入三个进阶话题。</p>
 
 <details class="accordion">
-  <summary><span class="badge-num">1</span> 为什么要"切块"和"嵌入" <span class="hint">点击展开详解</span></summary>
+  <summary><span class="badge-num">1</span> stream 与 astream_events 有什么区别 <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
     <div class="qa">
-      <div class="q">❓ 为什么要切块（chunking）</div>
-      <div class="a">整篇文档太长，既塞不进上下文，也让检索不精准。切成小块后，能<strong>只召回真正相关的那几段</strong>，
-        省 token 又更准。<span class="mono">chunk_overlap</span> 让相邻块有重叠，避免把一句话从中间切断丢失语义。</div>
+      <div class="q">🧪 两种粒度</div>
+      <div class="a">
+<pre class="code"><span class="cm"># stream：只拿"最终输出"的逐块结果</span>
+<span class="kw">for</span> chunk <span class="kw">in</span> chain.stream(x):
+    ...   <span class="cm"># 通常是最后一步 parser/model 的输出块</span>
+
+<span class="cm"># astream_events：拿"链中每一步"的事件（开始/结束/token…）</span>
+<span class="kw">async</span> <span class="kw">for</span> ev <span class="kw">in</span> chain.astream_events(x):
+    ev[<span class="st">"event"</span>]   <span class="cm"># on_chat_model_stream / on_tool_end / ...</span></pre>
+      </div>
     </div>
     <div class="qa">
-      <div class="q">❓ 嵌入(Embeddings)到底在做什么</div>
-      <div class="a">把文本映射成向量，使<strong>语义相近的文本向量也相近</strong>。于是"检索相关内容"就变成了
-        "在向量空间里找最近邻"——这叫<strong>语义检索</strong>，比关键词匹配能理解"意思相近但用词不同"。</div>
+      <div class="q">❓ 各自用在哪</div>
+      <div class="a"><span class="mono">stream</span> 够做"打字机"效果；而要展示 <strong>Agent 的思考过程</strong>
+        （正在调哪个工具、检索到什么），就需要 <span class="mono">astream_events</span> 这种<strong>逐步骤</strong>事件流。</div>
     </div>
     <div class="qa">
       <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">Embeddings</span> 抽象（<span class="mono">embed_query</span> / <span class="mono">embed_documents</span>）在
-        <span class="mono">core/embeddings/embeddings.py</span>；具体实现（如 <span class="mono">OpenAIEmbeddings</span>）在对应 partner 包。</div>
+      <div class="a">两者都在 <span class="mono">runnables/base.py</span>；<span class="mono">astream_events</span> 是构建复杂实时 UI 的基础。</div>
     </div>
   </div>
 </details>
 
 <details class="accordion">
-  <summary><span class="badge-num">2</span> 两种用法：拼进链 vs 当作工具 <span class="hint">点击展开详解</span></summary>
+  <summary><span class="badge-num">2</span> callbacks 与 middleware 到底有什么不同 <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
     <div class="qa">
-      <div class="q">🧪 用法 A：固定的 RAG 链（每次都先检索）</div>
-      <div class="a">
-<pre class="code"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnablePassthrough
-rag = (
-    {<span class="st">"context"</span>: retriever, <span class="st">"question"</span>: RunnablePassthrough()}
-    | prompt | model | parser
-)
-rag.invoke(<span class="st">"退货政策？"</span>)   <span class="cm"># 一定会先检索再回答</span></pre>
-      </div>
+      <div class="q">🧪 一句话区分</div>
+      <div class="a"><strong>callbacks = 观察</strong>（被动收到事件，做日志/追踪，不改流程）；
+        <strong>middleware = 干预</strong>（主动改写请求、拦截、加节点，<strong>会改变</strong>流程，第 13 课）。</div>
     </div>
     <div class="qa">
-      <div class="q">🧪 用法 B：把检索器变成工具，交给 Agent</div>
-      <div class="a">
-<pre class="code"><span class="kw">from</span> langchain_core.tools <span class="kw">import</span> tool
-<span class="nb">@tool</span>
-<span class="kw">def</span> <span class="fn">search_kb</span>(query: str) -> str:
-    <span class="st">&quot;&quot;&quot;在公司知识库中检索相关资料。&quot;&quot;&quot;</span>
-    <span class="kw">return</span> <span class="st">"\n"</span>.join(d.page_content <span class="kw">for</span> d <span class="kw">in</span> retriever.invoke(query))
-
-agent = create_agent(model, tools=[search_kb])   <span class="cm"># Agent 自己决定要不要查</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 怎么选</div>
-      <div class="a">问答场景"每次都该查" → 用<strong>固定 RAG 链</strong>（简单、可控）；
-        通用 Agent"有时要查、有时不用" → 把检索<strong>做成工具</strong>，让模型按需调用，更灵活。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> Retriever 不止向量库 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 统一抽象 BaseRetriever</div>
-      <div class="a"><span class="mono">BaseRetriever</span>（<span class="mono">core/retrievers.py</span>）只规定一件事：
-        "给一个查询，返回一串 <span class="mono">Document</span>"。向量库检索只是它最常见的一种实现。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 还能是什么</div>
-      <div class="a">关键词检索（BM25）、数据库查询、搜索引擎 API、甚至混合检索（向量 + 关键词），
-        都能包装成同一个 <span class="mono">Retriever</span> 接口。对上层而言，"怎么检索的"被隐藏了。</div>
+      <div class="q">❓ 何时用哪个</div>
+      <div class="a">要"记录 / 上报 / 监控" → 用 callbacks；要"修改行为 / 加人审 / 限流" → 用 middleware。
+        两者可同时存在，各司其职。</div>
     </div>
     <div class="qa">
       <div class="q">✅ 优点</div>
-      <div class="a">因为 <span class="mono">BaseRetriever</span> 是 Runnable，任何检索来源都能无缝接进链或做成工具——又一次体现统一抽象的威力。</div>
+      <div class="a">观察与干预分离，职责清晰：观测代码不会意外改变业务流程，反之亦然。</div>
     </div>
   </div>
 </details>
 
-<h2>🔬 实现细节与亮点</h2>
-<p>RAG 的三个零件在源码里各有精巧之处——看 Retriever 如何"白嫖"Runnable 能力，以及切分器如何在语义边界下刀。</p>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/retrievers.py</span><span class="ln">BaseRetriever.invoke（含回调）</span></div>
-<pre><span class="kw">class</span> <span class="fn">BaseRetriever</span>(RunnableSerializable, ABC):   <span class="cm"># ← 检索器也是 Runnable</span>
-    <span class="kw">def</span> <span class="fn">invoke</span>(self, input, config=None):
-        run_manager = callback_manager.on_retriever_start(...)   <span class="cm"># 追踪开始</span>
-        result = self._get_relevant_documents(input, ...)        <span class="cm"># ← 子类只实现这个</span>
-        run_manager.on_retriever_end(result)                     <span class="cm"># 追踪结束</span>
-        <span class="kw">return</span> result
-</pre>
-</div>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">text-splitters/langchain_text_splitters/character.py</span><span class="ln">递归切分</span></div>
-<pre><span class="kw">class</span> <span class="fn">RecursiveCharacterTextSplitter</span>(TextSplitter):
-    <span class="cm"># 默认分隔符：从"粗"到"细"</span>
-    separators = [<span class="st">"\n\n"</span>, <span class="st">"\n"</span>, <span class="st">" "</span>, <span class="st">""</span>]   <span class="cm"># 段落 → 行 → 词 → 字符</span>
-    <span class="kw">def</span> <span class="fn">_split_text</span>(self, text, separators):
-        <span class="cm"># 先用最粗的分隔符切；某块仍太大，就用更细的分隔符"递归"再切</span>
-        ... <span class="kw">then</span> _merge_splits(...)   <span class="cm"># 按 chunk_size 合并，相邻块留 overlap</span>
-</pre>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 实现要点</div>
-  <ul>
-    <li><strong>Retriever</strong>：子类只需实现 <span class="mono">_get_relevant_documents</span>，<span class="mono">invoke</span> 自动包上回调/追踪/异步。</li>
-    <li><strong>VectorStore.search</strong>（<span class="mono">vectorstores/base.py:293</span>）按 <span class="mono">search_type</span> 分发：
-      <span class="mono">similarity</span> / <span class="mono">similarity_score_threshold</span> / <span class="mono">mmr</span>；
-      <span class="mono">VectorStoreRetriever</span>（<span class="mono">:964</span>）只是<strong>委托</strong>调用它。</li>
-    <li><strong>切分器</strong>：递归用越来越细的分隔符切，再 <span class="mono">_merge_splits</span> 按 <span class="mono">chunk_size</span> 打包、留 <span class="mono">chunk_overlap</span>。</li>
-  </ul>
-</div>
+<details class="accordion">
+  <summary><span class="badge-num">3</span> chunk 相加的"+"到底合并了什么 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 合并的不只是文本</div>
+      <div class="a"><span class="mono">AIMessageChunk + AIMessageChunk</span> 会把<strong>正文拼接</strong>、
+        <strong>工具调用片段(ToolCallChunk)拼接</strong>、<strong>token 用量累加</strong>，
+        最终等价于一次性 <span class="mono">invoke</span> 拿到的完整 <span class="mono">AIMessage</span>。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么要可相加</div>
+      <div class="a">流式天然是"碎片化"的。让 chunk 支持 <span class="mono">+</span>，你就能一边实时显示、一边在循环里
+        累加出"完整结果"，无需第二次请求。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 代码对应</div>
+      <div class="a">由 <span class="mono">BaseMessageChunk.__add__</span>（<span class="mono">messages/ai.py</span> 等）实现；
+        辅助函数 <span class="mono">generate_from_stream</span> 把整串 chunk 归并成最终结果。</div>
+    </div>
+  </div>
+</details>
 
 <div class="card spark">
   <div class="tag">💡 设计亮点</div>
   <ul>
-    <li><strong>检索器"白嫖"Runnable 能力</strong>：只写 <span class="mono">_get_relevant_documents</span> 一个方法，就免费获得回调追踪、异步、可拼链——典型的"模板方法 + 统一抽象"。</li>
-    <li><strong>递归切分保语义</strong>：优先在<strong>段落</strong>边界下刀，不行才退到行、词、字符。尽量不把一句话拦腰斩断，这对检索质量至关重要。</li>
-    <li><strong>召回策略可切换</strong>：<span class="mono">search_type="mmr"</span> 能在"相关"之外兼顾"<strong>多样性</strong>"（避免召回一堆near-重复片段），一个检索器多副面孔。</li>
+    <li><strong>chunk 可相加（__add__）</strong>：流式天然碎片化，相加即还原成完整消息。</li>
+    <li>Streaming/Callbacks 是<strong>横切能力</strong>，对所有 Runnable 一视同仁；<span class="mono">config</span> 是随调用流动的信封。</li>
   </ul>
 </div>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li>RAG = <strong>先检索、再生成</strong>：把私有/最新知识喂给模型，突破"只懂训练数据"的局限。</li>
-    <li>流水线五件套：<span class="mono">Document → Splitter → Embeddings → VectorStore → Retriever</span>。</li>
-    <li>切块控制精度与 token；嵌入实现<strong>语义检索</strong>（按意思找，不只按词）。</li>
-    <li><span class="mono">Retriever</span> 是 Runnable：可拼进链，也可包成工具交给 Agent。</li>
-    <li>下一课：当内置中间件不够用，<strong>写你自己的中间件</strong>来定制 Agent。</li>
+    <li>Streaming：<span class="mono">stream()</span> 产出可相加的 <span class="mono">AIMessageChunk</span>，累加即得完整消息。</li>
+    <li>Callbacks：在 <span class="mono">on_llm_start / new_token / end</span> 等生命周期点触发，支撑追踪与监控。</li>
+    <li>两者通过 <span class="mono">RunnableConfig</span> 注入，且对所有 Runnable 通用。</li>
+    <li><strong>第三部分（内部源码）到此结束</strong>。最后一部分教你如何读源码、调试、测试与贡献。</li>
   </ul>
 </div>
 
-  <div class="footnav"><a class="prev" href="15-prompts.html"><div class="dir">← 上一课</div><div class="ttl">提示词 Prompts</div></a><a class="next" href="17-custom-middleware.html"><div class="dir">下一课 →</div><div class="ttl">写自己的中间件</div></a></div>
+  <div class="footnav"><a class="prev" href="13-agent-internals.html"><div class="dir">← 上一课</div><div class="ttl">Agent 内部</div></a><a class="next" href="15-contributing.html"><div class="dir">下一课 →</div><div class="ttl">读源码 / 调试 / 测试 / 贡献</div></a></div>
 </div>
 
 </body></html>

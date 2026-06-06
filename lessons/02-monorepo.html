@@ -217,9 +217,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第一部分 · 宏观全景</span>
-    <span class="pill">02 / 18</span>
+    <span class="pill">02 / 19</span>
   </div>
-  <div class="progress"><span style="width:11%"></span></div>
+  <div class="progress"><span style="width:10%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
@@ -383,12 +383,12 @@ pip install langchain langchain-openai   <span class="cm"># 只装你要的</spa
       <div class="a"><span class="mono">libs/core/langchain_core/</span> 下的主要子目录，每个都是后面某一课的主角：
 <pre class="code">langchain_core/
 ├── <span class="fn">runnables/</span>        <span class="cm"># Runnable 抽象（第 8、9 课）</span>
-├── <span class="fn">language_models/</span>  <span class="cm"># BaseChatModel（第 10 课）</span>
+├── <span class="fn">language_models/</span>  <span class="cm"># BaseChatModel（第 11 课）</span>
 ├── <span class="fn">messages/</span>         <span class="cm"># Human/AI/Tool/System（第 4 课）</span>
-├── <span class="fn">tools/</span>            <span class="cm"># BaseTool / @tool（第 6、11 课）</span>
+├── <span class="fn">tools/</span>            <span class="cm"># BaseTool / @tool（第 6、12 课）</span>
 ├── <span class="fn">prompts/</span>          <span class="cm"># 提示词模板</span>
 ├── <span class="fn">outputs/</span>          <span class="cm"># ChatResult 等输出结构</span>
-├── <span class="fn">callbacks/</span>        <span class="cm"># 回调系统（第 13 课）</span>
+├── <span class="fn">callbacks/</span>        <span class="cm"># 回调系统（第 14 课）</span>
 └── <span class="fn">output_parsers/</span>   <span class="cm"># 把模型输出解析成结构化数据</span></pre>
       </div>
     </div>
@@ -428,7 +428,7 @@ pip install langchain langchain-openai   <span class="cm"># 只装你要的</spa
     </div>
     <div class="qa">
       <div class="q">✅ 优点 & 🔀 其他方案</div>
-      <div class="a">优点：新增 / 升级厂商只动一个独立包，互不影响（这正是第 10 课"模板方法模式"的落点）。
+      <div class="a">优点：新增 / 升级厂商只动一个独立包，互不影响（这正是第 11 课"模板方法模式"的落点）。
         其他方案：把适配逻辑塞进 core（会让 core 依赖所有厂商 SDK，违背分层）——LangChain 刻意避免了这点。</div>
     </div>
   </div>

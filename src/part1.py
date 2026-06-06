@@ -187,7 +187,7 @@ agent.invoke({<span class="st">"messages"</span>: [...]})</pre>
       <div class="q">✅ LangChain 的做法与优点</div>
       <div class="a"><span class="inline">create_agent</span> 用 <strong>LangGraph</strong> 把这个循环编译成一张状态图，
         自带终止判断、并行工具、流式输出、持久化 / 中断、以及 <strong>middleware</strong> 扩展点——
-        无需你手搓循环（细节见第 7、12 课）。</div>
+        无需你手搓循环（细节见第 7、13 课）。</div>
     </div>
     <div class="qa">
       <div class="q">🔀 还有什么其他方案</div>
@@ -442,12 +442,12 @@ pip install langchain langchain-openai   <span class="cm"># 只装你要的</spa
       <div class="a"><span class="mono">libs/core/langchain_core/</span> 下的主要子目录，每个都是后面某一课的主角：
 <pre class="code">langchain_core/
 ├── <span class="fn">runnables/</span>        <span class="cm"># Runnable 抽象（第 8、9 课）</span>
-├── <span class="fn">language_models/</span>  <span class="cm"># BaseChatModel（第 10 课）</span>
+├── <span class="fn">language_models/</span>  <span class="cm"># BaseChatModel（第 11 课）</span>
 ├── <span class="fn">messages/</span>         <span class="cm"># Human/AI/Tool/System（第 4 课）</span>
-├── <span class="fn">tools/</span>            <span class="cm"># BaseTool / @tool（第 6、11 课）</span>
+├── <span class="fn">tools/</span>            <span class="cm"># BaseTool / @tool（第 6、12 课）</span>
 ├── <span class="fn">prompts/</span>          <span class="cm"># 提示词模板</span>
 ├── <span class="fn">outputs/</span>          <span class="cm"># ChatResult 等输出结构</span>
-├── <span class="fn">callbacks/</span>        <span class="cm"># 回调系统（第 13 课）</span>
+├── <span class="fn">callbacks/</span>        <span class="cm"># 回调系统（第 14 课）</span>
 └── <span class="fn">output_parsers/</span>   <span class="cm"># 把模型输出解析成结构化数据</span></pre>
       </div>
     </div>
@@ -487,7 +487,7 @@ pip install langchain langchain-openai   <span class="cm"># 只装你要的</spa
     </div>
     <div class="qa">
       <div class="q">✅ 优点 & 🔀 其他方案</div>
-      <div class="a">优点：新增 / 升级厂商只动一个独立包，互不影响（这正是第 10 课"模板方法模式"的落点）。
+      <div class="a">优点：新增 / 升级厂商只动一个独立包，互不影响（这正是第 11 课"模板方法模式"的落点）。
         其他方案：把适配逻辑塞进 core（会让 core 依赖所有厂商 SDK，违背分层）——LangChain 刻意避免了这点。</div>
     </div>
   </div>
@@ -668,7 +668,7 @@ model.invoke([(<span class="st">"system"</span>, <span class="st">"你是助手"
     <div class="qa">
       <div class="q">✅ 优点 & 🔀 其他方案</div>
       <div class="a">优点：能力统一、partner 极简、行为一致（换厂商缓存策略不变）。
-        其他方案：每个 partner 自行实现缓存/重试（重复、易不一致）——这正是 LangChain 用"模板方法"避免的（第 10 课详解）。</div>
+        其他方案：每个 partner 自行实现缓存/重试（重复、易不一致）——这正是 LangChain 用"模板方法"避免的（第 11 课详解）。</div>
     </div>
   </div>
 </details>

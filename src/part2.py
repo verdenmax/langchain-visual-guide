@@ -75,7 +75,7 @@ AIMessage(
     <li><strong>消息是"通用货币"</strong>：模型的输入是 <span class="mono">list[BaseMessage]</span>，输出是一条 <span class="mono">AIMessage</span>。
       无论 OpenAI 还是 Anthropic，进出都是这套统一格式。</li>
     <li><strong>tool_calls 是 Agent 的引擎</strong>：模型不直接执行工具，而是在 AIMessage 里"请求"调用，
-      由你的程序去执行，再把结果包成 ToolMessage 喂回去。这就是 Agent 循环的本质（第 7、12 课）。</li>
+      由你的程序去执行，再把结果包成 ToolMessage 喂回去。这就是 Agent 循环的本质（第 7、13 课）。</li>
     <li><strong>content 可以是多模态</strong>：除了文本，还能放图片等内容块（定义在 <span class="mono">messages/content.py</span>）。</li>
   </ul>
 </div>
@@ -97,7 +97,7 @@ conversation = [
   <div class="col">
     <h4>① 流式块 Message Chunk</h4>
     <p>流式输出时，模型不是一次给完整 <span class="inline">AIMessage</span>，而是一串
-      <span class="inline">AIMessageChunk</span>。它们能用 <span class="inline">+</span> 累加成完整消息（第 13 课详解）。</p>
+      <span class="inline">AIMessageChunk</span>。它们能用 <span class="inline">+</span> 累加成完整消息（第 14 课详解）。</p>
     <p class="mono" style="font-size:.8rem;color:var(--muted)">messages/ai.py · AIMessageChunk</p>
   </div>
   <div class="col">
@@ -346,7 +346,7 @@ agent = create_agent(model, tools, middleware=[SummarizationMiddleware(model)])<
       <div class="q">✅ 代码对应</div>
       <div class="a"><span class="mono">SummarizationMiddleware</span> → <span class="mono">agents/middleware/summarization.py</span>；
         <span class="mono">ContextEditingMiddleware</span> → <span class="mono">agents/middleware/context_editing.py</span>；
-        <span class="mono">checkpointer</span> 是 <span class="mono">create_agent</span> 的参数（持久化由 LangGraph 提供，第 12 课）。</div>
+        <span class="mono">checkpointer</span> 是 <span class="mono">create_agent</span> 的参数（持久化由 LangGraph 提供，第 13 课）。</div>
     </div>
   </div>
 </details>
@@ -643,7 +643,7 @@ robust = model.with_retry(stop_after_attempt=3)</pre>
     </div>
     <div class="qa">
       <div class="q">❓ 它们解决什么</div>
-      <div class="a">缓存命中时<strong>根本不发请求</strong>（呼应第 10 课的 <span class="mono">_generate_with_cache</span>），重复问答零成本；
+      <div class="a">缓存命中时<strong>根本不发请求</strong>（呼应第 11 课的 <span class="mono">_generate_with_cache</span>），重复问答零成本；
         <span class="mono">with_retry</span> 是 Runnable 通用能力，用指数退避吸收瞬时故障。</div>
     </div>
     <div class="qa">
@@ -1019,7 +1019,7 @@ print(result[<span class="st">"messages"</span>][-1].content)   <span class="cm"
     tools=None,
     *,
     system_prompt=None,
-    middleware=(),         <span class="cm"># 可插拔的中间件（第 12 课）</span>
+    middleware=(),         <span class="cm"># 可插拔的中间件（第 13 课）</span>
     response_format=None,  <span class="cm"># 结构化输出</span>
     ...
 )</pre></li>
@@ -1045,7 +1045,7 @@ print(result[<span class="st">"messages"</span>][-1].content)   <span class="cm"
     <li>Agent = <strong>模型 + 工具 + 一个自动循环</strong>。循环的"判断条件"很简单：
       <strong>模型回复里还有没有 <span class="mono">tool_calls</span></strong>？有就执行并继续，没有就结束。</li>
     <li>你只管<strong>声明</strong>"用哪个模型、给哪些工具、什么系统设定"，循环的编排交给框架。</li>
-    <li>底层其实是一张 <strong>LangGraph 状态图</strong>（节点："model" 与 "tools"）——这是第 12 课的内容，现在只需理解它在转一个循环。</li>
+    <li>底层其实是一张 <strong>LangGraph 状态图</strong>（节点："model" 与 "tools"）——这是第 13 课的内容，现在只需理解它在转一个循环。</li>
   </ul>
 </div>
 
@@ -1104,7 +1104,7 @@ agent = create_agent(model, tools=[get_weather], response_format=Answer)
 </details>
 
 <details class="accordion">
-  <summary><span class="badge-num">3</span> middleware：在循环里插钩子（预告第 12 课） <span class="hint">点击展开详解</span></summary>
+  <summary><span class="badge-num">3</span> middleware：在循环里插钩子（预告第 13 课） <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
     <div class="qa">
       <div class="q">🧪 用途举例</div>
@@ -1117,8 +1117,8 @@ agent = create_agent(model, tools=[get_weather], response_format=Answer)
     </div>
     <div class="qa">
       <div class="q">✅ 优点 & 🔀 其他方案</div>
-      <div class="a">优点：行为可插拔，核心循环保持稳定（第 12 课看它如何映射到 LangGraph 节点）。
-        其他方案：用回调（callbacks，第 13 课）做观测，但 middleware 能真正<strong>改变</strong>流程，回调主要用于<strong>观察</strong>。</div>
+      <div class="a">优点：行为可插拔，核心循环保持稳定（第 13 课看它如何映射到 LangGraph 节点）。
+        其他方案：用回调（callbacks，第 14 课）做观测，但 middleware 能真正<strong>改变</strong>流程，回调主要用于<strong>观察</strong>。</div>
     </div>
   </div>
 </details>
@@ -1183,7 +1183,7 @@ agent = create_agent(model, tools=[delete_database], middleware=[
     <div class="qa">
       <div class="q">❓ 为什么必要</div>
       <div class="a">有些工具是<strong>不可逆的高风险操作</strong>（删数据、转账、发邮件）。让 Agent 在执行前<strong>暂停等人点头</strong>，
-        是生产环境的安全底线。它依赖图的"中断/恢复"能力（第 12 课）。</div>
+        是生产环境的安全底线。它依赖图的"中断/恢复"能力（第 13 课）。</div>
     </div>
     <div class="qa">
       <div class="q">✅ 优点</div>
