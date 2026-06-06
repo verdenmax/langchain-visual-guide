@@ -333,6 +333,103 @@ dependencies = [
   每个包<strong>各自有一份</strong> <span class="mono">pyproject.toml</span> 和 <span class="mono">uv.lock</span>。
 </div>
 
+<h2>🔍 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入三个常见疑问。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> 为什么用 monorepo，而不是一个大包或彻底分成多个仓库 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 三种方案对比</div>
+      <div class="a">
+<pre class="code"><span class="cm"># 方案 A：一个大包（all-in-one）</span>
+pip install langchain   <span class="cm"># 但会拖进所有厂商 SDK，臃肿</span>
+
+<span class="cm"># 方案 B：彻底分仓库（每个包一个 repo）</span>
+<span class="cm"># 跨包改动要开多个 PR，版本对不齐，难维护</span>
+
+<span class="cm"># 方案 C：monorepo（LangChain 的选择）</span>
+<span class="cm"># 一个 repo 多个包：按需安装、统一改动、独立发版</span>
+pip install langchain langchain-openai   <span class="cm"># 只装你要的</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么必要</div>
+      <div class="a">LangChain 要同时服务"只用一个厂商的轻量用户"和"跨多包协同的核心开发者"。
+        单一大包会让前者背上不必要的依赖；彻底分仓库会让后者的跨包改动（改 core 接口同时更新所有 partner）变成噩梦。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ monorepo 的优点</div>
+      <div class="a"><strong>按需安装</strong>（只装用到的 partner）、<strong>跨包原子改动</strong>（一个 PR 同时改 core 与 partner）、
+        <strong>独立发版</strong>（每个包有自己的版本号与 <span class="mono">pyproject.toml</span>）、<strong>共享工具链</strong>（统一 lint/test 配置）。</div>
+    </div>
+    <div class="qa">
+      <div class="q">🔀 其他方案</div>
+      <div class="a">很多项目用<strong>单包 + 可选依赖</strong>（<span class="mono">pip install pkg[openai]</span>）；
+        或用 <strong>Nx / Turborepo</strong> 之类的 monorepo 工具。LangChain 用的是"<strong>uv workspace</strong> + 各包独立 <span class="mono">pyproject.toml</span>"的轻量组合。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> 地基层 <code>core</code> 里到底有哪些"抽象" <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 目录速览</div>
+      <div class="a"><span class="mono">libs/core/langchain_core/</span> 下的主要子目录，每个都是后面某一课的主角：
+<pre class="code">langchain_core/
+├── <span class="fn">runnables/</span>        <span class="cm"># Runnable 抽象（第 8、9 课）</span>
+├── <span class="fn">language_models/</span>  <span class="cm"># BaseChatModel（第 10 课）</span>
+├── <span class="fn">messages/</span>         <span class="cm"># Human/AI/Tool/System（第 4 课）</span>
+├── <span class="fn">tools/</span>            <span class="cm"># BaseTool / @tool（第 6、11 课）</span>
+├── <span class="fn">prompts/</span>          <span class="cm"># 提示词模板</span>
+├── <span class="fn">outputs/</span>          <span class="cm"># ChatResult 等输出结构</span>
+├── <span class="fn">callbacks/</span>        <span class="cm"># 回调系统（第 13 课）</span>
+└── <span class="fn">output_parsers/</span>   <span class="cm"># 把模型输出解析成结构化数据</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么这些要放在 core</div>
+      <div class="a">它们是<strong>接口契约</strong>：定义"聊天模型长什么样、消息长什么样、工具长什么样"。
+        所有上层（主力包、partner）都依赖这些契约，因此它们必须在最底层且<strong>极少变动</strong>。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 这样设计的好处</div>
+      <div class="a">任何人想加一个新厂商，只要去 <span class="mono">partners/</span> 新建一个包、实现 core 的接口即可，
+        <strong>无需改动 core 一行</strong>。这就是"对扩展开放、对修改封闭"。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">3</span> 一个 partner 包是怎么"适配"厂商的 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 适配器模式</div>
+      <div class="a"><span class="mono">langchain-openai</span> 里的 <span class="mono">ChatOpenAI</span> 继承 core 的 <span class="mono">BaseChatModel</span>，
+        把"标准接口"翻译成"OpenAI SDK 调用"：
+<pre class="code"><span class="cm"># 概念示意（partners/openai/...）</span>
+<span class="kw">class</span> <span class="fn">ChatOpenAI</span>(BaseChatModel):
+    <span class="kw">def</span> <span class="fn">_generate</span>(self, messages, ...):
+        <span class="cm"># 1) 标准消息 → OpenAI 的 JSON 格式</span>
+        <span class="cm"># 2) 调用 openai SDK 发请求</span>
+        <span class="cm"># 3) OpenAI 响应 → 标准 AIMessage</span>
+        ...</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么必要</div>
+      <div class="a">每个厂商的 API 形状不同。partner 包就是那层"翻译"，把差异<strong>封装在最外层</strong>，
+        让上面所有代码都只看到统一的 <span class="mono">BaseChatModel</span>。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点 & 🔀 其他方案</div>
+      <div class="a">优点：新增 / 升级厂商只动一个独立包，互不影响（这正是第 10 课"模板方法模式"的落点）。
+        其他方案：把适配逻辑塞进 core（会让 core 依赖所有厂商 SDK，违背分层）——LangChain 刻意避免了这点。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
