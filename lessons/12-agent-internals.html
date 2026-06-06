@@ -368,10 +368,95 @@ graph.add_conditional_edges(<span class="st">"tools"</span>, ...)   <span class=
   </div>
 </details>
 
+<h2>🗺️ 进阶专题：状态图的高级能力</h2>
+<p>create_agent 编译出的 LangGraph 图，远不止"循环"。正因为底层是<strong>图</strong>而非裸 while，
+它还自带<strong>持久化、中断恢复、并行、长期记忆</strong>等生产级能力——大多通过 <span class="inline">create_agent</span> 的参数开启。</p>
+
+<table class="t">
+  <tr><th>能力</th><th>开关 / 机制</th></tr>
+  <tr><td>跨请求记忆、多会话隔离</td><td class="mono">checkpointer + thread_id</td></tr>
+  <tr><td>暂停 / 断点续跑（人审）</td><td class="mono">interrupt_before / interrupt_after</td></tr>
+  <tr><td>跨会话的长期存储</td><td class="mono">store</td></tr>
+  <tr><td>并发分支 / 子图</td><td class="mono">LangGraph 图能力</td></tr>
+</table>
+
+<h2>🔍 状态图进阶 · 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，逐个吃透高级能力。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> 持久化与多会话：checkpointer + thread_id <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 示例</div>
+      <div class="a">
+<pre class="code"><span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> InMemorySaver
+
+agent = create_agent(model, tools, checkpointer=InMemorySaver())
+<span class="cm"># 用 thread_id 区分不同用户/会话，各自的历史自动保存与恢复</span>
+agent.invoke({<span class="st">"messages"</span>: [...]}, config={<span class="st">"configurable"</span>: {<span class="st">"thread_id"</span>: <span class="st">"user-1"</span>}})
+agent.invoke({<span class="st">"messages"</span>: [...]}, config={<span class="st">"configurable"</span>: {<span class="st">"thread_id"</span>: <span class="st">"user-1"</span>}})  <span class="cm"># 记得上一轮</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 它解决什么</div>
+      <div class="a">默认每次 <span class="mono">invoke</span> 都是<strong>全新一局</strong>。挂上 <span class="mono">checkpointer</span> 后，
+        图会在每步<strong>存档状态</strong>，相同 <span class="mono">thread_id</span> 的后续调用自动<strong>接着上次</strong>跑——这就是 Agent 的"记忆"。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">记忆能力是"配置项"而非手写：开发用 <span class="mono">InMemorySaver</span>，生产换成数据库版（如 Postgres），代码不变。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> 中断与恢复：让图在中途暂停等人 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 机制</div>
+      <div class="a"><span class="mono">interrupt_before=["tools"]</span> 让图在执行工具节点<strong>前暂停</strong>并存档，
+        把控制权交还给你的程序；人确认后再 <span class="mono">invoke(None, config=...)</span> <strong>从断点继续</strong>。
+        第 7 课的 <span class="mono">HumanInTheLoopMiddleware</span> 正是基于这套机制。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么只有"图"能做到</div>
+      <div class="a">暂停 / 恢复要求把"执行到哪、状态是什么"完整存下来，之后精确还原。
+        这正是<strong>状态图 + checkpointer</strong> 的拿手好戏；裸 while 循环很难优雅实现"跑一半存档、改天再续"。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">支撑人审、审批流、超长任务分段执行等真实场景；中断期间不占用任何运行资源。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">3</span> 并行、子图与长期记忆 store <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 三种进阶形态</div>
+      <div class="a">
+<pre class="code"><span class="cm"># 并行：图可让多个分支节点并发执行，再汇合（如同时查多个数据源）</span>
+<span class="cm"># 子图：把一个编译好的 Agent 当作另一张图里的一个节点（多智能体协作）</span>
+<span class="cm"># 长期记忆：store 跨会话保存知识（区别于 checkpointer 的"单会话状态"）</span>
+agent = create_agent(model, tools, store=my_store)</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ checkpointer 与 store 区别</div>
+      <div class="a"><span class="mono">checkpointer</span> 存的是<strong>单个会话(thread)的过程状态</strong>（用于续跑/记住本轮对话）；
+        <span class="mono">store</span> 存的是<strong>跨会话、跨用户的长期知识</strong>（如"这个用户的偏好"），两者互补。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点 & 🌍 收束</div>
+      <div class="a">正因为 Agent 是一张<strong>可组合的图</strong>，单 Agent 能升级成<strong>多 Agent 系统</strong>（子图）、
+        能并发、能记长期记忆。这就是"用图运行"相比"裸循环"的真正威力。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
-  <ul>
-    <li><span class="mono">create_agent</span> = 构建并编译一张 LangGraph <span class="mono">StateGraph</span>。</li>
     <li>两个节点：<span class="mono">"model"</span>（调模型）、<span class="mono">"tools"</span>（ToolNode 执行工具）；条件边按 <span class="mono">tool_calls</span> 决定走向。</li>
     <li>流动的状态是 <span class="mono">AgentState</span>（含 <span class="mono">messages</span>）；<span class="mono">middleware</span> 可在循环中插钩子。</li>
     <li>编译产物是 Runnable，所以能 invoke/stream。下一课：流式与回调系统。</li>
