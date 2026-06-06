@@ -76,6 +76,7 @@ if __name__ == "__main__":
         "17-rag.html": "LESSON_16",
         "18-custom-middleware.html": "LESSON_17",
         "19-runtime-context.html": "LESSON_18",
+        "20-capstone.html": "LESSON_CAP",
     })
     done = build()
     print("Wrote", len(done), "files under", ROOT)

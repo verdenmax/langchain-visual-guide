@@ -800,13 +800,180 @@ graph = StateGraph(state_schema, context_schema=context_schema)
 </div>
 
 <div class="card key">
-  <div class="tag">✅ 本课要点 & 结业</div>
+  <div class="tag">✅ 本课要点</div>
   <ul>
     <li><span class="mono">context_schema</span> + <span class="mono">invoke(context=...)</span>：把 user_id 等运行时数据安全注入工具/中间件，<strong>不进消息</strong>。</li>
     <li><span class="mono">with_fallbacks</span>：任意 Runnable 的降级兜底；与 <span class="mono">with_retry</span> 配合更稳。</li>
     <li><span class="mono">stream_mode</span>（updates / messages / values）：给 Agent UI 选对的流式粒度。</li>
-    <li>🎉 <strong>恭喜！你已具备从零搭建并定制一个生产级 Agent 的全部知识地图。</strong>去把这些零件拼成你自己的 Agent 吧！</li>
+    <li>零件都齐了——<strong>下一课把它们拼成一个完整可跑的 Agent</strong>。</li>
   </ul>
 </div>
 """
 
+
+# ---------------------------------------------------------------------------
+LESSON_CAP = r"""
+<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
+前面 19 课，你学的都是<strong>一个个零件</strong>。这一课把它们<strong>拼成一台完整的机器</strong>：
+一个能查知识库、查订单、按用户身份个性化、带护栏、给结构化答复的<strong>客服 Agent</strong>。
+你会看到——每一块，都是前面学过的东西。
+</p>
+
+<div class="card analogy">
+  <div class="tag">🧩 生活类比</div>
+  之前是在认识<strong>螺丝、齿轮、电机</strong>；现在我们把它们<strong>组装成一台机器</strong>。
+  神奇的是：组装过程几乎没有"新知识"，全是把学过的零件<strong>插到对的接口上</strong>——
+  这正是 LangChain 统一抽象的最终回报。
+</div>
+
+<h2>零件 → 课程对照地图</h2>
+<p>这个 Agent 用到的每一块，都能追溯到前面的某一课：</p>
+<table class="t">
+  <tr><th>零件</th><th>作用</th><th>来自</th></tr>
+  <tr><td class="mono">init_chat_model</td><td>聊天模型</td><td>第 5 课</td></tr>
+  <tr><td class="mono">@tool（查订单）</td><td>调用外部系统</td><td>第 6 课</td></tr>
+  <tr><td class="mono">create_retriever_tool</td><td>RAG 知识库工具</td><td>第 17 课</td></tr>
+  <tr><td class="mono">system_prompt</td><td>人设与规则</td><td>第 16 课</td></tr>
+  <tr><td class="mono">AgentMiddleware</td><td>审计 / 护栏</td><td>第 18 课</td></tr>
+  <tr><td class="mono">context_schema</td><td>注入 user_id</td><td>第 19 课</td></tr>
+  <tr><td class="mono">response_format</td><td>结构化答复</td><td>第 5 课</td></tr>
+  <tr><td class="mono">create_agent</td><td>把以上接成循环</td><td>第 7 / 13 课</td></tr>
+</table>
+
+<h2>完整代码：拼起来其实就这么短</h2>
+<pre class="code"><span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass
+<span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel
+<span class="kw">from</span> langchain.chat_models <span class="kw">import</span> init_chat_model
+<span class="kw">from</span> langchain.agents <span class="kw">import</span> create_agent
+<span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> AgentMiddleware
+<span class="kw">from</span> langchain_core.tools <span class="kw">import</span> tool, create_retriever_tool
+<span class="kw">from</span> langchain.tools <span class="kw">import</span> ToolRuntime
+
+<span class="cm"># ① 运行时上下文（第 19 课）：每次请求带 user_id，不进消息</span>
+<span class="nb">@dataclass</span>
+<span class="kw">class</span> <span class="fn">Ctx</span>:
+    user_id: str
+
+<span class="cm"># ② 工具（第 6 课）：查订单，用 runtime 读当前用户</span>
+<span class="nb">@tool</span>
+<span class="kw">def</span> <span class="fn">get_order_status</span>(order_id: str, runtime: ToolRuntime) -> str:
+    <span class="st">&quot;&quot;&quot;查询订单状态。&quot;&quot;&quot;</span>
+    <span class="kw">return</span> orders_db.status(runtime.context.user_id, order_id)
+
+<span class="cm"># ③ RAG（第 17 课）：把知识库检索器变成一个工具</span>
+kb_tool = create_retriever_tool(retriever, <span class="st">"search_kb"</span>, <span class="st">"检索退换货等政策"</span>)
+
+<span class="cm"># ④ 自定义中间件（第 18 课）：每轮审计 + 护栏</span>
+<span class="kw">class</span> <span class="fn">AuditMiddleware</span>(AgentMiddleware):
+    <span class="kw">def</span> <span class="fn">before_model</span>(self, state, runtime):
+        log.info(<span class="st">"user=%s turns=%d"</span>, runtime.context.user_id, len(state[<span class="st">"messages"</span>]))
+        <span class="kw">return</span> None
+
+<span class="cm"># ⑤ 结构化答复（第 5 课）</span>
+<span class="kw">class</span> <span class="fn">Reply</span>(BaseModel):
+    answer: str
+    resolved: bool
+
+<span class="cm"># ⑥ 组装（第 7、13 课）：一个 create_agent 把以上全部接起来</span>
+agent = create_agent(
+    model=init_chat_model(<span class="st">"openai:gpt-5.1"</span>),                <span class="cm"># 第 5 课</span>
+    tools=[get_order_status, kb_tool],                       <span class="cm"># 第 6、17 课</span>
+    system_prompt=<span class="st">"你是友好的客服，先查资料再回答，不要编造。"</span>,   <span class="cm"># 第 16 课</span>
+    middleware=[AuditMiddleware()],                          <span class="cm"># 第 18 课</span>
+    context_schema=Ctx,                                      <span class="cm"># 第 19 课</span>
+    response_format=Reply,                                   <span class="cm"># 第 5 课</span>
+)
+
+<span class="cm"># ⑦ 跑起来：context 带身份，输出是结构化的 Reply</span>
+result = agent.invoke(
+    {<span class="st">"messages"</span>: [{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"我的订单 A123 到哪了？"</span>}]},
+    context={<span class="st">"user_id"</span>: <span class="st">"u_42"</span>},
+)
+print(result[<span class="st">"structured_response"</span>])   <span class="cm"># Reply(answer=..., resolved=...)</span>
+</pre>
+
+<h2>一次真实请求，数据怎么流</h2>
+<div class="vflow">
+  <div class="step"><div class="num">1</div><div class="sc"><h4>进入：带身份的请求</h4>
+    <p>用户消息 + <span class="mono">context={"user_id": "u_42"}</span> 进入 Agent 图。</p></div></div>
+  <div class="step"><div class="num">2</div><div class="sc"><h4>中间件先跑</h4>
+    <p><span class="mono">AuditMiddleware.before_model</span> 记录这一轮（读到 user_id，但不污染对话）。</p></div></div>
+  <div class="step"><div class="num">3</div><div class="sc"><h4>模型决定用哪个工具</h4>
+    <p>模型看到"订单"→ 请求 <span class="mono">get_order_status("A123")</span>；若问政策则请求 <span class="mono">search_kb</span>。</p></div></div>
+  <div class="step"><div class="num">4</div><div class="sc"><h4>工具执行（带上下文）</h4>
+    <p><span class="mono">get_order_status</span> 通过 <span class="mono">runtime.context.user_id</span> 只查"这个用户"的订单，结果回灌为 ToolMessage。</p></div></div>
+  <div class="step"><div class="num">5</div><div class="sc"><h4>循环 + 结构化收尾</h4>
+    <p>模型据工具结果作答；因设了 <span class="mono">response_format</span>，最终给出 <span class="mono">Reply(answer, resolved)</span>。</p></div></div>
+</div>
+
+<div class="card spark">
+  <div class="tag">💡 设计亮点</div>
+  <ul>
+    <li><strong>几乎没有"新代码"，全是拼装</strong>：每个零件都是前面学过的 Runnable / 抽象，插到 <span class="mono">create_agent</span> 的对应参数上即可。</li>
+    <li><strong>关注点分离得很干净</strong>：身份走 context、护栏走 middleware、知识走 RAG 工具、格式走 response_format——彼此不纠缠，可单独替换/测试。</li>
+    <li><strong>可平滑长大</strong>：要记忆就加 <span class="mono">checkpointer</span>，要人审就加 <span class="mono">HumanInTheLoopMiddleware</span>，要多 Agent 就把它当子图——都不用重写核心。</li>
+  </ul>
+</div>
+
+<h2>🔍 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，看这个 Agent 如何继续长大与被测试。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> 加记忆：让它记住多轮对话 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 一行加持久化</div>
+      <div class="a">
+<pre class="code"><span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> InMemorySaver
+agent = create_agent(..., checkpointer=InMemorySaver())
+agent.invoke(inp, config={<span class="st">"configurable"</span>: {<span class="st">"thread_id"</span>: <span class="st">"u_42"</span>}})  <span class="cm"># 同 thread 记住上下文</span></pre>
+        （第 13 课）按 <span class="mono">thread_id</span> 区分会话，自动存取历史。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 配合上下文管理</div>
+      <div class="a">历史变长时，叠加 <span class="mono">SummarizationMiddleware</span>（第 4 课）自动摘要，控制 token。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> 给 UI 流式：显示"正在查订单…" <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 用 stream_mode</div>
+      <div class="a">
+<pre class="code"><span class="kw">for</span> ev <span class="kw">in</span> agent.stream(inp, context=ctx, stream_mode=<span class="st">"updates"</span>):
+    ...  <span class="cm"># 每个节点的增量：模型/工具步骤，驱动进度提示</span></pre>
+        要逐字打字机用 <span class="mono">"messages"</span>；要细到每一步事件用 <span class="mono">astream_events</span>（第 14 课）。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">3</span> 测试：不联网也能验证整个 Agent <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 用假模型替换真模型</div>
+      <div class="a">
+<pre class="code"><span class="kw">from</span> langchain_core.language_models.fake_chat_models <span class="kw">import</span> GenericFakeChatModel
+test_agent = create_agent(model=GenericFakeChatModel(messages=iter([...])), tools=[...])
+<span class="cm"># 断言它在该调工具时调了工具、最终结构化字段正确</span></pre>
+        （第 15 课）单测禁网、用假模型，快速稳定地验证 Agent 的<strong>编排逻辑</strong>。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 分层测</div>
+      <div class="a">工具单独测（纯函数）、链/Agent 用假模型测编排、真模型留给集成测试——三层各司其职。</div>
+    </div>
+  </div>
+</details>
+
+<div class="card key">
+  <div class="tag">✅ 本课要点 & 全书结业</div>
+  <ul>
+    <li>一个真实 Agent = <strong>把学过的零件插到 <span class="mono">create_agent</span> 的对应参数上</strong>：model / tools / system_prompt / middleware / context_schema / response_format。</li>
+    <li>身份走 <strong>context</strong>、护栏走 <strong>middleware</strong>、知识走 <strong>RAG 工具</strong>、格式走 <strong>response_format</strong>——关注点干净分离。</li>
+    <li>要长大很平滑：<span class="mono">checkpointer</span> 加记忆、<span class="mono">stream_mode</span> 加 UI、假模型做测试。</li>
+    <li>🎉 <strong>恭喜你走完全部 20 课！</strong>你已经把 LangChain 从<strong>宏观结构</strong>、<strong>用户用法</strong>、<strong>内部源码</strong>到<strong>自己动手做 Agent</strong> 完整走了一遍。现在，去拼一个属于你自己的 Agent 吧。</li>
+  </ul>
+</div>
+"""

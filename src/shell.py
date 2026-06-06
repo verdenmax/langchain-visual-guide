@@ -21,6 +21,7 @@ PAGES = [
     ("17-rag.html", "RAG 检索增强", "第五部分 · 自己动手做 Agent"),
     ("18-custom-middleware.html", "写自己的中间件", "第五部分 · 自己动手做 Agent"),
     ("19-runtime-context.html", "运行时上下文与健壮性", "第五部分 · 自己动手做 Agent"),
+    ("20-capstone.html", "端到端实战：拼一个客服 Agent", "第五部分 · 自己动手做 Agent"),
 ]
 
 INDEX_FILE = "index.html"
@@ -339,6 +340,7 @@ def index_page(standalone=False, lesson_prefix=""):
         "17-rag.html": "Document → 切块 → Embeddings → VectorStore → Retriever",
         "18-custom-middleware.html": "AgentMiddleware 钩子 · before/after/wrap",
         "19-runtime-context.html": "context_schema · with_fallbacks · stream_mode",
+        "20-capstone.html": "把所有零件拼成一个完整可跑的 Agent",
     }
     for part in order:
         blocks.append(f'<div class="toc-part">{part}</div>')
