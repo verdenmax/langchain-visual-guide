@@ -190,12 +190,210 @@ ToolMessage(content=<span class="st">"北京 晴 25°C"</span>, tool_call_id=<sp
   </div>
 </details>
 
+<h2>🧠 上下文管理：对话历史就是"上下文"</h2>
+<p>这是本课最重要的进阶主题。先建立一个关键认知——它会贯穿你之后所有的开发：</p>
+
+<div class="card key">
+  <div class="tag">🔑 核心认知</div>
+  大语言模型<strong>没有记忆、是无状态的</strong>。它每次被调用时，"记得"的全部内容，
+  就是你这一次<strong>传进去的那串消息</strong>。所以——
+  <strong>这串消息列表 = 模型的上下文(context)</strong>，而"管理对话/记忆"本质上就是
+  <strong>管理这个消息列表</strong>：往里加什么、保留什么、删掉什么、压缩什么。
+</div>
+
+<div class="card analogy">
+  <div class="tag">📋 生活类比</div>
+  模型像一个<strong>每次都失忆的专家</strong>：你每次找他都得把"之前聊到哪了"重新讲一遍（那叠消息）。
+  对话越长，这叠纸越厚——但他桌子（<strong>上下文窗口</strong>）只放得下有限张纸。
+  于是你必须决定：哪些旧纸该<strong>扔掉</strong>、哪些该<strong>缩写成摘要</strong>、哪些必须<strong>留着</strong>。
+</div>
+
+<h3>为什么必须管理它</h3>
+<ul>
+  <li><strong>窗口有限</strong>：每个模型有 token 上限，历史无限增长迟早<strong>超限报错</strong>。</li>
+  <li><strong>又贵又慢</strong>：每轮都把全部历史发过去，token 越多<strong>越费钱、延迟越高</strong>。</li>
+  <li><strong>噪声干扰</strong>：太多无关旧消息会<strong>稀释重点</strong>，让模型抓不住当前任务。</li>
+</ul>
+
+<h3>LangChain 的"上下文工具箱"</h3>
+<p>core 提供了一组现成的纯函数来加工消息列表（都在 <span class="inline">langchain_core.messages</span>）：</p>
+<table class="t">
+  <tr><th>工具</th><th>作用</th><th>位置</th></tr>
+  <tr><td class="mono">trim_messages</td><td>按 <strong>token 预算</strong>裁剪历史（保留最近/最早）</td><td class="mono">messages/utils.py</td></tr>
+  <tr><td class="mono">filter_messages</td><td>按<strong>类型 / 名字 / id</strong> 保留或剔除消息</td><td class="mono">messages/utils.py</td></tr>
+  <tr><td class="mono">merge_message_runs</td><td>合并<strong>连续同角色</strong>的消息，减少碎片</td><td class="mono">messages/utils.py</td></tr>
+  <tr><td class="mono">count_tokens_approximately</td><td><strong>估算</strong>一串消息的 token 数</td><td class="mono">messages/utils.py</td></tr>
+  <tr><td class="mono">RemoveMessage</td><td>一个修饰符，从状态历史中<strong>删除</strong>指定消息</td><td class="mono">messages/modifier.py</td></tr>
+</table>
+
+<h3>四种主流"管理策略"</h3>
+<p>把上面的工具组合起来，常见有四种策略。真实项目里经常<strong>混用</strong>：</p>
+<div class="cols">
+  <div class="col">
+    <h4>① 滑动窗口（Trimming）</h4>
+    <p>只保留<strong>最近 N 条 / N 个 token</strong>，旧的直接丢。最简单、最常用。</p>
+    <p class="mono" style="font-size:.8rem;color:var(--muted)">trim_messages</p>
+  </div>
+  <div class="col">
+    <h4>② 摘要压缩（Summarization）</h4>
+    <p>把久远历史<strong>让模型缩写成一段摘要</strong>，用摘要替代原始长历史。</p>
+    <p class="mono" style="font-size:.8rem;color:var(--muted)">SummarizationMiddleware</p>
+  </div>
+  <div class="col">
+    <h4>③ 检索召回（RAG）</h4>
+    <p>历史存外部库，每轮<strong>只检索相关片段</strong>放进上下文，而非全带。</p>
+    <p class="mono" style="font-size:.8rem;color:var(--muted)">retriever + 消息拼装</p>
+  </div>
+  <div class="col">
+    <h4>④ 持久化（Persistence）</h4>
+    <p>把对话状态<strong>存档</strong>，跨请求/会话恢复，实现"长期记忆"。</p>
+    <p class="mono" style="font-size:.8rem;color:var(--muted)">LangGraph checkpointer</p>
+  </div>
+</div>
+
+<h2>🔍 上下文管理 · 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，逐个吃透每种管理方式。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> trim_messages：按 token 预算裁剪历史 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 示例</div>
+      <div class="a">
+<pre class="code"><span class="kw">from</span> langchain_core.messages <span class="kw">import</span> trim_messages, count_tokens_approximately
+
+trimmed = trim_messages(
+    messages,
+    max_tokens=4000,                        <span class="cm"># token 预算</span>
+    token_counter=count_tokens_approximately,
+    strategy=<span class="st">"last"</span>,                       <span class="cm"># 保留最近的（最常用）</span>
+    include_system=<span class="kw">True</span>,                   <span class="cm"># 始终保住开头的 SystemMessage</span>
+    start_on=<span class="st">"human"</span>,                       <span class="cm"># 裁剪后从一条 Human 开始，保持对话完整</span>
+)</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么有这些参数</div>
+      <div class="a"><span class="mono">include_system=True</span> 保证"人设/规则"不会被一起裁掉；
+        <span class="mono">start_on="human"</span> 避免裁剪后历史从一条孤立的 AI 回复或 ToolMessage 开头（那会让模型困惑）。
+        这些细节就是"裁剪历史"里最容易踩的坑。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点 & 🔀 其他方案</div>
+      <div class="a">优点：实现简单、可预测、零额外模型调用。代价：被裁掉的早期信息<strong>彻底丢失</strong>。
+        想保住要点又省 token → 用策略 ②摘要；想按需召回 → 用策略 ③检索。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> filter / merge / RemoveMessage：精修历史 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 三种精修</div>
+      <div class="a">
+<pre class="code"><span class="kw">from</span> langchain_core.messages <span class="kw">import</span> filter_messages, merge_message_runs, RemoveMessage
+
+<span class="cm"># 只保留 human + ai，剔除工具噪声</span>
+clean = filter_messages(messages, include_types=[<span class="st">"human"</span>, <span class="st">"ai"</span>])
+
+<span class="cm"># 合并连续同角色消息，减少碎片</span>
+merged = merge_message_runs(messages)
+
+<span class="cm"># 在 Agent 状态里删掉某条消息（按 id）</span>
+update = [RemoveMessage(id=<span class="st">"msg_123"</span>)]</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 各自解决什么</div>
+      <div class="a"><span class="mono">filter_messages</span>：把无关消息（如调试用的 ToolMessage）挡在上下文外；
+        <span class="mono">merge_message_runs</span>：某些厂商不接受连续两条同角色消息，合并可避免报错；
+        <span class="mono">RemoveMessage</span>：在 LangGraph 状态里精准删除（如撤回一次错误的工具调用）。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">它们都是<strong>纯函数</strong>（输入消息列表 → 输出消息列表），可随意组合进任何链或 Agent 前处理，互不耦合。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">3</span> 在 Agent 里：持久化 + 摘要 + 上下文编辑 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 三种 Agent 级手段</div>
+      <div class="a">
+<pre class="code"><span class="cm"># A) 持久化记忆：给 Agent 一个 checkpointer，自动存取对话状态</span>
+agent = create_agent(model, tools, checkpointer=saver)
+agent.invoke(input, config={<span class="st">"configurable"</span>: {<span class="st">"thread_id"</span>: <span class="st">"u1"</span>}})
+
+<span class="cm"># B) 自动摘要：历史过长时把旧消息压成摘要</span>
+<span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> SummarizationMiddleware
+
+<span class="cm"># C) 上下文编辑：按规则裁剪/编辑进入模型的上下文</span>
+<span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> ContextEditingMiddleware
+agent = create_agent(model, tools, middleware=[SummarizationMiddleware(model)])</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么放在 Agent / 中间件层</div>
+      <div class="a">Agent 会自动循环、消息<strong>持续增长</strong>，最需要上下文治理。
+        <span class="mono">checkpointer</span> 解决"跨请求记忆"（线程 id 区分用户）；
+        <span class="mono">SummarizationMiddleware</span> / <span class="mono">ContextEditingMiddleware</span> 在每轮模型调用前自动治理上下文，
+        无需你手写裁剪逻辑。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 代码对应</div>
+      <div class="a"><span class="mono">SummarizationMiddleware</span> → <span class="mono">agents/middleware/summarization.py</span>；
+        <span class="mono">ContextEditingMiddleware</span> → <span class="mono">agents/middleware/context_editing.py</span>；
+        <span class="mono">checkpointer</span> 是 <span class="mono">create_agent</span> 的参数（持久化由 LangGraph 提供，第 12 课）。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">4</span> 给普通链加"记忆"：RunnableWithMessageHistory <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 用途</div>
+      <div class="a">如果你用的是<strong>普通链</strong>（不是 Agent），可以用它把"按会话 id 存取历史"包到链外面：
+<pre class="code"><span class="kw">from</span> langchain_core.runnables.history <span class="kw">import</span> RunnableWithMessageHistory
+
+chat = RunnableWithMessageHistory(
+    chain,
+    get_session_history,           <span class="cm"># 按 session_id 取/存历史的函数</span>
+    input_messages_key=<span class="st">"input"</span>,
+    history_messages_key=<span class="st">"history"</span>,
+)</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 它和 Agent 的 checkpointer 区别</div>
+      <div class="a"><span class="mono">RunnableWithMessageHistory</span> 是给 <strong>LCEL 链</strong>加历史的经典方式（偏底层、手动）；
+        而 Agent 用 LangGraph <span class="mono">checkpointer</span> 做状态持久化，更适合复杂、有状态的多步流程。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 怎么选</div>
+      <div class="a">简单问答链 + 要记住上一轮 → <span class="mono">RunnableWithMessageHistory</span>；
+        多步工具、需要断点续跑/人审 → 用 Agent + checkpointer。</div>
+    </div>
+  </div>
+</details>
+
+<div class="card macro">
+  <div class="tag">🌍 宏观理解：一句话收束</div>
+  <strong>"管理对话" = "管理那串喂给模型的消息列表"</strong>。
+  无论裁剪、筛选、合并、摘要、检索还是持久化，本质都是在回答同一个问题：
+  <strong>这一次调用，到底该把哪些消息放进上下文？</strong> 想透这一点，你就掌握了所有 LLM 应用的命脉。
+</div>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
     <li>对话 = <strong>一串结构化消息</strong>，四种核心：System / Human / AI / Tool，全部继承 <span class="mono">BaseMessage</span>。</li>
     <li><span class="mono">AIMessage</span> 除了正文，还能带 <span class="mono">tool_calls</span> 和 <span class="mono">usage_metadata</span>。</li>
     <li><span class="mono">tool_calls</span> 是连接"模型"与"工具"的桥梁，也是 Agent 自动循环的起点。</li>
+    <li><strong>上下文 = 你传进去的消息列表</strong>；管理对话就是裁剪/筛选/合并/摘要/检索/持久化这串消息。</li>
     <li>下一课：把这串消息真正喂给<strong>聊天模型</strong>。</li>
   </ul>
 </div>
