@@ -349,6 +349,32 @@ index(docs, record_manager, vectorstore, cleanup=<span class="st">"incremental"<
   </div>
 </details>
 
+<details class="accordion">
+  <summary><span class="badge-num">5</span> 别手写：create_retriever_tool + 嵌入缓存 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 一行把检索器变成 Agent 工具</div>
+      <div class="a">前面"用法 B"我们手写了 <span class="mono">@tool</span>，其实有现成助手：
+<pre class="code"><span class="kw">from</span> langchain_core.tools <span class="kw">import</span> create_retriever_tool
+
+kb_tool = create_retriever_tool(
+    retriever, name=<span class="st">"search_kb"</span>, description=<span class="st">"检索公司知识库"</span>)
+agent = create_agent(model, tools=[kb_tool])</pre>
+        位置：<span class="mono">core/tools/retriever.py:31</span>。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 嵌入太贵？给它加缓存</div>
+      <div class="a"><span class="mono">CacheBackedEmbeddings</span>（<span class="mono">langchain_classic/embeddings/cache.py:108</span>）
+        把"文本 → 向量"的结果缓存起来，<strong>相同文本不再重复调用嵌入 API</strong>，显著省钱（尤其重复构建索引时）。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 小结</div>
+      <div class="a">真实 RAG 的"省心三件套"：<span class="mono">create_retriever_tool</span>（少写胶水）、
+        嵌入缓存（省钱）、索引 API（增量更新）。</div>
+    </div>
+  </div>
+</details>
+
 <h2>🔬 实现细节与亮点</h2>
 <p>RAG 的三个零件在源码里各有精巧之处——看 Retriever 如何"白嫖"Runnable 能力，以及切分器如何在语义边界下刀。</p>
 

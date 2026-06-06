@@ -496,6 +496,32 @@ model = init_chat_model(<span class="st">"openai:gpt-5.1"</span>, rate_limiter=l
   </div>
 </details>
 
+<details class="accordion">
+  <summary><span class="badge-num">4</span> with_structured_output 的"策略"：include_raw 与 method <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 include_raw：同时拿到原始消息与解析结果</div>
+      <div class="a">
+<pre class="code">structured = model.with_structured_output(Weather, include_raw=True)
+structured.invoke(<span class="st">"北京 25 度"</span>)
+<span class="cm"># → {"raw": AIMessage(...), "parsed": Weather(...), "parsing_error": None}</span></pre>
+        默认只返回 <span class="mono">parsed</span>；<span class="mono">include_raw=True</span> 还给你原始 AIMessage 和解析错误，便于排查。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ method：用什么机制约束输出</div>
+      <div class="a">各 partner 的 <span class="mono">with_structured_output</span> 常接受 <span class="mono">method=</span>：
+        <span class="mono">"function_calling"</span>（借工具调用）/ <span class="mono">"json_mode"</span> / <span class="mono">"json_schema"</span>。
+        这决定了可靠性与模型支持度——是结构化输出"成不成"的关键旋钮。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 在 Agent 里：三种策略</div>
+      <div class="a"><span class="mono">response_format</span>（第 7 课）底层用
+        <span class="mono">ToolStrategy</span>（structured_output.py:195）/ <span class="mono">ProviderStrategy</span>（:261）/
+        <span class="mono">AutoStrategy</span>（:447，自动选）。核心签名在 <span class="mono">chat_models.py:2344</span>。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card spark">
   <div class="tag">💡 设计亮点</div>
   <ul>

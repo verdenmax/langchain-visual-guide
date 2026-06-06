@@ -190,6 +190,32 @@ ToolMessage(content=<span class="st">"北京 晴 25°C"</span>, tool_call_id=<sp
   </div>
 </details>
 
+<details class="accordion">
+  <summary><span class="badge-num">4</span> Token 用量：UsageMetadata 的结构 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 usage_metadata 是有类型的结构</div>
+      <div class="a">前面把 <span class="mono">usage_metadata</span> 当松散 dict，其实它是 <span class="mono">UsageMetadata</span>：
+<pre class="code">AIMessage.usage_metadata = {
+  <span class="st">"input_tokens"</span>: 12, <span class="st">"output_tokens"</span>: 8, <span class="st">"total_tokens"</span>: 20,
+  <span class="st">"input_token_details"</span>: {<span class="st">"cache_read"</span>: 5},   <span class="cm"># 细分（缓存命中等）</span>
+  <span class="st">"output_token_details"</span>: {<span class="st">"reasoning"</span>: 3},
+}</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 流式时怎么统计</div>
+      <div class="a">流式下用量也是碎片化的。<span class="mono">add_usage</span>（<span class="mono">messages/ai.py:721</span>）在
+        <span class="mono">AIMessageChunk</span> 相加时<strong>累计 token</strong>，最终得到整次调用的总用量。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 为什么重要</div>
+      <div class="a">成本核算、配额监控、可观测都靠它。结构定义在 <span class="mono">messages/ai.py:104</span>
+        （含 <span class="mono">InputTokenDetails</span>/<span class="mono">OutputTokenDetails</span>）。</div>
+    </div>
+  </div>
+</details>
+
 <h2>🧠 上下文管理：对话历史就是"上下文"</h2>
 <p>这是本课最重要的进阶主题。先建立一个关键认知——它会贯穿你之后所有的开发：</p>
 
@@ -678,6 +704,32 @@ model = init_chat_model(<span class="st">"openai:gpt-5.1"</span>, rate_limiter=l
   </div>
 </details>
 
+<details class="accordion">
+  <summary><span class="badge-num">4</span> with_structured_output 的"策略"：include_raw 与 method <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 include_raw：同时拿到原始消息与解析结果</div>
+      <div class="a">
+<pre class="code">structured = model.with_structured_output(Weather, include_raw=True)
+structured.invoke(<span class="st">"北京 25 度"</span>)
+<span class="cm"># → {"raw": AIMessage(...), "parsed": Weather(...), "parsing_error": None}</span></pre>
+        默认只返回 <span class="mono">parsed</span>；<span class="mono">include_raw=True</span> 还给你原始 AIMessage 和解析错误，便于排查。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ method：用什么机制约束输出</div>
+      <div class="a">各 partner 的 <span class="mono">with_structured_output</span> 常接受 <span class="mono">method=</span>：
+        <span class="mono">"function_calling"</span>（借工具调用）/ <span class="mono">"json_mode"</span> / <span class="mono">"json_schema"</span>。
+        这决定了可靠性与模型支持度——是结构化输出"成不成"的关键旋钮。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 在 Agent 里：三种策略</div>
+      <div class="a"><span class="mono">response_format</span>（第 7 课）底层用
+        <span class="mono">ToolStrategy</span>（structured_output.py:195）/ <span class="mono">ProviderStrategy</span>（:261）/
+        <span class="mono">AutoStrategy</span>（:447，自动选）。核心签名在 <span class="mono">chat_models.py:2344</span>。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card spark">
   <div class="tag">💡 设计亮点</div>
   <ul>
@@ -954,6 +1006,29 @@ agent = create_agent(model, tools=large_toolset, middleware=[
     <div class="qa">
       <div class="q">✅ 优点</div>
       <div class="a">安全性与可扩展性都以"装中间件"获得：工具集再大也能用，危险操作也可控，核心代码不变。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">4</span> 工具集 Toolkit 与注入参数基类 InjectedToolArg <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 BaseToolkit：把一组相关工具打包</div>
+      <div class="a">数据库、文件系统等常有"一组配套工具"。<span class="mono">BaseToolkit</span> 把它们打成一包：
+<pre class="code">toolkit = SomeDatabaseToolkit(db=db)
+agent = create_agent(model, tools=toolkit.get_tools())   <span class="cm"># 一次性给一组工具</span></pre>
+        位置：<span class="mono">core/tools/base.py:1580</span>。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ InjectedToolArg 是什么</div>
+      <div class="a">它是<strong>所有"注入参数"的基类</strong>（<span class="mono">tools/base.py:1374</span>）：第 6 课的
+        <span class="mono">InjectedState</span>、<span class="mono">InjectedToolCallId</span>（:1404）都继承它。
+        被它标记的参数<strong>由框架注入、不出现在给模型的 schema 里</strong>。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 为什么有用</div>
+      <div class="a">Toolkit 让"成套能力"即插即用；<span class="mono">InjectedToolArg</span> 提供统一机制，把"运行时数据"安全喂给工具而不暴露给模型。</div>
     </div>
   </div>
 </details>

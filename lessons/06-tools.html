@@ -485,6 +485,29 @@ agent = create_agent(model, tools=large_toolset, middleware=[
   </div>
 </details>
 
+<details class="accordion">
+  <summary><span class="badge-num">4</span> 工具集 Toolkit 与注入参数基类 InjectedToolArg <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 BaseToolkit：把一组相关工具打包</div>
+      <div class="a">数据库、文件系统等常有"一组配套工具"。<span class="mono">BaseToolkit</span> 把它们打成一包：
+<pre class="code">toolkit = SomeDatabaseToolkit(db=db)
+agent = create_agent(model, tools=toolkit.get_tools())   <span class="cm"># 一次性给一组工具</span></pre>
+        位置：<span class="mono">core/tools/base.py:1580</span>。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ InjectedToolArg 是什么</div>
+      <div class="a">它是<strong>所有"注入参数"的基类</strong>（<span class="mono">tools/base.py:1374</span>）：第 6 课的
+        <span class="mono">InjectedState</span>、<span class="mono">InjectedToolCallId</span>（:1404）都继承它。
+        被它标记的参数<strong>由框架注入、不出现在给模型的 schema 里</strong>。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 为什么有用</div>
+      <div class="a">Toolkit 让"成套能力"即插即用；<span class="mono">InjectedToolArg</span> 提供统一机制，把"运行时数据"安全喂给工具而不暴露给模型。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card spark">
   <div class="tag">💡 设计亮点</div>
   <ul>

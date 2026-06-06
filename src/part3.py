@@ -172,6 +172,34 @@ chain = prompt.pipe(model).pipe(parser)
   </div>
 </details>
 
+<details class="accordion">
+  <summary><span class="badge-num">4</span> 运行时重配置：configurable_fields / configurable_alternatives <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 把参数/组件变成"调用时可换"</div>
+      <div class="a">
+<pre class="code"><span class="cm"># 把某个字段标成可在 config 里覆盖</span>
+model = ChatModel(...).configurable_fields(
+    temperature=ConfigurableField(id=<span class="st">"temp"</span>))
+model.invoke(x, config={<span class="st">"configurable"</span>: {<span class="st">"temp"</span>: 0.9}})   <span class="cm"># 本次调用临时改</span>
+
+<span class="cm"># 或整个组件提供备选，运行时切换</span>
+chain.configurable_alternatives(ConfigurableField(<span class="st">"llm"</span>), default_key=<span class="st">"gpt"</span>, claude=other)</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 它解决什么</div>
+      <div class="a">同一条链，<strong>不重建</strong>就能按 <span class="mono">config["configurable"]</span> 切换模型/温度/提示等——
+        多租户、A/B 实验、按请求选模型的核心手段。<span class="mono">init_chat_model(configurable_fields=...)</span> 也基于此。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 代码对应</div>
+      <div class="a"><span class="mono">configurable_fields</span>（<span class="mono">runnables/base.py:2792</span>）/
+        <span class="mono">configurable_alternatives</span>（<span class="mono">:2850</span>）；实现类在 <span class="mono">runnables/configurable.py</span>。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card spark">
   <div class="tag">💡 设计亮点</div>
   <ul>
@@ -1076,6 +1104,59 @@ LESSON_13 = r"""
       <div class="q">✅ 代码对应</div>
       <div class="a">由 <span class="mono">BaseMessageChunk.__add__</span>（<span class="mono">messages/ai.py</span> 等）实现；
         辅助函数 <span class="mono">generate_from_stream</span> 把整串 chunk 归并成最终结果。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">4</span> astream_events 的事件长什么样（v2 结构） <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 每个事件是一个统一结构的字典</div>
+      <div class="a">
+<pre class="code">{
+  <span class="st">"event"</span>: <span class="st">"on_chat_model_stream"</span>,   <span class="cm"># 事件类型：on_*_start/stream/end</span>
+  <span class="st">"name"</span>: <span class="st">"ChatOpenAI"</span>,             <span class="cm"># 哪个组件</span>
+  <span class="st">"run_id"</span>: <span class="st">"..."</span>,                  <span class="cm"># 本次运行 id（可关联父子）</span>
+  <span class="st">"tags"</span>: [], <span class="st">"metadata"</span>: {},
+  <span class="st">"data"</span>: {<span class="st">"chunk"</span>: AIMessageChunk(...)}  <span class="cm"># 负载（input/chunk/output）</span>
+}</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么 UI 开发者需要它</div>
+      <div class="a">要在界面上显示"正在调用哪个工具、模型在逐字输出什么"，就得订阅这些<strong>带类型的逐步骤事件</strong>。
+        按 <span class="mono">event</span> 类型和 <span class="mono">name</span> 过滤，即可驱动"Agent 思考过程"可视化。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 代码对应</div>
+      <div class="a"><span class="mono">StreamEvent</span> / <span class="mono">EventData</span> 在 <span class="mono">runnables/schema.py:124</span>；
+        v2 实现 <span class="mono">tracers/event_stream.py</span>。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">5</span> 谁在背后上报：CallbackManager 与 LangChainTracer <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 事件的分发与上报链路</div>
+      <div class="a">
+<pre class="code">组件触发事件 → CallbackManager 把事件 fan-out 给所有已注册 handler
+                              ├─ 你的日志 handler
+                              └─ LangChainTracer → 上报 LangSmith（构建 run 树）</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 各自职责</div>
+      <div class="a"><span class="mono">CallbackManager</span>（<span class="mono">callbacks/manager.py:1343</span>）负责"把一次事件<strong>广播</strong>给所有处理器"；
+        <span class="mono">LangChainTracer</span>（<span class="mono">tracers/langchain.py:134</span>）是其中一个处理器，专门把运行树<strong>上报 LangSmith</strong>——
+        这就是全书反复说的"LangSmith 追踪"的落地实现。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 进阶</div>
+      <div class="a"><span class="mono">dispatch_custom_event</span>（<span class="mono">callbacks/manager.py:2705</span>）让你在自己的工具/链里<strong>发自定义事件</strong>，
+        一并出现在 <span class="mono">astream_events</span> 流里。</div>
     </div>
   </div>
 </details>

@@ -415,6 +415,32 @@ ToolMessage(content=<span class="st">"北京 晴 25°C"</span>, tool_call_id=<sp
   </div>
 </details>
 
+<details class="accordion">
+  <summary><span class="badge-num">4</span> Token 用量：UsageMetadata 的结构 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 usage_metadata 是有类型的结构</div>
+      <div class="a">前面把 <span class="mono">usage_metadata</span> 当松散 dict，其实它是 <span class="mono">UsageMetadata</span>：
+<pre class="code">AIMessage.usage_metadata = {
+  <span class="st">"input_tokens"</span>: 12, <span class="st">"output_tokens"</span>: 8, <span class="st">"total_tokens"</span>: 20,
+  <span class="st">"input_token_details"</span>: {<span class="st">"cache_read"</span>: 5},   <span class="cm"># 细分（缓存命中等）</span>
+  <span class="st">"output_token_details"</span>: {<span class="st">"reasoning"</span>: 3},
+}</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 流式时怎么统计</div>
+      <div class="a">流式下用量也是碎片化的。<span class="mono">add_usage</span>（<span class="mono">messages/ai.py:721</span>）在
+        <span class="mono">AIMessageChunk</span> 相加时<strong>累计 token</strong>，最终得到整次调用的总用量。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 为什么重要</div>
+      <div class="a">成本核算、配额监控、可观测都靠它。结构定义在 <span class="mono">messages/ai.py:104</span>
+        （含 <span class="mono">InputTokenDetails</span>/<span class="mono">OutputTokenDetails</span>）。</div>
+    </div>
+  </div>
+</details>
+
 <h2>🧠 上下文管理：对话历史就是"上下文"</h2>
 <p>这是本课最重要的进阶主题。先建立一个关键认知——它会贯穿你之后所有的开发：</p>
 

@@ -397,6 +397,34 @@ chain = prompt.pipe(model).pipe(parser)
   </div>
 </details>
 
+<details class="accordion">
+  <summary><span class="badge-num">4</span> 运行时重配置：configurable_fields / configurable_alternatives <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 把参数/组件变成"调用时可换"</div>
+      <div class="a">
+<pre class="code"><span class="cm"># 把某个字段标成可在 config 里覆盖</span>
+model = ChatModel(...).configurable_fields(
+    temperature=ConfigurableField(id=<span class="st">"temp"</span>))
+model.invoke(x, config={<span class="st">"configurable"</span>: {<span class="st">"temp"</span>: 0.9}})   <span class="cm"># 本次调用临时改</span>
+
+<span class="cm"># 或整个组件提供备选，运行时切换</span>
+chain.configurable_alternatives(ConfigurableField(<span class="st">"llm"</span>), default_key=<span class="st">"gpt"</span>, claude=other)</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 它解决什么</div>
+      <div class="a">同一条链，<strong>不重建</strong>就能按 <span class="mono">config["configurable"]</span> 切换模型/温度/提示等——
+        多租户、A/B 实验、按请求选模型的核心手段。<span class="mono">init_chat_model(configurable_fields=...)</span> 也基于此。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 代码对应</div>
+      <div class="a"><span class="mono">configurable_fields</span>（<span class="mono">runnables/base.py:2792</span>）/
+        <span class="mono">configurable_alternatives</span>（<span class="mono">:2850</span>）；实现类在 <span class="mono">runnables/configurable.py</span>。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card spark">
   <div class="tag">💡 设计亮点</div>
   <ul>
