@@ -72,6 +72,7 @@ python -m http.server 8000
 - 🔬 **细节 / 代码对应** — 指向真实源码文件（如 `runnables/base.py`、`chat_models.py`）
 - 🧩 **生活类比** — 用日常事物帮助理解抽象概念
 - ✅ **关键要点** — 每课小结
+- 💡 **设计亮点** — 该课最精妙的设计思想
 - 顶部进度条 + 上一课 / 下一课导航
 
 ## 📁 项目结构
@@ -83,10 +84,14 @@ langchain-visual-guide/
 │   ├── 01-what-is-langchain.html
 │   ├── 02-monorepo.html
 │   └── …  20-capstone.html
-├── src/                    ← 无依赖的 Python 生成器（可重建全部 HTML）
+├── src/                    ← 无依赖的 Python 生成器（可重建全部 HTML / PDF）
 │   ├── shell.py            共享外壳：CSS 设计系统、导航、index 页
-│   ├── part1.py … part4.py 各部分课程内容
-│   └── build.py            构建脚本
+│   ├── part1.py … part5.py 各部分课程内容
+│   ├── registry.py         课程 → 内容 的统一映射
+│   ├── build.py            站点构建（→ index.html + lessons/）
+│   └── build_print.py      PDF 构建（→ print.html，折叠全展开）
+├── .github/workflows/
+│   └── deploy.yml          CI：自动部署 Pages + 生成 PDF
 ├── README.md
 └── LICENSE
 ```
@@ -97,11 +102,42 @@ langchain-visual-guide/
 
 ```bash
 cd src
-python build.py
+python build.py          # 生成 index.html + lessons/（站点）
+python build_print.py    # 生成 print.html（用于打 PDF，折叠全部展开）
 ```
 
-构建脚本会把 `index.html` 写到项目根目录，20 课写入 `lessons/`。
-页面之间用相对链接互联，因此整体可直接拷贝、部署到任意静态服务器或 GitHub Pages。
+页面之间用相对链接互联，整体可直接拷贝、部署到任意静态服务器或 GitHub Pages。
+
+### 本地导出 PDF
+
+`print.html` 把全部 20 课合成单页文档（折叠卡片全部展开、自动分页）。用任意无头浏览器打 PDF，例如：
+
+```bash
+chromium --headless=new --no-pdf-header-footer \
+  --print-to-pdf=langchain-visual-guide.pdf \
+  --virtual-time-budget=20000 "file://$PWD/print.html"
+```
+
+## 🚀 自动化：GitHub Pages + PDF（CI）
+
+仓库内置 `.github/workflows/deploy.yml`，**推送即自动**：
+1. 重新构建站点与 `print.html`；
+2. 用无头 Chrome 渲染出 **PDF**（CI 已安装 CJK/emoji 字体，中文正常）；
+3. 把 `index.html`、`lessons/`、`langchain-visual-guide.pdf` 部署到 **GitHub Pages**；
+4. PDF 同时作为构建产物上传；打 `v*` **标签**时还会自动发布 Release 并附带 PDF。
+
+**首次启用（一次性）：**
+1. 在 GitHub 新建仓库并推送：
+   ```bash
+   git remote add origin git@github.com:<你的用户名>/langchain-visual-guide.git
+   git push -u origin master
+   ```
+2. 仓库 **Settings → Pages → Build and deployment → Source** 选 **GitHub Actions**。
+3. 之后每次 `push` 到 `master` 会自动部署，站点地址形如
+   `https://<你的用户名>.github.io/langchain-visual-guide/`，PDF 在
+   `https://<你的用户名>.github.io/langchain-visual-guide/langchain-visual-guide.pdf`。
+4. 发布带 PDF 的版本：`git tag v1.0 && git push --tags`。
+
 
 ## 📄 许可
 

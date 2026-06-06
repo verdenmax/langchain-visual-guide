@@ -211,6 +211,10 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 .legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
 .legend span { display:flex; align-items:center; gap:.4rem; }
 .legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }
+.pdf-btn { display:inline-flex; align-items:center; gap:.4rem; padding:.55rem 1.1rem;
+  background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
+  box-shadow:var(--shadow); transition:.15s; }
+.pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
 </style>
 </head><body>
 <div class="topbar">
@@ -232,6 +236,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
       <span><i style="background:var(--purple)"></i>细节 / 源码</span>
       <span><i style="background:var(--amber)"></i>生活类比</span>
       <span><i style="background:var(--accent)"></i>关键要点</span>
+    </div>
+    <div style="margin-top:1.1rem">
+      <a href="langchain-visual-guide.pdf" class="pdf-btn">📄 下载完整 PDF（全 20 课）</a>
     </div>
   </div>
   <div class="toc"><div class="toc-part">第一部分 · 宏观全景</div>

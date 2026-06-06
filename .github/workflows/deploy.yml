@@ -1,0 +1,106 @@
+name: Deploy site & PDF
+
+on:
+  push:
+    branches: [master, main]
+    tags: ['v*']
+  workflow_dispatch:
+
+# Allow Pages deployment + (on tags) creating a release with the PDF.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; don't cancel an in-progress one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      # CJK + emoji fonts so the PDF renders Chinese (and 📘🔬💡) correctly.
+      - name: Install fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends fonts-noto-cjk fonts-noto-color-emoji
+
+      - name: Set up Chrome
+        id: chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Build site (HTML)
+        working-directory: src
+        run: python build.py
+
+      - name: Build print HTML (accordions expanded)
+        working-directory: src
+        run: python build_print.py
+
+      - name: Render PDF
+        run: |
+          "${{ steps.chrome.outputs.chrome-path }}" \
+            --headless=new --no-sandbox --disable-gpu --no-pdf-header-footer \
+            --print-to-pdf=langchain-visual-guide.pdf \
+            --virtual-time-budget=30000 \
+            "file://$GITHUB_WORKSPACE/print.html"
+          ls -la langchain-visual-guide.pdf
+
+      - name: Assemble _site
+        run: |
+          mkdir -p _site
+          cp index.html _site/
+          cp -r lessons _site/
+          cp langchain-visual-guide.pdf _site/
+          touch _site/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: langchain-visual-guide-pdf
+          path: langchain-visual-guide.pdf
+          if-no-files-found: error
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download PDF artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: langchain-visual-guide-pdf
+      - name: Publish release with PDF
+        uses: softprops/action-gh-release@v2
+        with:
+          files: langchain-visual-guide.pdf
+          generate_release_notes: true

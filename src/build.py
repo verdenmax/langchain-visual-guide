@@ -21,14 +21,7 @@ LESSONS_DIR = os.path.join(ROOT, "lessons")
 sys.path.insert(0, HERE)
 
 import shell  # noqa: E402
-
-CONTENT = {}
-
-
-def register(module_name, mapping):
-    mod = __import__(module_name)
-    for fname, attr in mapping.items():
-        CONTENT[fname] = getattr(mod, attr)
+from registry import CONTENT  # noqa: E402
 
 
 def build():
@@ -48,36 +41,6 @@ def build():
 
 
 if __name__ == "__main__":
-    register("part1", {
-        "01-what-is-langchain.html": "LESSON_01",
-        "02-monorepo.html": "LESSON_02",
-        "03-lifecycle.html": "LESSON_03",
-    })
-    register("part2", {
-        "04-messages.html": "LESSON_04",
-        "05-chat-models.html": "LESSON_05",
-        "06-tools.html": "LESSON_06",
-        "07-agents-intro.html": "LESSON_07",
-    })
-    register("part3", {
-        "08-runnable.html": "LESSON_08",
-        "09-runnable-compose.html": "LESSON_09",
-        "10-output-parsers.html": "LESSON_OP",
-        "11-chat-internals.html": "LESSON_10",
-        "12-tool-internals.html": "LESSON_11",
-        "13-agent-internals.html": "LESSON_12",
-        "14-streaming-callbacks.html": "LESSON_13",
-    })
-    register("part4", {
-        "15-contributing.html": "LESSON_14",
-    })
-    register("part5", {
-        "16-prompts.html": "LESSON_15",
-        "17-rag.html": "LESSON_16",
-        "18-custom-middleware.html": "LESSON_17",
-        "19-runtime-context.html": "LESSON_18",
-        "20-capstone.html": "LESSON_CAP",
-    })
     done = build()
     print("Wrote", len(done), "files under", ROOT)
     for f in done:
