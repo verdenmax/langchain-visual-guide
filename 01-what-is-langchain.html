@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>01 · LangChain 是什么 — LangChain 图解教程</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f0f2f5; --ink: #1d2129;
+  --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
+  --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
+  --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116; --panel: #161b22; --panel-2: #1c232c; --ink: #e6edf3;
+    --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
+    --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
+    --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+    "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg); color: var(--ink); line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+
+/* ---- top progress bar ---- */
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: var(--panel);
+  border-bottom: 1px solid var(--line); backdrop-filter: blur(8px);
+}
+.topbar-inner {
+  max-width: 960px; margin: 0 auto; padding: .7rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.topbar .home { font-size: .82rem; color: var(--muted); font-weight: 600; display:flex; gap:.5rem; align-items:center; }
+.topbar .home b { color: var(--accent); }
+.topbar .pill { font-size: .72rem; color: var(--muted); background: var(--panel-2);
+  padding: .2rem .6rem; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.progress { height: 3px; background: var(--panel-2); }
+.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue)); }
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 2.4rem 1.25rem 5rem; }
+
+/* ---- hero ---- */
+.hero { margin-bottom: 2rem; }
+.hero .part { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin-bottom: .55rem; }
+.hero h1 { font-size: 2.05rem; line-height: 1.2; letter-spacing: -.01em; font-weight: 750; }
+.hero .lead { margin-top: .9rem; font-size: 1.06rem; color: var(--muted); }
+
+h2 { font-size: 1.32rem; margin: 2.4rem 0 .9rem; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: .55rem; }
+h2::before { content: ""; width: 4px; height: 1.05em; background: var(--accent); border-radius: 3px; display: inline-block; }
+h3 { font-size: 1.05rem; margin: 1.4rem 0 .5rem; }
+p { margin: .7rem 0; }
+ul, ol { margin: .6rem 0 .6rem 1.3rem; }
+li { margin: .3rem 0; }
+strong { color: var(--ink); font-weight: 680; }
+.inline { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: .08em .4em; font-size: .9em; color: var(--accent-ink); }
+
+/* ---- callout cards ---- */
+.card { border-radius: var(--radius); padding: 1.05rem 1.2rem; margin: 1.2rem 0;
+  border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+.card .tag { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+.card.macro { border-left: 4px solid var(--blue); }
+.card.macro .tag { color: var(--blue); }
+.card.detail { border-left: 4px solid var(--purple); }
+.card.detail .tag { color: var(--purple); }
+.card.analogy { border-left: 4px solid var(--amber); background: var(--amber-soft); }
+.card.analogy .tag { color: var(--amber); }
+.card.key { border-left: 4px solid var(--accent); background: var(--accent-soft); }
+.card.key .tag { color: var(--accent-ink); }
+.card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
+.card.warn .tag { color: var(--red); }
+
+/* ---- code file callout ---- */
+.codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
+  box-shadow: var(--shadow); }
+.codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
+  background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
+.codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; }
+.codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
+.codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
+  overflow-x: auto; font-size: .82rem; line-height: 1.6; }
+.codefile pre .cm { color: #7d8aa3; }
+.codefile pre .kw { color: #c792ea; }
+.codefile pre .fn { color: #82aaff; }
+.codefile pre .st { color: #c3e88d; }
+.codefile pre .nb { color: #f78c6c; }
+
+pre.code { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem; border-radius: 12px;
+  overflow-x: auto; font-size: .83rem; line-height: 1.6; margin: 1.1rem 0; box-shadow: var(--shadow); }
+pre.code .cm { color: #7d8aa3; } pre.code .kw { color: #c792ea; }
+pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb { color: #f78c6c; }
+
+/* ---- flow diagram ---- */
+.flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 1.3rem 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1.2rem 1rem; box-shadow: var(--shadow); }
+.flow .node { flex: 1 1 0; min-width: 110px; text-align: center; padding: .7rem .5rem;
+  border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.flow .node .nt { font-weight: 700; font-size: .92rem; }
+.flow .node .nd { font-size: .76rem; color: var(--muted); margin-top: .2rem; }
+.flow .node.hl { background: var(--accent-soft); border-color: var(--accent); }
+.flow .arrow { align-self: center; color: var(--faint); font-size: 1.3rem; padding: 0 .35rem; }
+
+/* vertical flow */
+.vflow { margin: 1.3rem 0; }
+.vflow .step { display: flex; gap: .9rem; position: relative; padding-bottom: 1.1rem; }
+.vflow .step:not(:last-child)::before { content:""; position:absolute; left: 15px; top: 34px; bottom: -2px;
+  width: 2px; background: var(--line); }
+.vflow .num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; z-index:1; }
+.vflow .sc h4 { margin: .25rem 0 .2rem; font-size: 1rem; }
+.vflow .sc p { margin: .15rem 0; font-size: .92rem; color: var(--muted); }
+.vflow .sc .mono { font-size: .8rem; color: var(--accent-ink); }
+
+/* layered architecture */
+.layers { margin: 1.3rem 0; display: flex; flex-direction: column; gap: .55rem; }
+.layer { border-radius: 12px; padding: .85rem 1.1rem; border: 1px solid var(--line); background: var(--panel);
+  box-shadow: var(--shadow); }
+.layer .lh { display: flex; align-items: center; gap: .6rem; }
+.layer .lh .badge { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; }
+.layer .lh .name { font-weight: 700; font-family: ui-monospace, monospace; }
+.layer .ld { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.layer.l-core { border-left: 4px solid var(--accent); } .layer.l-core .badge { background: var(--accent-soft); color: var(--accent-ink); }
+.layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
+.layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
+.layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+
+/* two-column compare */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col h4 { margin: 0 0 .4rem; font-size: .95rem; }
+
+table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
+  background: var(--panel); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+table.t th, table.t td { padding: .6rem .8rem; text-align: left; border-bottom: 1px solid var(--line); }
+table.t th { background: var(--panel-2); font-size: .8rem; letter-spacing: .02em; }
+table.t tr:last-child td { border-bottom: none; }
+table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-size: .82rem; color: var(--accent-ink); }
+
+/* footer nav */
+.footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
+  padding-top: 1.4rem; border-top: 1px solid var(--line); }
+.footnav a { flex: 1; padding: .85rem 1.1rem; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--panel); box-shadow: var(--shadow); transition: .15s; }
+.footnav a:hover { border-color: var(--accent); transform: translateY(-1px); }
+.footnav a.next { text-align: right; }
+.footnav .dir { font-size: .72rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.footnav .ttl { font-weight: 700; color: var(--ink); margin-top: .15rem; }
+.footnav a.disabled { opacity: .35; pointer-events: none; }
+
+/* index page */
+.toc { display: grid; gap: .7rem; margin-top: 1.6rem; }
+.toc-part { font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--accent); margin: 1.4rem 0 .2rem; }
+.toc a { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.05rem; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); transition: .15s; }
+.toc a:hover { border-color: var(--accent); transform: translateX(3px); }
+.toc .n { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
+.toc .tt { font-weight: 650; color: var(--ink); }
+.toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.hero.index h1 { font-size: 2.3rem; }
+.legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
+.legend span { display:flex; align-items:center; gap:.4rem; }
+.legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }
+</style>
+</head><body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="home" href="index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第一部分 · 宏观全景</span>
+    <span class="pill">01 / 14</span>
+  </div>
+  <div class="progress"><span style="width:7%"></span></div>
+</div>
+<div class="wrap">
+  <div class="hero">
+    <div class="part">第一部分 · 宏观全景</div>
+    <h1>LangChain 是什么</h1>
+  </div>
+  
+<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
+LangChain 是一个用 Python（和 JS）写的<strong>开源框架</strong>，帮你把"大语言模型（LLM）"
+接进真实的应用里。它不替你训练模型，而是负责模型<strong>周边的所有管道</strong>。
+</p>
+
+<div class="card analogy">
+  <div class="tag">🔌 生活类比</div>
+  把大语言模型（如 GPT、Claude）想成一台<strong>很强但很孤立的发动机</strong>。它能输出文字，
+  但不知道你的数据库、不会自己调用工具、不同品牌发动机接口还都不一样。
+  LangChain 就是那套<strong>标准化的"传动系统 + 仪表盘 + 配件接口"</strong>：
+  让你用同一套代码驱动任何品牌的发动机，并把它接到油箱、轮子和导航上。
+</div>
+
+<h2>它到底解决什么问题？</h2>
+<p>直接调用某个厂商的 API（比如 OpenAI 的 SDK）当然能用，但真实应用里你很快会遇到四类麻烦，
+这正是 LangChain 要替你抹平的：</p>
+
+<table class="t">
+  <tr><th>痛点</th><th>没有框架时</th><th>LangChain 的做法</th></tr>
+  <tr><td><strong>厂商锁定</strong></td><td>换模型要重写一大片调用代码</td><td>统一接口 <span class="mono">invoke()</span>，换模型只改一行</td></tr>
+  <tr><td><strong>对话拼装</strong></td><td>手动拼 role/content 的字典</td><td>结构化<strong>消息对象</strong>（Human/AI/Tool）</td></tr>
+  <tr><td><strong>调用工具</strong></td><td>自己解析模型要调哪个函数、传什么参</td><td><strong>工具(Tool)</strong> + 自动生成 schema + 解析</td></tr>
+  <tr><td><strong>多步推理</strong></td><td>手写"想—做—再想"的循环</td><td><strong>Agent</strong> 帮你编排循环</td></tr>
+</table>
+
+<h2>核心心智模型：四个名词</h2>
+<p>整个框架你只要先记住<strong>四个概念</strong>，后面所有内容都是它们的展开。下面这张图是你之后
+反复会用到的"骨架图"：</p>
+
+<div class="flow">
+  <div class="node hl"><div class="nt">Messages</div><div class="nd">对话的"原子"<br>谁说了什么</div></div>
+  <div class="arrow">→</div>
+  <div class="node hl"><div class="nt">Chat Model</div><div class="nd">包裹 LLM<br>输入/输出都是消息</div></div>
+  <div class="arrow">→</div>
+  <div class="node hl"><div class="nt">Tools</div><div class="nd">模型能调用的<br>外部能力</div></div>
+  <div class="arrow">→</div>
+  <div class="node hl"><div class="nt">Agent</div><div class="nd">把上面三者<br>编成自动循环</div></div>
+</div>
+
+<div class="card macro">
+  <div class="tag">🌍 宏观理解</div>
+  <ul>
+    <li><strong>Messages（消息）</strong>：对话由一条条消息组成。你说的是 <span class="inline">HumanMessage</span>，
+      模型回的是 <span class="inline">AIMessage</span>，工具返回的是 <span class="inline">ToolMessage</span>。</li>
+    <li><strong>Chat Model（聊天模型）</strong>：对 LLM 的<strong>统一封装</strong>。喂给它一串消息，它吐回一条 AI 消息。
+      无论底层是 OpenAI 还是 Anthropic，用法完全一样。</li>
+    <li><strong>Tools（工具）</strong>：你写的普通 Python 函数，包装后模型就能"请求调用"它（查天气、查数据库……）。</li>
+    <li><strong>Agent（智能体）</strong>：让模型在"思考 → 调用工具 → 看结果 → 再思考"之间自动循环，直到完成任务。</li>
+  </ul>
+</div>
+
+<h2>最小可运行例子</h2>
+<p>先不用懂细节，感受一下"四个名词"在代码里长什么样。这段代码就是后面所有课的浓缩：</p>
+
+<pre class="code"><span class="kw">from</span> langchain.chat_models <span class="kw">import</span> init_chat_model
+<span class="kw">from</span> langchain.agents <span class="kw">import</span> create_agent
+
+<span class="cm"># 1) 一个工具：就是普通函数</span>
+<span class="kw">def</span> <span class="fn">get_weather</span>(city: str) -> str:
+    <span class="st">&quot;&quot;&quot;查询某城市的天气。&quot;&quot;&quot;</span>
+    <span class="kw">return</span> <span class="st">f"{city} 今天晴，25°C"</span>
+
+<span class="cm"># 2) 一个聊天模型：换厂商只改这一行字符串</span>
+model = init_chat_model(<span class="st">"openai:gpt-5.1"</span>)
+
+<span class="cm"># 3) 一个 Agent：把模型 + 工具编成自动循环</span>
+agent = create_agent(model, tools=[get_weather])
+
+<span class="cm"># 4) 跑起来：底层就是一串 Messages 在流动</span>
+result = agent.invoke({<span class="st">"messages"</span>: [{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"北京天气怎么样？"</span>}]})
+</pre>
+
+<div class="card detail">
+  <div class="tag">🔬 细节 / 代码对应</div>
+  这三个入口函数你会在后面反复见到，记住它们来自哪里：
+  <table class="t" style="margin-top:.6rem">
+    <tr><th>函数</th><th>来源包</th><th>文件</th></tr>
+    <tr><td class="mono">init_chat_model</td><td>langchain</td><td class="mono">chat_models/base.py</td></tr>
+    <tr><td class="mono">create_agent</td><td>langchain</td><td class="mono">agents/factory.py</td></tr>
+    <tr><td class="mono">@tool / 普通函数</td><td>langchain-core</td><td class="mono">tools/convert.py</td></tr>
+  </table>
+</div>
+
+<h2>LangChain 不是什么</h2>
+<div class="card warn">
+  <div class="tag">⚠️ 常见误解</div>
+  <ul>
+    <li>它<strong>不训练、不托管模型</strong>——模型仍跑在 OpenAI / Anthropic 等厂商那里，LangChain 只是客户端。</li>
+    <li>它<strong>不是只能做聊天机器人</strong>——它是通用的"LLM 应用编排层"，可做 RAG、数据抽取、工作流等。</li>
+    <li>它<strong>不强制你用全部功能</strong>——可以只用聊天模型封装，也可以一路用到复杂 Agent。</li>
+  </ul>
+</div>
+
+<div class="card key">
+  <div class="tag">✅ 本课要点</div>
+  <ul>
+    <li>LangChain = LLM 的<strong>标准化管道与编排层</strong>，让你"换模型只改一行、调工具不写胶水、多步推理不手搓循环"。</li>
+    <li>记住四个名词的<strong>流向</strong>：Messages → Chat Model → Tools → Agent。这是整套教程的骨架。</li>
+    <li>下一课我们拉远镜头，看看这些概念在<strong>代码仓库的哪一层</strong>。</li>
+  </ul>
+</div>
+
+  <div class="footnav"><a class="prev" href="index.html"><div class="dir">← 返回</div><div class="ttl">目录</div></a><a class="next" href="02-monorepo.html"><div class="dir">下一课 →</div><div class="ttl">Monorepo 全景</div></a></div>
+</div>
+
+</body></html>

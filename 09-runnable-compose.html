@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>09 · Runnable 如何组合 — LangChain 图解教程</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f0f2f5; --ink: #1d2129;
+  --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
+  --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
+  --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116; --panel: #161b22; --panel-2: #1c232c; --ink: #e6edf3;
+    --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
+    --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
+    --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+    "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg); color: var(--ink); line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+
+/* ---- top progress bar ---- */
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: var(--panel);
+  border-bottom: 1px solid var(--line); backdrop-filter: blur(8px);
+}
+.topbar-inner {
+  max-width: 960px; margin: 0 auto; padding: .7rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.topbar .home { font-size: .82rem; color: var(--muted); font-weight: 600; display:flex; gap:.5rem; align-items:center; }
+.topbar .home b { color: var(--accent); }
+.topbar .pill { font-size: .72rem; color: var(--muted); background: var(--panel-2);
+  padding: .2rem .6rem; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.progress { height: 3px; background: var(--panel-2); }
+.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue)); }
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 2.4rem 1.25rem 5rem; }
+
+/* ---- hero ---- */
+.hero { margin-bottom: 2rem; }
+.hero .part { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin-bottom: .55rem; }
+.hero h1 { font-size: 2.05rem; line-height: 1.2; letter-spacing: -.01em; font-weight: 750; }
+.hero .lead { margin-top: .9rem; font-size: 1.06rem; color: var(--muted); }
+
+h2 { font-size: 1.32rem; margin: 2.4rem 0 .9rem; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: .55rem; }
+h2::before { content: ""; width: 4px; height: 1.05em; background: var(--accent); border-radius: 3px; display: inline-block; }
+h3 { font-size: 1.05rem; margin: 1.4rem 0 .5rem; }
+p { margin: .7rem 0; }
+ul, ol { margin: .6rem 0 .6rem 1.3rem; }
+li { margin: .3rem 0; }
+strong { color: var(--ink); font-weight: 680; }
+.inline { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: .08em .4em; font-size: .9em; color: var(--accent-ink); }
+
+/* ---- callout cards ---- */
+.card { border-radius: var(--radius); padding: 1.05rem 1.2rem; margin: 1.2rem 0;
+  border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+.card .tag { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+.card.macro { border-left: 4px solid var(--blue); }
+.card.macro .tag { color: var(--blue); }
+.card.detail { border-left: 4px solid var(--purple); }
+.card.detail .tag { color: var(--purple); }
+.card.analogy { border-left: 4px solid var(--amber); background: var(--amber-soft); }
+.card.analogy .tag { color: var(--amber); }
+.card.key { border-left: 4px solid var(--accent); background: var(--accent-soft); }
+.card.key .tag { color: var(--accent-ink); }
+.card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
+.card.warn .tag { color: var(--red); }
+
+/* ---- code file callout ---- */
+.codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
+  box-shadow: var(--shadow); }
+.codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
+  background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
+.codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; }
+.codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
+.codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
+  overflow-x: auto; font-size: .82rem; line-height: 1.6; }
+.codefile pre .cm { color: #7d8aa3; }
+.codefile pre .kw { color: #c792ea; }
+.codefile pre .fn { color: #82aaff; }
+.codefile pre .st { color: #c3e88d; }
+.codefile pre .nb { color: #f78c6c; }
+
+pre.code { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem; border-radius: 12px;
+  overflow-x: auto; font-size: .83rem; line-height: 1.6; margin: 1.1rem 0; box-shadow: var(--shadow); }
+pre.code .cm { color: #7d8aa3; } pre.code .kw { color: #c792ea; }
+pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb { color: #f78c6c; }
+
+/* ---- flow diagram ---- */
+.flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 1.3rem 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1.2rem 1rem; box-shadow: var(--shadow); }
+.flow .node { flex: 1 1 0; min-width: 110px; text-align: center; padding: .7rem .5rem;
+  border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.flow .node .nt { font-weight: 700; font-size: .92rem; }
+.flow .node .nd { font-size: .76rem; color: var(--muted); margin-top: .2rem; }
+.flow .node.hl { background: var(--accent-soft); border-color: var(--accent); }
+.flow .arrow { align-self: center; color: var(--faint); font-size: 1.3rem; padding: 0 .35rem; }
+
+/* vertical flow */
+.vflow { margin: 1.3rem 0; }
+.vflow .step { display: flex; gap: .9rem; position: relative; padding-bottom: 1.1rem; }
+.vflow .step:not(:last-child)::before { content:""; position:absolute; left: 15px; top: 34px; bottom: -2px;
+  width: 2px; background: var(--line); }
+.vflow .num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; z-index:1; }
+.vflow .sc h4 { margin: .25rem 0 .2rem; font-size: 1rem; }
+.vflow .sc p { margin: .15rem 0; font-size: .92rem; color: var(--muted); }
+.vflow .sc .mono { font-size: .8rem; color: var(--accent-ink); }
+
+/* layered architecture */
+.layers { margin: 1.3rem 0; display: flex; flex-direction: column; gap: .55rem; }
+.layer { border-radius: 12px; padding: .85rem 1.1rem; border: 1px solid var(--line); background: var(--panel);
+  box-shadow: var(--shadow); }
+.layer .lh { display: flex; align-items: center; gap: .6rem; }
+.layer .lh .badge { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; }
+.layer .lh .name { font-weight: 700; font-family: ui-monospace, monospace; }
+.layer .ld { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.layer.l-core { border-left: 4px solid var(--accent); } .layer.l-core .badge { background: var(--accent-soft); color: var(--accent-ink); }
+.layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
+.layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
+.layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+
+/* two-column compare */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col h4 { margin: 0 0 .4rem; font-size: .95rem; }
+
+table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
+  background: var(--panel); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+table.t th, table.t td { padding: .6rem .8rem; text-align: left; border-bottom: 1px solid var(--line); }
+table.t th { background: var(--panel-2); font-size: .8rem; letter-spacing: .02em; }
+table.t tr:last-child td { border-bottom: none; }
+table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-size: .82rem; color: var(--accent-ink); }
+
+/* footer nav */
+.footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
+  padding-top: 1.4rem; border-top: 1px solid var(--line); }
+.footnav a { flex: 1; padding: .85rem 1.1rem; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--panel); box-shadow: var(--shadow); transition: .15s; }
+.footnav a:hover { border-color: var(--accent); transform: translateY(-1px); }
+.footnav a.next { text-align: right; }
+.footnav .dir { font-size: .72rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.footnav .ttl { font-weight: 700; color: var(--ink); margin-top: .15rem; }
+.footnav a.disabled { opacity: .35; pointer-events: none; }
+
+/* index page */
+.toc { display: grid; gap: .7rem; margin-top: 1.6rem; }
+.toc-part { font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--accent); margin: 1.4rem 0 .2rem; }
+.toc a { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.05rem; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); transition: .15s; }
+.toc a:hover { border-color: var(--accent); transform: translateX(3px); }
+.toc .n { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
+.toc .tt { font-weight: 650; color: var(--ink); }
+.toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.hero.index h1 { font-size: 2.3rem; }
+.legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
+.legend span { display:flex; align-items:center; gap:.4rem; }
+.legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }
+</style>
+</head><body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="home" href="index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第三部分 · 内部源码</span>
+    <span class="pill">09 / 14</span>
+  </div>
+  <div class="progress"><span style="width:64%"></span></div>
+</div>
+<div class="wrap">
+  <div class="hero">
+    <div class="part">第三部分 · 内部源码</div>
+    <h1>Runnable 如何组合</h1>
+  </div>
+  
+<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
+上一课我们用 <span class="inline">a | b | c</span> 拼了链。那么——<strong>拼出来的到底是什么？</strong>
+答案是一个 <span class="inline">RunnableSequence</span> 对象。这一课拆解"顺序"与"并行"两种核心组合，
+以及几个最常用的"胶水" Runnable。
+</p>
+
+<div class="card analogy">
+  <div class="tag">🏭 生活类比</div>
+  <strong>顺序组合</strong>像<strong>流水线</strong>：上一站的产出是下一站的原料，一站接一站。
+  <strong>并行组合</strong>像<strong>多个窗口同时办理</strong>：同一份输入分发给几条线<strong>同时</strong>处理，最后把各自结果汇总成一张表。
+</div>
+
+<h2>顺序组合：RunnableSequence</h2>
+<p>当你写 <span class="inline">a | b | c</span>，<span class="inline">__or__</span> 会把它们打包成一个
+<span class="inline">RunnableSequence</span>。它的 <span class="inline">invoke</span> 做的事极其朴素——<strong>依次调用、首尾相接</strong>：</p>
+
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/runnables/base.py</span><span class="ln">class RunnableSequence</span></div>
+<pre><span class="kw">class</span> <span class="fn">RunnableSequence</span>(RunnableSerializable):
+    <span class="kw">def</span> <span class="fn">invoke</span>(self, input, config=None):
+        <span class="kw">for</span> step <span class="kw">in</span> self.steps:        <span class="cm"># 依次跑每一步</span>
+            input = step.invoke(input)   <span class="cm"># 上一步输出 = 下一步输入</span>
+        <span class="kw">return</span> input
+</pre>
+</div>
+
+<div class="flow">
+  <div class="node">input</div><div class="arrow">→</div>
+  <div class="node hl">step1</div><div class="arrow">→</div>
+  <div class="node hl">step2</div><div class="arrow">→</div>
+  <div class="node hl">step3</div><div class="arrow">→</div>
+  <div class="node">output</div>
+</div>
+
+<h2>并行组合：RunnableParallel</h2>
+<p>当你把<strong>一个字典</strong>放进链里（值都是 Runnable），就得到 <span class="inline">RunnableParallel</span>：
+同一份输入<strong>同时</strong>喂给每个分支，结果合并成一个字典。</p>
+
+<pre class="code"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnableParallel
+
+parallel = RunnableParallel(
+    weather=get_weather_chain,   <span class="cm"># 分支 1</span>
+    news=get_news_chain,         <span class="cm"># 分支 2</span>
+)
+parallel.invoke(<span class="st">"北京"</span>)
+<span class="cm"># → {"weather": ..., "news": ...}  两条分支并发执行</span>
+</pre>
+
+<div class="flow" style="flex-direction:column;gap:.6rem;align-items:center">
+  <div class="node hl" style="flex:0 0 auto">同一份 input</div>
+  <div class="arrow" style="transform:rotate(90deg)">→</div>
+  <div style="display:flex;gap:1rem">
+    <div class="node">分支 weather</div>
+    <div class="node">分支 news</div>
+  </div>
+  <div class="arrow" style="transform:rotate(90deg)">→</div>
+  <div class="node hl" style="flex:0 0 auto">合并成 {weather, news}</div>
+</div>
+
+<h2>两个最常用的"胶水"</h2>
+<div class="cols">
+  <div class="col">
+    <h4>RunnableLambda</h4>
+    <p>把<strong>任意普通函数</strong>变成 Runnable，好塞进链里。</p>
+    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnableLambda
+upper = RunnableLambda(<span class="kw">lambda</span> x: x.upper())
+chain = upper | model</pre>
+  </div>
+  <div class="col">
+    <h4>RunnablePassthrough</h4>
+    <p>原样透传输入，常用于"<strong>保留原值 + 旁加一个新字段</strong>"。</p>
+    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnablePassthrough
+RunnablePassthrough.assign(
+  weather=get_weather_chain)</pre>
+  </div>
+</div>
+
+<div class="card detail">
+  <div class="tag">🔬 细节 / 代码对应</div>
+  全部在 <span class="mono">core/langchain_core/runnables/</span> 下：
+  <table class="t" style="margin-top:.6rem">
+    <tr><th>类</th><th>文件</th><th>作用</th></tr>
+    <tr><td class="mono">RunnableSequence</td><td class="mono">base.py</td><td>顺序（<span class="mono">|</span> 的产物）</td></tr>
+    <tr><td class="mono">RunnableParallel</td><td class="mono">base.py</td><td>并行（别名 <span class="mono">RunnableMap</span>）</td></tr>
+    <tr><td class="mono">RunnableLambda</td><td class="mono">base.py</td><td>包装函数</td></tr>
+    <tr><td class="mono">RunnablePassthrough</td><td class="mono">passthrough.py</td><td>透传 / assign</td></tr>
+  </table>
+</div>
+
+<div class="card macro">
+  <div class="tag">🌍 宏观理解</div>
+  所有复杂的"链"，本质都是这几种基础 Runnable 的<strong>嵌套套娃</strong>：
+  顺序里套并行、并行的分支里又是顺序……因为<strong>组合的产物还是 Runnable</strong>，
+  所以可以无限拼下去，且整体永远支持 invoke/stream/batch。
+</div>
+
+<div class="card key">
+  <div class="tag">✅ 本课要点</div>
+  <ul>
+    <li><span class="mono">a | b | c</span> 的产物是 <span class="mono">RunnableSequence</span>，invoke = 依次调用、首尾相接。</li>
+    <li>字典形式得到 <span class="mono">RunnableParallel</span>：同输入并发多分支，输出合并为字典。</li>
+    <li><span class="mono">RunnableLambda</span>（包函数）和 <span class="mono">RunnablePassthrough</span>（透传/assign）是最常用胶水。</li>
+    <li>下一课：深入聊天模型的 <span class="mono">invoke</span> 内部，看那条完整调用链。</li>
+  </ul>
+</div>
+
+  <div class="footnav"><a class="prev" href="08-runnable.html"><div class="dir">← 上一课</div><div class="ttl">Runnable 万物之基</div></a><a class="next" href="10-chat-internals.html"><div class="dir">下一课 →</div><div class="ttl">聊天模型内部</div></a></div>
+</div>
+
+</body></html>

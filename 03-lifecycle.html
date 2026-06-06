@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>03 · 一次调用的生命周期 — LangChain 图解教程</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f0f2f5; --ink: #1d2129;
+  --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
+  --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
+  --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116; --panel: #161b22; --panel-2: #1c232c; --ink: #e6edf3;
+    --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
+    --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
+    --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+    "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg); color: var(--ink); line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+
+/* ---- top progress bar ---- */
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: var(--panel);
+  border-bottom: 1px solid var(--line); backdrop-filter: blur(8px);
+}
+.topbar-inner {
+  max-width: 960px; margin: 0 auto; padding: .7rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.topbar .home { font-size: .82rem; color: var(--muted); font-weight: 600; display:flex; gap:.5rem; align-items:center; }
+.topbar .home b { color: var(--accent); }
+.topbar .pill { font-size: .72rem; color: var(--muted); background: var(--panel-2);
+  padding: .2rem .6rem; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.progress { height: 3px; background: var(--panel-2); }
+.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue)); }
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 2.4rem 1.25rem 5rem; }
+
+/* ---- hero ---- */
+.hero { margin-bottom: 2rem; }
+.hero .part { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin-bottom: .55rem; }
+.hero h1 { font-size: 2.05rem; line-height: 1.2; letter-spacing: -.01em; font-weight: 750; }
+.hero .lead { margin-top: .9rem; font-size: 1.06rem; color: var(--muted); }
+
+h2 { font-size: 1.32rem; margin: 2.4rem 0 .9rem; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: .55rem; }
+h2::before { content: ""; width: 4px; height: 1.05em; background: var(--accent); border-radius: 3px; display: inline-block; }
+h3 { font-size: 1.05rem; margin: 1.4rem 0 .5rem; }
+p { margin: .7rem 0; }
+ul, ol { margin: .6rem 0 .6rem 1.3rem; }
+li { margin: .3rem 0; }
+strong { color: var(--ink); font-weight: 680; }
+.inline { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: .08em .4em; font-size: .9em; color: var(--accent-ink); }
+
+/* ---- callout cards ---- */
+.card { border-radius: var(--radius); padding: 1.05rem 1.2rem; margin: 1.2rem 0;
+  border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+.card .tag { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+.card.macro { border-left: 4px solid var(--blue); }
+.card.macro .tag { color: var(--blue); }
+.card.detail { border-left: 4px solid var(--purple); }
+.card.detail .tag { color: var(--purple); }
+.card.analogy { border-left: 4px solid var(--amber); background: var(--amber-soft); }
+.card.analogy .tag { color: var(--amber); }
+.card.key { border-left: 4px solid var(--accent); background: var(--accent-soft); }
+.card.key .tag { color: var(--accent-ink); }
+.card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
+.card.warn .tag { color: var(--red); }
+
+/* ---- code file callout ---- */
+.codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
+  box-shadow: var(--shadow); }
+.codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
+  background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
+.codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; }
+.codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
+.codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
+  overflow-x: auto; font-size: .82rem; line-height: 1.6; }
+.codefile pre .cm { color: #7d8aa3; }
+.codefile pre .kw { color: #c792ea; }
+.codefile pre .fn { color: #82aaff; }
+.codefile pre .st { color: #c3e88d; }
+.codefile pre .nb { color: #f78c6c; }
+
+pre.code { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem; border-radius: 12px;
+  overflow-x: auto; font-size: .83rem; line-height: 1.6; margin: 1.1rem 0; box-shadow: var(--shadow); }
+pre.code .cm { color: #7d8aa3; } pre.code .kw { color: #c792ea; }
+pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb { color: #f78c6c; }
+
+/* ---- flow diagram ---- */
+.flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 1.3rem 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1.2rem 1rem; box-shadow: var(--shadow); }
+.flow .node { flex: 1 1 0; min-width: 110px; text-align: center; padding: .7rem .5rem;
+  border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.flow .node .nt { font-weight: 700; font-size: .92rem; }
+.flow .node .nd { font-size: .76rem; color: var(--muted); margin-top: .2rem; }
+.flow .node.hl { background: var(--accent-soft); border-color: var(--accent); }
+.flow .arrow { align-self: center; color: var(--faint); font-size: 1.3rem; padding: 0 .35rem; }
+
+/* vertical flow */
+.vflow { margin: 1.3rem 0; }
+.vflow .step { display: flex; gap: .9rem; position: relative; padding-bottom: 1.1rem; }
+.vflow .step:not(:last-child)::before { content:""; position:absolute; left: 15px; top: 34px; bottom: -2px;
+  width: 2px; background: var(--line); }
+.vflow .num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; z-index:1; }
+.vflow .sc h4 { margin: .25rem 0 .2rem; font-size: 1rem; }
+.vflow .sc p { margin: .15rem 0; font-size: .92rem; color: var(--muted); }
+.vflow .sc .mono { font-size: .8rem; color: var(--accent-ink); }
+
+/* layered architecture */
+.layers { margin: 1.3rem 0; display: flex; flex-direction: column; gap: .55rem; }
+.layer { border-radius: 12px; padding: .85rem 1.1rem; border: 1px solid var(--line); background: var(--panel);
+  box-shadow: var(--shadow); }
+.layer .lh { display: flex; align-items: center; gap: .6rem; }
+.layer .lh .badge { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; }
+.layer .lh .name { font-weight: 700; font-family: ui-monospace, monospace; }
+.layer .ld { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.layer.l-core { border-left: 4px solid var(--accent); } .layer.l-core .badge { background: var(--accent-soft); color: var(--accent-ink); }
+.layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
+.layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
+.layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+
+/* two-column compare */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col h4 { margin: 0 0 .4rem; font-size: .95rem; }
+
+table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
+  background: var(--panel); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+table.t th, table.t td { padding: .6rem .8rem; text-align: left; border-bottom: 1px solid var(--line); }
+table.t th { background: var(--panel-2); font-size: .8rem; letter-spacing: .02em; }
+table.t tr:last-child td { border-bottom: none; }
+table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-size: .82rem; color: var(--accent-ink); }
+
+/* footer nav */
+.footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
+  padding-top: 1.4rem; border-top: 1px solid var(--line); }
+.footnav a { flex: 1; padding: .85rem 1.1rem; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--panel); box-shadow: var(--shadow); transition: .15s; }
+.footnav a:hover { border-color: var(--accent); transform: translateY(-1px); }
+.footnav a.next { text-align: right; }
+.footnav .dir { font-size: .72rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.footnav .ttl { font-weight: 700; color: var(--ink); margin-top: .15rem; }
+.footnav a.disabled { opacity: .35; pointer-events: none; }
+
+/* index page */
+.toc { display: grid; gap: .7rem; margin-top: 1.6rem; }
+.toc-part { font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--accent); margin: 1.4rem 0 .2rem; }
+.toc a { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.05rem; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); transition: .15s; }
+.toc a:hover { border-color: var(--accent); transform: translateX(3px); }
+.toc .n { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
+.toc .tt { font-weight: 650; color: var(--ink); }
+.toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.hero.index h1 { font-size: 2.3rem; }
+.legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
+.legend span { display:flex; align-items:center; gap:.4rem; }
+.legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }
+</style>
+</head><body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="home" href="index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第一部分 · 宏观全景</span>
+    <span class="pill">03 / 14</span>
+  </div>
+  <div class="progress"><span style="width:21%"></span></div>
+</div>
+<div class="wrap">
+  <div class="hero">
+    <div class="part">第一部分 · 宏观全景</div>
+    <h1>一次调用的生命周期</h1>
+  </div>
+  
+<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
+现在把前两课接起来：当你写下 <span class="inline">model.invoke("你好")</span> 的那一刻，
+数据具体<strong>穿过哪些层、变成什么形状、最后怎么回来</strong>？这一课用一张"生命周期图"讲透。
+</p>
+
+<div class="card analogy">
+  <div class="tag">✉️ 生活类比</div>
+  这趟旅程就像<strong>寄一封跨国信</strong>：你写中文信（字符串）→ 邮局装进标准信封并贴上规范地址（消息标准化）→
+  翻译成目的国语言（厂商 API 格式）→ 寄出、对方回信 → 再翻译回中文 → 装进标准信封交还给你（AIMessage）。
+  你只面对"中文信"，<strong>中间的翻译与信封都被框架藏起来了</strong>。
+</div>
+
+<h2>一次调用的完整生命周期</h2>
+<p>下面每一步都标注了它发生在<strong>哪一层</strong>。重点是数据形状的三次变身：
+<strong>字符串 → 标准消息 → 厂商格式 → 标准消息</strong>。</p>
+
+<div class="vflow">
+  <div class="step"><div class="num">1</div><div class="sc">
+    <h4>你的代码：传入字符串或消息</h4>
+    <p>你调用 <span class="mono">model.invoke("北京天气怎么样？")</span>。输入可以是字符串、字典或消息对象。</p>
+    <p class="mono">📍 实现层 langchain</p>
+  </div></div>
+  <div class="step"><div class="num">2</div><div class="sc">
+    <h4>标准化：一切都变成 Messages</h4>
+    <p>框架把你的输入统一转成一串<strong>标准消息对象</strong>（如 <span class="mono">[HumanMessage("北京天气怎么样？")]</span>）。
+      从这里开始，内部只认消息，不认裸字符串。</p>
+    <p class="mono">📍 地基层 langchain-core · messages/</p>
+  </div></div>
+  <div class="step"><div class="num">3</div><div class="sc">
+    <h4>进入统一入口 invoke → generate</h4>
+    <p><span class="mono">BaseChatModel.invoke()</span> 调用 <span class="mono">generate_prompt → generate</span>，
+      这是<strong>所有厂商共享</strong>的模板流程（含缓存、回调、重试）。</p>
+    <p class="mono">📍 地基层 · language_models/chat_models.py</p>
+  </div></div>
+  <div class="step"><div class="num">4</div><div class="sc">
+    <h4>翻译成厂商格式并发请求</h4>
+    <p>具体 partner（如 <span class="mono">ChatOpenAI._generate</span>）把标准消息<strong>翻译成 OpenAI 的 JSON</strong>，
+      通过厂商 SDK 发出 HTTP 请求。</p>
+    <p class="mono">📍 集成层 langchain-openai</p>
+  </div></div>
+  <div class="step"><div class="num">5</div><div class="sc">
+    <h4>厂商返回 → 翻译回标准消息</h4>
+    <p>OpenAI 返回原始 JSON，partner 把它<strong>翻译回</strong> <span class="mono">AIMessage</span>
+      （含正文、可能的工具调用、token 用量等）。</p>
+    <p class="mono">📍 集成层 → 地基层</p>
+  </div></div>
+  <div class="step"><div class="num">6</div><div class="sc">
+    <h4>回调触发 + 缓存写入 + 返回给你</h4>
+    <p>沿途的<strong>回调（callbacks）</strong>记录这次调用（用于 LangSmith 追踪），结果可能写入缓存，
+      最后把 <span class="mono">AIMessage</span> 交还给你。</p>
+    <p class="mono">📍 地基层 → 你的代码</p>
+  </div></div>
+</div>
+
+<h2>用一张层级图再看一遍</h2>
+<p>同样的旅程，换成"数据穿过三层"的视角。注意<strong>请求往下走、响应往上回</strong>，
+core 提供的统一接口让你的代码<strong>完全不碰最右边的厂商细节</strong>：</p>
+
+<div class="flow" style="flex-direction:column;gap:.6rem">
+  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
+    <div class="node hl" style="flex:0 0 130px">你的代码</div>
+    <div class="arrow">→</div>
+    <div class="node" style="flex:1">字符串 / dict</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
+    <div class="node hl" style="flex:0 0 130px">langchain (主力)</div>
+    <div class="arrow">→</div>
+    <div class="node" style="flex:1">标准化为 Messages</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
+    <div class="node hl" style="flex:0 0 130px">core (地基)</div>
+    <div class="arrow">→</div>
+    <div class="node" style="flex:1">invoke → generate（缓存/回调/重试的通用模板）</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
+    <div class="node hl" style="flex:0 0 130px">openai (配件)</div>
+    <div class="arrow">→</div>
+    <div class="node" style="flex:1">翻译成厂商 JSON → 发 HTTP → 翻译回 AIMessage</div>
+  </div>
+  <div style="text-align:center;color:var(--faint);font-size:.85rem">↑ 响应原路返回，每一层把数据"还原"成上一层认识的形状 ↑</div>
+</div>
+
+<div class="card detail">
+  <div class="tag">🔬 细节 / 代码对应：关键调用链</div>
+  这条链是第三部分"内部源码"的预告，记住这几个方法名即可：
+  <table class="t" style="margin-top:.6rem">
+    <tr><th>步骤</th><th>方法</th><th>文件</th></tr>
+    <tr><td>统一入口</td><td class="mono">BaseChatModel.invoke</td><td class="mono">core · chat_models.py</td></tr>
+    <tr><td>模板流程</td><td class="mono">generate_prompt → generate</td><td class="mono">core · chat_models.py</td></tr>
+    <tr><td>缓存包装</td><td class="mono">_generate_with_cache</td><td class="mono">core · chat_models.py</td></tr>
+    <tr><td>厂商实现</td><td class="mono">ChatOpenAI._generate</td><td class="mono">partners/openai/…</td></tr>
+  </table>
+</div>
+
+<div class="card macro">
+  <div class="tag">🌍 宏观理解：为什么要这么多次"变身"？</div>
+  每一次形状转换都对应一层的<strong>单一职责</strong>：主力层只管"把用户输入规整成消息"，
+  地基层只管"通用流程（缓存/回调/重试）"，配件层只管"和某个厂商对话"。
+  正因为职责被切干净，<strong>换厂商时只有最底层那一块需要替换</strong>，你上面的代码一行都不用动。
+</div>
+
+<div class="card key">
+  <div class="tag">✅ 本课要点</div>
+  <ul>
+    <li>一次调用 = 数据三次变身：<strong>字符串 → 标准消息 → 厂商格式 → 标准消息</strong>。</li>
+    <li>请求往下穿三层、响应原路返回；你的代码只接触最上层的统一接口。</li>
+    <li>"统一入口 + 厂商专属 <span class="mono">_generate</span>"是 LangChain 可替换性的核心机关。</li>
+    <li>第一部分（宏观）到此结束。下一部分进入<strong>用户视角</strong>，从最小的"消息"开始动手。</li>
+  </ul>
+</div>
+
+  <div class="footnav"><a class="prev" href="02-monorepo.html"><div class="dir">← 上一课</div><div class="ttl">Monorepo 全景</div></a><a class="next" href="04-messages.html"><div class="dir">下一课 →</div><div class="ttl">消息系统</div></a></div>
+</div>
+
+</body></html>

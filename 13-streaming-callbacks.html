@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>13 · Streaming 与 Callbacks — LangChain 图解教程</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f0f2f5; --ink: #1d2129;
+  --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
+  --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
+  --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116; --panel: #161b22; --panel-2: #1c232c; --ink: #e6edf3;
+    --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
+    --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
+    --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+    "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg); color: var(--ink); line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+
+/* ---- top progress bar ---- */
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: var(--panel);
+  border-bottom: 1px solid var(--line); backdrop-filter: blur(8px);
+}
+.topbar-inner {
+  max-width: 960px; margin: 0 auto; padding: .7rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.topbar .home { font-size: .82rem; color: var(--muted); font-weight: 600; display:flex; gap:.5rem; align-items:center; }
+.topbar .home b { color: var(--accent); }
+.topbar .pill { font-size: .72rem; color: var(--muted); background: var(--panel-2);
+  padding: .2rem .6rem; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.progress { height: 3px; background: var(--panel-2); }
+.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue)); }
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 2.4rem 1.25rem 5rem; }
+
+/* ---- hero ---- */
+.hero { margin-bottom: 2rem; }
+.hero .part { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin-bottom: .55rem; }
+.hero h1 { font-size: 2.05rem; line-height: 1.2; letter-spacing: -.01em; font-weight: 750; }
+.hero .lead { margin-top: .9rem; font-size: 1.06rem; color: var(--muted); }
+
+h2 { font-size: 1.32rem; margin: 2.4rem 0 .9rem; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: .55rem; }
+h2::before { content: ""; width: 4px; height: 1.05em; background: var(--accent); border-radius: 3px; display: inline-block; }
+h3 { font-size: 1.05rem; margin: 1.4rem 0 .5rem; }
+p { margin: .7rem 0; }
+ul, ol { margin: .6rem 0 .6rem 1.3rem; }
+li { margin: .3rem 0; }
+strong { color: var(--ink); font-weight: 680; }
+.inline { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: .08em .4em; font-size: .9em; color: var(--accent-ink); }
+
+/* ---- callout cards ---- */
+.card { border-radius: var(--radius); padding: 1.05rem 1.2rem; margin: 1.2rem 0;
+  border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+.card .tag { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+.card.macro { border-left: 4px solid var(--blue); }
+.card.macro .tag { color: var(--blue); }
+.card.detail { border-left: 4px solid var(--purple); }
+.card.detail .tag { color: var(--purple); }
+.card.analogy { border-left: 4px solid var(--amber); background: var(--amber-soft); }
+.card.analogy .tag { color: var(--amber); }
+.card.key { border-left: 4px solid var(--accent); background: var(--accent-soft); }
+.card.key .tag { color: var(--accent-ink); }
+.card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
+.card.warn .tag { color: var(--red); }
+
+/* ---- code file callout ---- */
+.codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
+  box-shadow: var(--shadow); }
+.codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
+  background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
+.codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; }
+.codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
+.codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
+  overflow-x: auto; font-size: .82rem; line-height: 1.6; }
+.codefile pre .cm { color: #7d8aa3; }
+.codefile pre .kw { color: #c792ea; }
+.codefile pre .fn { color: #82aaff; }
+.codefile pre .st { color: #c3e88d; }
+.codefile pre .nb { color: #f78c6c; }
+
+pre.code { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem; border-radius: 12px;
+  overflow-x: auto; font-size: .83rem; line-height: 1.6; margin: 1.1rem 0; box-shadow: var(--shadow); }
+pre.code .cm { color: #7d8aa3; } pre.code .kw { color: #c792ea; }
+pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb { color: #f78c6c; }
+
+/* ---- flow diagram ---- */
+.flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 1.3rem 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1.2rem 1rem; box-shadow: var(--shadow); }
+.flow .node { flex: 1 1 0; min-width: 110px; text-align: center; padding: .7rem .5rem;
+  border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.flow .node .nt { font-weight: 700; font-size: .92rem; }
+.flow .node .nd { font-size: .76rem; color: var(--muted); margin-top: .2rem; }
+.flow .node.hl { background: var(--accent-soft); border-color: var(--accent); }
+.flow .arrow { align-self: center; color: var(--faint); font-size: 1.3rem; padding: 0 .35rem; }
+
+/* vertical flow */
+.vflow { margin: 1.3rem 0; }
+.vflow .step { display: flex; gap: .9rem; position: relative; padding-bottom: 1.1rem; }
+.vflow .step:not(:last-child)::before { content:""; position:absolute; left: 15px; top: 34px; bottom: -2px;
+  width: 2px; background: var(--line); }
+.vflow .num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; z-index:1; }
+.vflow .sc h4 { margin: .25rem 0 .2rem; font-size: 1rem; }
+.vflow .sc p { margin: .15rem 0; font-size: .92rem; color: var(--muted); }
+.vflow .sc .mono { font-size: .8rem; color: var(--accent-ink); }
+
+/* layered architecture */
+.layers { margin: 1.3rem 0; display: flex; flex-direction: column; gap: .55rem; }
+.layer { border-radius: 12px; padding: .85rem 1.1rem; border: 1px solid var(--line); background: var(--panel);
+  box-shadow: var(--shadow); }
+.layer .lh { display: flex; align-items: center; gap: .6rem; }
+.layer .lh .badge { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; }
+.layer .lh .name { font-weight: 700; font-family: ui-monospace, monospace; }
+.layer .ld { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.layer.l-core { border-left: 4px solid var(--accent); } .layer.l-core .badge { background: var(--accent-soft); color: var(--accent-ink); }
+.layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
+.layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
+.layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+
+/* two-column compare */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col h4 { margin: 0 0 .4rem; font-size: .95rem; }
+
+table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
+  background: var(--panel); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+table.t th, table.t td { padding: .6rem .8rem; text-align: left; border-bottom: 1px solid var(--line); }
+table.t th { background: var(--panel-2); font-size: .8rem; letter-spacing: .02em; }
+table.t tr:last-child td { border-bottom: none; }
+table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-size: .82rem; color: var(--accent-ink); }
+
+/* footer nav */
+.footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
+  padding-top: 1.4rem; border-top: 1px solid var(--line); }
+.footnav a { flex: 1; padding: .85rem 1.1rem; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--panel); box-shadow: var(--shadow); transition: .15s; }
+.footnav a:hover { border-color: var(--accent); transform: translateY(-1px); }
+.footnav a.next { text-align: right; }
+.footnav .dir { font-size: .72rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.footnav .ttl { font-weight: 700; color: var(--ink); margin-top: .15rem; }
+.footnav a.disabled { opacity: .35; pointer-events: none; }
+
+/* index page */
+.toc { display: grid; gap: .7rem; margin-top: 1.6rem; }
+.toc-part { font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--accent); margin: 1.4rem 0 .2rem; }
+.toc a { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.05rem; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); transition: .15s; }
+.toc a:hover { border-color: var(--accent); transform: translateX(3px); }
+.toc .n { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
+.toc .tt { font-weight: 650; color: var(--ink); }
+.toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.hero.index h1 { font-size: 2.3rem; }
+.legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
+.legend span { display:flex; align-items:center; gap:.4rem; }
+.legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }
+</style>
+</head><body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="home" href="index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第三部分 · 内部源码</span>
+    <span class="pill">13 / 14</span>
+  </div>
+  <div class="progress"><span style="width:92%"></span></div>
+</div>
+<div class="wrap">
+  <div class="hero">
+    <div class="part">第三部分 · 内部源码</div>
+    <h1>Streaming 与 Callbacks</h1>
+  </div>
+  
+<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
+最后一块内部机制：<strong>流式输出（Streaming）</strong>与<strong>回调（Callbacks）</strong>。
+前者让你"边生成边显示"，后者是 LangSmith 追踪、日志、监控的底层钩子。两者都贯穿前面所有组件。
+</p>
+
+<div class="card analogy">
+  <div class="tag">📺 生活类比</div>
+  <strong>Streaming</strong> 像<strong>直播</strong>：不必等整集拍完，画面一帧帧实时推送。
+  <strong>Callbacks</strong> 像<strong>赛事解说</strong>：在"比赛开始 / 进球 / 结束"等关键时刻自动播报，
+  你可以挂上任意多位解说员（处理器），各做各的记录。
+</div>
+
+<h2>Streaming：chunk 是可以相加的</h2>
+<p><span class="inline">stream()</span> 不返回完整结果，而是不断 yield <span class="inline">AIMessageChunk</span>。
+关键设计：<strong>这些 chunk 能用 <span class="mono">+</span> 累加</strong>，拼回一条完整消息：</p>
+
+<pre class="code">full = None
+<span class="kw">for</span> chunk <span class="kw">in</span> model.stream(<span class="st">"讲个故事"</span>):
+    print(chunk.content, end=<span class="st">""</span>)   <span class="cm"># 实时显示</span>
+    full = chunk <span class="kw">if</span> full <span class="kw">is</span> None <span class="kw">else</span> full + chunk  <span class="cm"># ★ chunk 相加</span>
+<span class="cm"># 循环结束后，full 等价于一次性 invoke 的完整 AIMessage</span>
+</pre>
+
+<div class="card detail">
+  <div class="tag">🔬 细节 / 代码对应</div>
+  <ul>
+    <li><span class="mono">stream</span> 定义在 <span class="mono">core/language_models/chat_models.py</span>；
+      产出的 <span class="mono">AIMessageChunk</span> 在 <span class="mono">messages/ai.py</span>（继承 <span class="mono">BaseMessageChunk</span>）。</li>
+    <li><span class="mono">+</span> 能相加，是因为 <span class="mono">BaseMessageChunk</span> 实现了 <span class="mono">__add__</span>（合并内容、工具调用片段、用量）。</li>
+    <li>辅助函数 <span class="mono">generate_from_stream</span>（同文件）把一串 chunk 归并成最终 <span class="mono">ChatResult</span>。</li>
+  </ul>
+</div>
+
+<h2>Callbacks：在生命周期关键点挂钩子</h2>
+<p>还记得第 3 课"沿途触发回调"吗？回调系统在每次调用的关键时刻发出事件，
+你可以注册处理器来响应。最常见的用途就是 <strong>LangSmith 追踪</strong>。</p>
+
+<div class="flow">
+  <div class="node hl"><div class="nt">on_llm_start</div><div class="nd">开始调用模型</div></div>
+  <div class="arrow">→</div>
+  <div class="node"><div class="nt">on_llm_new_token</div><div class="nd">每来一个 token<br>（流式）</div></div>
+  <div class="arrow">→</div>
+  <div class="node hl"><div class="nt">on_llm_end</div><div class="nd">调用结束<br>（含用量）</div></div>
+</div>
+
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/callbacks/</span><span class="ln">BaseCallbackHandler（示意）</span></div>
+<pre><span class="kw">class</span> <span class="fn">BaseCallbackHandler</span>:
+    <span class="kw">def</span> <span class="fn">on_llm_start</span>(self, ...): ...        <span class="cm"># 模型开始</span>
+    <span class="kw">def</span> <span class="fn">on_llm_new_token</span>(self, token, ...): ...  <span class="cm"># 流式逐 token</span>
+    <span class="kw">def</span> <span class="fn">on_llm_end</span>(self, response, ...): ...     <span class="cm"># 模型结束</span>
+    <span class="kw">def</span> <span class="fn">on_tool_start</span>/<span class="fn">on_tool_end</span>(self, ...): ...  <span class="cm"># 工具事件</span>
+</pre>
+</div>
+
+<h2>config：回调/标签如何传进去</h2>
+<p>回调、标签（tags）、元数据通过 <span class="inline">RunnableConfig</span> 这个配置字典在调用时一路传递。
+这就是第 8 课 <span class="mono">invoke(input, config)</span> 里 <span class="inline">config</span> 参数的用途：</p>
+<pre class="code">model.invoke(<span class="st">"你好"</span>, config={
+    <span class="st">"callbacks"</span>: [MyHandler()],
+    <span class="st">"tags"</span>: [<span class="st">"demo"</span>],
+    <span class="st">"metadata"</span>: {<span class="st">"user"</span>: <span class="st">"alice"</span>},
+})
+</pre>
+
+<div class="card macro">
+  <div class="tag">🌍 宏观理解</div>
+  <ul>
+    <li><strong>Streaming 与 Callbacks 是横切能力</strong>：因为一切都是 Runnable，它们对模型、链、Agent <strong>一视同仁</strong>地生效。</li>
+    <li>更细粒度的 <span class="mono">astream_events</span>（<span class="mono">runnables/base.py</span>）能让你订阅<strong>链中每一步</strong>的事件流，是构建复杂 UI（如显示 Agent 思考过程）的基础。</li>
+    <li><span class="mono">RunnableConfig</span> 是"随调用流动的上下文信封"，把回调/标签/并发度一路带到底层。</li>
+  </ul>
+</div>
+
+<div class="card key">
+  <div class="tag">✅ 本课要点</div>
+  <ul>
+    <li>Streaming：<span class="mono">stream()</span> 产出可相加的 <span class="mono">AIMessageChunk</span>，累加即得完整消息。</li>
+    <li>Callbacks：在 <span class="mono">on_llm_start / new_token / end</span> 等生命周期点触发，支撑追踪与监控。</li>
+    <li>两者通过 <span class="mono">RunnableConfig</span> 注入，且对所有 Runnable 通用。</li>
+    <li><strong>第三部分（内部源码）到此结束</strong>。最后一部分教你如何读源码、调试、测试与贡献。</li>
+  </ul>
+</div>
+
+  <div class="footnav"><a class="prev" href="12-agent-internals.html"><div class="dir">← 上一课</div><div class="ttl">Agent 内部</div></a><a class="next" href="14-contributing.html"><div class="dir">下一课 →</div><div class="ttl">读源码 / 调试 / 测试 / 贡献</div></a></div>
+</div>
+
+</body></html>

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>06 · 工具 Tools — LangChain 图解教程</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f0f2f5; --ink: #1d2129;
+  --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
+  --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
+  --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116; --panel: #161b22; --panel-2: #1c232c; --ink: #e6edf3;
+    --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
+    --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
+    --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+    "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg); color: var(--ink); line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+
+/* ---- top progress bar ---- */
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: var(--panel);
+  border-bottom: 1px solid var(--line); backdrop-filter: blur(8px);
+}
+.topbar-inner {
+  max-width: 960px; margin: 0 auto; padding: .7rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.topbar .home { font-size: .82rem; color: var(--muted); font-weight: 600; display:flex; gap:.5rem; align-items:center; }
+.topbar .home b { color: var(--accent); }
+.topbar .pill { font-size: .72rem; color: var(--muted); background: var(--panel-2);
+  padding: .2rem .6rem; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.progress { height: 3px; background: var(--panel-2); }
+.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue)); }
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 2.4rem 1.25rem 5rem; }
+
+/* ---- hero ---- */
+.hero { margin-bottom: 2rem; }
+.hero .part { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin-bottom: .55rem; }
+.hero h1 { font-size: 2.05rem; line-height: 1.2; letter-spacing: -.01em; font-weight: 750; }
+.hero .lead { margin-top: .9rem; font-size: 1.06rem; color: var(--muted); }
+
+h2 { font-size: 1.32rem; margin: 2.4rem 0 .9rem; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: .55rem; }
+h2::before { content: ""; width: 4px; height: 1.05em; background: var(--accent); border-radius: 3px; display: inline-block; }
+h3 { font-size: 1.05rem; margin: 1.4rem 0 .5rem; }
+p { margin: .7rem 0; }
+ul, ol { margin: .6rem 0 .6rem 1.3rem; }
+li { margin: .3rem 0; }
+strong { color: var(--ink); font-weight: 680; }
+.inline { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: .08em .4em; font-size: .9em; color: var(--accent-ink); }
+
+/* ---- callout cards ---- */
+.card { border-radius: var(--radius); padding: 1.05rem 1.2rem; margin: 1.2rem 0;
+  border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+.card .tag { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+.card.macro { border-left: 4px solid var(--blue); }
+.card.macro .tag { color: var(--blue); }
+.card.detail { border-left: 4px solid var(--purple); }
+.card.detail .tag { color: var(--purple); }
+.card.analogy { border-left: 4px solid var(--amber); background: var(--amber-soft); }
+.card.analogy .tag { color: var(--amber); }
+.card.key { border-left: 4px solid var(--accent); background: var(--accent-soft); }
+.card.key .tag { color: var(--accent-ink); }
+.card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
+.card.warn .tag { color: var(--red); }
+
+/* ---- code file callout ---- */
+.codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
+  box-shadow: var(--shadow); }
+.codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
+  background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
+.codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; }
+.codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
+.codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
+  overflow-x: auto; font-size: .82rem; line-height: 1.6; }
+.codefile pre .cm { color: #7d8aa3; }
+.codefile pre .kw { color: #c792ea; }
+.codefile pre .fn { color: #82aaff; }
+.codefile pre .st { color: #c3e88d; }
+.codefile pre .nb { color: #f78c6c; }
+
+pre.code { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem; border-radius: 12px;
+  overflow-x: auto; font-size: .83rem; line-height: 1.6; margin: 1.1rem 0; box-shadow: var(--shadow); }
+pre.code .cm { color: #7d8aa3; } pre.code .kw { color: #c792ea; }
+pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb { color: #f78c6c; }
+
+/* ---- flow diagram ---- */
+.flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 1.3rem 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1.2rem 1rem; box-shadow: var(--shadow); }
+.flow .node { flex: 1 1 0; min-width: 110px; text-align: center; padding: .7rem .5rem;
+  border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.flow .node .nt { font-weight: 700; font-size: .92rem; }
+.flow .node .nd { font-size: .76rem; color: var(--muted); margin-top: .2rem; }
+.flow .node.hl { background: var(--accent-soft); border-color: var(--accent); }
+.flow .arrow { align-self: center; color: var(--faint); font-size: 1.3rem; padding: 0 .35rem; }
+
+/* vertical flow */
+.vflow { margin: 1.3rem 0; }
+.vflow .step { display: flex; gap: .9rem; position: relative; padding-bottom: 1.1rem; }
+.vflow .step:not(:last-child)::before { content:""; position:absolute; left: 15px; top: 34px; bottom: -2px;
+  width: 2px; background: var(--line); }
+.vflow .num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; z-index:1; }
+.vflow .sc h4 { margin: .25rem 0 .2rem; font-size: 1rem; }
+.vflow .sc p { margin: .15rem 0; font-size: .92rem; color: var(--muted); }
+.vflow .sc .mono { font-size: .8rem; color: var(--accent-ink); }
+
+/* layered architecture */
+.layers { margin: 1.3rem 0; display: flex; flex-direction: column; gap: .55rem; }
+.layer { border-radius: 12px; padding: .85rem 1.1rem; border: 1px solid var(--line); background: var(--panel);
+  box-shadow: var(--shadow); }
+.layer .lh { display: flex; align-items: center; gap: .6rem; }
+.layer .lh .badge { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; }
+.layer .lh .name { font-weight: 700; font-family: ui-monospace, monospace; }
+.layer .ld { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.layer.l-core { border-left: 4px solid var(--accent); } .layer.l-core .badge { background: var(--accent-soft); color: var(--accent-ink); }
+.layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
+.layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
+.layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+
+/* two-column compare */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col h4 { margin: 0 0 .4rem; font-size: .95rem; }
+
+table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
+  background: var(--panel); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+table.t th, table.t td { padding: .6rem .8rem; text-align: left; border-bottom: 1px solid var(--line); }
+table.t th { background: var(--panel-2); font-size: .8rem; letter-spacing: .02em; }
+table.t tr:last-child td { border-bottom: none; }
+table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-size: .82rem; color: var(--accent-ink); }
+
+/* footer nav */
+.footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
+  padding-top: 1.4rem; border-top: 1px solid var(--line); }
+.footnav a { flex: 1; padding: .85rem 1.1rem; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--panel); box-shadow: var(--shadow); transition: .15s; }
+.footnav a:hover { border-color: var(--accent); transform: translateY(-1px); }
+.footnav a.next { text-align: right; }
+.footnav .dir { font-size: .72rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.footnav .ttl { font-weight: 700; color: var(--ink); margin-top: .15rem; }
+.footnav a.disabled { opacity: .35; pointer-events: none; }
+
+/* index page */
+.toc { display: grid; gap: .7rem; margin-top: 1.6rem; }
+.toc-part { font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--accent); margin: 1.4rem 0 .2rem; }
+.toc a { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.05rem; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); transition: .15s; }
+.toc a:hover { border-color: var(--accent); transform: translateX(3px); }
+.toc .n { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
+.toc .tt { font-weight: 650; color: var(--ink); }
+.toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.hero.index h1 { font-size: 2.3rem; }
+.legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
+.legend span { display:flex; align-items:center; gap:.4rem; }
+.legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }
+</style>
+</head><body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="home" href="index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第二部分 · 用户视角</span>
+    <span class="pill">06 / 14</span>
+  </div>
+  <div class="progress"><span style="width:42%"></span></div>
+</div>
+<div class="wrap">
+  <div class="hero">
+    <div class="part">第二部分 · 用户视角</div>
+    <h1>工具 Tools</h1>
+  </div>
+  
+<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
+工具（Tool）让模型<strong>突破"只会聊天"的边界</strong>——查数据库、调 API、做计算。
+神奇之处在于：你只写一个<strong>普通 Python 函数</strong>，LangChain 自动把它变成模型能理解、能"请求调用"的工具。
+</p>
+
+<div class="card analogy">
+  <div class="tag">🧰 生活类比</div>
+  模型像个<strong>聪明但被关在房间里的顾问</strong>：它知识渊博，却拿不到实时信息、碰不到外部系统。
+  工具就是你递进房间的一部部<strong>专用电话</strong>——一部打给天气台、一部打给数据库。
+  你贴上"这部电话能干嘛、要拨什么号"的说明（schema），顾问就会在需要时<strong>请你帮他拨号</strong>。
+</div>
+
+<h2>把函数变成工具：@tool</h2>
+<p>最常用的方式是 <span class="inline">@tool</span> 装饰器。它会自动从你的函数里<strong>提取三样东西</strong>：</p>
+
+<pre class="code"><span class="kw">from</span> langchain_core.tools <span class="kw">import</span> tool
+
+<span class="nb">@tool</span>
+<span class="kw">def</span> <span class="fn">get_weather</span>(city: str) -> str:
+    <span class="st">&quot;&quot;&quot;查询某城市的当前天气。&quot;&quot;&quot;</span>
+    <span class="kw">return</span> <span class="st">f"{city} 晴，25°C"</span>
+</pre>
+
+<div class="flow">
+  <div class="node hl"><div class="nt">函数名</div><div class="nd">get_weather<br>→ 工具名</div></div>
+  <div class="arrow">+</div>
+  <div class="node hl"><div class="nt">docstring</div><div class="nd">"查询天气"<br>→ 工具描述</div></div>
+  <div class="arrow">+</div>
+  <div class="node hl"><div class="nt">类型注解</div><div class="nd">city: str<br>→ 参数 schema</div></div>
+</div>
+
+<div class="card detail">
+  <div class="tag">🔬 细节 / 代码对应</div>
+  <ul>
+    <li><span class="mono">@tool</span> 定义在 <span class="mono">core/tools/convert.py</span>，把函数包装成一个 <span class="mono">BaseTool</span>。</li>
+    <li>实际生成的是 <span class="mono">StructuredTool</span>（<span class="mono">core/tools/structured.py</span>），
+      它用 <span class="mono">create_schema_from_function</span> 从函数签名<strong>自动推断出 pydantic 参数 schema</strong>。</li>
+    <li>所以"写好类型注解 + docstring"很重要——它们直接决定模型看到的工具说明。</li>
+  </ul>
+</div>
+
+<h2>工具自己也能被调用</h2>
+<p>包装后的工具是个对象，有 <span class="inline">name</span>、<span class="inline">description</span>、
+<span class="inline">args_schema</span>，并且可以像函数一样 <span class="inline">invoke</span>：</p>
+<pre class="code">print(get_weather.name)         <span class="cm"># "get_weather"</span>
+print(get_weather.description)  <span class="cm"># "查询某城市的当前天气。"</span>
+print(get_weather.invoke({<span class="st">"city"</span>: <span class="st">"北京"</span>}))  <span class="cm"># "北京 晴，25°C"</span>
+</pre>
+
+<h2>模型如何"使用"工具：完整往返</h2>
+<p>关键认知：<strong>模型不会自己执行工具</strong>，它只会"请求"。真正的执行由你的程序（或 Agent）完成。
+这一来一回是整个工具机制的核心：</p>
+
+<div class="vflow">
+  <div class="step"><div class="num">1</div><div class="sc"><h4>绑定</h4><p><span class="mono">model.bind_tools([get_weather])</span>：把工具的 schema 告诉模型。</p></div></div>
+  <div class="step"><div class="num">2</div><div class="sc"><h4>请求</h4><p>模型回一条 <span class="mono">AIMessage</span>，其中 <span class="mono">tool_calls=[{name, args, id}]</span>——"我想调 get_weather('北京')"。</p></div></div>
+  <div class="step"><div class="num">3</div><div class="sc"><h4>执行</h4><p>你的程序按请求真正运行 <span class="mono">get_weather.invoke(args)</span>，拿到结果。</p></div></div>
+  <div class="step"><div class="num">4</div><div class="sc"><h4>回传</h4><p>把结果包成 <span class="mono">ToolMessage</span>（带上对应的 <span class="mono">tool_call_id</span>）追加到消息列表。</p></div></div>
+  <div class="step"><div class="num">5</div><div class="sc"><h4>再问</h4><p>把更新后的消息再喂给模型，它据此给出最终自然语言回答。</p></div></div>
+</div>
+
+<div class="card macro">
+  <div class="tag">🌍 宏观理解</div>
+  这套"请求 → 执行 → 回传 → 再问"的循环，<strong>手写也能实现，但很繁琐</strong>。
+  第 7 课的 <span class="mono">create_agent</span> 就是把这整个循环<strong>自动化</strong>。
+  也就是说：<strong>工具 + 这个循环 = Agent</strong>。
+</div>
+
+<div class="card key">
+  <div class="tag">✅ 本课要点</div>
+  <ul>
+    <li><span class="mono">@tool</span> 把普通函数变成工具，自动提取<strong>名字 / 描述(docstring) / 参数 schema(类型注解)</strong>。</li>
+    <li>底层是 <span class="mono">StructuredTool</span>，用 pydantic 从函数签名推断 schema。</li>
+    <li>模型只<strong>请求</strong>调用（写在 <span class="mono">AIMessage.tool_calls</span>），<strong>执行靠你的程序</strong>，结果用 <span class="mono">ToolMessage</span> 回传。</li>
+    <li>把这个往返自动化，就得到了 Agent —— 下一课登场。</li>
+  </ul>
+</div>
+
+  <div class="footnav"><a class="prev" href="05-chat-models.html"><div class="dir">← 上一课</div><div class="ttl">聊天模型</div></a><a class="next" href="07-agents-intro.html"><div class="dir">下一课 →</div><div class="ttl">Agent 入门</div></a></div>
+</div>
+
+</body></html>

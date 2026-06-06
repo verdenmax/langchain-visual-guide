@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>14 · 读源码 / 调试 / 测试 / 贡献 — LangChain 图解教程</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f0f2f5; --ink: #1d2129;
+  --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
+  --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
+  --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116; --panel: #161b22; --panel-2: #1c232c; --ink: #e6edf3;
+    --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
+    --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
+    --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+    "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg); color: var(--ink); line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+
+/* ---- top progress bar ---- */
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: var(--panel);
+  border-bottom: 1px solid var(--line); backdrop-filter: blur(8px);
+}
+.topbar-inner {
+  max-width: 960px; margin: 0 auto; padding: .7rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.topbar .home { font-size: .82rem; color: var(--muted); font-weight: 600; display:flex; gap:.5rem; align-items:center; }
+.topbar .home b { color: var(--accent); }
+.topbar .pill { font-size: .72rem; color: var(--muted); background: var(--panel-2);
+  padding: .2rem .6rem; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.progress { height: 3px; background: var(--panel-2); }
+.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue)); }
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 2.4rem 1.25rem 5rem; }
+
+/* ---- hero ---- */
+.hero { margin-bottom: 2rem; }
+.hero .part { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin-bottom: .55rem; }
+.hero h1 { font-size: 2.05rem; line-height: 1.2; letter-spacing: -.01em; font-weight: 750; }
+.hero .lead { margin-top: .9rem; font-size: 1.06rem; color: var(--muted); }
+
+h2 { font-size: 1.32rem; margin: 2.4rem 0 .9rem; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: .55rem; }
+h2::before { content: ""; width: 4px; height: 1.05em; background: var(--accent); border-radius: 3px; display: inline-block; }
+h3 { font-size: 1.05rem; margin: 1.4rem 0 .5rem; }
+p { margin: .7rem 0; }
+ul, ol { margin: .6rem 0 .6rem 1.3rem; }
+li { margin: .3rem 0; }
+strong { color: var(--ink); font-weight: 680; }
+.inline { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: .08em .4em; font-size: .9em; color: var(--accent-ink); }
+
+/* ---- callout cards ---- */
+.card { border-radius: var(--radius); padding: 1.05rem 1.2rem; margin: 1.2rem 0;
+  border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+.card .tag { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+.card.macro { border-left: 4px solid var(--blue); }
+.card.macro .tag { color: var(--blue); }
+.card.detail { border-left: 4px solid var(--purple); }
+.card.detail .tag { color: var(--purple); }
+.card.analogy { border-left: 4px solid var(--amber); background: var(--amber-soft); }
+.card.analogy .tag { color: var(--amber); }
+.card.key { border-left: 4px solid var(--accent); background: var(--accent-soft); }
+.card.key .tag { color: var(--accent-ink); }
+.card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
+.card.warn .tag { color: var(--red); }
+
+/* ---- code file callout ---- */
+.codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
+  box-shadow: var(--shadow); }
+.codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
+  background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
+.codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; }
+.codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
+.codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
+  overflow-x: auto; font-size: .82rem; line-height: 1.6; }
+.codefile pre .cm { color: #7d8aa3; }
+.codefile pre .kw { color: #c792ea; }
+.codefile pre .fn { color: #82aaff; }
+.codefile pre .st { color: #c3e88d; }
+.codefile pre .nb { color: #f78c6c; }
+
+pre.code { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem; border-radius: 12px;
+  overflow-x: auto; font-size: .83rem; line-height: 1.6; margin: 1.1rem 0; box-shadow: var(--shadow); }
+pre.code .cm { color: #7d8aa3; } pre.code .kw { color: #c792ea; }
+pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb { color: #f78c6c; }
+
+/* ---- flow diagram ---- */
+.flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 1.3rem 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1.2rem 1rem; box-shadow: var(--shadow); }
+.flow .node { flex: 1 1 0; min-width: 110px; text-align: center; padding: .7rem .5rem;
+  border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.flow .node .nt { font-weight: 700; font-size: .92rem; }
+.flow .node .nd { font-size: .76rem; color: var(--muted); margin-top: .2rem; }
+.flow .node.hl { background: var(--accent-soft); border-color: var(--accent); }
+.flow .arrow { align-self: center; color: var(--faint); font-size: 1.3rem; padding: 0 .35rem; }
+
+/* vertical flow */
+.vflow { margin: 1.3rem 0; }
+.vflow .step { display: flex; gap: .9rem; position: relative; padding-bottom: 1.1rem; }
+.vflow .step:not(:last-child)::before { content:""; position:absolute; left: 15px; top: 34px; bottom: -2px;
+  width: 2px; background: var(--line); }
+.vflow .num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; z-index:1; }
+.vflow .sc h4 { margin: .25rem 0 .2rem; font-size: 1rem; }
+.vflow .sc p { margin: .15rem 0; font-size: .92rem; color: var(--muted); }
+.vflow .sc .mono { font-size: .8rem; color: var(--accent-ink); }
+
+/* layered architecture */
+.layers { margin: 1.3rem 0; display: flex; flex-direction: column; gap: .55rem; }
+.layer { border-radius: 12px; padding: .85rem 1.1rem; border: 1px solid var(--line); background: var(--panel);
+  box-shadow: var(--shadow); }
+.layer .lh { display: flex; align-items: center; gap: .6rem; }
+.layer .lh .badge { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; }
+.layer .lh .name { font-weight: 700; font-family: ui-monospace, monospace; }
+.layer .ld { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.layer.l-core { border-left: 4px solid var(--accent); } .layer.l-core .badge { background: var(--accent-soft); color: var(--accent-ink); }
+.layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
+.layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
+.layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+
+/* two-column compare */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col h4 { margin: 0 0 .4rem; font-size: .95rem; }
+
+table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
+  background: var(--panel); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+table.t th, table.t td { padding: .6rem .8rem; text-align: left; border-bottom: 1px solid var(--line); }
+table.t th { background: var(--panel-2); font-size: .8rem; letter-spacing: .02em; }
+table.t tr:last-child td { border-bottom: none; }
+table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-size: .82rem; color: var(--accent-ink); }
+
+/* footer nav */
+.footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
+  padding-top: 1.4rem; border-top: 1px solid var(--line); }
+.footnav a { flex: 1; padding: .85rem 1.1rem; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--panel); box-shadow: var(--shadow); transition: .15s; }
+.footnav a:hover { border-color: var(--accent); transform: translateY(-1px); }
+.footnav a.next { text-align: right; }
+.footnav .dir { font-size: .72rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.footnav .ttl { font-weight: 700; color: var(--ink); margin-top: .15rem; }
+.footnav a.disabled { opacity: .35; pointer-events: none; }
+
+/* index page */
+.toc { display: grid; gap: .7rem; margin-top: 1.6rem; }
+.toc-part { font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--accent); margin: 1.4rem 0 .2rem; }
+.toc a { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.05rem; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); transition: .15s; }
+.toc a:hover { border-color: var(--accent); transform: translateX(3px); }
+.toc .n { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
+.toc .tt { font-weight: 650; color: var(--ink); }
+.toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.hero.index h1 { font-size: 2.3rem; }
+.legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
+.legend span { display:flex; align-items:center; gap:.4rem; }
+.legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }
+</style>
+</head><body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="home" href="index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第四部分 · 进阶</span>
+    <span class="pill">14 / 14</span>
+  </div>
+  <div class="progress"><span style="width:100%"></span></div>
+</div>
+<div class="wrap">
+  <div class="hero">
+    <div class="part">第四部分 · 进阶</div>
+    <h1>读源码 / 调试 / 测试 / 贡献</h1>
+  </div>
+  
+<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
+你已经理解了 LangChain 的<strong>用法</strong>和<strong>内部机制</strong>。最后一课给你一套<strong>实战工具箱</strong>：
+如何高效读源码、跑测试、调试，以及把改动贡献回去。这会把"理解"变成"能动手"。
+</p>
+
+<div class="card analogy">
+  <div class="tag">🧭 生活类比</div>
+  前面是看地图，这一课是<strong>发驾照</strong>：认识仪表盘（工具链）、学会安全检查（测试）、
+  懂得看故障灯（调试），最后按交规上路（贡献规范）。
+</div>
+
+<h2>① 工具链：四件套 + make</h2>
+<p>第 2 课见过它们，现在配上真实命令。这个仓库用 <span class="inline">uv</span> 管理依赖、<span class="inline">make</span> 封装常用命令：</p>
+
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">libs/core/ （在某个包目录下执行）</span><span class="ln">常用命令</span></div>
+<pre><span class="cm"># 安装所有依赖组（首次准备环境）</span>
+uv sync --all-groups
+
+<span class="cm"># 跑单元测试（已配置 --disable-socket：禁网络）</span>
+make test
+
+<span class="cm"># 代码检查 / 自动格式化</span>
+make lint
+make format
+
+<span class="cm"># 只跑某个测试文件</span>
+uv run --group test pytest tests/unit_tests/test_xxx.py
+</pre>
+</div>
+
+<table class="t">
+  <tr><th>工具</th><th>做什么</th><th>命令入口</th></tr>
+  <tr><td class="mono">uv</td><td>装依赖 / 虚拟环境</td><td class="mono">uv sync / uv run</td></tr>
+  <tr><td class="mono">pytest</td><td>跑测试</td><td class="mono">make test</td></tr>
+  <tr><td class="mono">ruff</td><td>检查 + 格式化</td><td class="mono">make lint / make format</td></tr>
+  <tr><td class="mono">mypy</td><td>静态类型检查</td><td class="mono">make lint（含）</td></tr>
+</table>
+
+<h2>② 测试结构：镜像源码，单测禁网</h2>
+<p>每个包都有自己的 <span class="inline">tests/</span>，结构<strong>镜像源码目录</strong>。两类测试泾渭分明：</p>
+
+<div class="cols">
+  <div class="col">
+    <h4>🟢 unit_tests（单元测试）</h4>
+    <p><strong>不许联网</strong>（<span class="mono">--disable-socket</span>）。用<strong>假模型</strong>替代真实 API，快且稳定。</p>
+    <p class="mono">tests/unit_tests/</p>
+  </div>
+  <div class="col">
+    <h4>🔵 integration_tests（集成测试）</h4>
+    <p>允许真实网络调用（需 API key），验证与厂商的真实对接。</p>
+    <p class="mono">tests/integration_tests/</p>
+  </div>
+</div>
+
+<div class="card detail">
+  <div class="tag">🔬 细节：用"假模型"写单元测试</div>
+  既然单测不能联网，怎么测和模型相关的逻辑？用 <span class="mono">core</span> 自带的<strong>假聊天模型</strong>：
+  <pre class="code" style="margin:.5rem 0"><span class="kw">from</span> langchain_core.language_models.fake_chat_models <span class="kw">import</span> (
+    GenericFakeChatModel,   <span class="cm"># 按预设脚本"假装"回复</span>
+    FakeListChatModel,      <span class="cm"># 轮流返回一组固定回复</span>
+)
+model = GenericFakeChatModel(messages=iter([<span class="st">"你好！"</span>]))
+assert model.invoke(<span class="st">"hi"</span>).content == <span class="st">"你好！"</span></pre>
+  位置：<span class="mono">core/language_models/fake_chat_models.py</span>。这让你能离线测试链、Agent、解析器等。
+</div>
+
+<h2>③ 读源码的正确姿势</h2>
+<p>面对几十万行代码别慌。永远<strong>从公开入口往里读</strong>，而不是从底层乱翻：</p>
+
+<div class="vflow">
+  <div class="step"><div class="num">1</div><div class="sc"><h4>从 __init__.py 看导出</h4>
+    <p>想知道一个包对外提供啥，先看它的 <span class="mono">__init__.py</span> 的 <span class="mono">__all__</span>。
+      比如 <span class="mono">agents/__init__.py</span> 只导出 <span class="mono">create_agent</span> 和 <span class="mono">AgentState</span>。</p></div></div>
+  <div class="step"><div class="num">2</div><div class="sc"><h4>顺着 import 往下钻</h4>
+    <p>公开函数通常在主力/集成层，真正的抽象在 <span class="mono">core</span>。顺着 import 链走，最终都会到 <span class="mono">langchain_core</span>。</p></div></div>
+  <div class="step"><div class="num">3</div><div class="sc"><h4>遇到方法名按名搜索</h4>
+    <p>行号会变，但方法名稳定。<span class="mono">grep "def _generate"</span> 比记行号可靠。</p></div></div>
+  <div class="step"><div class="num">4</div><div class="sc"><h4>用测试当"活文档"</h4>
+    <p>看不懂某个 API？去 <span class="mono">tests/unit_tests/</span> 找它的测试，那里有最小可运行用法。</p></div></div>
+</div>
+
+<h2>④ 调试技巧</h2>
+<div class="card detail">
+  <div class="tag">🔬 细节</div>
+  <ul>
+    <li><strong>看真实请求</strong>：给 <span class="mono">invoke</span> 传一个打印型回调（<span class="mono">config={"callbacks":[...]}</span>，见第 13 课），
+      就能观察生命周期事件。或接入 <strong>LangSmith</strong> 做可视化追踪。</li>
+    <li><strong>隔离问题</strong>：用假模型替换真模型，确认 bug 是出在你的链逻辑还是厂商对接。</li>
+    <li><strong>最小复现</strong>：把问题缩到 3–5 行能跑的代码，再逐层加回。</li>
+  </ul>
+</div>
+
+<h2>⑤ 贡献规范：提交前必看</h2>
+<div class="card warn">
+  <div class="tag">⚠️ 提交规范（Conventional Commits）</div>
+  <ul>
+    <li>PR / commit 标题格式：<span class="mono">type(scope): 描述</span>，<strong>必须带 scope</strong>。
+      例：<span class="mono">fix(core): resolve type hinting issue</span>、<span class="mono">feat(openai): add ...</span>。</li>
+    <li>描述以小写开头（除非是专有名词/类名）；类/函数/参数名用反引号包裹。</li>
+    <li>新功能/修 bug <strong>必须配单元测试</strong>；公共 API 签名<strong>尽量不破坏</strong>，新参数用关键字形式 <span class="mono">*, new_param=...</span>。</li>
+    <li>所有 Python 代码<strong>必须有类型注解和返回类型</strong>；文档用 Google 风格 docstring。</li>
+  </ul>
+</div>
+
+<h2>全景回顾：你已经走完的地图</h2>
+<div class="layers">
+  <div class="layer l-app"><div class="lh"><span class="badge">第 1 部分</span><span class="name">宏观全景</span></div>
+    <div class="ld">是什么 · monorepo 三层 · 一次调用的生命周期</div></div>
+  <div class="layer l-main"><div class="lh"><span class="badge">第 2 部分</span><span class="name">用户视角</span></div>
+    <div class="ld">消息 · 聊天模型 · 工具 · Agent —— 学会"用"</div></div>
+  <div class="layer l-part"><div class="lh"><span class="badge">第 3 部分</span><span class="name">内部源码</span></div>
+    <div class="ld">Runnable · 组合 · 模型调用链 · 工具机制 · Agent 状态图 · 流式与回调</div></div>
+  <div class="layer l-core"><div class="lh"><span class="badge">第 4 部分</span><span class="name">进阶实战</span></div>
+    <div class="ld">读源码 · 测试 · 调试 · 贡献 —— 把理解变成动手</div></div>
+</div>
+
+<div class="card key">
+  <div class="tag">✅ 本课要点 & 结业</div>
+  <ul>
+    <li>环境：<span class="mono">uv sync --all-groups</span>；日常：<span class="mono">make test / lint / format</span>。</li>
+    <li>单测禁网、用<strong>假模型</strong>；测试目录镜像源码，是最好的"活文档"。</li>
+    <li>读源码从 <span class="mono">__init__.py</span> 入口往 <span class="mono">core</span> 钻，按方法名搜索。</li>
+    <li>贡献守 Conventional Commits + 类型注解 + 配套测试 + 不破坏公共 API。</li>
+    <li>🎉 <strong>恭喜！你已经从零走完了 LangChain 的宏观与细节。</strong>现在去读真实源码、动手改一处试试吧。</li>
+  </ul>
+</div>
+
+  <div class="footnav"><a class="prev" href="13-streaming-callbacks.html"><div class="dir">← 上一课</div><div class="ttl">Streaming 与 Callbacks</div></a><a class="next" href="index.html"><div class="dir">完成 →</div><div class="ttl">返回目录</div></a></div>
+</div>
+
+</body></html>
