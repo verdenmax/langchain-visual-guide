@@ -27,9 +27,6 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-
       # CJK + emoji fonts so the PDF renders Chinese (and 📘🔬💡) correctly.
       - name: Install fonts
         run: |
@@ -57,6 +54,23 @@ jobs:
             "file://$GITHUB_WORKSPACE/print.html"
           ls -la langchain-visual-guide.pdf
 
+      # Upload the PDF first so it's always available, even if Pages is not
+      # enabled (e.g. private repo without a Pages-capable plan).
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: langchain-visual-guide-pdf
+          path: langchain-visual-guide.pdf
+          if-no-files-found: error
+
+      # Pages-specific steps. `enablement: true` auto-enables Pages (with the
+      # GitHub Actions build type) on first run for public repos — no manual
+      # Settings step needed. On private repos this requires a paid plan.
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
       - name: Assemble _site
         run: |
           mkdir -p _site
@@ -69,13 +83,6 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
-
-      - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: langchain-visual-guide-pdf
-          path: langchain-visual-guide.pdf
-          if-no-files-found: error
 
   deploy:
     needs: build
