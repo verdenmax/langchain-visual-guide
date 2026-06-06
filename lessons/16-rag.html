@@ -2,7 +2,7 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>03 · 一次调用的生命周期 — LangChain 图解教程</title>
+<title>16 · RAG 检索增强 — LangChain 图解教程</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -212,172 +212,146 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第一部分 · 宏观全景</span>
-    <span class="pill">03 / 18</span>
+    <span class="pill">第五部分 · 自己动手做 Agent</span>
+    <span class="pill">16 / 18</span>
   </div>
-  <div class="progress"><span style="width:16%"></span></div>
+  <div class="progress"><span style="width:88%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第一部分 · 宏观全景</div>
-    <h1>一次调用的生命周期</h1>
+    <div class="part">第五部分 · 自己动手做 Agent</div>
+    <h1>RAG 检索增强</h1>
   </div>
   
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-现在把前两课接起来：当你写下 <span class="inline">model.invoke("你好")</span> 的那一刻，
-数据具体<strong>穿过哪些层、变成什么形状、最后怎么回来</strong>？这一课用一张"生命周期图"讲透。
+模型只懂它训练时见过的东西，<strong>不知道你的私有文档、公司知识库、最新资料</strong>。
+RAG（检索增强生成）解决这个问题：<strong>先去知识库里检索相关片段，再把它塞进提示词让模型据此回答</strong>。
+这是绝大多数真实 Agent 的标配。
 </p>
 
 <div class="card analogy">
-  <div class="tag">✉️ 生活类比</div>
-  这趟旅程就像<strong>寄一封跨国信</strong>：你写中文信（字符串）→ 邮局装进标准信封并贴上规范地址（消息标准化）→
-  翻译成目的国语言（厂商 API 格式）→ 寄出、对方回信 → 再翻译回中文 → 装进标准信封交还给你（AIMessage）。
-  你只面对"中文信"，<strong>中间的翻译与信封都被框架藏起来了</strong>。
+  <div class="tag">📖 生活类比</div>
+  RAG 就是把"闭卷考试"变成"<strong>开卷考试</strong>"：不靠模型死记硬背，而是每次答题前
+  先翻书找到相关那几页（检索），再照着这几页作答（生成）。模型负责"会读会写"，知识库负责"提供资料"。
 </div>
 
-<h2>一次调用的完整生命周期</h2>
-<p>下面每一步都标注了它发生在<strong>哪一层</strong>。重点是数据形状的三次变身：
-<strong>字符串 → 标准消息 → 厂商格式 → 标准消息</strong>。</p>
+<h2>RAG 的五个零件 + 一条流水线</h2>
+<p>把文档变成"可被检索的知识"，再到"喂给模型"，要经过五个零件。记住这条流水线，RAG 就不神秘了：</p>
 
 <div class="vflow">
-  <div class="step"><div class="num">1</div><div class="sc">
-    <h4>你的代码：传入字符串或消息</h4>
-    <p>你调用 <span class="mono">model.invoke("北京天气怎么样？")</span>。输入可以是字符串、字典或消息对象。</p>
-    <p class="mono">📍 实现层 langchain</p>
-  </div></div>
-  <div class="step"><div class="num">2</div><div class="sc">
-    <h4>标准化：一切都变成 Messages</h4>
-    <p>框架把你的输入统一转成一串<strong>标准消息对象</strong>（如 <span class="mono">[HumanMessage("北京天气怎么样？")]</span>）。
-      从这里开始，内部只认消息，不认裸字符串。</p>
-    <p class="mono">📍 地基层 langchain-core · messages/</p>
-  </div></div>
-  <div class="step"><div class="num">3</div><div class="sc">
-    <h4>进入统一入口 invoke → generate</h4>
-    <p><span class="mono">BaseChatModel.invoke()</span> 调用 <span class="mono">generate_prompt → generate</span>，
-      这是<strong>所有厂商共享</strong>的模板流程（含缓存、回调、重试）。</p>
-    <p class="mono">📍 地基层 · language_models/chat_models.py</p>
-  </div></div>
-  <div class="step"><div class="num">4</div><div class="sc">
-    <h4>翻译成厂商格式并发请求</h4>
-    <p>具体 partner（如 <span class="mono">ChatOpenAI._generate</span>）把标准消息<strong>翻译成 OpenAI 的 JSON</strong>，
-      通过厂商 SDK 发出 HTTP 请求。</p>
-    <p class="mono">📍 集成层 langchain-openai</p>
-  </div></div>
-  <div class="step"><div class="num">5</div><div class="sc">
-    <h4>厂商返回 → 翻译回标准消息</h4>
-    <p>OpenAI 返回原始 JSON，partner 把它<strong>翻译回</strong> <span class="mono">AIMessage</span>
-      （含正文、可能的工具调用、token 用量等）。</p>
-    <p class="mono">📍 集成层 → 地基层</p>
-  </div></div>
-  <div class="step"><div class="num">6</div><div class="sc">
-    <h4>回调触发 + 缓存写入 + 返回给你</h4>
-    <p>沿途的<strong>回调（callbacks）</strong>记录这次调用（用于 LangSmith 追踪），结果可能写入缓存，
-      最后把 <span class="mono">AIMessage</span> 交还给你。</p>
-    <p class="mono">📍 地基层 → 你的代码</p>
-  </div></div>
+  <div class="step"><div class="num">1</div><div class="sc"><h4>Document：装载文档</h4>
+    <p>把原始资料读成 <span class="mono">Document</span>（含 <span class="mono">page_content</span> + <span class="mono">metadata</span>）。</p>
+    <p class="mono">core/documents/base.py</p></div></div>
+  <div class="step"><div class="num">2</div><div class="sc"><h4>Splitter：切成小块</h4>
+    <p>长文档切成若干小片（chunk），便于精准检索与控制 token。</p>
+    <p class="mono">langchain_text_splitters</p></div></div>
+  <div class="step"><div class="num">3</div><div class="sc"><h4>Embeddings：变成向量</h4>
+    <p>把每个文本块编码成一串数字（向量），<strong>语义相近 → 向量相近</strong>。</p>
+    <p class="mono">core/embeddings/embeddings.py</p></div></div>
+  <div class="step"><div class="num">4</div><div class="sc"><h4>VectorStore：存入向量库</h4>
+    <p>把"文本块 + 向量"存起来，支持按相似度快速搜索。</p>
+    <p class="mono">core/vectorstores/base.py</p></div></div>
+  <div class="step"><div class="num">5</div><div class="sc"><h4>Retriever：按问题召回</h4>
+    <p>把用户问题也编码成向量，找出<strong>最相近的几个文本块</strong>返回。</p>
+    <p class="mono">core/retrievers.py</p></div></div>
 </div>
 
-<h2>用一张层级图再看一遍</h2>
-<p>同样的旅程，换成"数据穿过三层"的视角。注意<strong>请求往下走、响应往上回</strong>，
-core 提供的统一接口让你的代码<strong>完全不碰最右边的厂商细节</strong>：</p>
+<h2>代码：十几行搭一个 RAG</h2>
+<pre class="code"><span class="kw">from</span> langchain_text_splitters <span class="kw">import</span> RecursiveCharacterTextSplitter
 
-<div class="flow" style="flex-direction:column;gap:.6rem">
-  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
-    <div class="node hl" style="flex:0 0 130px">你的代码</div>
-    <div class="arrow">→</div>
-    <div class="node" style="flex:1">字符串 / dict</div>
-  </div>
-  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
-    <div class="node hl" style="flex:0 0 130px">langchain (主力)</div>
-    <div class="arrow">→</div>
-    <div class="node" style="flex:1">标准化为 Messages</div>
-  </div>
-  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
-    <div class="node hl" style="flex:0 0 130px">core (地基)</div>
-    <div class="arrow">→</div>
-    <div class="node" style="flex:1">invoke → generate（缓存/回调/重试的通用模板）</div>
-  </div>
-  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
-    <div class="node hl" style="flex:0 0 130px">openai (配件)</div>
-    <div class="arrow">→</div>
-    <div class="node" style="flex:1">翻译成厂商 JSON → 发 HTTP → 翻译回 AIMessage</div>
-  </div>
-  <div style="text-align:center;color:var(--faint);font-size:.85rem">↑ 响应原路返回，每一层把数据"还原"成上一层认识的形状 ↑</div>
-</div>
+<span class="cm"># 1~2) 文档 → 切块</span>
+splits = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50).split_documents(docs)
 
-<div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应：关键调用链</div>
-  这条链是第三部分"内部源码"的预告，记住这几个方法名即可：
-  <table class="t" style="margin-top:.6rem">
-    <tr><th>步骤</th><th>方法</th><th>文件</th></tr>
-    <tr><td>统一入口</td><td class="mono">BaseChatModel.invoke</td><td class="mono">core · chat_models.py</td></tr>
-    <tr><td>模板流程</td><td class="mono">generate_prompt → generate</td><td class="mono">core · chat_models.py</td></tr>
-    <tr><td>缓存包装</td><td class="mono">_generate_with_cache</td><td class="mono">core · chat_models.py</td></tr>
-    <tr><td>厂商实现</td><td class="mono">ChatOpenAI._generate</td><td class="mono">partners/openai/…</td></tr>
-  </table>
-</div>
+<span class="cm"># 3~4) 嵌入 + 存入向量库（embeddings 来自某个 partner，如 OpenAIEmbeddings）</span>
+vectorstore = SomeVectorStore.from_documents(splits, embedding=embeddings)
 
-<div class="card macro">
-  <div class="tag">🌍 宏观理解：为什么要这么多次"变身"？</div>
-  每一次形状转换都对应一层的<strong>单一职责</strong>：主力层只管"把用户输入规整成消息"，
-  地基层只管"通用流程（缓存/回调/重试）"，配件层只管"和某个厂商对话"。
-  正因为职责被切干净，<strong>换厂商时只有最底层那一块需要替换</strong>，你上面的代码一行都不用动。
+<span class="cm"># 5) 得到一个检索器</span>
+retriever = vectorstore.as_retriever(search_kwargs={<span class="st">"k"</span>: 4})
+
+docs = retriever.invoke(<span class="st">"北京的退货政策是什么？"</span>)   <span class="cm"># → list[Document]，最相关的 4 块</span>
+</pre>
+
+<div class="card key">
+  <div class="tag">🔑 核心认知</div>
+  <strong>Retriever 本身就是一个 Runnable</strong>（<span class="mono">retriever.invoke(query)</span>）。
+  所以它能像积木一样：① 直接拼进 LCEL 链（<span class="mono">{"context": retriever, ...} | prompt | model</span>），
+  或 ② 包成一个<strong>工具</strong>交给 Agent，让 Agent 自己决定"何时该查知识库"。
 </div>
 
 <h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入两个关键环节。</p>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，吃透 RAG 的关键细节。</p>
 
 <details class="accordion">
-  <summary><span class="badge-num">1</span> "标准化"那一步到底做了什么 <span class="hint">点击展开详解</span></summary>
+  <summary><span class="badge-num">1</span> 为什么要"切块"和"嵌入" <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
     <div class="qa">
-      <div class="q">🧪 示例：同一个调用的多种输入写法</div>
-      <div class="a">框架会把下面三种写法<strong>都规整成同一串标准消息</strong>，再往下走：
-<pre class="code"><span class="cm"># 写法 1：裸字符串 → 自动当成一条 HumanMessage</span>
-model.invoke(<span class="st">"北京天气怎么样？"</span>)
-
-<span class="cm"># 写法 2：消息对象列表</span>
-model.invoke([HumanMessage(<span class="st">"北京天气怎么样？"</span>)])
-
-<span class="cm"># 写法 3：(role, content) 元组列表</span>
-model.invoke([(<span class="st">"system"</span>, <span class="st">"你是助手"</span>), (<span class="st">"human"</span>, <span class="st">"北京天气？"</span>)])
-<span class="cm"># ↑ 三者在内部都变成 list[BaseMessage]</span></pre>
-      </div>
+      <div class="q">❓ 为什么要切块（chunking）</div>
+      <div class="a">整篇文档太长，既塞不进上下文，也让检索不精准。切成小块后，能<strong>只召回真正相关的那几段</strong>，
+        省 token 又更准。<span class="mono">chunk_overlap</span> 让相邻块有重叠，避免把一句话从中间切断丢失语义。</div>
     </div>
     <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">让用户写得轻松（可以偷懒传字符串），同时让内部逻辑只需处理<strong>一种</strong>规整形式（消息列表）。
-        这种"入口宽容、内部统一"的设计能大幅减少下游分支判断。</div>
+      <div class="q">❓ 嵌入(Embeddings)到底在做什么</div>
+      <div class="a">把文本映射成向量，使<strong>语义相近的文本向量也相近</strong>。于是"检索相关内容"就变成了
+        "在向量空间里找最近邻"——这叫<strong>语义检索</strong>，比关键词匹配能理解"意思相近但用词不同"。</div>
     </div>
     <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">输入灵活但内部干净；所有缓存、回调、厂商适配只需面向 <span class="mono">list[BaseMessage]</span> 编写，复杂度集中在一处。</div>
+      <div class="q">✅ 代码对应</div>
+      <div class="a"><span class="mono">Embeddings</span> 抽象（<span class="mono">embed_query</span> / <span class="mono">embed_documents</span>）在
+        <span class="mono">core/embeddings/embeddings.py</span>；具体实现（如 <span class="mono">OpenAIEmbeddings</span>）在对应 partner 包。</div>
     </div>
   </div>
 </details>
 
 <details class="accordion">
-  <summary><span class="badge-num">2</span> 缓存、回调、重试是在"哪一层"统一处理的 <span class="hint">点击展开详解</span></summary>
+  <summary><span class="badge-num">2</span> 两种用法：拼进链 vs 当作工具 <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
     <div class="qa">
-      <div class="q">🧪 这些"横切能力"的位置</div>
-      <div class="a">它们都在<strong>地基层</strong>的通用流程里，<strong>不在</strong>各厂商的 <span class="mono">_generate</span> 里：
-<pre class="code">invoke
-└─ generate
-   └─ _generate_with_cache   <span class="cm"># ← 缓存在这里（命中就不发请求）</span>
-      └─ _generate           <span class="cm"># ← 厂商只负责"真正发请求"这一步</span>
-<span class="cm"># 回调（on_llm_start/end）与重试也由通用流程统一触发</span></pre>
+      <div class="q">🧪 用法 A：固定的 RAG 链（每次都先检索）</div>
+      <div class="a">
+<pre class="code"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnablePassthrough
+rag = (
+    {<span class="st">"context"</span>: retriever, <span class="st">"question"</span>: RunnablePassthrough()}
+    | prompt | model | parser
+)
+rag.invoke(<span class="st">"退货政策？"</span>)   <span class="cm"># 一定会先检索再回答</span></pre>
       </div>
     </div>
     <div class="qa">
-      <div class="q">❓ 为什么这样分</div>
-      <div class="a">缓存、回调、重试对<strong>所有厂商都一样</strong>，没必要每个 partner 各写一遍。
-        把它们放在通用流程里，partner 作者就只需关心"怎么和我的厂商对话"。</div>
+      <div class="q">🧪 用法 B：把检索器变成工具，交给 Agent</div>
+      <div class="a">
+<pre class="code"><span class="kw">from</span> langchain_core.tools <span class="kw">import</span> tool
+<span class="nb">@tool</span>
+<span class="kw">def</span> <span class="fn">search_kb</span>(query: str) -> str:
+    <span class="st">&quot;&quot;&quot;在公司知识库中检索相关资料。&quot;&quot;&quot;</span>
+    <span class="kw">return</span> <span class="st">"\n"</span>.join(d.page_content <span class="kw">for</span> d <span class="kw">in</span> retriever.invoke(query))
+
+agent = create_agent(model, tools=[search_kb])   <span class="cm"># Agent 自己决定要不要查</span></pre>
+      </div>
     </div>
     <div class="qa">
-      <div class="q">✅ 优点 & 🔀 其他方案</div>
-      <div class="a">优点：能力统一、partner 极简、行为一致（换厂商缓存策略不变）。
-        其他方案：每个 partner 自行实现缓存/重试（重复、易不一致）——这正是 LangChain 用"模板方法"避免的（第 10 课详解）。</div>
+      <div class="q">❓ 怎么选</div>
+      <div class="a">问答场景"每次都该查" → 用<strong>固定 RAG 链</strong>（简单、可控）；
+        通用 Agent"有时要查、有时不用" → 把检索<strong>做成工具</strong>，让模型按需调用，更灵活。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">3</span> Retriever 不止向量库 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 统一抽象 BaseRetriever</div>
+      <div class="a"><span class="mono">BaseRetriever</span>（<span class="mono">core/retrievers.py</span>）只规定一件事：
+        "给一个查询，返回一串 <span class="mono">Document</span>"。向量库检索只是它最常见的一种实现。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 还能是什么</div>
+      <div class="a">关键词检索（BM25）、数据库查询、搜索引擎 API、甚至混合检索（向量 + 关键词），
+        都能包装成同一个 <span class="mono">Retriever</span> 接口。对上层而言，"怎么检索的"被隐藏了。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">因为 <span class="mono">BaseRetriever</span> 是 Runnable，任何检索来源都能无缝接进链或做成工具——又一次体现统一抽象的威力。</div>
     </div>
   </div>
 </details>
@@ -385,14 +359,15 @@ model.invoke([(<span class="st">"system"</span>, <span class="st">"你是助手"
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li>一次调用 = 数据三次变身：<strong>字符串 → 标准消息 → 厂商格式 → 标准消息</strong>。</li>
-    <li>请求往下穿三层、响应原路返回；你的代码只接触最上层的统一接口。</li>
-    <li>"统一入口 + 厂商专属 <span class="mono">_generate</span>"是 LangChain 可替换性的核心机关。</li>
-    <li>第一部分（宏观）到此结束。下一部分进入<strong>用户视角</strong>，从最小的"消息"开始动手。</li>
+    <li>RAG = <strong>先检索、再生成</strong>：把私有/最新知识喂给模型，突破"只懂训练数据"的局限。</li>
+    <li>流水线五件套：<span class="mono">Document → Splitter → Embeddings → VectorStore → Retriever</span>。</li>
+    <li>切块控制精度与 token；嵌入实现<strong>语义检索</strong>（按意思找，不只按词）。</li>
+    <li><span class="mono">Retriever</span> 是 Runnable：可拼进链，也可包成工具交给 Agent。</li>
+    <li>下一课：当内置中间件不够用，<strong>写你自己的中间件</strong>来定制 Agent。</li>
   </ul>
 </div>
 
-  <div class="footnav"><a class="prev" href="02-monorepo.html"><div class="dir">← 上一课</div><div class="ttl">Monorepo 全景</div></a><a class="next" href="04-messages.html"><div class="dir">下一课 →</div><div class="ttl">消息系统</div></a></div>
+  <div class="footnav"><a class="prev" href="15-prompts.html"><div class="dir">← 上一课</div><div class="ttl">提示词 Prompts</div></a><a class="next" href="17-custom-middleware.html"><div class="dir">下一课 →</div><div class="ttl">写自己的中间件</div></a></div>
 </div>
 
 </body></html>

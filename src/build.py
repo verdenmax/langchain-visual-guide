@@ -70,6 +70,12 @@ if __name__ == "__main__":
     register("part4", {
         "14-contributing.html": "LESSON_14",
     })
+    register("part5", {
+        "15-prompts.html": "LESSON_15",
+        "16-rag.html": "LESSON_16",
+        "17-custom-middleware.html": "LESSON_17",
+        "18-runtime-context.html": "LESSON_18",
+    })
     done = build()
     print("Wrote", len(done), "files under", ROOT)
     for f in done:

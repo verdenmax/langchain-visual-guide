@@ -2,7 +2,7 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>03 · 一次调用的生命周期 — LangChain 图解教程</title>
+<title>17 · 写自己的中间件 — LangChain 图解教程</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -212,172 +212,160 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第一部分 · 宏观全景</span>
-    <span class="pill">03 / 18</span>
+    <span class="pill">第五部分 · 自己动手做 Agent</span>
+    <span class="pill">17 / 18</span>
   </div>
-  <div class="progress"><span style="width:16%"></span></div>
+  <div class="progress"><span style="width:94%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第一部分 · 宏观全景</div>
-    <h1>一次调用的生命周期</h1>
+    <div class="part">第五部分 · 自己动手做 Agent</div>
+    <h1>写自己的中间件</h1>
   </div>
   
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-现在把前两课接起来：当你写下 <span class="inline">model.invoke("你好")</span> 的那一刻，
-数据具体<strong>穿过哪些层、变成什么形状、最后怎么回来</strong>？这一课用一张"生命周期图"讲透。
+第 7、12 课我们<strong>用</strong>过内置中间件（限流、人审、重试…）。当它们不够用时，
+定制自己 Agent 的<strong>核心钥匙</strong>就是——<strong>写你自己的中间件</strong>。这是 Agent 最强大的扩展点。
 </p>
 
 <div class="card analogy">
-  <div class="tag">✉️ 生活类比</div>
-  这趟旅程就像<strong>寄一封跨国信</strong>：你写中文信（字符串）→ 邮局装进标准信封并贴上规范地址（消息标准化）→
-  翻译成目的国语言（厂商 API 格式）→ 寄出、对方回信 → 再翻译回中文 → 装进标准信封交还给你（AIMessage）。
-  你只面对"中文信"，<strong>中间的翻译与信封都被框架藏起来了</strong>。
+  <div class="tag">🧅 生活类比</div>
+  中间件就像<strong>洋葱的一层层皮</strong>，也像 Web 框架的 middleware：每次请求都<strong>从外向里穿过每一层</strong>，
+  再<strong>从里向外穿回来</strong>。每一层都能在"进去前"和"出来后"做点事——记录、改写、拦截、重试。
 </div>
 
-<h2>一次调用的完整生命周期</h2>
-<p>下面每一步都标注了它发生在<strong>哪一层</strong>。重点是数据形状的三次变身：
-<strong>字符串 → 标准消息 → 厂商格式 → 标准消息</strong>。</p>
+<h2>六个钩子：在循环的关键点插入逻辑</h2>
+<p>一个中间件可以实现下面任意几个<strong>钩子方法</strong>，框架会在对应时机自动调用：</p>
 
-<div class="vflow">
-  <div class="step"><div class="num">1</div><div class="sc">
-    <h4>你的代码：传入字符串或消息</h4>
-    <p>你调用 <span class="mono">model.invoke("北京天气怎么样？")</span>。输入可以是字符串、字典或消息对象。</p>
-    <p class="mono">📍 实现层 langchain</p>
-  </div></div>
-  <div class="step"><div class="num">2</div><div class="sc">
-    <h4>标准化：一切都变成 Messages</h4>
-    <p>框架把你的输入统一转成一串<strong>标准消息对象</strong>（如 <span class="mono">[HumanMessage("北京天气怎么样？")]</span>）。
-      从这里开始，内部只认消息，不认裸字符串。</p>
-    <p class="mono">📍 地基层 langchain-core · messages/</p>
-  </div></div>
-  <div class="step"><div class="num">3</div><div class="sc">
-    <h4>进入统一入口 invoke → generate</h4>
-    <p><span class="mono">BaseChatModel.invoke()</span> 调用 <span class="mono">generate_prompt → generate</span>，
-      这是<strong>所有厂商共享</strong>的模板流程（含缓存、回调、重试）。</p>
-    <p class="mono">📍 地基层 · language_models/chat_models.py</p>
-  </div></div>
-  <div class="step"><div class="num">4</div><div class="sc">
-    <h4>翻译成厂商格式并发请求</h4>
-    <p>具体 partner（如 <span class="mono">ChatOpenAI._generate</span>）把标准消息<strong>翻译成 OpenAI 的 JSON</strong>，
-      通过厂商 SDK 发出 HTTP 请求。</p>
-    <p class="mono">📍 集成层 langchain-openai</p>
-  </div></div>
-  <div class="step"><div class="num">5</div><div class="sc">
-    <h4>厂商返回 → 翻译回标准消息</h4>
-    <p>OpenAI 返回原始 JSON，partner 把它<strong>翻译回</strong> <span class="mono">AIMessage</span>
-      （含正文、可能的工具调用、token 用量等）。</p>
-    <p class="mono">📍 集成层 → 地基层</p>
-  </div></div>
-  <div class="step"><div class="num">6</div><div class="sc">
-    <h4>回调触发 + 缓存写入 + 返回给你</h4>
-    <p>沿途的<strong>回调（callbacks）</strong>记录这次调用（用于 LangSmith 追踪），结果可能写入缓存，
-      最后把 <span class="mono">AIMessage</span> 交还给你。</p>
-    <p class="mono">📍 地基层 → 你的代码</p>
-  </div></div>
+<table class="t">
+  <tr><th>钩子</th><th>触发时机</th><th>典型用途</th></tr>
+  <tr><td class="mono">before_agent</td><td>整个 Agent 开始时（一次）</td><td>初始化、鉴权</td></tr>
+  <tr><td class="mono">before_model</td><td>每次调用模型<strong>前</strong></td><td>裁剪历史、注入提示</td></tr>
+  <tr><td class="mono">wrap_model_call</td><td><strong>包裹</strong>整个模型调用</td><td>改请求/响应、重试、降级</td></tr>
+  <tr><td class="mono">after_model</td><td>每次调用模型<strong>后</strong></td><td>校验/改写模型输出</td></tr>
+  <tr><td class="mono">wrap_tool_call</td><td><strong>包裹</strong>每次工具调用</td><td>工具级重试、审计</td></tr>
+  <tr><td class="mono">after_agent</td><td>整个 Agent 结束时（一次）</td><td>收尾、记录指标</td></tr>
+</table>
+
+<div class="flow" style="flex-direction:column;gap:.5rem;align-items:stretch">
+  <div style="text-align:center;color:var(--muted);font-size:.82rem">before_agent → 〔循环：before_model → (wrap_model_call) 模型 → after_model → (wrap_tool_call) 工具 〕→ after_agent</div>
 </div>
 
-<h2>用一张层级图再看一遍</h2>
-<p>同样的旅程，换成"数据穿过三层"的视角。注意<strong>请求往下走、响应往上回</strong>，
-core 提供的统一接口让你的代码<strong>完全不碰最右边的厂商细节</strong>：</p>
+<h2>两种写法</h2>
+<div class="cols">
+  <div class="col">
+    <h4>① 装饰器（轻量）</h4>
+    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> before_model
 
-<div class="flow" style="flex-direction:column;gap:.6rem">
-  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
-    <div class="node hl" style="flex:0 0 130px">你的代码</div>
-    <div class="arrow">→</div>
-    <div class="node" style="flex:1">字符串 / dict</div>
+<span class="nb">@before_model</span>
+<span class="kw">def</span> <span class="fn">log_turns</span>(state, runtime):
+    print(len(state[<span class="st">"messages"</span>]))
+    <span class="kw">return</span> None   <span class="cm"># None = 不改状态</span></pre>
   </div>
-  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
-    <div class="node hl" style="flex:0 0 130px">langchain (主力)</div>
-    <div class="arrow">→</div>
-    <div class="node" style="flex:1">标准化为 Messages</div>
+  <div class="col">
+    <h4>② 类（功能全）</h4>
+    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> AgentMiddleware
+
+<span class="kw">class</span> <span class="fn">Guard</span>(AgentMiddleware):
+    <span class="kw">def</span> <span class="fn">before_model</span>(self, state, runtime):
+        ...
+    <span class="kw">def</span> <span class="fn">wrap_model_call</span>(self, request, handler):
+        <span class="kw">return</span> handler(request)</pre>
   </div>
-  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
-    <div class="node hl" style="flex:0 0 130px">core (地基)</div>
-    <div class="arrow">→</div>
-    <div class="node" style="flex:1">invoke → generate（缓存/回调/重试的通用模板）</div>
-  </div>
-  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
-    <div class="node hl" style="flex:0 0 130px">openai (配件)</div>
-    <div class="arrow">→</div>
-    <div class="node" style="flex:1">翻译成厂商 JSON → 发 HTTP → 翻译回 AIMessage</div>
-  </div>
-  <div style="text-align:center;color:var(--faint);font-size:.85rem">↑ 响应原路返回，每一层把数据"还原"成上一层认识的形状 ↑</div>
 </div>
+<pre class="code">agent = create_agent(model, tools, middleware=[Guard()])   <span class="cm"># 装上即生效</span></pre>
 
 <div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应：关键调用链</div>
-  这条链是第三部分"内部源码"的预告，记住这几个方法名即可：
-  <table class="t" style="margin-top:.6rem">
-    <tr><th>步骤</th><th>方法</th><th>文件</th></tr>
-    <tr><td>统一入口</td><td class="mono">BaseChatModel.invoke</td><td class="mono">core · chat_models.py</td></tr>
-    <tr><td>模板流程</td><td class="mono">generate_prompt → generate</td><td class="mono">core · chat_models.py</td></tr>
-    <tr><td>缓存包装</td><td class="mono">_generate_with_cache</td><td class="mono">core · chat_models.py</td></tr>
-    <tr><td>厂商实现</td><td class="mono">ChatOpenAI._generate</td><td class="mono">partners/openai/…</td></tr>
-  </table>
-</div>
-
-<div class="card macro">
-  <div class="tag">🌍 宏观理解：为什么要这么多次"变身"？</div>
-  每一次形状转换都对应一层的<strong>单一职责</strong>：主力层只管"把用户输入规整成消息"，
-  地基层只管"通用流程（缓存/回调/重试）"，配件层只管"和某个厂商对话"。
-  正因为职责被切干净，<strong>换厂商时只有最底层那一块需要替换</strong>，你上面的代码一行都不用动。
+  <div class="tag">🔬 代码对应</div>
+  <ul>
+    <li><span class="mono">AgentMiddleware</span> 基类与全部钩子 → <span class="mono">agents/middleware/types.py</span></li>
+    <li>装饰器 <span class="mono">before_model / after_model / wrap_model_call / wrap_tool_call / before_agent / after_agent / dynamic_prompt</span>
+      与 <span class="mono">ModelRequest / ModelResponse</span> → 从 <span class="mono">langchain.agents.middleware</span> 导出</li>
+  </ul>
 </div>
 
 <h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入两个关键环节。</p>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，逐个吃透中间件机制。</p>
 
 <details class="accordion">
-  <summary><span class="badge-num">1</span> "标准化"那一步到底做了什么 <span class="hint">点击展开详解</span></summary>
+  <summary><span class="badge-num">1</span> 六个钩子分别在何时触发 <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
     <div class="qa">
-      <div class="q">🧪 示例：同一个调用的多种输入写法</div>
-      <div class="a">框架会把下面三种写法<strong>都规整成同一串标准消息</strong>，再往下走：
-<pre class="code"><span class="cm"># 写法 1：裸字符串 → 自动当成一条 HumanMessage</span>
-model.invoke(<span class="st">"北京天气怎么样？"</span>)
-
-<span class="cm"># 写法 2：消息对象列表</span>
-model.invoke([HumanMessage(<span class="st">"北京天气怎么样？"</span>)])
-
-<span class="cm"># 写法 3：(role, content) 元组列表</span>
-model.invoke([(<span class="st">"system"</span>, <span class="st">"你是助手"</span>), (<span class="st">"human"</span>, <span class="st">"北京天气？"</span>)])
-<span class="cm"># ↑ 三者在内部都变成 list[BaseMessage]</span></pre>
+      <div class="q">🧪 执行顺序</div>
+      <div class="a">
+<pre class="code">before_agent                <span class="cm"># 仅一次</span>
+└─ 循环开始
+   before_model             <span class="cm"># 每轮模型调用前</span>
+   wrap_model_call ─ 模型 ─┐ <span class="cm"># 包在模型调用外层</span>
+   after_model  ◄──────────┘ <span class="cm"># 每轮模型调用后</span>
+   wrap_tool_call ─ 工具      <span class="cm"># 每次工具调用外层</span>
+└─ 循环结束
+after_agent                 <span class="cm"># 仅一次</span></pre>
       </div>
     </div>
     <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">让用户写得轻松（可以偷懒传字符串），同时让内部逻辑只需处理<strong>一种</strong>规整形式（消息列表）。
-        这种"入口宽容、内部统一"的设计能大幅减少下游分支判断。</div>
+      <div class="q">❓ before_model vs wrap_model_call 区别</div>
+      <div class="a"><span class="mono">before_model</span> 只能在调用<strong>前</strong>改状态（返回一个 state 更新）；
+        <span class="mono">wrap_model_call</span> <strong>同时掌控前后</strong>：能改请求、决定是否调用、还能改/重试响应——更强但也更重。</div>
     </div>
     <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">输入灵活但内部干净；所有缓存、回调、厂商适配只需面向 <span class="mono">list[BaseMessage]</span> 编写，复杂度集中在一处。</div>
+      <div class="q">✅ 多个中间件怎么叠</div>
+      <div class="a">多个中间件像洋葱<strong>层层包裹</strong>：靠前的在最外层。<span class="mono">wrap_*</span> 钩子可决定"是否、何时"调用内层（<span class="mono">handler</span>）。</div>
     </div>
   </div>
 </details>
 
 <details class="accordion">
-  <summary><span class="badge-num">2</span> 缓存、回调、重试是在"哪一层"统一处理的 <span class="hint">点击展开详解</span></summary>
+  <summary><span class="badge-num">2</span> wrap_model_call：拦截并改写模型调用 <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
     <div class="qa">
-      <div class="q">🧪 这些"横切能力"的位置</div>
-      <div class="a">它们都在<strong>地基层</strong>的通用流程里，<strong>不在</strong>各厂商的 <span class="mono">_generate</span> 里：
-<pre class="code">invoke
-└─ generate
-   └─ _generate_with_cache   <span class="cm"># ← 缓存在这里（命中就不发请求）</span>
-      └─ _generate           <span class="cm"># ← 厂商只负责"真正发请求"这一步</span>
-<span class="cm"># 回调（on_llm_start/end）与重试也由通用流程统一触发</span></pre>
+      <div class="q">🧪 模式：改请求 → 调 handler → 改响应</div>
+      <div class="a">
+<pre class="code"><span class="kw">def</span> <span class="fn">wrap_model_call</span>(self, request, handler):
+    <span class="cm"># request 里有 model / messages / tools / system_prompt / state / runtime</span>
+    request.messages = trim(request.messages)   <span class="cm"># 改请求</span>
+    response = handler(request)                  <span class="cm"># 真正调用模型（内层）</span>
+    <span class="cm"># 这里可检查 response，必要时改写或用不同 request 重试</span>
+    <span class="kw">return</span> response</pre>
       </div>
     </div>
     <div class="qa">
-      <div class="q">❓ 为什么这样分</div>
-      <div class="a">缓存、回调、重试对<strong>所有厂商都一样</strong>，没必要每个 partner 各写一遍。
-        把它们放在通用流程里，partner 作者就只需关心"怎么和我的厂商对话"。</div>
+      <div class="q">❓ 它为什么这么关键</div>
+      <div class="a">内置的 <span class="mono">ModelRetryMiddleware</span> / <span class="mono">ModelFallbackMiddleware</span>（第 7 课）
+        正是基于 <span class="mono">wrap_model_call</span> 实现的——失败就换个 <span class="mono">request</span> 再调一次 <span class="mono">handler</span>。
+        你也能用它做"动态换模型、按内容改提示、缓存"等任意定制。</div>
     </div>
     <div class="qa">
-      <div class="q">✅ 优点 & 🔀 其他方案</div>
-      <div class="a">优点：能力统一、partner 极简、行为一致（换厂商缓存策略不变）。
-        其他方案：每个 partner 自行实现缓存/重试（重复、易不一致）——这正是 LangChain 用"模板方法"避免的（第 10 课详解）。</div>
+      <div class="q">✅ 代码对应</div>
+      <div class="a"><span class="mono">request</span> 是 <span class="mono">ModelRequest</span>（字段：model/messages/system_prompt/tools/tool_choice/state/runtime），
+        定义在 <span class="mono">agents/middleware/types.py</span>。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">3</span> dynamic_prompt：让系统提示词随状态变化 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 示例</div>
+      <div class="a">
+<pre class="code"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> dynamic_prompt
+
+<span class="nb">@dynamic_prompt</span>
+<span class="kw">def</span> <span class="fn">make_prompt</span>(request):
+    user = request.runtime.context.user_id
+    <span class="kw">return</span> <span class="st">f"你在为用户 {user} 服务，回答要个性化。"</span>
+<span class="cm"># 每轮根据运行时上下文/状态，动态生成系统提示词</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 与固定 system_prompt 的区别</div>
+      <div class="a">固定 <span class="mono">system_prompt</span> 是写死的字符串；<span class="mono">dynamic_prompt</span> 能在<strong>每次调用时</strong>
+        根据当前状态/运行时上下文（如用户身份、检索结果）<strong>实时生成</strong>提示词。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">把"提示词工程"也变成可编程的中间件，适合多租户、个性化、A/B 实验等场景。</div>
     </div>
   </div>
 </details>
@@ -385,14 +373,15 @@ model.invoke([(<span class="st">"system"</span>, <span class="st">"你是助手"
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li>一次调用 = 数据三次变身：<strong>字符串 → 标准消息 → 厂商格式 → 标准消息</strong>。</li>
-    <li>请求往下穿三层、响应原路返回；你的代码只接触最上层的统一接口。</li>
-    <li>"统一入口 + 厂商专属 <span class="mono">_generate</span>"是 LangChain 可替换性的核心机关。</li>
-    <li>第一部分（宏观）到此结束。下一部分进入<strong>用户视角</strong>，从最小的"消息"开始动手。</li>
+    <li>中间件是 Agent 的核心扩展点：六个钩子 <span class="mono">before_agent / before_model / wrap_model_call / after_model / wrap_tool_call / after_agent</span>。</li>
+    <li>两种写法：<strong>装饰器</strong>（轻量）与<strong>继承 AgentMiddleware</strong>（功能全）。</li>
+    <li><span class="mono">wrap_model_call</span> 能改请求/响应、重试、降级——内置的 retry/fallback 都基于它。</li>
+    <li><span class="mono">dynamic_prompt</span> 让系统提示词随运行时上下文动态生成。</li>
+    <li>下一课：把运行时数据传进去（context）、加降级、把思考流式推给 UI。</li>
   </ul>
 </div>
 
-  <div class="footnav"><a class="prev" href="02-monorepo.html"><div class="dir">← 上一课</div><div class="ttl">Monorepo 全景</div></a><a class="next" href="04-messages.html"><div class="dir">下一课 →</div><div class="ttl">消息系统</div></a></div>
+  <div class="footnav"><a class="prev" href="16-rag.html"><div class="dir">← 上一课</div><div class="ttl">RAG 检索增强</div></a><a class="next" href="18-runtime-context.html"><div class="dir">下一课 →</div><div class="ttl">运行时上下文与健壮性</div></a></div>
 </div>
 
 </body></html>

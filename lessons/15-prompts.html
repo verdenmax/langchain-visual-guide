@@ -2,7 +2,7 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>03 · 一次调用的生命周期 — LangChain 图解教程</title>
+<title>15 · 提示词 Prompts — LangChain 图解教程</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -212,172 +212,146 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第一部分 · 宏观全景</span>
-    <span class="pill">03 / 18</span>
+    <span class="pill">第五部分 · 自己动手做 Agent</span>
+    <span class="pill">15 / 18</span>
   </div>
-  <div class="progress"><span style="width:16%"></span></div>
+  <div class="progress"><span style="width:83%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第一部分 · 宏观全景</div>
-    <h1>一次调用的生命周期</h1>
+    <div class="part">第五部分 · 自己动手做 Agent</div>
+    <h1>提示词 Prompts</h1>
   </div>
   
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-现在把前两课接起来：当你写下 <span class="inline">model.invoke("你好")</span> 的那一刻，
-数据具体<strong>穿过哪些层、变成什么形状、最后怎么回来</strong>？这一课用一张"生命周期图"讲透。
+前面我们用一个 <span class="inline">system_prompt</span> 字符串就把 Agent 的"人设"定了。
+但真实应用里，提示词往往需要<strong>带变量、插入对话历史、给模型示范</strong>——这就要用到
+LangChain 的<strong>提示词模板（Prompt Template）</strong>系统。
 </p>
 
 <div class="card analogy">
   <div class="tag">✉️ 生活类比</div>
-  这趟旅程就像<strong>寄一封跨国信</strong>：你写中文信（字符串）→ 邮局装进标准信封并贴上规范地址（消息标准化）→
-  翻译成目的国语言（厂商 API 格式）→ 寄出、对方回信 → 再翻译回中文 → 装进标准信封交还给你（AIMessage）。
-  你只面对"中文信"，<strong>中间的翻译与信封都被框架藏起来了</strong>。
+  提示词模板就像<strong>邮件模板 / 填空题</strong>：你预先写好骨架，留几个空
+  （<span class="mono">{name}</span>、<span class="mono">{question}</span>），用的时候把变量填进去，
+  就生成一封"具体的信"。它把"提示词的结构"和"每次的具体内容"分开了。
 </div>
 
-<h2>一次调用的完整生命周期</h2>
-<p>下面每一步都标注了它发生在<strong>哪一层</strong>。重点是数据形状的三次变身：
-<strong>字符串 → 标准消息 → 厂商格式 → 标准消息</strong>。</p>
+<h2>从字符串到模板</h2>
+<p>最常用的是 <span class="inline">ChatPromptTemplate</span>，它用一组"角色 + 模板字符串"构建一串消息：</p>
 
-<div class="vflow">
-  <div class="step"><div class="num">1</div><div class="sc">
-    <h4>你的代码：传入字符串或消息</h4>
-    <p>你调用 <span class="mono">model.invoke("北京天气怎么样？")</span>。输入可以是字符串、字典或消息对象。</p>
-    <p class="mono">📍 实现层 langchain</p>
-  </div></div>
-  <div class="step"><div class="num">2</div><div class="sc">
-    <h4>标准化：一切都变成 Messages</h4>
-    <p>框架把你的输入统一转成一串<strong>标准消息对象</strong>（如 <span class="mono">[HumanMessage("北京天气怎么样？")]</span>）。
-      从这里开始，内部只认消息，不认裸字符串。</p>
-    <p class="mono">📍 地基层 langchain-core · messages/</p>
-  </div></div>
-  <div class="step"><div class="num">3</div><div class="sc">
-    <h4>进入统一入口 invoke → generate</h4>
-    <p><span class="mono">BaseChatModel.invoke()</span> 调用 <span class="mono">generate_prompt → generate</span>，
-      这是<strong>所有厂商共享</strong>的模板流程（含缓存、回调、重试）。</p>
-    <p class="mono">📍 地基层 · language_models/chat_models.py</p>
-  </div></div>
-  <div class="step"><div class="num">4</div><div class="sc">
-    <h4>翻译成厂商格式并发请求</h4>
-    <p>具体 partner（如 <span class="mono">ChatOpenAI._generate</span>）把标准消息<strong>翻译成 OpenAI 的 JSON</strong>，
-      通过厂商 SDK 发出 HTTP 请求。</p>
-    <p class="mono">📍 集成层 langchain-openai</p>
-  </div></div>
-  <div class="step"><div class="num">5</div><div class="sc">
-    <h4>厂商返回 → 翻译回标准消息</h4>
-    <p>OpenAI 返回原始 JSON，partner 把它<strong>翻译回</strong> <span class="mono">AIMessage</span>
-      （含正文、可能的工具调用、token 用量等）。</p>
-    <p class="mono">📍 集成层 → 地基层</p>
-  </div></div>
-  <div class="step"><div class="num">6</div><div class="sc">
-    <h4>回调触发 + 缓存写入 + 返回给你</h4>
-    <p>沿途的<strong>回调（callbacks）</strong>记录这次调用（用于 LangSmith 追踪），结果可能写入缓存，
-      最后把 <span class="mono">AIMessage</span> 交还给你。</p>
-    <p class="mono">📍 地基层 → 你的代码</p>
-  </div></div>
+<pre class="code"><span class="kw">from</span> langchain_core.prompts <span class="kw">import</span> ChatPromptTemplate, MessagesPlaceholder
+
+prompt = ChatPromptTemplate.from_messages([
+    (<span class="st">"system"</span>, <span class="st">"你是 {domain} 领域的助手，回答要简洁。"</span>),
+    MessagesPlaceholder(<span class="st">"history"</span>),     <span class="cm"># ← 这里会插入整段对话历史</span>
+    (<span class="st">"human"</span>, <span class="st">"{question}"</span>),
+])
+
+messages = prompt.invoke({
+    <span class="st">"domain"</span>: <span class="st">"天气"</span>,
+    <span class="st">"history"</span>: [],
+    <span class="st">"question"</span>: <span class="st">"北京今天热吗？"</span>,
+})
+<span class="cm"># 得到一串标准消息，可直接喂给模型</span>
+</pre>
+
+<div class="card key">
+  <div class="tag">🔑 核心认知</div>
+  <strong>提示词模板本身也是 Runnable</strong>（第 8 课）。所以它能用 <span class="inline">|</span> 直接接到模型后面，
+  组成最经典的链：<span class="inline">prompt | model | parser</span>。
 </div>
 
-<h2>用一张层级图再看一遍</h2>
-<p>同样的旅程，换成"数据穿过三层"的视角。注意<strong>请求往下走、响应往上回</strong>，
-core 提供的统一接口让你的代码<strong>完全不碰最右边的厂商细节</strong>：</p>
-
-<div class="flow" style="flex-direction:column;gap:.6rem">
-  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
-    <div class="node hl" style="flex:0 0 130px">你的代码</div>
-    <div class="arrow">→</div>
-    <div class="node" style="flex:1">字符串 / dict</div>
-  </div>
-  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
-    <div class="node hl" style="flex:0 0 130px">langchain (主力)</div>
-    <div class="arrow">→</div>
-    <div class="node" style="flex:1">标准化为 Messages</div>
-  </div>
-  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
-    <div class="node hl" style="flex:0 0 130px">core (地基)</div>
-    <div class="arrow">→</div>
-    <div class="node" style="flex:1">invoke → generate（缓存/回调/重试的通用模板）</div>
-  </div>
-  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
-    <div class="node hl" style="flex:0 0 130px">openai (配件)</div>
-    <div class="arrow">→</div>
-    <div class="node" style="flex:1">翻译成厂商 JSON → 发 HTTP → 翻译回 AIMessage</div>
-  </div>
-  <div style="text-align:center;color:var(--faint);font-size:.85rem">↑ 响应原路返回，每一层把数据"还原"成上一层认识的形状 ↑</div>
+<div class="flow">
+  <div class="node">变量 dict</div><div class="arrow">→</div>
+  <div class="node hl">prompt<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">填空→消息</span></div><div class="arrow">→</div>
+  <div class="node hl">model</div><div class="arrow">→</div>
+  <div class="node">AIMessage</div>
 </div>
 
 <div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应：关键调用链</div>
-  这条链是第三部分"内部源码"的预告，记住这几个方法名即可：
-  <table class="t" style="margin-top:.6rem">
-    <tr><th>步骤</th><th>方法</th><th>文件</th></tr>
-    <tr><td>统一入口</td><td class="mono">BaseChatModel.invoke</td><td class="mono">core · chat_models.py</td></tr>
-    <tr><td>模板流程</td><td class="mono">generate_prompt → generate</td><td class="mono">core · chat_models.py</td></tr>
-    <tr><td>缓存包装</td><td class="mono">_generate_with_cache</td><td class="mono">core · chat_models.py</td></tr>
-    <tr><td>厂商实现</td><td class="mono">ChatOpenAI._generate</td><td class="mono">partners/openai/…</td></tr>
-  </table>
-</div>
-
-<div class="card macro">
-  <div class="tag">🌍 宏观理解：为什么要这么多次"变身"？</div>
-  每一次形状转换都对应一层的<strong>单一职责</strong>：主力层只管"把用户输入规整成消息"，
-  地基层只管"通用流程（缓存/回调/重试）"，配件层只管"和某个厂商对话"。
-  正因为职责被切干净，<strong>换厂商时只有最底层那一块需要替换</strong>，你上面的代码一行都不用动。
+  <div class="tag">🔬 代码对应</div>
+  <ul>
+    <li><span class="mono">ChatPromptTemplate</span> / <span class="mono">MessagesPlaceholder</span> → <span class="mono">core/prompts/chat.py</span></li>
+    <li><span class="mono">PromptTemplate</span>（纯字符串提示，给非聊天模型用）→ <span class="mono">core/prompts/prompt.py</span></li>
+  </ul>
 </div>
 
 <h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入两个关键环节。</p>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，逐个吃透模板的三个能力。</p>
 
 <details class="accordion">
-  <summary><span class="badge-num">1</span> "标准化"那一步到底做了什么 <span class="hint">点击展开详解</span></summary>
+  <summary><span class="badge-num">1</span> 变量填充：让提示词随输入变化 <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
     <div class="qa">
-      <div class="q">🧪 示例：同一个调用的多种输入写法</div>
-      <div class="a">框架会把下面三种写法<strong>都规整成同一串标准消息</strong>，再往下走：
-<pre class="code"><span class="cm"># 写法 1：裸字符串 → 自动当成一条 HumanMessage</span>
-model.invoke(<span class="st">"北京天气怎么样？"</span>)
-
-<span class="cm"># 写法 2：消息对象列表</span>
-model.invoke([HumanMessage(<span class="st">"北京天气怎么样？"</span>)])
-
-<span class="cm"># 写法 3：(role, content) 元组列表</span>
-model.invoke([(<span class="st">"system"</span>, <span class="st">"你是助手"</span>), (<span class="st">"human"</span>, <span class="st">"北京天气？"</span>)])
-<span class="cm"># ↑ 三者在内部都变成 list[BaseMessage]</span></pre>
+      <div class="q">🧪 示例</div>
+      <div class="a">模板里 <span class="mono">{xxx}</span> 是占位符，<span class="mono">invoke</span> 时用 dict 填：
+<pre class="code">tpl = ChatPromptTemplate.from_messages([
+    (<span class="st">"system"</span>, <span class="st">"用 {style} 的风格回答"</span>),
+    (<span class="st">"human"</span>, <span class="st">"{q}"</span>),
+])
+tpl.invoke({<span class="st">"style"</span>: <span class="st">"幽默"</span>, <span class="st">"q"</span>: <span class="st">"什么是 LLM？"</span>})</pre>
       </div>
     </div>
     <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">让用户写得轻松（可以偷懒传字符串），同时让内部逻辑只需处理<strong>一种</strong>规整形式（消息列表）。
-        这种"入口宽容、内部统一"的设计能大幅减少下游分支判断。</div>
+      <div class="q">❓ 为什么不直接用 f-string 拼字符串</div>
+      <div class="a">模板能<strong>校验缺漏变量</strong>、支持<strong>部分填充</strong>、能和其它 Runnable 组合、还能被序列化/复用。
+        手写 f-string 在复杂场景（多角色、插历史、few-shot）会很快失控。</div>
     </div>
     <div class="qa">
       <div class="q">✅ 优点</div>
-      <div class="a">输入灵活但内部干净；所有缓存、回调、厂商适配只需面向 <span class="mono">list[BaseMessage]</span> 编写，复杂度集中在一处。</div>
+      <div class="a">提示词成为<strong>可复用、可测试、可组合</strong>的组件，而不是散落在代码里的字符串拼接。</div>
     </div>
   </div>
 </details>
 
 <details class="accordion">
-  <summary><span class="badge-num">2</span> 缓存、回调、重试是在"哪一层"统一处理的 <span class="hint">点击展开详解</span></summary>
+  <summary><span class="badge-num">2</span> MessagesPlaceholder：把对话历史插进模板 <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
     <div class="qa">
-      <div class="q">🧪 这些"横切能力"的位置</div>
-      <div class="a">它们都在<strong>地基层</strong>的通用流程里，<strong>不在</strong>各厂商的 <span class="mono">_generate</span> 里：
-<pre class="code">invoke
-└─ generate
-   └─ _generate_with_cache   <span class="cm"># ← 缓存在这里（命中就不发请求）</span>
-      └─ _generate           <span class="cm"># ← 厂商只负责"真正发请求"这一步</span>
-<span class="cm"># 回调（on_llm_start/end）与重试也由通用流程统一触发</span></pre>
+      <div class="q">🧪 它占的是"一串消息"的位置</div>
+      <div class="a">普通 <span class="mono">{var}</span> 填的是一段文本；而 <span class="mono">MessagesPlaceholder("history")</span>
+        填的是<strong>一整串消息</strong>（之前的多轮对话）：
+<pre class="code">prompt.invoke({
+    <span class="st">"history"</span>: [HumanMessage(<span class="st">"上一轮问题"</span>), AIMessage(<span class="st">"上一轮回答"</span>)],
+    <span class="st">"question"</span>: <span class="st">"接着问"</span>,
+})</pre>
       </div>
     </div>
     <div class="qa">
-      <div class="q">❓ 为什么这样分</div>
-      <div class="a">缓存、回调、重试对<strong>所有厂商都一样</strong>，没必要每个 partner 各写一遍。
-        把它们放在通用流程里，partner 作者就只需关心"怎么和我的厂商对话"。</div>
+      <div class="q">❓ 为什么必要</div>
+      <div class="a">多轮对话要把"历史消息"原样塞进提示词的中间位置。占位符让你能<strong>动态注入任意长度的历史</strong>，
+        正好衔接第 4 课的"上下文管理"——你裁剪/摘要后的历史，就从这里放进去。</div>
     </div>
     <div class="qa">
-      <div class="q">✅ 优点 & 🔀 其他方案</div>
-      <div class="a">优点：能力统一、partner 极简、行为一致（换厂商缓存策略不变）。
-        其他方案：每个 partner 自行实现缓存/重试（重复、易不一致）——这正是 LangChain 用"模板方法"避免的（第 10 课详解）。</div>
+      <div class="q">✅ 优点</div>
+      <div class="a">把"系统设定 + 历史 + 当前问题"清晰分层，历史的拼装与裁剪逻辑和提示词结构解耦。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">3</span> few-shot：用示范教模型怎么答 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 思路</div>
+      <div class="a">在提示词里塞几组"输入→理想输出"的<strong>范例</strong>，模型会照着学：
+<pre class="code">examples = [
+    (<span class="st">"human"</span>, <span class="st">"2+2"</span>), (<span class="st">"ai"</span>, <span class="st">"4"</span>),
+    (<span class="st">"human"</span>, <span class="st">"3+5"</span>), (<span class="st">"ai"</span>, <span class="st">"8"</span>),
+]
+prompt = ChatPromptTemplate.from_messages([
+    (<span class="st">"system"</span>, <span class="st">"只输出数字结果"</span>), *examples, (<span class="st">"human"</span>, <span class="st">"{q}"</span>),
+])</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么有效</div>
+      <div class="a">大模型擅长<strong>模仿示范</strong>。给几个例子（few-shot），常比写一大段规则更能稳定输出格式与风格——
+        这是"提示工程"里性价比最高的技巧之一。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 进阶</div>
+      <div class="a">LangChain 还有 <span class="mono">FewShotChatMessagePromptTemplate</span> 与"示例选择器"，能按当前问题<strong>动态挑最相关的范例</strong>。</div>
     </div>
   </div>
 </details>
@@ -385,14 +359,15 @@ model.invoke([(<span class="st">"system"</span>, <span class="st">"你是助手"
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li>一次调用 = 数据三次变身：<strong>字符串 → 标准消息 → 厂商格式 → 标准消息</strong>。</li>
-    <li>请求往下穿三层、响应原路返回；你的代码只接触最上层的统一接口。</li>
-    <li>"统一入口 + 厂商专属 <span class="mono">_generate</span>"是 LangChain 可替换性的核心机关。</li>
-    <li>第一部分（宏观）到此结束。下一部分进入<strong>用户视角</strong>，从最小的"消息"开始动手。</li>
+    <li>提示词模板把"结构"与"具体内容"分离：<span class="mono">ChatPromptTemplate.from_messages([...])</span>。</li>
+    <li><span class="mono">{var}</span> 填文本，<span class="mono">MessagesPlaceholder</span> 填一整串历史消息。</li>
+    <li>模板是 <strong>Runnable</strong>，可直接 <span class="mono">prompt | model | parser</span>。</li>
+    <li>few-shot（给范例）是稳定输出格式的利器。</li>
+    <li>下一课：给 Agent 接一个它没学过的<strong>知识库</strong>——RAG。</li>
   </ul>
 </div>
 
-  <div class="footnav"><a class="prev" href="02-monorepo.html"><div class="dir">← 上一课</div><div class="ttl">Monorepo 全景</div></a><a class="next" href="04-messages.html"><div class="dir">下一课 →</div><div class="ttl">消息系统</div></a></div>
+  <div class="footnav"><a class="prev" href="14-contributing.html"><div class="dir">← 上一课</div><div class="ttl">读源码 / 调试 / 测试 / 贡献</div></a><a class="next" href="16-rag.html"><div class="dir">下一课 →</div><div class="ttl">RAG 检索增强</div></a></div>
 </div>
 
 </body></html>

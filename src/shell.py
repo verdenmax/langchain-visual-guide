@@ -16,6 +16,10 @@ PAGES = [
     ("12-agent-internals.html", "Agent 内部", "第三部分 · 内部源码"),
     ("13-streaming-callbacks.html", "Streaming 与 Callbacks", "第三部分 · 内部源码"),
     ("14-contributing.html", "读源码 / 调试 / 测试 / 贡献", "第四部分 · 进阶"),
+    ("15-prompts.html", "提示词 Prompts", "第五部分 · 自己动手做 Agent"),
+    ("16-rag.html", "RAG 检索增强", "第五部分 · 自己动手做 Agent"),
+    ("17-custom-middleware.html", "写自己的中间件", "第五部分 · 自己动手做 Agent"),
+    ("18-runtime-context.html", "运行时上下文与健壮性", "第五部分 · 自己动手做 Agent"),
 ]
 
 INDEX_FILE = "index.html"
@@ -325,6 +329,10 @@ def index_page(standalone=False, lesson_prefix=""):
         "12-agent-internals.html": "LangGraph 状态图 + middleware",
         "13-streaming-callbacks.html": "流式输出与回调追踪",
         "14-contributing.html": "uv · 测试 · 调试 · 贡献",
+        "15-prompts.html": "ChatPromptTemplate · MessagesPlaceholder · few-shot",
+        "16-rag.html": "Document → 切块 → Embeddings → VectorStore → Retriever",
+        "17-custom-middleware.html": "AgentMiddleware 钩子 · before/after/wrap",
+        "18-runtime-context.html": "context_schema · with_fallbacks · stream_mode",
     }
     for part in order:
         blocks.append(f'<div class="toc-part">{part}</div>')

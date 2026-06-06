@@ -1,8 +1,8 @@
 # LangChain 图解教程 · 从零理解整个项目
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
-![Lessons](https://img.shields.io/badge/lessons-14-blue.svg)
-![Parts](https://img.shields.io/badge/parts-4-9cf.svg)
+![Lessons](https://img.shields.io/badge/lessons-18-blue.svg)
+![Parts](https://img.shields.io/badge/parts-5-9cf.svg)
 ![Built with](https://img.shields.io/badge/built%20with-Python%203-3776AB.svg?logo=python&logoColor=white)
 ![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 ![Language](https://img.shields.io/badge/docs-%E4%B8%AD%E6%96%87-orange.svg)
@@ -34,7 +34,7 @@ python -m http.server 8000
 # 然后访问 http://localhost:8000/
 ```
 
-## 📚 教程结构（4 部分 · 14 课）
+## 📚 教程结构（5 部分 · 18 课）
 
 ### 第一部分 · 宏观全景
 1. **LangChain 是什么** — 解决什么问题 · 核心心智模型
@@ -58,6 +58,12 @@ python -m http.server 8000
 ### 第四部分 · 进阶实战
 14. **读源码 / 调试 / 测试 / 贡献** — `uv` · 测试 · 调试 · 贡献规范
 
+### 第五部分 · 自己动手做 Agent
+15. **提示词 Prompts** — `ChatPromptTemplate` · `MessagesPlaceholder` · few-shot
+16. **RAG 检索增强** — `Document` → 切块 → `Embeddings` → `VectorStore` → `Retriever`
+17. **写自己的中间件** — `AgentMiddleware` 钩子（before/after/wrap）· `dynamic_prompt`
+18. **运行时上下文与健壮性** — `context_schema` · `with_fallbacks` · `stream_mode`
+
 ## 🎨 每页包含
 
 - 🌍 **宏观理解** — 大局观，为什么这样设计
@@ -71,10 +77,10 @@ python -m http.server 8000
 ```
 langchain-visual-guide/
 ├── index.html              ← 入口（目录页），从这里开始
-├── lessons/                ← 14 课图解页面
+├── lessons/                ← 18 课图解页面
 │   ├── 01-what-is-langchain.html
 │   ├── 02-monorepo.html
-│   └── …  14-contributing.html
+│   └── …  18-runtime-context.html
 ├── src/                    ← 无依赖的 Python 生成器（可重建全部 HTML）
 │   ├── shell.py            共享外壳：CSS 设计系统、导航、index 页
 │   ├── part1.py … part4.py 各部分课程内容
@@ -92,7 +98,7 @@ cd src
 python build.py
 ```
 
-构建脚本会把 `index.html` 写到项目根目录，14 课写入 `lessons/`。
+构建脚本会把 `index.html` 写到项目根目录，18 课写入 `lessons/`。
 页面之间用相对链接互联，因此整体可直接拷贝、部署到任意静态服务器或 GitHub Pages。
 
 ## 📄 许可
