@@ -326,9 +326,9 @@ after_agent                 <span class="cm"># 仅一次</span></pre>
       <div class="q">🧪 模式：改请求 → 调 handler → 改响应</div>
       <div class="a">
 <pre class="code"><span class="kw">def</span> <span class="fn">wrap_model_call</span>(self, request, handler):
-    <span class="cm"># request 里有 model / messages / tools / system_prompt / state / runtime</span>
-    request.messages = trim(request.messages)   <span class="cm"># 改请求</span>
-    response = handler(request)                  <span class="cm"># 真正调用模型（内层）</span>
+    <span class="cm"># request 里有 model / messages / tools / system_message / state / runtime</span>
+    new_req = request.override(messages=trim(request.messages))  <span class="cm"># 改请求（用 override，别直接赋值）</span>
+    response = handler(new_req)                   <span class="cm"># 真正调用模型（内层）</span>
     <span class="cm"># 这里可检查 response，必要时改写或用不同 request 重试</span>
     <span class="kw">return</span> response</pre>
       </div>
@@ -341,7 +341,8 @@ after_agent                 <span class="cm"># 仅一次</span></pre>
     </div>
     <div class="qa">
       <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">request</span> 是 <span class="mono">ModelRequest</span>（字段：model/messages/system_prompt/tools/tool_choice/state/runtime），
+      <div class="a"><span class="mono">request</span> 是 <span class="mono">ModelRequest</span>（字段：model/messages/<strong>system_message</strong>/tools/tool_choice/state/runtime；
+        <span class="mono">system_prompt</span> 是已废弃的别名），
         定义在 <span class="mono">agents/middleware/types.py</span>。</div>
     </div>
   </div>

@@ -1130,7 +1130,7 @@ LESSON_13 = r"""
     </div>
     <div class="qa">
       <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">StreamEvent</span> / <span class="mono">EventData</span> 在 <span class="mono">runnables/schema.py:124</span>；
+      <div class="a"><span class="mono">StreamEvent</span> / <span class="mono">EventData</span> 在 <span class="mono">runnables/schema.py</span>（<span class="mono">StreamEvent</span> 约 :188、<span class="mono">EventData</span> :13）；
         v2 实现 <span class="mono">tracers/event_stream.py</span>。</div>
     </div>
   </div>
