@@ -459,6 +459,14 @@ agent = create_agent(model, tools, store=my_store)</pre>
   </div>
 </details>
 
+<div class="card spark">
+  <div class="tag">💡 设计亮点</div>
+  <ul>
+    <li><strong>Agent 就是一张图</strong>：节点 + 条件边 = 循环；"组装(LangChain)"与"运行(LangGraph)"彻底分离。</li>
+    <li>编译产物<strong>仍是 Runnable</strong>，所以 Agent 自动获得 stream/批处理/回调，还能持久化与中断。</li>
+  </ul>
+</div>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
     <li>两个节点：<span class="mono">"model"</span>（调模型）、<span class="mono">"tools"</span>（ToolNode 执行工具）；条件边按 <span class="mono">tool_calls</span> 决定走向。</li>

@@ -467,6 +467,14 @@ agent = create_agent(primary_model, tools, middleware=[
   </div>
 </details>
 
+<div class="card spark">
+  <div class="tag">💡 设计亮点</div>
+  <ul>
+    <li>Agent = 模型 + 工具 + 循环，判据简单到只有一句话：<strong>还有没有 tool_calls</strong>。</li>
+    <li>你只<strong>声明</strong>"用什么"，循环的编排交给框架——这就是声明式的威力。</li>
+  </ul>
+</div>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
     <li>输入/输出都是 <span class="mono">{"messages": [...]}</span> 状态字典（<span class="mono">AgentState</span>）。</li>

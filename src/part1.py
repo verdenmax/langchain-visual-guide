@@ -266,6 +266,14 @@ result = agent.invoke({<span class="st">"messages"</span>: [{<span class="st">"r
   </ul>
 </div>
 
+<div class="card spark">
+  <div class="tag">💡 设计亮点</div>
+  <ul>
+    <li>四件套<strong>层层复用、层层站在下层肩上</strong>：工具用消息表达调用、Agent 用循环编排工具——越往上越自动。</li>
+    <li>"换模型一行、调工具零胶水、循环不手搓"三大解放，全部源于一个<strong>统一抽象</strong>。</li>
+  </ul>
+</div>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
@@ -485,6 +493,14 @@ pip install langchain langchain-openai   <span class="cm"># 只装你要的</spa
   </div>
 </details>
 
+<div class="card spark">
+  <div class="tag">💡 设计亮点</div>
+  <ul>
+    <li><strong>依赖严格单向</strong>（core 不依赖任何人），换来稳定地基与"对扩展开放、对修改封闭"。</li>
+    <li>monorepo 两头好处都要：跨包<strong>原子改动</strong>，又能<strong>独立发版、按需安装</strong>。</li>
+  </ul>
+</div>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
@@ -656,6 +672,14 @@ model.invoke([(<span class="st">"system"</span>, <span class="st">"你是助手"
     </div>
   </div>
 </details>
+
+<div class="card spark">
+  <div class="tag">💡 设计亮点</div>
+  <ul>
+    <li>数据每"变身"一次，就对应一层的<strong>单一职责</strong>；职责切干净，换厂商只动最底层。</li>
+    <li>"统一入口 + 厂商专属 <span class="mono">_generate</span>"——可替换性的开关只藏在最里面一层。</li>
+  </ul>
+</div>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>

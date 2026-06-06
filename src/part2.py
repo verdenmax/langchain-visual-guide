@@ -387,6 +387,14 @@ chat = RunnableWithMessageHistory(
   <strong>这一次调用，到底该把哪些消息放进上下文？</strong> 想透这一点，你就掌握了所有 LLM 应用的命脉。
 </div>
 
+<div class="card spark">
+  <div class="tag">💡 设计亮点</div>
+  <ul>
+    <li><strong>消息是通用货币</strong>：模型、工具、Agent 全靠这一种结构沟通，省去无数中间格式。</li>
+    <li><strong>tool_call_id 像快递单号</strong>：一次并行调多个工具，结果也不会张冠李戴。</li>
+  </ul>
+</div>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
@@ -670,6 +678,14 @@ model = init_chat_model(<span class="st">"openai:gpt-5.1"</span>, rate_limiter=l
   </div>
 </details>
 
+<div class="card spark">
+  <div class="tag">💡 设计亮点</div>
+  <ul>
+    <li>invoke/stream/batch <strong>来自底层 Runnable</strong>，所有组件通用，学一次处处可用。</li>
+    <li>缓存 / 重试 / 限流都是<strong>"包一层"</strong>就生效，业务代码零改动。</li>
+  </ul>
+</div>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
@@ -942,6 +958,14 @@ agent = create_agent(model, tools=large_toolset, middleware=[
   </div>
 </details>
 
+<div class="card spark">
+  <div class="tag">💡 设计亮点</div>
+  <ul>
+    <li><strong>函数签名即 schema</strong>：写好类型注解 + docstring，模型的"说明书"自动生成。</li>
+    <li><strong>模型只请求、不执行</strong>：执行权留在你手里——这是安全与可控的关键边界。</li>
+  </ul>
+</div>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
@@ -1195,6 +1219,14 @@ agent = create_agent(primary_model, tools, middleware=[
     </div>
   </div>
 </details>
+
+<div class="card spark">
+  <div class="tag">💡 设计亮点</div>
+  <ul>
+    <li>Agent = 模型 + 工具 + 循环，判据简单到只有一句话：<strong>还有没有 tool_calls</strong>。</li>
+    <li>你只<strong>声明</strong>"用什么"，循环的编排交给框架——这就是声明式的威力。</li>
+  </ul>
+</div>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>

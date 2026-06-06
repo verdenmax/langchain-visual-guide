@@ -496,6 +496,14 @@ model = init_chat_model(<span class="st">"openai:gpt-5.1"</span>, rate_limiter=l
   </div>
 </details>
 
+<div class="card spark">
+  <div class="tag">💡 设计亮点</div>
+  <ul>
+    <li>invoke/stream/batch <strong>来自底层 Runnable</strong>，所有组件通用，学一次处处可用。</li>
+    <li>缓存 / 重试 / 限流都是<strong>"包一层"</strong>就生效，业务代码零改动。</li>
+  </ul>
+</div>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
