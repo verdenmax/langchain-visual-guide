@@ -87,6 +87,10 @@ strong { color: var(--ink); font-weight: 680; }
 .card.key .tag { color: var(--accent-ink); }
 .card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
 .card.warn .tag { color: var(--red); }
+.card.spark { border-left: 4px solid #e0a000;
+  background: linear-gradient(100deg, rgba(224,160,0,.12), transparent 70%); }
+.card.spark .tag { color: #c98a00; }
+@media (prefers-color-scheme: dark) { .card.spark .tag { color: #f0c050; } }
 
 /* ---- code file callout ---- */
 .codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
@@ -355,6 +359,45 @@ prompt = ChatPromptTemplate.from_messages([
     </div>
   </div>
 </details>
+
+<h2>🔬 实现细节与亮点</h2>
+<p>看清提示词模板在源码里是怎么把"变量 + 模板"变成"一串消息"的，以及它聪明在哪。</p>
+
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/prompts/chat.py</span><span class="ln">invoke → format_prompt → ChatPromptValue</span></div>
+<pre><span class="kw">class</span> <span class="fn">ChatPromptTemplate</span>(BaseChatPromptTemplate):   <span class="cm"># ← 它是 Runnable</span>
+    <span class="kw">def</span> <span class="fn">format_messages</span>(self, **kwargs) -> list[BaseMessage]:
+        result = []
+        <span class="kw">for</span> part <span class="kw">in</span> self.messages:        <span class="cm"># 逐个模板片段</span>
+            <span class="kw">if</span> isinstance(part, MessagesPlaceholder):
+                result.extend(kwargs[part.variable_name])  <span class="cm"># 展开成"一串消息"</span>
+            <span class="kw">else</span>:
+                result.append(part.format(**kwargs))        <span class="cm"># 填变量→一条消息</span>
+        <span class="kw">return</span> result
+    <span class="kw">def</span> <span class="fn">format_prompt</span>(self, **kwargs) -> ChatPromptValue:
+        <span class="kw">return</span> ChatPromptValue(messages=self.format_messages(**kwargs))
+</pre>
+</div>
+
+<div class="card detail">
+  <div class="tag">🔬 实现流程</div>
+  <ol>
+    <li><span class="mono">invoke(vars)</span> → <span class="mono">format_prompt</span> → 返回一个 <strong>PromptValue</strong>（<span class="mono">ChatPromptValue</span>）。</li>
+    <li><span class="mono">format_messages</span> 遍历每个模板片段：普通片段<strong>填变量得一条消息</strong>，
+      <span class="mono">MessagesPlaceholder</span> 则把变量里的<strong>一串消息整段展开</strong>。</li>
+    <li><span class="mono">from_messages([(role, tmpl), ...])</span> 在构建时由 <span class="mono">_convert_to_message_template</span>
+      把 <span class="mono">("system","…")</span> 这类元组解析成对应的<strong>消息模板对象</strong>。</li>
+  </ol>
+</div>
+
+<div class="card spark">
+  <div class="tag">💡 设计亮点</div>
+  <ul>
+    <li><strong>提示词是 Runnable</strong>：所以能直接 <span class="mono">prompt | model</span> 拼链——又一次复用第 8 课的统一抽象，无需任何"胶水"。</li>
+    <li><strong>PromptValue 作中间层</strong>：同一份模板既能 <span class="mono">.to_messages()</span>（喂聊天模型）又能 <span class="mono">.to_string()</span>（喂纯文本 LLM），<strong>一套模板适配两类模型</strong>。</li>
+    <li><strong>占位符是一等公民</strong>：<span class="mono">MessagesPlaceholder</span> 让"插入任意长度历史"成为模板语法的一部分，把第 4 课的上下文管理与提示词结构干净地解耦。</li>
+  </ul>
+</div>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>

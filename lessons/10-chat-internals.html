@@ -87,6 +87,10 @@ strong { color: var(--ink); font-weight: 680; }
 .card.key .tag { color: var(--accent-ink); }
 .card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
 .card.warn .tag { color: var(--red); }
+.card.spark { border-left: 4px solid #e0a000;
+  background: linear-gradient(100deg, rgba(224,160,0,.12), transparent 70%); }
+.card.spark .tag { color: #c98a00; }
+@media (prefers-color-scheme: dark) { .card.spark .tag { color: #f0c050; } }
 
 /* ---- code file callout ---- */
 .codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);

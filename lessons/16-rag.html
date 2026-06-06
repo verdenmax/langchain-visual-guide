@@ -87,6 +87,10 @@ strong { color: var(--ink); font-weight: 680; }
 .card.key .tag { color: var(--accent-ink); }
 .card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
 .card.warn .tag { color: var(--red); }
+.card.spark { border-left: 4px solid #e0a000;
+  background: linear-gradient(100deg, rgba(224,160,0,.12), transparent 70%); }
+.card.spark .tag { color: #c98a00; }
+@media (prefers-color-scheme: dark) { .card.spark .tag { color: #f0c050; } }
 
 /* ---- code file callout ---- */
 .codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
@@ -355,6 +359,50 @@ agent = create_agent(model, tools=[search_kb])   <span class="cm"># Agent 自己
     </div>
   </div>
 </details>
+
+<h2>🔬 实现细节与亮点</h2>
+<p>RAG 的三个零件在源码里各有精巧之处——看 Retriever 如何"白嫖"Runnable 能力，以及切分器如何在语义边界下刀。</p>
+
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/retrievers.py</span><span class="ln">BaseRetriever.invoke（含回调）</span></div>
+<pre><span class="kw">class</span> <span class="fn">BaseRetriever</span>(RunnableSerializable, ABC):   <span class="cm"># ← 检索器也是 Runnable</span>
+    <span class="kw">def</span> <span class="fn">invoke</span>(self, input, config=None):
+        run_manager = callback_manager.on_retriever_start(...)   <span class="cm"># 追踪开始</span>
+        result = self._get_relevant_documents(input, ...)        <span class="cm"># ← 子类只实现这个</span>
+        run_manager.on_retriever_end(result)                     <span class="cm"># 追踪结束</span>
+        <span class="kw">return</span> result
+</pre>
+</div>
+
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">text-splitters/langchain_text_splitters/character.py</span><span class="ln">递归切分</span></div>
+<pre><span class="kw">class</span> <span class="fn">RecursiveCharacterTextSplitter</span>(TextSplitter):
+    <span class="cm"># 默认分隔符：从"粗"到"细"</span>
+    separators = [<span class="st">"\n\n"</span>, <span class="st">"\n"</span>, <span class="st">" "</span>, <span class="st">""</span>]   <span class="cm"># 段落 → 行 → 词 → 字符</span>
+    <span class="kw">def</span> <span class="fn">_split_text</span>(self, text, separators):
+        <span class="cm"># 先用最粗的分隔符切；某块仍太大，就用更细的分隔符"递归"再切</span>
+        ... <span class="kw">then</span> _merge_splits(...)   <span class="cm"># 按 chunk_size 合并，相邻块留 overlap</span>
+</pre>
+</div>
+
+<div class="card detail">
+  <div class="tag">🔬 实现要点</div>
+  <ul>
+    <li><strong>Retriever</strong>：子类只需实现 <span class="mono">_get_relevant_documents</span>，<span class="mono">invoke</span> 自动包上回调/追踪/异步。</li>
+    <li><strong>VectorStoreRetriever</strong>（<span class="mono">vectorstores/base.py</span>）的 <span class="mono">search</span> 按 <span class="mono">search_type</span> 分发：
+      <span class="mono">similarity</span> / <span class="mono">similarity_score_threshold</span> / <span class="mono">mmr</span>。</li>
+    <li><strong>切分器</strong>：递归用越来越细的分隔符切，再 <span class="mono">_merge_splits</span> 按 <span class="mono">chunk_size</span> 打包、留 <span class="mono">chunk_overlap</span>。</li>
+  </ul>
+</div>
+
+<div class="card spark">
+  <div class="tag">💡 设计亮点</div>
+  <ul>
+    <li><strong>检索器"白嫖"Runnable 能力</strong>：只写 <span class="mono">_get_relevant_documents</span> 一个方法，就免费获得回调追踪、异步、可拼链——典型的"模板方法 + 统一抽象"。</li>
+    <li><strong>递归切分保语义</strong>：优先在<strong>段落</strong>边界下刀，不行才退到行、词、字符。尽量不把一句话拦腰斩断，这对检索质量至关重要。</li>
+    <li><strong>召回策略可切换</strong>：<span class="mono">search_type="mmr"</span> 能在"相关"之外兼顾"<strong>多样性</strong>"（避免召回一堆near-重复片段），一个检索器多副面孔。</li>
+  </ul>
+</div>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>

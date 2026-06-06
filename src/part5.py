@@ -135,6 +135,45 @@ prompt = ChatPromptTemplate.from_messages([
   </div>
 </details>
 
+<h2>🔬 实现细节与亮点</h2>
+<p>看清提示词模板在源码里是怎么把"变量 + 模板"变成"一串消息"的，以及它聪明在哪。</p>
+
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/prompts/chat.py</span><span class="ln">invoke → format_prompt → ChatPromptValue</span></div>
+<pre><span class="kw">class</span> <span class="fn">ChatPromptTemplate</span>(BaseChatPromptTemplate):   <span class="cm"># ← 它是 Runnable</span>
+    <span class="kw">def</span> <span class="fn">format_messages</span>(self, **kwargs) -> list[BaseMessage]:
+        result = []
+        <span class="kw">for</span> part <span class="kw">in</span> self.messages:        <span class="cm"># 逐个模板片段</span>
+            <span class="kw">if</span> isinstance(part, MessagesPlaceholder):
+                result.extend(kwargs[part.variable_name])  <span class="cm"># 展开成"一串消息"</span>
+            <span class="kw">else</span>:
+                result.append(part.format(**kwargs))        <span class="cm"># 填变量→一条消息</span>
+        <span class="kw">return</span> result
+    <span class="kw">def</span> <span class="fn">format_prompt</span>(self, **kwargs) -> ChatPromptValue:
+        <span class="kw">return</span> ChatPromptValue(messages=self.format_messages(**kwargs))
+</pre>
+</div>
+
+<div class="card detail">
+  <div class="tag">🔬 实现流程</div>
+  <ol>
+    <li><span class="mono">invoke(vars)</span> → <span class="mono">format_prompt</span> → 返回一个 <strong>PromptValue</strong>（<span class="mono">ChatPromptValue</span>）。</li>
+    <li><span class="mono">format_messages</span> 遍历每个模板片段：普通片段<strong>填变量得一条消息</strong>，
+      <span class="mono">MessagesPlaceholder</span> 则把变量里的<strong>一串消息整段展开</strong>。</li>
+    <li><span class="mono">from_messages([(role, tmpl), ...])</span> 在构建时由 <span class="mono">_convert_to_message_template</span>
+      把 <span class="mono">("system","…")</span> 这类元组解析成对应的<strong>消息模板对象</strong>。</li>
+  </ol>
+</div>
+
+<div class="card spark">
+  <div class="tag">💡 设计亮点</div>
+  <ul>
+    <li><strong>提示词是 Runnable</strong>：所以能直接 <span class="mono">prompt | model</span> 拼链——又一次复用第 8 课的统一抽象，无需任何"胶水"。</li>
+    <li><strong>PromptValue 作中间层</strong>：同一份模板既能 <span class="mono">.to_messages()</span>（喂聊天模型）又能 <span class="mono">.to_string()</span>（喂纯文本 LLM），<strong>一套模板适配两类模型</strong>。</li>
+    <li><strong>占位符是一等公民</strong>：<span class="mono">MessagesPlaceholder</span> 让"插入任意长度历史"成为模板语法的一部分，把第 4 课的上下文管理与提示词结构干净地解耦。</li>
+  </ul>
+</div>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
@@ -281,6 +320,50 @@ agent = create_agent(model, tools=[search_kb])   <span class="cm"># Agent 自己
     </div>
   </div>
 </details>
+
+<h2>🔬 实现细节与亮点</h2>
+<p>RAG 的三个零件在源码里各有精巧之处——看 Retriever 如何"白嫖"Runnable 能力，以及切分器如何在语义边界下刀。</p>
+
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/retrievers.py</span><span class="ln">BaseRetriever.invoke（含回调）</span></div>
+<pre><span class="kw">class</span> <span class="fn">BaseRetriever</span>(RunnableSerializable, ABC):   <span class="cm"># ← 检索器也是 Runnable</span>
+    <span class="kw">def</span> <span class="fn">invoke</span>(self, input, config=None):
+        run_manager = callback_manager.on_retriever_start(...)   <span class="cm"># 追踪开始</span>
+        result = self._get_relevant_documents(input, ...)        <span class="cm"># ← 子类只实现这个</span>
+        run_manager.on_retriever_end(result)                     <span class="cm"># 追踪结束</span>
+        <span class="kw">return</span> result
+</pre>
+</div>
+
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">text-splitters/langchain_text_splitters/character.py</span><span class="ln">递归切分</span></div>
+<pre><span class="kw">class</span> <span class="fn">RecursiveCharacterTextSplitter</span>(TextSplitter):
+    <span class="cm"># 默认分隔符：从"粗"到"细"</span>
+    separators = [<span class="st">"\n\n"</span>, <span class="st">"\n"</span>, <span class="st">" "</span>, <span class="st">""</span>]   <span class="cm"># 段落 → 行 → 词 → 字符</span>
+    <span class="kw">def</span> <span class="fn">_split_text</span>(self, text, separators):
+        <span class="cm"># 先用最粗的分隔符切；某块仍太大，就用更细的分隔符"递归"再切</span>
+        ... <span class="kw">then</span> _merge_splits(...)   <span class="cm"># 按 chunk_size 合并，相邻块留 overlap</span>
+</pre>
+</div>
+
+<div class="card detail">
+  <div class="tag">🔬 实现要点</div>
+  <ul>
+    <li><strong>Retriever</strong>：子类只需实现 <span class="mono">_get_relevant_documents</span>，<span class="mono">invoke</span> 自动包上回调/追踪/异步。</li>
+    <li><strong>VectorStoreRetriever</strong>（<span class="mono">vectorstores/base.py</span>）的 <span class="mono">search</span> 按 <span class="mono">search_type</span> 分发：
+      <span class="mono">similarity</span> / <span class="mono">similarity_score_threshold</span> / <span class="mono">mmr</span>。</li>
+    <li><strong>切分器</strong>：递归用越来越细的分隔符切，再 <span class="mono">_merge_splits</span> 按 <span class="mono">chunk_size</span> 打包、留 <span class="mono">chunk_overlap</span>。</li>
+  </ul>
+</div>
+
+<div class="card spark">
+  <div class="tag">💡 设计亮点</div>
+  <ul>
+    <li><strong>检索器"白嫖"Runnable 能力</strong>：只写 <span class="mono">_get_relevant_documents</span> 一个方法，就免费获得回调追踪、异步、可拼链——典型的"模板方法 + 统一抽象"。</li>
+    <li><strong>递归切分保语义</strong>：优先在<strong>段落</strong>边界下刀，不行才退到行、词、字符。尽量不把一句话拦腰斩断，这对检索质量至关重要。</li>
+    <li><strong>召回策略可切换</strong>：<span class="mono">search_type="mmr"</span> 能在"相关"之外兼顾"<strong>多样性</strong>"（避免召回一堆near-重复片段），一个检索器多副面孔。</li>
+  </ul>
+</div>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
@@ -443,6 +526,47 @@ after_agent                 <span class="cm"># 仅一次</span></pre>
   </div>
 </details>
 
+<h2>🔬 实现细节与亮点</h2>
+<p>这是第五部分最值得深挖的一处：<strong>两类钩子用了两种完全不同的实现机制</strong>——这正是 middleware 既灵活又高效的秘密。</p>
+
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">langchain/agents/factory.py</span><span class="ln">机制一：before/after 钩子 → 真实图节点</span></div>
+<pre><span class="cm"># 被覆盖的 before_model / after_model 会被编译成 LangGraph 的"节点"</span>
+graph.add_node(f<span class="st">"{m.name}.before_model"</span>, before_node, ...)
+graph.add_node(f<span class="st">"{m.name}.after_model"</span>,  after_node,  ...)
+<span class="cm"># 再用边把它们按顺序串进循环：…before_model → model → after_model…</span>
+</pre>
+</div>
+
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">langchain/agents/factory.py</span><span class="ln">机制二：wrap_* 钩子 → 洋葱式函数组合</span></div>
+<pre><span class="kw">def</span> <span class="fn">_chain_model_call_handlers</span>(handlers):
+    <span class="cm"># "第一个 middleware 成为最外层；每层拿到一个 handler 回调去执行内层"</span>
+    <span class="cm"># 组合成嵌套函数：outer(req, handler=inner(req, handler=...真正调模型))</span>
+    ...
+</pre>
+</div>
+
+<div class="card detail">
+  <div class="tag">🔬 两种机制</div>
+  <ul>
+    <li><strong>状态型钩子</strong>（<span class="mono">before_agent/before_model/after_model/after_agent</span>）：返回一个 state 更新，
+      被编译成<strong>图里的真实节点</strong>，按顺序执行。</li>
+    <li><strong>包裹型钩子</strong>（<span class="mono">wrap_model_call/wrap_tool_call</span>）：不是节点，而是被
+      <span class="mono">_chain_model_call_handlers</span> 组合成<strong>层层嵌套的函数</strong>，每层拿到 <span class="mono">handler</span> 去调内层。</li>
+    <li>哪些钩子被启用？框架检查<strong>子类是否覆盖了该方法</strong>（基类默认是 no-op，返回 <span class="mono">None</span>），没覆盖就<strong>不进图</strong>。</li>
+  </ul>
+</div>
+
+<div class="card spark">
+  <div class="tag">💡 设计亮点</div>
+  <ul>
+    <li><strong>两类钩子两种实现，各取所长</strong>：要"读改状态"的用图节点（清晰、可被 LangGraph 持久化）；要"包裹前后/决定是否调用"的用嵌套函数（能重试、能短路）。</li>
+    <li><strong>洋葱组合解释了 retry/fallback</strong>：<span class="mono">wrap_model_call</span> 拿到 <span class="mono">handler</span> 回调，可<strong>重复调用</strong>内层——这就是 <span class="mono">ModelRetry/ModelFallback</span>"失败再调一次"的实现原理。第一个 middleware 在最外层。</li>
+    <li><strong>零开销原则</strong>：没被覆盖的钩子<strong>根本不会进图</strong>，不写就没成本——既灵活又不拖慢循环。</li>
+  </ul>
+</div>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
@@ -573,6 +697,52 @@ model = strong.with_fallbacks([cheap])
     </div>
   </div>
 </details>
+
+<h2>🔬 实现细节与亮点</h2>
+<p>看 context 如何作为"侧信道"独立于消息流动，以及 <span class="inline">with_fallbacks</span> 降级的真实实现。</p>
+
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/runnables/fallbacks.py</span><span class="ln">RunnableWithFallbacks.invoke</span></div>
+<pre><span class="kw">class</span> <span class="fn">RunnableWithFallbacks</span>(RunnableSerializable):
+    <span class="cm"># runnables = [主选项, 备用1, 备用2, ...]</span>
+    exceptions_to_handle = (Exception,)        <span class="cm"># 只有这些异常才触发降级</span>
+    <span class="kw">def</span> <span class="fn">invoke</span>(self, input, config=None):
+        <span class="kw">for</span> runnable <span class="kw">in</span> self.runnables:    <span class="cm"># 依次尝试</span>
+            <span class="kw">try</span>:
+                <span class="kw">return</span> runnable.invoke(input, ...)   <span class="cm"># 首个成功即返回</span>
+            <span class="kw">except</span> self.exceptions_to_handle <span class="kw">as</span> e:
+                last_error = e                  <span class="cm"># 否则换下一个</span>
+        <span class="kw">raise</span> last_error                        <span class="cm"># 全失败才抛出</span>
+</pre>
+</div>
+
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">langchain/agents/factory.py</span><span class="ln">context 是独立通道</span></div>
+<pre><span class="cm"># 运行时上下文不进 state/messages，而是图的一条独立"通道"</span>
+graph = StateGraph(state_schema, context_schema=context_schema)
+<span class="cm"># invoke(..., context={...}) 注入；工具经 ToolRuntime、中间件经 runtime.context 读取</span>
+</pre>
+</div>
+
+<div class="card detail">
+  <div class="tag">🔬 实现要点</div>
+  <ul>
+    <li><strong>fallbacks</strong>：<span class="mono">runnables</span> 是 <span class="mono">[主, 备1, 备2…]</span>，<span class="mono">invoke</span> 顺序尝试，
+      只捕获 <span class="mono">exceptions_to_handle</span> 内的异常，首个成功即返回，全败则抛最后一个。</li>
+    <li><strong>context</strong>：<span class="mono">context_schema</span> 传给 <span class="mono">StateGraph</span>，成为与 <span class="mono">state</span> 平行的
+      <strong>独立通道</strong>；通过 <span class="mono">Runtime.context</span> 读取，<strong>从不进入消息列表</strong>。</li>
+    <li><strong>stream_mode</strong>：编译出的图天然支持多模式流（<span class="mono">updates / messages / values</span>）。</li>
+  </ul>
+</div>
+
+<div class="card spark">
+  <div class="tag">💡 设计亮点</div>
+  <ul>
+    <li><strong>context 是"侧信道"</strong>：与对话状态、消息<strong>物理隔离</strong>。既不耗 token、不被模型读到，也杜绝了"提示注入篡改 user_id"这类安全问题。</li>
+    <li><strong>exceptions_to_handle 精准降级</strong>：默认只对 <span class="mono">Exception</span> 降级，但你能指定"<strong>只对超时/限流降级，对鉴权错误直接抛</strong>"——避免把真正的 bug 悄悄吞掉。</li>
+    <li><strong>多粒度流式来自"图"</strong>：因为 Agent 是编译后的图，<span class="mono">stream</span> 能按"节点更新 / 逐 token / 完整快照"产出，<strong>同一个 Agent 适配不同 UI</strong>，无需改实现。</li>
+  </ul>
+</div>
 
 <div class="card key">
   <div class="tag">✅ 本课要点 & 结业</div>

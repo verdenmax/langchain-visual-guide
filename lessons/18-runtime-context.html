@@ -87,6 +87,10 @@ strong { color: var(--ink); font-weight: 680; }
 .card.key .tag { color: var(--accent-ink); }
 .card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
 .card.warn .tag { color: var(--red); }
+.card.spark { border-left: 4px solid #e0a000;
+  background: linear-gradient(100deg, rgba(224,160,0,.12), transparent 70%); }
+.card.spark .tag { color: #c98a00; }
+@media (prefers-color-scheme: dark) { .card.spark .tag { color: #f0c050; } }
 
 /* ---- code file callout ---- */
 .codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
@@ -339,6 +343,52 @@ model = strong.with_fallbacks([cheap])
     </div>
   </div>
 </details>
+
+<h2>🔬 实现细节与亮点</h2>
+<p>看 context 如何作为"侧信道"独立于消息流动，以及 <span class="inline">with_fallbacks</span> 降级的真实实现。</p>
+
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/runnables/fallbacks.py</span><span class="ln">RunnableWithFallbacks.invoke</span></div>
+<pre><span class="kw">class</span> <span class="fn">RunnableWithFallbacks</span>(RunnableSerializable):
+    <span class="cm"># runnables = [主选项, 备用1, 备用2, ...]</span>
+    exceptions_to_handle = (Exception,)        <span class="cm"># 只有这些异常才触发降级</span>
+    <span class="kw">def</span> <span class="fn">invoke</span>(self, input, config=None):
+        <span class="kw">for</span> runnable <span class="kw">in</span> self.runnables:    <span class="cm"># 依次尝试</span>
+            <span class="kw">try</span>:
+                <span class="kw">return</span> runnable.invoke(input, ...)   <span class="cm"># 首个成功即返回</span>
+            <span class="kw">except</span> self.exceptions_to_handle <span class="kw">as</span> e:
+                last_error = e                  <span class="cm"># 否则换下一个</span>
+        <span class="kw">raise</span> last_error                        <span class="cm"># 全失败才抛出</span>
+</pre>
+</div>
+
+<div class="codefile">
+  <div class="cf-head"><span class="dot"></span><span class="path">langchain/agents/factory.py</span><span class="ln">context 是独立通道</span></div>
+<pre><span class="cm"># 运行时上下文不进 state/messages，而是图的一条独立"通道"</span>
+graph = StateGraph(state_schema, context_schema=context_schema)
+<span class="cm"># invoke(..., context={...}) 注入；工具经 ToolRuntime、中间件经 runtime.context 读取</span>
+</pre>
+</div>
+
+<div class="card detail">
+  <div class="tag">🔬 实现要点</div>
+  <ul>
+    <li><strong>fallbacks</strong>：<span class="mono">runnables</span> 是 <span class="mono">[主, 备1, 备2…]</span>，<span class="mono">invoke</span> 顺序尝试，
+      只捕获 <span class="mono">exceptions_to_handle</span> 内的异常，首个成功即返回，全败则抛最后一个。</li>
+    <li><strong>context</strong>：<span class="mono">context_schema</span> 传给 <span class="mono">StateGraph</span>，成为与 <span class="mono">state</span> 平行的
+      <strong>独立通道</strong>；通过 <span class="mono">Runtime.context</span> 读取，<strong>从不进入消息列表</strong>。</li>
+    <li><strong>stream_mode</strong>：编译出的图天然支持多模式流（<span class="mono">updates / messages / values</span>）。</li>
+  </ul>
+</div>
+
+<div class="card spark">
+  <div class="tag">💡 设计亮点</div>
+  <ul>
+    <li><strong>context 是"侧信道"</strong>：与对话状态、消息<strong>物理隔离</strong>。既不耗 token、不被模型读到，也杜绝了"提示注入篡改 user_id"这类安全问题。</li>
+    <li><strong>exceptions_to_handle 精准降级</strong>：默认只对 <span class="mono">Exception</span> 降级，但你能指定"<strong>只对超时/限流降级，对鉴权错误直接抛</strong>"——避免把真正的 bug 悄悄吞掉。</li>
+    <li><strong>多粒度流式来自"图"</strong>：因为 Agent 是编译后的图，<span class="mono">stream</span> 能按"节点更新 / 逐 token / 完整快照"产出，<strong>同一个 Agent 适配不同 UI</strong>，无需改实现。</li>
+  </ul>
+</div>
 
 <div class="card key">
   <div class="tag">✅ 本课要点 & 结业</div>
