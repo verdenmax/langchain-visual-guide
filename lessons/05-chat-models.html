@@ -304,6 +304,101 @@ resp = model_with_tools.invoke(<span class="st">"北京天气怎么样？"</span
 print(resp.tool_calls)   <span class="cm"># 模型会在这里"请求"调用 get_weather</span>
 </pre>
 
+<h2>进阶：让模型直接吐出"结构化数据"</h2>
+<p>除了自由文本，你常常想让模型返回<strong>固定结构的数据</strong>（如 JSON / 对象）。
+用 <span class="inline">with_structured_output</span> 绑定一个 schema，模型输出就会被解析成该类型：</p>
+<pre class="code"><span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel
+
+<span class="kw">class</span> <span class="fn">Weather</span>(BaseModel):
+    city: str
+    temp_c: float
+
+structured = model.with_structured_output(Weather)
+result = structured.invoke(<span class="st">"北京现在 25 度"</span>)
+<span class="cm"># result 直接是 Weather(city="北京", temp_c=25.0)，不是字符串</span>
+</pre>
+<div class="card detail">
+  <div class="tag">🔬 代码对应</div>
+  <span class="mono">with_structured_output</span> 定义在 <span class="mono">core/language_models/chat_models.py</span>，
+  与 <span class="mono">bind_tools</span> 相邻。它底层常借助"工具调用 / JSON 模式"来强制模型产出符合 schema 的结果。
+</div>
+
+<h2>🔍 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入三个常见疑问。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> invoke / stream / batch 该用哪个 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 场景对照</div>
+      <div class="a">
+<pre class="code">invoke  → 一问一答，要完整结果（最常用）
+stream  → 聊天 UI 打字机效果，边生成边显示
+batch   → 一批互不相关的输入，并发处理省时间
+a*      → 上面三个的异步版（FastAPI 等异步框架里用）</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么有这么多</div>
+      <div class="a">不同场景对"延迟感受"和"吞吐"诉求不同：用户等单个回答看重<strong>首字延迟</strong>（stream），
+        后台批处理看重<strong>总吞吐</strong>（batch）。一套接口覆盖全部，省得你换 API。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">它们其实都来自底层 <strong>Runnable</strong> 接口（第 8 课），所以<strong>任何</strong> LangChain 组件
+        （链、Agent）都自带这四类跑法，学一次处处通用。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> init_chat_model 的"厂商:型号"是怎么解析的 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 两种等价写法</div>
+      <div class="a">
+<pre class="code"><span class="cm"># 写法 1：前缀内联</span>
+init_chat_model(<span class="st">"anthropic:claude-sonnet-4-5"</span>)
+
+<span class="cm"># 写法 2：分开传（适合 provider 来自配置/环境变量）</span>
+init_chat_model(<span class="st">"claude-sonnet-4-5"</span>, model_provider=<span class="st">"anthropic"</span>)</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 它在背后做了什么</div>
+      <div class="a">解析前缀 → 推断 provider → <strong>按需导入</strong>对应 partner 包（如 <span class="mono">langchain-anthropic</span>）→
+        实例化具体模型类（<span class="mono">ChatAnthropic</span>）→ 返回一个 <span class="mono">BaseChatModel</span>。
+        所以你<strong>必须先安装</strong>对应 partner 包。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点 & 🔀 其他方案</div>
+      <div class="a">优点：一行切换厂商、provider 可动态化。其他方案：直接 <span class="mono">from langchain_openai import ChatOpenAI</span>
+        手动实例化（更显式，但换厂商要改 import）。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">3</span> 自由文本 vs 结构化输出，何时用哪个 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 对比</div>
+      <div class="a">需要"念给人听"的回答 → 用普通 <span class="mono">invoke</span>（拿 <span class="mono">.content</span>）；
+        需要"喂给程序"的数据（写库、调用下游 API）→ 用 <span class="mono">with_structured_output</span> 拿到对象。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么必要</div>
+      <div class="a">直接让模型"输出 JSON"很脆——它可能多写解释、少个引号导致解析失败。
+        <span class="mono">with_structured_output</span> 用 schema 约束 + 自动解析，把这种不确定性收敛掉。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点 & 🔀 其他方案</div>
+      <div class="a">优点：拿到的是已校验的强类型对象，省去手写解析与容错。
+        其他方案：自己写 prompt 要求输出 JSON + <span class="mono">json.loads</span>（易碎）；或用 output parser 手动解析。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>

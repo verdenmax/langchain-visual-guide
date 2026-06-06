@@ -292,6 +292,80 @@ print(result[<span class="st">"messages"</span>][-1].content)   <span class="cm"
   </ul>
 </div>
 
+<h2>🔍 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入 create_agent 的三个常用能力。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> system_prompt：怎么给 Agent 定"人设"和规则 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 示例</div>
+      <div class="a">
+<pre class="code">agent = create_agent(
+    model, tools=[get_weather],
+    system_prompt=<span class="st">"你是严谨的天气助手。只用工具返回的数据，不要编造。"</span>,
+)</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么必要</div>
+      <div class="a">它会作为对话最前面的 <span class="mono">SystemMessage</span> 注入，约束 Agent 的<strong>语气、边界、调用工具的策略</strong>。
+        没有它，模型只能凭默认行为发挥，容易跑偏或乱编。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">一个字符串就能统一规范整个 Agent 的行为，无需在每条用户消息里重复叮嘱。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> response_format：让 Agent 最终输出结构化数据 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 示例</div>
+      <div class="a">
+<pre class="code"><span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel
+<span class="kw">class</span> <span class="fn">Answer</span>(BaseModel):
+    city: str
+    temp_c: float
+
+agent = create_agent(model, tools=[get_weather], response_format=Answer)
+<span class="cm"># Agent 跑完循环后，给你一个 Answer 对象，而不只是文本</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 与 with_structured_output 的区别</div>
+      <div class="a">第 5 课的 <span class="mono">with_structured_output</span> 约束<strong>单次模型调用</strong>的输出；
+        这里的 <span class="mono">response_format</span> 约束<strong>整个 Agent 循环跑完后</strong>的最终结果——适合"先用工具查、最后给结构化答案"的场景。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">Agent 既能多步用工具，又能把最终结论交成强类型对象，直接对接下游程序。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">3</span> middleware：在循环里插钩子（预告第 12 课） <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 用途举例</div>
+      <div class="a"><span class="mono">create_agent(..., middleware=[...])</span> 可以在"调用模型前后""执行工具前后"插入逻辑：
+        <strong>改写请求、人审(human-in-the-loop)、日志、限流、敏感词过滤</strong>等。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么必要</div>
+      <div class="a">真实产品需要在 Agent 的标准循环里加"非功能性"逻辑。若没有扩展点，就只能去改核心循环代码——既危险又难维护。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点 & 🔀 其他方案</div>
+      <div class="a">优点：行为可插拔，核心循环保持稳定（第 12 课看它如何映射到 LangGraph 节点）。
+        其他方案：用回调（callbacks，第 13 课）做观测，但 middleware 能真正<strong>改变</strong>流程，回调主要用于<strong>观察</strong>。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>

@@ -311,6 +311,106 @@ conversation = [
 <span class="cm"># 把这串消息交给模型，它会还你一条 AIMessage（下一课）</span>
 </pre>
 
+<h2>进阶：消息的两个"另一面"</h2>
+<p>除了四种基础消息，还有两点在真实项目里很常见，值得先有个印象：</p>
+
+<div class="cols">
+  <div class="col">
+    <h4>① 流式块 Message Chunk</h4>
+    <p>流式输出时，模型不是一次给完整 <span class="inline">AIMessage</span>，而是一串
+      <span class="inline">AIMessageChunk</span>。它们能用 <span class="inline">+</span> 累加成完整消息（第 13 课详解）。</p>
+    <p class="mono" style="font-size:.8rem;color:var(--muted)">messages/ai.py · AIMessageChunk</p>
+  </div>
+  <div class="col">
+    <h4>② 多模态内容块</h4>
+    <p><span class="inline">content</span> 不只是字符串，也可以是<strong>内容块列表</strong>
+      （文本 + 图片等），用于多模态输入。</p>
+    <p class="mono" style="font-size:.8rem;color:var(--muted)">messages/content.py</p>
+  </div>
+</div>
+
+<h2>🔍 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入三个常见疑问。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> 四种之外还有哪些消息类型 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 其它消息类</div>
+      <div class="a">日常很少用，但读源码会遇到：
+<pre class="code"><span class="cm"># messages/ 目录下还有：</span>
+ChatMessage      <span class="cm"># 自定义任意 role（非标准角色时用）</span>
+FunctionMessage  <span class="cm"># 旧版函数调用结果（已被 ToolMessage 取代）</span>
+RemoveMessage    <span class="cm"># 一个"修饰符"，用于从历史中删除某条消息</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么保留这些</div>
+      <div class="a"><span class="mono">FunctionMessage</span> 是历史遗留（OpenAI 早期的 function calling），为兼容而保留；
+        <span class="mono">RemoveMessage</span> 在管理长对话 / Agent 状态时用来裁剪历史。99% 场景你只需四种核心消息。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 怎么记</div>
+      <div class="a">记住主线即可：<strong>System / Human / AI / Tool</strong>。其余都是边角或历史兼容，遇到再查。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> content 为什么有时是字符串、有时是列表 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 两种形态</div>
+      <div class="a">
+<pre class="code"><span class="cm"># 纯文本：content 就是字符串</span>
+HumanMessage(<span class="st">"你好"</span>)
+
+<span class="cm"># 多模态：content 是内容块列表（文本 + 图片）</span>
+HumanMessage(content=[
+    {<span class="st">"type"</span>: <span class="st">"text"</span>, <span class="st">"text"</span>: <span class="st">"这张图里是什么？"</span>},
+    {<span class="st">"type"</span>: <span class="st">"image"</span>, <span class="st">"source_type"</span>: <span class="st">"url"</span>, <span class="st">"url"</span>: <span class="st">"https://..."</span>},
+])</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么必要</div>
+      <div class="a">现代模型支持图片、音频等多模态输入。一个纯字符串无法表达"文字 + 图片"的组合，
+        所以 <span class="mono">content</span> 允许是<strong>结构化内容块列表</strong>。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">同一个 <span class="mono">HumanMessage</span> 类既能装纯文本也能装多模态，且各 partner 会把这些标准内容块
+        翻译成自家厂商的多模态格式——你无需关心差异。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">3</span> tool_calls 与 ToolMessage 是怎么配对的 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 靠 id 配对（像快递单号）</div>
+      <div class="a">
+<pre class="code"><span class="cm"># 模型请求里每个 tool_call 带一个 id</span>
+AIMessage(tool_calls=[{<span class="st">"name"</span>: <span class="st">"get_weather"</span>,
+                      <span class="st">"args"</span>: {<span class="st">"city"</span>: <span class="st">"北京"</span>},
+                      <span class="st">"id"</span>: <span class="st">"call_abc"</span>}])
+<span class="cm"># 回传结果时用同一个 id 标明"这是哪个请求的答案"</span>
+ToolMessage(content=<span class="st">"北京 晴 25°C"</span>, tool_call_id=<span class="st">"call_abc"</span>)</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么必要</div>
+      <div class="a">模型一次可能<strong>请求多个工具</strong>。没有 id，回传时就分不清"哪个结果对应哪个请求"，
+        模型会张冠李戴。<span class="mono">tool_call_id</span> 就是那张对账单号。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">支持<strong>并行多工具</strong>调用且结果不错乱；整套机制纯靠结构化消息运转，无需额外状态——再次印证"消息是通用货币"。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
