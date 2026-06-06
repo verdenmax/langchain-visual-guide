@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>02 · Monorepo 全景 — LangChain 图解教程</title>
-<meta name="description" content="第一部分 · 宏观全景｜Monorepo 全景：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>21 · 横向对比：LangChain vs AutoGen — LangChain 图解教程</title>
+<meta name="description" content="第六部分 · 横向对比（番外）｜横向对比：LangChain vs AutoGen：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="02 · Monorepo 全景 — LangChain 图解教程">
-<meta property="og:description" content="第一部分 · 宏观全景｜Monorepo 全景：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="21 · 横向对比：LangChain vs AutoGen — LangChain 图解教程">
+<meta property="og:description" content="第六部分 · 横向对比（番外）｜横向对比：LangChain vs AutoGen：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="02 · Monorepo 全景 — LangChain 图解教程">
-<meta name="twitter:description" content="第一部分 · 宏观全景｜Monorepo 全景：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="21 · 横向对比：LangChain vs AutoGen — LangChain 图解教程">
+<meta name="twitter:description" content="第六部分 · 横向对比（番外）｜横向对比：LangChain vs AutoGen：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -230,243 +230,238 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第一部分 · 宏观全景</span>
-    <span class="pill">02 / 21</span>
+    <span class="pill">第六部分 · 横向对比（番外）</span>
+    <span class="pill">21 / 21</span>
   </div>
-  <div class="progress"><span style="width:9%"></span></div>
+  <div class="progress"><span style="width:100%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第一部分 · 宏观全景</div>
-    <h1>Monorepo 全景</h1>
+    <div class="part">第六部分 · 横向对比（番外）</div>
+    <h1>横向对比：LangChain vs AutoGen</h1>
   </div>
   
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-LangChain 的代码不是一个大包，而是一个 <strong>monorepo（单仓库、多包）</strong>：
-一个 Git 仓库里装着十几个<strong>各自独立发版</strong>的 Python 包。看懂这张"分层地图"，
-你就再也不会在目录里迷路。
+学完 LangChain，跳出来看看<strong>另一条技术路线</strong>——微软的 <strong>AutoGen</strong>。
+对照才能真正看清 LangChain 的设计取舍：两者解决的是同一类问题，路径却截然不同。
 </p>
 
+<div class="card warn">
+  <div class="tag">ℹ️ 先说现状</div>
+  AutoGen 目前已进入<strong>维护模式</strong>（不再加新功能），微软推荐新项目用其继任者
+  <strong>Microsoft Agent Framework</strong>。但 AutoGen 的<strong>设计思想</strong>非常有代表性，
+  作为"另一种范式"来对照学习，价值依旧很高。
+</div>
+
 <div class="card analogy">
-  <div class="tag">🏗️ 生活类比</div>
-  把它想成一栋<strong>分层的大楼</strong>：地基层（core）定义所有"接口标准"，
-  楼上的主套间（langchain）放你日常用的高级功能，
-  而每个厂商（partners/openai、partners/anthropic）是<strong>可插拔的配件房间</strong>，
-  都按地基层的标准接口来装修，所以能随意替换。
+  <div class="tag">🏗️ 一句话类比</div>
+  如果说 <strong>LangChain</strong> 像<strong>"搭流水线 + 配一个会用工具的工人"</strong>（数据顺着管道流，路线你定）；
+  那么 <strong>AutoGen</strong> 更像<strong>"召集一屋子专家开会"</strong>——多个智能体<strong>互相对话</strong>，
+  谁先发言、何时结束由"会议规则"决定。
 </div>
 
-<h2>仓库的物理结构</h2>
-<p>所有包都在 <span class="inline">libs/</span> 下。你现在只需认得这几个最重要的：</p>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">langchain/libs/</span><span class="ln">目录结构</span></div>
-<pre><span class="cm"># 在仓库根目录执行 ls libs/ 就能看到</span>
-libs/
-├── <span class="fn">core/</span>            <span class="cm"># langchain-core：地基，所有抽象与接口</span>
-├── <span class="fn">langchain/</span>       <span class="cm"># langchain-classic：旧版（维护中，无新功能）</span>
-├── <span class="fn">langchain_v1/</span>    <span class="cm"># langchain：当前主力包，你日常 import 的就是它</span>
-├── <span class="fn">partners/</span>        <span class="cm"># 各厂商集成：openai / anthropic / ollama ...</span>
-│   ├── openai/
-│   ├── anthropic/
-│   └── ...
-├── <span class="fn">text-splitters/</span>  <span class="cm"># 文档切块工具</span>
-├── <span class="fn">standard-tests/</span>  <span class="cm"># 给所有 partner 共用的标准测试套件</span>
-└── <span class="fn">model-profiles/</span>  <span class="cm"># 模型能力档案（上下文长度、是否支持工具等）</span>
-</pre>
-</div>
-
-<h2>核心三层：地基 / 主力 / 配件</h2>
-<p>十几个包里，理解 LangChain 你<strong>主要只需盯住三层</strong>。它们的依赖方向<strong>永远从上往下</strong>
-——上层依赖下层，下层<strong>绝不</strong>反过来依赖上层：</p>
-
+<h2>先认识 AutoGen 的分层</h2>
+<p>和 LangChain 一样，AutoGen 也是 monorepo 分层，但层次的<strong>重心不同</strong>：</p>
 <div class="layers">
   <div class="layer l-part">
-    <div class="lh"><span class="badge">集成层</span><span class="name">langchain-openai / langchain-anthropic …</span></div>
-    <div class="ld">每个厂商一个独立包，把厂商 SDK 适配成 core 定义的标准接口。
-      位置：<span class="mono">libs/partners/*/</span>。换厂商 = 换这一层的包。</div>
+    <div class="lh"><span class="badge">高层</span><span class="name">autogen-agentchat</span></div>
+    <div class="ld">面向用户的<strong>对话智能体与团队</strong>：<span class="mono">AssistantAgent</span>、
+      <span class="mono">RoundRobinGroupChat</span>/<span class="mono">SelectorGroupChat</span>/<span class="mono">Swarm</span>、终止条件。</div>
   </div>
   <div class="layer l-main">
-    <div class="lh"><span class="badge">实现层</span><span class="name">langchain（主力包）</span></div>
-    <div class="ld">面向用户的高级功能：<span class="mono">create_agent</span>、<span class="mono">init_chat_model</span>、中间件等。
-      位置：<span class="mono">libs/langchain_v1/langchain/</span>。这是你日常写代码 import 的包。</div>
+    <div class="lh"><span class="badge">集成</span><span class="name">autogen-ext</span></div>
+    <div class="ld">模型客户端（<span class="mono">OpenAIChatCompletionClient</span>）、工具、代码执行器、
+      <strong>分布式运行时</strong>（<span class="mono">GrpcWorkerAgentRuntime</span>）。</div>
   </div>
   <div class="layer l-core">
-    <div class="lh"><span class="badge">地基层</span><span class="name">langchain-core</span></div>
-    <div class="ld">最底层抽象：<span class="mono">Runnable</span>、<span class="mono">BaseChatModel</span>、各种
-      <span class="mono">Message</span>、<span class="mono">BaseTool</span>。位置：<span class="mono">libs/core/langchain_core/</span>。
-      <strong>用户通常不直接 import 它</strong>，但所有东西都建在它之上。</div>
+    <div class="lh"><span class="badge">内核</span><span class="name">autogen-core</span></div>
+    <div class="ld"><strong>事件驱动的 actor 运行时</strong>：<span class="mono">Agent</span>（含 <span class="mono">on_message</span>）、
+      <span class="mono">@message_handler</span> 路由、<strong>Topic/Subscription 发布订阅</strong>、可跨语言（.NET）。</div>
   </div>
 </div>
 
-<div class="card macro">
-  <div class="tag">🌍 宏观理解：为什么要分这么多包？</div>
-  <ul>
-    <li><strong>依赖隔离</strong>：你只装 OpenAI，就不会被迫装上 Anthropic 的 SDK。每个 partner 是独立包，按需安装。</li>
-    <li><strong>独立发版</strong>：OpenAI 出了新功能，<span class="mono">langchain-openai</span> 可以自己发版，不用等整个框架。</li>
-    <li><strong>稳定地基</strong>：<span class="mono">core</span> 很少变，给所有上层一个稳定的"接口契约"。</li>
-  </ul>
-</div>
-
-<h2>用依赖关系验证这套分层</h2>
-<p>不用记，<strong>看每个包的 <span class="inline">pyproject.toml</span> 就能验证</strong>谁依赖谁。下面是真实内容：</p>
-
+<h2>核心心智模型：管道/图 vs actor/对话</h2>
+<p>这是两者<strong>最根本</strong>的差异——记住这一条，其它差异都能推导出来：</p>
 <div class="cols">
   <div class="col">
-    <h4>🟢 core 依赖谁？</h4>
-    <pre class="code" style="margin:.4rem 0"><span class="cm"># libs/core/pyproject.toml</span>
-dependencies = [
-  <span class="st">"langsmith"</span>,    <span class="cm"># 追踪</span>
-  <span class="st">"pydantic"</span>,     <span class="cm"># 数据校验</span>
-  <span class="st">"tenacity"</span>,     <span class="cm"># 重试</span>
-  ...
-]</pre>
-    <p style="font-size:.85rem;color:var(--muted)">没有任何 langchain 包——它是<strong>地基</strong>，谁都不依赖。</p>
+    <h4>🟢 LangChain：可组合的"图"</h4>
+    <p>一切是 <span class="mono">Runnable</span>，用 <span class="mono">|</span> 组装管道；Agent 是一张
+      <strong>LangGraph 状态图</strong>（节点 + 条件边）。数据<strong>顺着你定义的路线</strong>流动——<strong>确定、可控</strong>。</p>
   </div>
   <div class="col">
-    <h4>🔵 主力包 / partner 依赖谁？</h4>
-    <pre class="code" style="margin:.4rem 0"><span class="cm"># langchain_v1/pyproject.toml</span>
-dependencies = [
-  <span class="st">"langchain-core"</span>,  <span class="cm"># ↓ 依赖地基</span>
-  <span class="st">"langgraph"</span>,       <span class="cm"># Agent 引擎</span>
-]
-<span class="cm"># partners/openai/pyproject.toml</span>
-dependencies = [
-  <span class="st">"langchain-core"</span>,  <span class="cm"># ↓ 依赖地基</span>
-  <span class="st">"openai"</span>,          <span class="cm"># 厂商 SDK</span>
-]</pre>
+    <h4>🟣 AutoGen：自治的"actor"</h4>
+    <p>每个 Agent 是一个<strong>自治 actor</strong>，通过<strong>消息</strong>互相沟通；运行时按
+      <strong>发布订阅</strong>投递消息。多个 Agent <strong>对话协作</strong>，行为更<strong>自治、涌现</strong>。</p>
   </div>
+</div>
+
+<h2>同一件事，两种写法</h2>
+
+<h3>① 一个会用工具的 Agent</h3>
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">LangChain</div>
+    <div class="mockup-body">
+<pre class="code"><span class="kw">from</span> langchain.agents <span class="kw">import</span> create_agent
+
+agent = create_agent(<span class="st">"openai:gpt-5.1"</span>, tools=[get_weather])
+agent.invoke({<span class="st">"messages"</span>: [{<span class="st">"role"</span>:<span class="st">"user"</span>,
+              <span class="st">"content"</span>:<span class="st">"北京天气？"</span>}]})</pre>
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">AutoGen</div>
+    <div class="mockup-body">
+<pre class="code"><span class="kw">from</span> autogen_agentchat.agents <span class="kw">import</span> AssistantAgent
+<span class="kw">from</span> autogen_ext.models.openai <span class="kw">import</span> OpenAIChatCompletionClient
+
+mc = OpenAIChatCompletionClient(model=<span class="st">"gpt-5.1"</span>)
+agent = AssistantAgent(<span class="st">"assistant"</span>, model_client=mc, tools=[get_weather])
+<span class="kw">await</span> agent.run(task=<span class="st">"北京天气？"</span>)   <span class="cm"># 注意：异步</span></pre>
+    </div>
+  </div>
+</div>
+<p style="font-size:.9rem;color:var(--muted)">单 Agent 两者都很简洁。差别在<strong>异步</strong>（AutoGen 全异步）与<strong>模型客户端</strong>显式程度。</p>
+
+<h3>② 多个 Agent 协作（这才是分水岭）</h3>
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">LangChain（LangGraph 手搭）</div>
+    <div class="mockup-body">
+<pre class="code"><span class="cm"># 多 Agent 要自己用 LangGraph 编排：</span>
+<span class="cm"># 定义各 Agent 节点、handoff 边、共享状态、</span>
+<span class="cm"># 路由谁下一个发言…… 可控但偏手动。</span>
+graph = StateGraph(...)
+graph.add_node(<span class="st">"writer"</span>, ...)
+graph.add_node(<span class="st">"critic"</span>, ...)
+graph.add_conditional_edges(...)   <span class="cm"># 自定义路由</span></pre>
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">AutoGen（一等公民）</div>
+    <div class="mockup-body">
+<pre class="code"><span class="kw">from</span> autogen_agentchat.teams <span class="kw">import</span> RoundRobinGroupChat
+<span class="kw">from</span> autogen_agentchat.conditions <span class="kw">import</span> MaxMessageTermination
+
+writer = AssistantAgent(<span class="st">"writer"</span>, model_client=mc, system_message=<span class="st">"负责写"</span>)
+critic = AssistantAgent(<span class="st">"critic"</span>, model_client=mc, system_message=<span class="st">"负责评审"</span>)
+team = RoundRobinGroupChat([writer, critic],
+        termination_condition=MaxMessageTermination(6))
+<span class="kw">await</span> team.run(task=<span class="st">"写一首关于秋天的诗"</span>)   <span class="cm"># 几行就组好一支队伍</span></pre>
+    </div>
+  </div>
+</div>
+<p style="font-size:.9rem;color:var(--muted)"><strong>这就是 AutoGen 的主场</strong>：多 Agent 团队是内置抽象，
+还能换 <span class="mono">SelectorGroupChat</span>（让 LLM 选下一个发言人）、<span class="mono">Swarm</span>（基于 handoff）、
+<span class="mono">MagenticOneGroupChat</span> 等编排策略。</p>
+
+<h2>逐维度对比</h2>
+<table class="t">
+  <tr><th>维度</th><th>🟢 LangChain</th><th>🟣 AutoGen</th></tr>
+  <tr><td>核心抽象</td><td>Runnable（可组合）+ LangGraph 状态图</td><td>Agent actor + 消息传递 + 发布订阅</td></tr>
+  <tr><td>主单元</td><td>链 / 单个工具 Agent</td><td>多个 Agent 的<strong>对话</strong></td></tr>
+  <tr><td>多智能体</td><td>靠 LangGraph 搭图 / handoff（偏手动）</td><td><strong>一等公民</strong>：Team（GroupChat）</td></tr>
+  <tr><td>编排方式</td><td>LCEL 管道、图节点/边、middleware</td><td>团队 + 发言人选择 + 终止条件（可组合 &/|）</td></tr>
+  <tr><td>执行模型</td><td><span class="mono">invoke/stream</span> 跑一张图</td><td>事件驱动<strong>异步 actor</strong>，可<strong>分布式(gRPC)</strong>、<strong>跨语言(.NET)</strong></td></tr>
+  <tr><td>集成生态</td><td><strong>巨大</strong>（partners、向量库、RAG…）</td><td>模型客户端 + 工具 + 代码执行（生态较小）</td></tr>
+  <tr><td>状态 / 记忆</td><td>消息列表 + checkpointer</td><td>model_context / memory / 团队 state 存取</td></tr>
+  <tr><td>语言支持</td><td>Python + JavaScript</td><td>Python + .NET</td></tr>
+  <tr><td>现状</td><td>活跃，v1</td><td>维护模式 → Microsoft Agent Framework</td></tr>
+</table>
+
+<h2>优缺点</h2>
+<div class="cols">
+  <div class="col">
+    <h4>🟢 LangChain</h4>
+    <div class="pros-cons">
+      <div class="pros"><h4>优点</h4><ul>
+        <li>生态/集成<strong>最大</strong>，RAG/数据原语丰富</li>
+        <li>统一 <span class="mono">Runnable</span> 抽象，组合力强</li>
+        <li>LangGraph 提供<strong>可控、有状态</strong>的工作流</li>
+        <li>流式、追踪（LangSmith）成熟</li>
+      </ul></div>
+      <div class="cons"><h4>缺点</h4><ul>
+        <li>抽象多，上手概念负担重</li>
+        <li>多 Agent 需自己搭图，较手动</li>
+        <li>体系庞大，"小事也要懂不少"</li>
+      </ul></div>
+    </div>
+  </div>
+  <div class="col">
+    <h4>🟣 AutoGen</h4>
+    <div class="pros-cons">
+      <div class="pros"><h4>优点</h4><ul>
+        <li>多 Agent 对话<strong>一等公民</strong>，组队几行搞定</li>
+        <li>干净的 <strong>actor 模型</strong> + 发言人选择策略</li>
+        <li><strong>分布式 / 跨语言</strong>运行时</li>
+        <li>适合智能体协作 / 研究 / 快速原型</li>
+      </ul></div>
+      <div class="cons"><h4>缺点</h4><ul>
+        <li>已进入<strong>维护模式</strong>（迁移风险）</li>
+        <li>集成生态较小，RAG/数据工具少</li>
+        <li>对话式编排<strong>可控性/可预测性</strong>偏弱</li>
+        <li>事件驱动 actor 有学习曲线</li>
+      </ul></div>
+    </div>
+  </div>
+</div>
+
+<h2>互相可以学什么</h2>
+<div class="cols">
+  <div class="col">
+    <h4>LangChain ← 向 AutoGen 学</h4>
+    <ul>
+      <li>把<strong>"多 Agent 团队"做成更高层的一等抽象</strong>（RoundRobin/Selector/Swarm 那种几行组队的体验），而不必每次手搭 LangGraph。</li>
+      <li><strong>发言人选择</strong>与<strong>对话式编排</strong>的现成模式。</li>
+      <li><strong>分布式 / 跨语言</strong> actor 运行时的设计。</li>
+    </ul>
+  </div>
+  <div class="col">
+    <h4>AutoGen ← 向 LangChain 学</h4>
+    <ul>
+      <li>更丰富的<strong>集成生态</strong>与 <strong>RAG/数据</strong>原语。</li>
+      <li>统一<strong>可组合抽象</strong>（Runnable / LCEL）带来的复用性。</li>
+      <li>用<strong>显式状态图</strong>（LangGraph）换取更强的<strong>可控性与可预测性</strong>。</li>
+      <li>长期<strong>稳定性与版本治理</strong>。</li>
+    </ul>
+  </div>
+</div>
+
+<div class="card spark">
+  <div class="tag">💡 设计亮点：两种哲学，没有银弹</div>
+  <ul>
+    <li><strong>LangChain = "数据流/图"优先</strong>：确定、可控、可组合，集成生态最大——适合 <strong>RAG、工作流、可控的工具 Agent</strong>。</li>
+    <li><strong>AutoGen = "对话/actor"优先</strong>：自治、涌现、组队快——适合<strong>多 Agent 协作与研究</strong>（其能力现由 Microsoft Agent Framework 延续）。</li>
+    <li><strong>边界在模糊</strong>：LangChain 用 LangGraph 也能做多 Agent（子图/handoff），AutoGen 也能跑单 Agent；差别在<strong>"默认重心"</strong>，而非能不能。</li>
+  </ul>
 </div>
 
 <div class="card detail">
-  <div class="tag">🔬 细节：开发工具栈</div>
-  这个仓库用一套现代 Python 工具链，后面"贡献"那一课会细讲，先混个眼熟：
+  <div class="tag">🔬 代码对应（AutoGen 侧，便于你去读源码）</div>
   <table class="t" style="margin-top:.6rem">
-    <tr><th>工具</th><th>作用</th></tr>
-    <tr><td class="mono">uv</td><td>装依赖 / 管理虚拟环境（比 pip 快）</td></tr>
-    <tr><td class="mono">ruff</td><td>代码检查 + 格式化</td></tr>
-    <tr><td class="mono">mypy</td><td>静态类型检查</td></tr>
-    <tr><td class="mono">pytest</td><td>测试框架</td></tr>
-    <tr><td class="mono">make</td><td>把上面命令打包成 <span class="mono">make test</span> / <span class="mono">make lint</span></td></tr>
+    <tr><th>概念</th><th>位置（autogen 仓库）</th></tr>
+    <tr><td class="mono">Agent / on_message</td><td class="mono">autogen-core/.../_agent.py</td></tr>
+    <tr><td class="mono">@message_handler / RoutedAgent</td><td class="mono">autogen-core/.../_routed_agent.py</td></tr>
+    <tr><td class="mono">Topic / Subscription（发布订阅）</td><td class="mono">autogen-core/.../_subscription.py</td></tr>
+    <tr><td class="mono">AssistantAgent</td><td class="mono">autogen-agentchat/.../agents/_assistant_agent.py</td></tr>
+    <tr><td class="mono">RoundRobin/Selector/Swarm</td><td class="mono">autogen-agentchat/.../teams/_group_chat/</td></tr>
+    <tr><td class="mono">OpenAIChatCompletionClient</td><td class="mono">autogen-ext/.../models/openai/_openai_client.py</td></tr>
+    <tr><td class="mono">GrpcWorkerAgentRuntime（分布式）</td><td class="mono">autogen-ext/.../runtimes/grpc/</td></tr>
   </table>
-  每个包<strong>各自有一份</strong> <span class="mono">pyproject.toml</span> 和 <span class="mono">uv.lock</span>。
-</div>
-
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入三个常见疑问。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 为什么用 monorepo，而不是一个大包或彻底分成多个仓库 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 三种方案对比</div>
-      <div class="a">
-<pre class="code"><span class="cm"># 方案 A：一个大包（all-in-one）</span>
-pip install langchain   <span class="cm"># 但会拖进所有厂商 SDK，臃肿</span>
-
-<span class="cm"># 方案 B：彻底分仓库（每个包一个 repo）</span>
-<span class="cm"># 跨包改动要开多个 PR，版本对不齐，难维护</span>
-
-<span class="cm"># 方案 C：monorepo（LangChain 的选择）</span>
-<span class="cm"># 一个 repo 多个包：按需安装、统一改动、独立发版</span>
-pip install langchain langchain-openai   <span class="cm"># 只装你要的</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">LangChain 要同时服务"只用一个厂商的轻量用户"和"跨多包协同的核心开发者"。
-        单一大包会让前者背上不必要的依赖；彻底分仓库会让后者的跨包改动（改 core 接口同时更新所有 partner）变成噩梦。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ monorepo 的优点</div>
-      <div class="a"><strong>按需安装</strong>（只装用到的 partner）、<strong>跨包原子改动</strong>（一个 PR 同时改 core 与 partner）、
-        <strong>独立发版</strong>（每个包有自己的版本号与 <span class="mono">pyproject.toml</span>）、<strong>共享工具链</strong>（统一 lint/test 配置）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">🔀 其他方案</div>
-      <div class="a">很多项目用<strong>单包 + 可选依赖</strong>（<span class="mono">pip install pkg[openai]</span>）；
-        或用 <strong>Nx / Turborepo</strong> 之类的 monorepo 工具。LangChain 用的是"<strong>uv workspace</strong> + 各包独立 <span class="mono">pyproject.toml</span>"的轻量组合。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> 地基层 <code>core</code> 里到底有哪些"抽象" <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 目录速览</div>
-      <div class="a"><span class="mono">libs/core/langchain_core/</span> 下的主要子目录，每个都是后面某一课的主角：
-<pre class="code">langchain_core/
-├── <span class="fn">runnables/</span>        <span class="cm"># Runnable 抽象（第 8、9 课）</span>
-├── <span class="fn">language_models/</span>  <span class="cm"># BaseChatModel（第 11 课）</span>
-├── <span class="fn">messages/</span>         <span class="cm"># Human/AI/Tool/System（第 4 课）</span>
-├── <span class="fn">tools/</span>            <span class="cm"># BaseTool / @tool（第 6、12 课）</span>
-├── <span class="fn">prompts/</span>          <span class="cm"># 提示词模板</span>
-├── <span class="fn">outputs/</span>          <span class="cm"># ChatResult 等输出结构</span>
-├── <span class="fn">callbacks/</span>        <span class="cm"># 回调系统（第 14 课）</span>
-└── <span class="fn">output_parsers/</span>   <span class="cm"># 把模型输出解析成结构化数据</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么这些要放在 core</div>
-      <div class="a">它们是<strong>接口契约</strong>：定义"聊天模型长什么样、消息长什么样、工具长什么样"。
-        所有上层（主力包、partner）都依赖这些契约，因此它们必须在最底层且<strong>极少变动</strong>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 这样设计的好处</div>
-      <div class="a">任何人想加一个新厂商，只要去 <span class="mono">partners/</span> 新建一个包、实现 core 的接口即可，
-        <strong>无需改动 core 一行</strong>。这就是"对扩展开放、对修改封闭"。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> 一个 partner 包是怎么"适配"厂商的 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 适配器模式</div>
-      <div class="a"><span class="mono">langchain-openai</span> 里的 <span class="mono">ChatOpenAI</span> 继承 core 的 <span class="mono">BaseChatModel</span>，
-        把"标准接口"翻译成"OpenAI SDK 调用"：
-<pre class="code"><span class="cm"># 概念示意（partners/openai/...）</span>
-<span class="kw">class</span> <span class="fn">ChatOpenAI</span>(BaseChatModel):
-    <span class="kw">def</span> <span class="fn">_generate</span>(self, messages, ...):
-        <span class="cm"># 1) 标准消息 → OpenAI 的 JSON 格式</span>
-        <span class="cm"># 2) 调用 openai SDK 发请求</span>
-        <span class="cm"># 3) OpenAI 响应 → 标准 AIMessage</span>
-        ...</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">每个厂商的 API 形状不同。partner 包就是那层"翻译"，把差异<strong>封装在最外层</strong>，
-        让上面所有代码都只看到统一的 <span class="mono">BaseChatModel</span>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点 & 🔀 其他方案</div>
-      <div class="a">优点：新增 / 升级厂商只动一个独立包，互不影响（这正是第 11 课"模板方法模式"的落点）。
-        其他方案：把适配逻辑塞进 core（会让 core 依赖所有厂商 SDK，违背分层）——LangChain 刻意避免了这点。</div>
-    </div>
-  </div>
-</details>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li><strong>依赖严格单向</strong>（core 不依赖任何人），换来稳定地基与"对扩展开放、对修改封闭"。</li>
-    <li>monorepo 两头好处都要：跨包<strong>原子改动</strong>，又能<strong>独立发版、按需安装</strong>。</li>
-  </ul>
 </div>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li>一个 Git 仓库 = 多个独立发版的包，全在 <span class="mono">libs/</span> 下。</li>
-    <li>盯住三层：<strong>core（地基）→ langchain（主力）→ partners（配件）</strong>，依赖永远从上往下。</li>
-    <li>想验证依赖关系，直接读各包的 <span class="mono">pyproject.toml</span>，不用猜。</li>
-    <li>下一课：跟着一次真实调用，看数据如何<strong>穿过这三层</strong>。</li>
+    <li>根本差异：<strong>LangChain = 可组合的图（数据流优先）</strong>；<strong>AutoGen = 自治 actor 的对话（多 Agent 优先）</strong>。</li>
+    <li>单 Agent 两者都简洁；<strong>多 Agent 协作是 AutoGen 的主场</strong>（Team 一等公民），LangChain 则靠 LangGraph 手搭、换取可控性。</li>
+    <li>选型：要<strong>RAG/可控工作流/大集成</strong>→ LangChain；要<strong>快速多 Agent 协作/研究</strong>→ AutoGen（或其继任 Agent Framework）。</li>
+    <li>互相借鉴：LangChain 可学"团队一等抽象"，AutoGen 可学"集成生态 + 显式可控 + 稳定性"。</li>
+    <li>🎉 看懂一个框架的最好方式，就是<strong>把它和另一个对照</strong>——你现在两种范式都有了坐标。</li>
   </ul>
 </div>
 
-  <div class="footnav"><a class="prev" href="01-what-is-langchain.html"><div class="dir">← 上一课</div><div class="ttl">LangChain 是什么</div></a><a class="next" href="03-lifecycle.html"><div class="dir">下一课 →</div><div class="ttl">一次调用的生命周期</div></a></div>
+  <div class="footnav"><a class="prev" href="20-capstone.html"><div class="dir">← 上一课</div><div class="ttl">端到端实战：拼一个客服 Agent</div></a><a class="next" href="../index.html"><div class="dir">完成 →</div><div class="ttl">返回目录</div></a></div>
 </div>
 
 </body></html>

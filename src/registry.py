@@ -8,6 +8,7 @@ import part2
 import part3
 import part4
 import part5
+import part6
 
 # Ordered to match shell.PAGES. Filename -> content HTML string.
 CONTENT = {
@@ -31,4 +32,5 @@ CONTENT = {
     "18-custom-middleware.html": part5.LESSON_17,
     "19-runtime-context.html": part5.LESSON_18,
     "20-capstone.html": part5.LESSON_CAP,
+    "21-langchain-vs-autogen.html": part6.LESSON_CMP,
 }

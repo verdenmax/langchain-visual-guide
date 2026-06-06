@@ -1,8 +1,8 @@
 # LangChain 图解教程 · 从零理解整个项目
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
-![Lessons](https://img.shields.io/badge/lessons-20-blue.svg)
-![Parts](https://img.shields.io/badge/parts-5-9cf.svg)
+![Lessons](https://img.shields.io/badge/lessons-21-blue.svg)
+![Parts](https://img.shields.io/badge/parts-6-9cf.svg)
 ![Built with](https://img.shields.io/badge/built%20with-Python%203-3776AB.svg?logo=python&logoColor=white)
 ![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 ![Language](https://img.shields.io/badge/docs-%E4%B8%AD%E6%96%87-orange.svg)
@@ -34,7 +34,7 @@ python -m http.server 8000
 # 然后访问 http://localhost:8000/
 ```
 
-## 📚 教程结构（5 部分 · 20 课）
+## 📚 教程结构（6 部分 · 21 课）
 
 ### 第一部分 · 宏观全景
 1. **LangChain 是什么** — 解决什么问题 · 核心心智模型
@@ -66,6 +66,9 @@ python -m http.server 8000
 19. **运行时上下文与健壮性** — `context_schema` · `with_fallbacks` · `stream_mode`
 20. **端到端实战：拼一个客服 Agent** — prompts + RAG + 工具 + 中间件 + 上下文 全拼起来
 
+### 第六部分 · 横向对比（番外）
+21. **横向对比：LangChain vs AutoGen** — 两种范式对照：图/管道 vs 多 Agent 对话
+
 ## 🎨 每页包含
 
 - 🌍 **宏观理解** — 大局观，为什么这样设计
@@ -80,13 +83,13 @@ python -m http.server 8000
 ```
 langchain-visual-guide/
 ├── index.html              ← 入口（目录页），从这里开始
-├── lessons/                ← 20 课图解页面
+├── lessons/                ← 21 课图解页面
 │   ├── 01-what-is-langchain.html
 │   ├── 02-monorepo.html
-│   └── …  20-capstone.html
+│   └── …  21-langchain-vs-autogen.html
 ├── src/                    ← 无依赖的 Python 生成器（可重建全部 HTML / PDF）
 │   ├── shell.py            共享外壳：CSS 设计系统、导航、index 页
-│   ├── part1.py … part5.py 各部分课程内容
+│   ├── part1.py … part6.py 各部分课程内容
 │   ├── registry.py         课程 → 内容 的统一映射
 │   ├── build.py            站点构建（→ index.html + lessons/）
 │   └── build_print.py      PDF 构建（→ print.html，折叠全展开）
