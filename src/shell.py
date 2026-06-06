@@ -1,5 +1,35 @@
 """Shared HTML shell (CSS design system + navigation) for the LangChain tutorial."""
 
+import base64
+
+# ---- favicon (inline SVG, base64) ----
+_FAVICON_SVG = (
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>"
+    "<rect width='32' height='32' rx='7' fill='#1a7f64'/>"
+    "<text x='16' y='23' font-family='system-ui,sans-serif' font-size='20'"
+    " font-weight='700' fill='#fff' text-anchor='middle'>λ</text></svg>"
+)
+FAVICON = "data:image/svg+xml;base64," + base64.b64encode(_FAVICON_SVG.encode()).decode()
+
+
+def head_meta(title, description, og_type="website"):
+    """SEO / social meta tags + favicon for a page <head>."""
+    t = title.replace('"', "&quot;")
+    d = description.replace('"', "&quot;")
+    return (
+        f'<meta name="description" content="{d}">\n'
+        f'<meta name="theme-color" content="#1a7f64">\n'
+        f'<link rel="icon" type="image/svg+xml" href="{FAVICON}">\n'
+        f'<meta property="og:type" content="{og_type}">\n'
+        f'<meta property="og:site_name" content="LangChain 图解教程">\n'
+        f'<meta property="og:title" content="{t}">\n'
+        f'<meta property="og:description" content="{d}">\n'
+        f'<meta name="twitter:card" content="summary">\n'
+        f'<meta name="twitter:title" content="{t}">\n'
+        f'<meta name="twitter:description" content="{d}">'
+    )
+
+
 # Ordered list of all pages: (filename, short title, part label)
 PAGES = [
     ("01-what-is-langchain.html", "LangChain 是什么", "第一部分 · 宏观全景"),
@@ -289,6 +319,7 @@ def page(filename, content, standalone=False, home_href=None):
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{idx+1:02d} · {title} — LangChain 图解教程</title>
+{head_meta(f"{idx+1:02d} · {title} — LangChain 图解教程", f"{part}｜{title}：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。", og_type="article")}
 <style>{CSS}</style>
 </head><body>
 <div class="topbar">
@@ -363,6 +394,7 @@ def index_page(standalone=False, lesson_prefix=""):
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LangChain 图解教程 · 从零理解整个项目</title>
+{head_meta("LangChain 图解教程 · 从零理解整个项目", "从零理解整个 LangChain 项目的图解教程：宏观结构、用户用法、内部源码、自己动手做 Agent。5 部分 20 课，每课配真实代码对应、折叠深挖与设计亮点。", og_type="website")}
 <style>{CSS}</style>
 </head><body>
 <div class="topbar">

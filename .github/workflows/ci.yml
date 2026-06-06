@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Rebuild site from src
+        working-directory: src
+        run: python build.py
+
+      - name: Fail if committed HTML is stale vs src
+        run: |
+          if ! git diff --quiet -- index.html lessons/; then
+            echo "::error::Generated HTML is out of date. Run 'cd src && python build.py' and commit the result."
+            git --no-pager diff --stat -- index.html lessons/
+            exit 1
+          fi
+          echo "Committed HTML matches src ✓"
+
+      - name: Check internal links
+        working-directory: src
+        run: python check_links.py

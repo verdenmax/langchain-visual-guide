@@ -126,6 +126,8 @@ chromium --headless=new --no-pdf-header-footer \
 3. 把 `index.html`、`lessons/`、`langchain-visual-guide.pdf` 部署到 **GitHub Pages**；
 4. PDF 同时作为构建产物上传；打 `v*` **标签**时还会自动发布 Release 并附带 PDF。
 
+另有 `.github/workflows/ci.yml`（每次 push / PR 触发）做**防回归**：① 重新运行 `build.py` 并校验提交的 HTML 与 `src/` **没有漂移**；② 运行 `check_links.py` 确保**内部链接无死链**。
+
 **首次启用（一次性）：**
 1. 在 GitHub 新建仓库并推送：
    ```bash
