@@ -366,10 +366,105 @@ agent = create_agent(model, tools=[get_weather], response_format=Answer)
   </div>
 </details>
 
+<h2>🎛️ 进阶专题：如何"驯服"一个 Agent</h2>
+<p>自动循环很强，但生产环境需要给它装上<strong>刹车与护栏</strong>：限制循环次数、关键操作要人审、
+出错能重试或降级。这些大多通过<strong>中间件（middleware）</strong>声明式装上，全部来自 <span class="inline">langchain.agents.middleware</span>。</p>
+
+<table class="t">
+  <tr><th>需求</th><th>中间件 / 机制</th></tr>
+  <tr><td>防止无限循环 / 失控</td><td class="mono">ModelCallLimitMiddleware · ToolCallLimitMiddleware · recursion_limit</td></tr>
+  <tr><td>关键操作要人批准</td><td class="mono">HumanInTheLoopMiddleware</td></tr>
+  <tr><td>出错自动重试</td><td class="mono">ModelRetryMiddleware · ToolRetryMiddleware</td></tr>
+  <tr><td>主模型挂了降级备用</td><td class="mono">ModelFallbackMiddleware</td></tr>
+  <tr><td>工具太多先筛一遍</td><td class="mono">LLMToolSelectorMiddleware</td></tr>
+</table>
+
+<h2>🔍 Agent 控制 · 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，逐个吃透关键护栏。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> 防止失控：循环与调用次数上限 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 两道防线</div>
+      <div class="a">
+<pre class="code"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> ModelCallLimitMiddleware
+
+agent = create_agent(model, tools, middleware=[
+    ModelCallLimitMiddleware(max_calls=8),   <span class="cm"># 业务级：最多调 8 次模型</span>
+])
+<span class="cm"># 硬保护：图的递归上限（兜底，超过直接报错）</span>
+agent.invoke(input, config={<span class="st">"recursion_limit"</span>: 25})</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么必要</div>
+      <div class="a">模型可能陷入"反复调同一个工具"的死循环，既烧钱又卡死。
+        <span class="mono">recursion_limit</span> 是 LangGraph 的兜底硬上限；<span class="mono">ModelCallLimit / ToolCallLimit</span>
+        则是更贴业务的软上限，可控制"最多思考几轮、某工具最多调几次"。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">两层防线：软上限给出友好行为（如到达上限就收尾回答），硬上限保证绝不无限跑。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> 人在回路（HITL）：危险操作前先批准 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 示例</div>
+      <div class="a">
+<pre class="code"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> HumanInTheLoopMiddleware
+
+agent = create_agent(model, tools=[delete_database], middleware=[
+    HumanInTheLoopMiddleware(...),   <span class="cm"># 调用敏感工具前暂停，等人确认</span>
+], checkpointer=saver)               <span class="cm"># HITL 需要可暂停/恢复，故要 checkpointer</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么必要</div>
+      <div class="a">有些工具是<strong>不可逆的高风险操作</strong>（删数据、转账、发邮件）。让 Agent 在执行前<strong>暂停等人点头</strong>，
+        是生产环境的安全底线。它依赖图的"中断/恢复"能力（第 12 课）。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">把"自动"与"可控"结合：日常自动跑，关键节点交回人类决策，且暂停期间状态被持久化、可随时恢复。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">3</span> 健壮性：重试与模型降级 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 示例</div>
+      <div class="a">
+<pre class="code"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> (
+    ToolRetryMiddleware, ModelFallbackMiddleware,
+)
+agent = create_agent(primary_model, tools, middleware=[
+    ToolRetryMiddleware(max_retries=2),        <span class="cm"># 工具抖动自动重试</span>
+    ModelFallbackMiddleware(backup_model),     <span class="cm"># 主模型失败→切备用</span>
+])</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么必要</div>
+      <div class="a">网络抖动、限流 429、厂商宕机都会偶发。<span class="mono">Retry</span> 吸收瞬时错误，
+        <span class="mono">Fallback</span> 在主模型彻底不可用时切到备用，保证服务连续。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点 & 🔀 其他方案</div>
+      <div class="a">优点：健壮性以"装中间件"的方式声明式获得，核心逻辑不变。
+        其他方案：在单次模型调用层用 <span class="mono">model.with_retry()</span>（第 5 课），但 Agent 级中间件覆盖整个循环更全面。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
-  <ul>
-    <li><span class="mono">create_agent(model, tools, system_prompt=...)</span> 一行得到一个会自动循环的 Agent。</li>
     <li>输入/输出都是 <span class="mono">{"messages": [...]}</span> 状态字典（<span class="mono">AgentState</span>）。</li>
     <li>循环判据：<strong>AIMessage 里还有没有 tool_calls</strong>。这把第 4–6 课串成了闭环。</li>
     <li><strong>第二部分（用户视角）到此结束</strong>。接下来掀开盖子，看这些便利背后的源码机制。</li>

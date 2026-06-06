@@ -399,12 +399,106 @@ init_chat_model(<span class="st">"claude-sonnet-4-5"</span>, model_provider=<spa
   </div>
 </details>
 
+<h2>🎚️ 进阶专题：参数、缓存、重试、限流</h2>
+<p>同一个模型，行为可以被大量参数和"包装器"调节：控制随机性、固定默认参数、省钱（缓存）、
+抗抖动（重试）、防超额（限流）。这些是把 demo 变成生产应用的关键开关。</p>
+
+<table class="t">
+  <tr><th>目的</th><th>手段</th></tr>
+  <tr><td>控制输出（随机性/长度）</td><td class="mono">init 时传 temperature / max_tokens 等</td></tr>
+  <tr><td>固定默认调用参数</td><td class="mono">model.bind(stop=..., ...)</td></tr>
+  <tr><td>重复问题不重复请求</td><td class="mono">缓存（cache）</td></tr>
+  <tr><td>偶发错误自动重试</td><td class="mono">model.with_retry()</td></tr>
+  <tr><td>控制请求速率，防 429</td><td class="mono">InMemoryRateLimiter</td></tr>
+</table>
+
+<h2>🔍 调用控制 · 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，逐个吃透每个开关。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> 调输出：temperature 等参数 + .bind 固定默认 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 两种设定方式</div>
+      <div class="a">
+<pre class="code"><span class="cm"># 1) 实例化时设定（影响这个模型的所有调用）</span>
+model = init_chat_model(<span class="st">"openai:gpt-5.1"</span>, temperature=0)  <span class="cm"># 0=更确定</span>
+
+<span class="cm"># 2) .bind 固定某些默认调用参数，返回一个新 Runnable</span>
+strict = model.bind(stop=[<span class="st">"\n\n"</span>])   <span class="cm"># 之后每次调用都带上这个 stop</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ temperature 是什么 / bind 有何用</div>
+      <div class="a"><span class="mono">temperature</span> 控制随机性：低=稳定可复现（适合抽取/分类），高=有创意（适合头脑风暴）。
+        <span class="mono">.bind</span> 把"每次都要传的参数"<strong>预先绑死</strong>，省得每次调用重复写，且产物仍是 Runnable 可继续组合。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">实例级设定影响全局、bind 级设定可派生多个"预设版本"模型（如一个严格版、一个发散版），互不影响。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> 省钱与抗抖动：缓存 + with_retry <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 示例</div>
+      <div class="a">
+<pre class="code"><span class="cm"># 缓存：相同输入直接返回上次结果，不再请求（省钱省时间）</span>
+<span class="kw">from</span> langchain_core.globals <span class="kw">import</span> set_llm_cache
+<span class="kw">from</span> langchain_core.caches <span class="kw">import</span> InMemoryCache
+set_llm_cache(InMemoryCache())
+
+<span class="cm"># 重试：偶发错误（429/超时）自动重试，返回一个带重试的 Runnable</span>
+robust = model.with_retry(stop_after_attempt=3)</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 它们解决什么</div>
+      <div class="a">缓存命中时<strong>根本不发请求</strong>（呼应第 10 课的 <span class="mono">_generate_with_cache</span>），重复问答零成本；
+        <span class="mono">with_retry</span> 是 Runnable 通用能力，用指数退避吸收瞬时故障。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">缓存与重试都是"包一层"就生效，业务代码不变；<span class="mono">with_retry</span> 对任何 Runnable（不止模型）都适用。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">3</span> 防超额：用限流器控制请求速率 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 示例</div>
+      <div class="a">
+<pre class="code"><span class="kw">from</span> langchain_core.rate_limiters <span class="kw">import</span> InMemoryRateLimiter
+
+limiter = InMemoryRateLimiter(requests_per_second=2)   <span class="cm"># 每秒最多 2 次</span>
+model = init_chat_model(<span class="st">"openai:gpt-5.1"</span>, rate_limiter=limiter)</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么必要</div>
+      <div class="a">厂商有 RPM/TPM 配额，<span class="mono">batch</span> 或高并发场景很容易触发 <strong>429 Too Many Requests</strong>。
+        限流器在客户端<strong>主动节流</strong>，从源头避免被拒。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 代码对应 & 🔀 其他方案</div>
+      <div class="a"><span class="mono">InMemoryRateLimiter</span> 在 <span class="mono">core/rate_limiters.py</span>（进程内限流）。
+        其他方案：分布式部署时用基于 Redis 的限流；或在网关层统一限流。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
     <li><span class="mono">init_chat_model("厂商:型号")</span> 一行拿到任意厂商模型，用法完全统一。</li>
     <li>三种跑法：<strong>invoke</strong>（一次）/<strong>stream</strong>（流式）/<strong>batch</strong>（批量），均有 async 版。</li>
     <li>输入灵活（字符串/消息/元组），输出统一（AIMessage / AIMessageChunk）。</li>
+    <li>行为可调：<strong>temperature/bind</strong>（控输出）、<strong>缓存</strong>（省钱）、<strong>with_retry</strong>（抗抖动）、<strong>限流器</strong>（防 429）。</li>
     <li><span class="mono">bind_tools</span> 让模型"知道"有哪些工具——下一课正式认识工具。</li>
   </ul>
 </div>
