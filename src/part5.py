@@ -350,8 +350,9 @@ agent = create_agent(model, tools=[search_kb])   <span class="cm"># Agent 自己
   <div class="tag">🔬 实现要点</div>
   <ul>
     <li><strong>Retriever</strong>：子类只需实现 <span class="mono">_get_relevant_documents</span>，<span class="mono">invoke</span> 自动包上回调/追踪/异步。</li>
-    <li><strong>VectorStoreRetriever</strong>（<span class="mono">vectorstores/base.py</span>）的 <span class="mono">search</span> 按 <span class="mono">search_type</span> 分发：
-      <span class="mono">similarity</span> / <span class="mono">similarity_score_threshold</span> / <span class="mono">mmr</span>。</li>
+    <li><strong>VectorStore.search</strong>（<span class="mono">vectorstores/base.py:293</span>）按 <span class="mono">search_type</span> 分发：
+      <span class="mono">similarity</span> / <span class="mono">similarity_score_threshold</span> / <span class="mono">mmr</span>；
+      <span class="mono">VectorStoreRetriever</span>（<span class="mono">:964</span>）只是<strong>委托</strong>调用它。</li>
     <li><strong>切分器</strong>：递归用越来越细的分隔符切，再 <span class="mono">_merge_splits</span> 按 <span class="mono">chunk_size</span> 打包、留 <span class="mono">chunk_overlap</span>。</li>
   </ul>
 </div>
