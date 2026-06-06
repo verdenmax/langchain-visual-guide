@@ -291,6 +291,63 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   这正是<strong>第 2 课"三层架构"在方法级别的体现</strong>：要支持新厂商，只需在集成层实现一个 <span class="mono">_generate</span>。
 </div>
 
+<h2>🔍 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入两个内部细节。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> 缓存命中时，整条链路怎么"抄近道" <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 命中 vs 未命中</div>
+      <div class="a">
+<pre class="code">_generate_with_cache(messages):
+    key = hash(messages + 参数)
+    <span class="kw">if</span> 缓存有 key:
+        <span class="kw">return</span> 缓存值        <span class="cm"># ← 命中：根本不调 _generate、不发 HTTP</span>
+    result = self._generate(...)  <span class="cm"># 未命中：才真正请求厂商</span>
+    缓存[key] = result
+    <span class="kw">return</span> result</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么放在这一层</div>
+      <div class="a">缓存逻辑对所有厂商一致，放在 <span class="mono">_generate</span> 的<strong>外面一层</strong>，
+        就能让任何 partner 自动获得缓存能力，partner 作者无需关心。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">重复问题零成本、零延迟返回；开/关缓存只是给模型传一个 <span class="mono">cache</span>，业务代码不变。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> 回调是在调用链的哪些点触发的 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 触发时机</div>
+      <div class="a">
+<pre class="code">generate:
+    on_llm_start(...)            <span class="cm"># 调用前</span>
+    try:
+        result = _generate_with_cache(...)
+    except e:
+        on_llm_error(e)          <span class="cm"># 出错时</span>
+    on_llm_end(result)           <span class="cm"># 调用后（含 token 用量）</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么由模板层统一触发</div>
+      <div class="a">这样无论哪个厂商、无论命中缓存与否，<strong>事件序列都一致</strong>，
+        LangSmith 等追踪工具才能可靠地记录每一次模型调用（第 13 课）。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">观测能力对所有模型一视同仁；partner 只管发请求，"何时上报"由通用流程负责。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>

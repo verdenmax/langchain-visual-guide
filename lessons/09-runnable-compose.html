@@ -319,6 +319,61 @@ RunnablePassthrough.assign(
   所以可以无限拼下去，且整体永远支持 invoke/stream/batch。
 </div>
 
+<h2>🔍 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入两个常见实战问题。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> 一个 RAG 链如何用顺序 + 并行拼出来 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 经典 RAG 形状</div>
+      <div class="a">
+<pre class="code"><span class="cm"># 并行：同时"检索上下文"和"透传原问题"</span>
+setup = RunnableParallel(
+    context=retriever,                  <span class="cm"># 检索分支</span>
+    question=RunnablePassthrough(),     <span class="cm"># 原样透传问题</span>
+)
+<span class="cm"># 顺序：把上一步的 dict 灌进 prompt → model → parser</span>
+rag_chain = setup | prompt | model | parser</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么要并行那一步</div>
+      <div class="a">prompt 需要<strong>两样东西</strong>：检索到的上下文 + 用户原问题。
+        用 <span class="mono">RunnableParallel</span> 同时备齐这两者并打包成 dict，正好喂给下一步的 prompt。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">整条 RAG 用几个基础 Runnable 声明式拼出，无需手写胶水；检索与透传<strong>并发</strong>执行，更快。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> RunnableLambda vs RunnablePassthrough，别搞混 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 区别</div>
+      <div class="a">
+<pre class="code">RunnableLambda(f)            <span class="cm"># 把输入"变形"：output = f(input)</span>
+RunnablePassthrough()        <span class="cm"># 原样透传：output = input</span>
+RunnablePassthrough.assign(  <span class="cm"># 保留原 dict，再"旁加"一个新字段</span>
+    extra=some_runnable)</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 各自解决什么</div>
+      <div class="a"><span class="mono">Lambda</span> 用于"我要对数据做个小处理再往下传"；
+        <span class="mono">Passthrough</span> 用于"这一步我啥也不改，只是占位/保留"；
+        <span class="mono">assign</span> 用于"保留已有字段的同时再算一个新字段"（RAG 里常见）。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 记忆法</div>
+      <div class="a">Lambda=变；Passthrough=不变；assign=加。三个胶水覆盖了链里 90% 的"数据搬运"需求。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>

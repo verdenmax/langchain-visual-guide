@@ -79,6 +79,99 @@ result = chain.invoke({<span class="st">"city"</span>: <span class="st">"北京"
   </ul>
 </div>
 
+<h2>谁是 Runnable？（几乎全员）</h2>
+<p>下面这些你已经用过的东西，<strong>本质都是 Runnable</strong>，所以都能 invoke、都能用 <span class="inline">|</span> 拼接：</p>
+<table class="t">
+  <tr><th>组件</th><th>输入 → 输出</th></tr>
+  <tr><td class="mono">ChatModel</td><td>消息列表 → AIMessage</td></tr>
+  <tr><td class="mono">PromptTemplate</td><td>变量 dict → 提示词 / 消息</td></tr>
+  <tr><td class="mono">OutputParser</td><td>AIMessage → 结构化数据</td></tr>
+  <tr><td class="mono">Tool</td><td>参数 dict → 工具结果</td></tr>
+  <tr><td class="mono">RunnableSequence / Parallel</td><td>组合本身也是 Runnable</td></tr>
+  <tr><td class="mono">create_agent 的产物</td><td>状态 → 状态（也是 Runnable！）</td></tr>
+</table>
+
+<h2>🔍 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入三个关键设计。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> 只实现 invoke，为什么就"免费"获得 stream / batch <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 默认实现的思路</div>
+      <div class="a">
+<pre class="code"><span class="cm"># 基类 Runnable 里（概念示意）：</span>
+<span class="kw">def</span> <span class="fn">batch</span>(self, inputs):
+    <span class="kw">return</span> [self.invoke(x) <span class="kw">for</span> x <span class="kw">in</span> inputs]   <span class="cm"># 用线程池并发</span>
+
+<span class="kw">def</span> <span class="fn">stream</span>(self, input):
+    <span class="kw">yield</span> self.invoke(input)   <span class="cm"># 退化：一次性产出一块</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么这样设计</div>
+      <div class="a">子类<strong>只需实现一个</strong> <span class="mono">invoke</span>，就立刻拥有可用的 batch / stream。
+        想要更好的体验（如真正逐 token 流式），子类可以<strong>重写</strong> <span class="mono">stream</span>（聊天模型就是这么做的）。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">降低实现新组件的门槛（最少只写一个方法），又保留按需优化的空间——这是"默认实现 + 可重写"的经典模板设计。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> a | b 背后：__or__ 到底返回了什么 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 等价写法</div>
+      <div class="a">
+<pre class="code">chain = prompt | model | parser
+<span class="cm"># 等价于：</span>
+chain = prompt.pipe(model).pipe(parser)
+<span class="cm"># 两者都得到一个 RunnableSequence（第 9 课详解）</span>
+<span class="kw">type</span>(chain)   <span class="cm"># RunnableSequence</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么用运算符重载</div>
+      <div class="a">Python 的 <span class="mono">__or__</span> 让你能像 Unix 管道 <span class="mono">cmd1 | cmd2</span> 那样表达数据流，
+        读起来就是"从左流到右"，比嵌套函数调用直观得多。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">声明式、可读性强；而且产物仍是 Runnable，可继续 <span class="mono">|</span> 下去，无限组合。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">3</span> config 参数：贯穿整条链的"上下文信封" <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 RunnableConfig 携带什么</div>
+      <div class="a">
+<pre class="code">chain.invoke(x, config={
+    <span class="st">"callbacks"</span>: [...],       <span class="cm"># 回调/追踪（第 13 课）</span>
+    <span class="st">"tags"</span>: [<span class="st">"prod"</span>],         <span class="cm"># 给这次运行打标签</span>
+    <span class="st">"metadata"</span>: {<span class="st">"uid"</span>: 1},   <span class="cm"># 自定义元数据</span>
+    <span class="st">"max_concurrency"</span>: 5,    <span class="cm"># 并发上限</span>
+})</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么必要</div>
+      <div class="a">链里有很多步，你需要一种方式把"回调、标签、并发度"等<strong>一次性传到每一步</strong>，
+        而不是层层手动透传。<span class="mono">config</span> 就是这个自动随调用流动的信封。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">定义在 <span class="mono">runnables/config.py</span> 的 <span class="mono">RunnableConfig</span>，对所有 Runnable 通用；
+        追踪、限流、命名一处设置、全链生效。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
@@ -188,6 +281,61 @@ RunnablePassthrough.assign(
   所以可以无限拼下去，且整体永远支持 invoke/stream/batch。
 </div>
 
+<h2>🔍 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入两个常见实战问题。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> 一个 RAG 链如何用顺序 + 并行拼出来 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 经典 RAG 形状</div>
+      <div class="a">
+<pre class="code"><span class="cm"># 并行：同时"检索上下文"和"透传原问题"</span>
+setup = RunnableParallel(
+    context=retriever,                  <span class="cm"># 检索分支</span>
+    question=RunnablePassthrough(),     <span class="cm"># 原样透传问题</span>
+)
+<span class="cm"># 顺序：把上一步的 dict 灌进 prompt → model → parser</span>
+rag_chain = setup | prompt | model | parser</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么要并行那一步</div>
+      <div class="a">prompt 需要<strong>两样东西</strong>：检索到的上下文 + 用户原问题。
+        用 <span class="mono">RunnableParallel</span> 同时备齐这两者并打包成 dict，正好喂给下一步的 prompt。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">整条 RAG 用几个基础 Runnable 声明式拼出，无需手写胶水；检索与透传<strong>并发</strong>执行，更快。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> RunnableLambda vs RunnablePassthrough，别搞混 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 区别</div>
+      <div class="a">
+<pre class="code">RunnableLambda(f)            <span class="cm"># 把输入"变形"：output = f(input)</span>
+RunnablePassthrough()        <span class="cm"># 原样透传：output = input</span>
+RunnablePassthrough.assign(  <span class="cm"># 保留原 dict，再"旁加"一个新字段</span>
+    extra=some_runnable)</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 各自解决什么</div>
+      <div class="a"><span class="mono">Lambda</span> 用于"我要对数据做个小处理再往下传"；
+        <span class="mono">Passthrough</span> 用于"这一步我啥也不改，只是占位/保留"；
+        <span class="mono">assign</span> 用于"保留已有字段的同时再算一个新字段"（RAG 里常见）。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 记忆法</div>
+      <div class="a">Lambda=变；Passthrough=不变；assign=加。三个胶水覆盖了链里 90% 的"数据搬运"需求。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
@@ -268,6 +416,63 @@ LESSON_10 = r"""
   留成抽象方法 <span class="mono">_generate</span> 交给子类。<br>
   这正是<strong>第 2 课"三层架构"在方法级别的体现</strong>：要支持新厂商，只需在集成层实现一个 <span class="mono">_generate</span>。
 </div>
+
+<h2>🔍 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入两个内部细节。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> 缓存命中时，整条链路怎么"抄近道" <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 命中 vs 未命中</div>
+      <div class="a">
+<pre class="code">_generate_with_cache(messages):
+    key = hash(messages + 参数)
+    <span class="kw">if</span> 缓存有 key:
+        <span class="kw">return</span> 缓存值        <span class="cm"># ← 命中：根本不调 _generate、不发 HTTP</span>
+    result = self._generate(...)  <span class="cm"># 未命中：才真正请求厂商</span>
+    缓存[key] = result
+    <span class="kw">return</span> result</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么放在这一层</div>
+      <div class="a">缓存逻辑对所有厂商一致，放在 <span class="mono">_generate</span> 的<strong>外面一层</strong>，
+        就能让任何 partner 自动获得缓存能力，partner 作者无需关心。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">重复问题零成本、零延迟返回；开/关缓存只是给模型传一个 <span class="mono">cache</span>，业务代码不变。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> 回调是在调用链的哪些点触发的 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 触发时机</div>
+      <div class="a">
+<pre class="code">generate:
+    on_llm_start(...)            <span class="cm"># 调用前</span>
+    try:
+        result = _generate_with_cache(...)
+    except e:
+        on_llm_error(e)          <span class="cm"># 出错时</span>
+    on_llm_end(result)           <span class="cm"># 调用后（含 token 用量）</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么由模板层统一触发</div>
+      <div class="a">这样无论哪个厂商、无论命中缓存与否，<strong>事件序列都一致</strong>，
+        LangSmith 等追踪工具才能可靠地记录每一次模型调用（第 13 课）。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">观测能力对所有模型一视同仁；partner 只管发请求，"何时上报"由通用流程负责。</div>
+    </div>
+  </div>
+</details>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
@@ -355,6 +560,55 @@ LESSON_11 = r"""
   保证"哪个请求对应哪个结果"不会错乱（尤其当模型一次请求<strong>多个</strong>工具时）。
   这套机制纯靠<strong>结构化消息</strong>运转——又一次印证"消息是通用货币"。
 </div>
+
+<h2>🔍 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入两个内部机制。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> 类型注解是怎么变成 JSON Schema 的 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 映射关系</div>
+      <div class="a"><span class="mono">create_schema_from_function</span> 读取签名，把 Python 类型映射成 JSON Schema 类型：
+<pre class="code">city: str         → {<span class="st">"type"</span>: <span class="st">"string"</span>}
+count: int        → {<span class="st">"type"</span>: <span class="st">"integer"</span>}
+ratio: float      → {<span class="st">"type"</span>: <span class="st">"number"</span>}
+tags: list[str]   → {<span class="st">"type"</span>: <span class="st">"array"</span>, <span class="st">"items"</span>: {<span class="st">"type"</span>: <span class="st">"string"</span>}}
+<span class="cm"># 没有默认值的参数 → required；docstring → description</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么用 pydantic 当中间层</div>
+      <div class="a">pydantic 既能<strong>生成</strong> JSON Schema（给模型看），又能在执行时<strong>校验</strong>模型传回的参数
+        （类型不对就报错）。一举两得，避免脏参数进入你的函数。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">你只写普通类型注解，schema 生成与参数校验全自动；想更精细时再用显式 <span class="mono">args_schema</span>。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> 流式下工具参数是"碎着来"的：ToolCallChunk <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 为什么会有 ToolCallChunk</div>
+      <div class="a">流式输出时，模型生成的工具参数 JSON 是<strong>一段段</strong>吐出来的（如 <span class="mono">{"ci</span> … <span class="mono">ty": "北</span> … <span class="mono">京"}</span>）。
+        每一段是一个 <span class="mono">ToolCallChunk</span>，累加后才拼成完整的 <span class="mono">ToolCall</span>。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么必要</div>
+      <div class="a">要在 UI 上"边生成边显示工具调用"，就不能等参数全部到齐。分块 + 累加让你能实时呈现，
+        最终再得到可执行的完整调用。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 代码对应</div>
+      <div class="a"><span class="mono">ToolCall</span> 与 <span class="mono">ToolCallChunk</span> 都在 <span class="mono">messages/tool.py</span>；
+        chunk 的累加规则与第 13 课的 <span class="mono">AIMessageChunk</span> 相加是同一套思路。</div>
+    </div>
+  </div>
+</details>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
@@ -444,6 +698,76 @@ graph.add_conditional_edges(<span class="st">"tools"</span>, ...)   <span class=
   </ul>
 </div>
 
+<h2>🔍 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入 Agent 内部的三个机制。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> 条件边是怎么决定"去 tools 还是结束"的 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 路由函数</div>
+      <div class="a">"model"节点之后挂了一个条件边，本质是一个看状态的小函数：
+<pre class="code"><span class="kw">def</span> <span class="fn">should_continue</span>(state):
+    last = state[<span class="st">"messages"</span>][-1]
+    <span class="kw">if</span> last.tool_calls:        <span class="cm"># 模型请求了工具</span>
+        <span class="kw">return</span> <span class="st">"tools"</span>         <span class="cm"># → 去 tools 节点</span>
+    <span class="kw">return</span> END                <span class="cm"># → 否则结束</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么用"条件边"而不是写死</div>
+      <div class="a">是否继续循环取决于<strong>运行时</strong>模型的输出，不是编译期能定的。
+        条件边（<span class="mono">add_conditional_edges</span>）让图能根据当前状态<strong>动态选择</strong>下一个节点。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">循环的终止条件被清晰地表达为一条边，逻辑集中、可读；要改循环行为只需改这个路由函数。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> 为什么用"图(Graph)"而不是简单 while 循环 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">❓ 图能给你什么，while 给不了</div>
+      <div class="a"><strong>持久化 / 断点续跑</strong>（checkpointer：跑一半存档，之后从断点恢复）、
+        <strong>中断与人审</strong>（在某节点暂停等人确认）、<strong>并行分支</strong>、<strong>可视化</strong>、
+        <strong>细粒度流式</strong>（按节点输出事件）。这些用裸 while 自己实现会非常复杂。</div>
+    </div>
+    <div class="qa">
+      <div class="q">🧪 体现在签名里</div>
+      <div class="a"><span class="mono">create_agent</span> 的 <span class="mono">checkpointer</span>、<span class="mono">interrupt_before/after</span>、
+        <span class="mono">store</span> 等参数，正是这些图能力的开关。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点 & 🔀 其他方案</div>
+      <div class="a">优点：把"有状态、可中断、可恢复的循环"标准化。其他方案：自己写 while（小场景够用，但要自己实现状态管理与持久化）。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">3</span> AgentState 里除了 messages 还能放什么 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 自定义状态</div>
+      <div class="a">默认状态至少含 <span class="mono">messages</span>，但你可以用 <span class="mono">state_schema</span> 扩展，
+        让节点之间传递更多字段（如已检索文档、剩余预算、用户画像等）。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么需要</div>
+      <div class="a">复杂 Agent 的节点常要共享"对话之外"的数据。把它们放进状态，
+        就能在 model / tools / middleware 各节点间安全传递，而不必塞进消息里污染对话。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 代码对应</div>
+      <div class="a"><span class="mono">AgentState</span> 由 <span class="mono">agents/middleware/types.py</span> 定义并从 <span class="mono">langchain.agents</span> 导出；
+        <span class="mono">state_schema</span> 是 <span class="mono">create_agent</span> 的参数之一。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
@@ -530,6 +854,78 @@ LESSON_13 = r"""
     <li><span class="mono">RunnableConfig</span> 是"随调用流动的上下文信封"，把回调/标签/并发度一路带到底层。</li>
   </ul>
 </div>
+
+<h2>🔍 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入三个进阶话题。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> stream 与 astream_events 有什么区别 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 两种粒度</div>
+      <div class="a">
+<pre class="code"><span class="cm"># stream：只拿"最终输出"的逐块结果</span>
+<span class="kw">for</span> chunk <span class="kw">in</span> chain.stream(x):
+    ...   <span class="cm"># 通常是最后一步 parser/model 的输出块</span>
+
+<span class="cm"># astream_events：拿"链中每一步"的事件（开始/结束/token…）</span>
+<span class="kw">async</span> <span class="kw">for</span> ev <span class="kw">in</span> chain.astream_events(x):
+    ev[<span class="st">"event"</span>]   <span class="cm"># on_chat_model_stream / on_tool_end / ...</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 各自用在哪</div>
+      <div class="a"><span class="mono">stream</span> 够做"打字机"效果；而要展示 <strong>Agent 的思考过程</strong>
+        （正在调哪个工具、检索到什么），就需要 <span class="mono">astream_events</span> 这种<strong>逐步骤</strong>事件流。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 代码对应</div>
+      <div class="a">两者都在 <span class="mono">runnables/base.py</span>；<span class="mono">astream_events</span> 是构建复杂实时 UI 的基础。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> callbacks 与 middleware 到底有什么不同 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 一句话区分</div>
+      <div class="a"><strong>callbacks = 观察</strong>（被动收到事件，做日志/追踪，不改流程）；
+        <strong>middleware = 干预</strong>（主动改写请求、拦截、加节点，<strong>会改变</strong>流程，第 12 课）。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 何时用哪个</div>
+      <div class="a">要"记录 / 上报 / 监控" → 用 callbacks；要"修改行为 / 加人审 / 限流" → 用 middleware。
+        两者可同时存在，各司其职。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">观察与干预分离，职责清晰：观测代码不会意外改变业务流程，反之亦然。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">3</span> chunk 相加的"+"到底合并了什么 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 合并的不只是文本</div>
+      <div class="a"><span class="mono">AIMessageChunk + AIMessageChunk</span> 会把<strong>正文拼接</strong>、
+        <strong>工具调用片段(ToolCallChunk)拼接</strong>、<strong>token 用量累加</strong>，
+        最终等价于一次性 <span class="mono">invoke</span> 拿到的完整 <span class="mono">AIMessage</span>。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么要可相加</div>
+      <div class="a">流式天然是"碎片化"的。让 chunk 支持 <span class="mono">+</span>，你就能一边实时显示、一边在循环里
+        累加出"完整结果"，无需第二次请求。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 代码对应</div>
+      <div class="a">由 <span class="mono">BaseMessageChunk.__add__</span>（<span class="mono">messages/ai.py</span> 等）实现；
+        辅助函数 <span class="mono">generate_from_stream</span> 把整串 chunk 归并成最终结果。</div>
+    </div>
+  </div>
+</details>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>

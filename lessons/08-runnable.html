@@ -300,6 +300,99 @@ result = chain.invoke({<span class="st">"city"</span>: <span class="st">"北京"
   </ul>
 </div>
 
+<h2>谁是 Runnable？（几乎全员）</h2>
+<p>下面这些你已经用过的东西，<strong>本质都是 Runnable</strong>，所以都能 invoke、都能用 <span class="inline">|</span> 拼接：</p>
+<table class="t">
+  <tr><th>组件</th><th>输入 → 输出</th></tr>
+  <tr><td class="mono">ChatModel</td><td>消息列表 → AIMessage</td></tr>
+  <tr><td class="mono">PromptTemplate</td><td>变量 dict → 提示词 / 消息</td></tr>
+  <tr><td class="mono">OutputParser</td><td>AIMessage → 结构化数据</td></tr>
+  <tr><td class="mono">Tool</td><td>参数 dict → 工具结果</td></tr>
+  <tr><td class="mono">RunnableSequence / Parallel</td><td>组合本身也是 Runnable</td></tr>
+  <tr><td class="mono">create_agent 的产物</td><td>状态 → 状态（也是 Runnable！）</td></tr>
+</table>
+
+<h2>🔍 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入三个关键设计。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> 只实现 invoke，为什么就"免费"获得 stream / batch <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 默认实现的思路</div>
+      <div class="a">
+<pre class="code"><span class="cm"># 基类 Runnable 里（概念示意）：</span>
+<span class="kw">def</span> <span class="fn">batch</span>(self, inputs):
+    <span class="kw">return</span> [self.invoke(x) <span class="kw">for</span> x <span class="kw">in</span> inputs]   <span class="cm"># 用线程池并发</span>
+
+<span class="kw">def</span> <span class="fn">stream</span>(self, input):
+    <span class="kw">yield</span> self.invoke(input)   <span class="cm"># 退化：一次性产出一块</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么这样设计</div>
+      <div class="a">子类<strong>只需实现一个</strong> <span class="mono">invoke</span>，就立刻拥有可用的 batch / stream。
+        想要更好的体验（如真正逐 token 流式），子类可以<strong>重写</strong> <span class="mono">stream</span>（聊天模型就是这么做的）。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">降低实现新组件的门槛（最少只写一个方法），又保留按需优化的空间——这是"默认实现 + 可重写"的经典模板设计。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> a | b 背后：__or__ 到底返回了什么 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 等价写法</div>
+      <div class="a">
+<pre class="code">chain = prompt | model | parser
+<span class="cm"># 等价于：</span>
+chain = prompt.pipe(model).pipe(parser)
+<span class="cm"># 两者都得到一个 RunnableSequence（第 9 课详解）</span>
+<span class="kw">type</span>(chain)   <span class="cm"># RunnableSequence</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么用运算符重载</div>
+      <div class="a">Python 的 <span class="mono">__or__</span> 让你能像 Unix 管道 <span class="mono">cmd1 | cmd2</span> 那样表达数据流，
+        读起来就是"从左流到右"，比嵌套函数调用直观得多。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">声明式、可读性强；而且产物仍是 Runnable，可继续 <span class="mono">|</span> 下去，无限组合。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">3</span> config 参数：贯穿整条链的"上下文信封" <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 RunnableConfig 携带什么</div>
+      <div class="a">
+<pre class="code">chain.invoke(x, config={
+    <span class="st">"callbacks"</span>: [...],       <span class="cm"># 回调/追踪（第 13 课）</span>
+    <span class="st">"tags"</span>: [<span class="st">"prod"</span>],         <span class="cm"># 给这次运行打标签</span>
+    <span class="st">"metadata"</span>: {<span class="st">"uid"</span>: 1},   <span class="cm"># 自定义元数据</span>
+    <span class="st">"max_concurrency"</span>: 5,    <span class="cm"># 并发上限</span>
+})</pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么必要</div>
+      <div class="a">链里有很多步，你需要一种方式把"回调、标签、并发度"等<strong>一次性传到每一步</strong>，
+        而不是层层手动透传。<span class="mono">config</span> 就是这个自动随调用流动的信封。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">定义在 <span class="mono">runnables/config.py</span> 的 <span class="mono">RunnableConfig</span>，对所有 Runnable 通用；
+        追踪、限流、命名一处设置、全链生效。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>

@@ -297,6 +297,78 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   </ul>
 </div>
 
+<h2>🔍 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入三个进阶话题。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> stream 与 astream_events 有什么区别 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 两种粒度</div>
+      <div class="a">
+<pre class="code"><span class="cm"># stream：只拿"最终输出"的逐块结果</span>
+<span class="kw">for</span> chunk <span class="kw">in</span> chain.stream(x):
+    ...   <span class="cm"># 通常是最后一步 parser/model 的输出块</span>
+
+<span class="cm"># astream_events：拿"链中每一步"的事件（开始/结束/token…）</span>
+<span class="kw">async</span> <span class="kw">for</span> ev <span class="kw">in</span> chain.astream_events(x):
+    ev[<span class="st">"event"</span>]   <span class="cm"># on_chat_model_stream / on_tool_end / ...</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 各自用在哪</div>
+      <div class="a"><span class="mono">stream</span> 够做"打字机"效果；而要展示 <strong>Agent 的思考过程</strong>
+        （正在调哪个工具、检索到什么），就需要 <span class="mono">astream_events</span> 这种<strong>逐步骤</strong>事件流。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 代码对应</div>
+      <div class="a">两者都在 <span class="mono">runnables/base.py</span>；<span class="mono">astream_events</span> 是构建复杂实时 UI 的基础。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> callbacks 与 middleware 到底有什么不同 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 一句话区分</div>
+      <div class="a"><strong>callbacks = 观察</strong>（被动收到事件，做日志/追踪，不改流程）；
+        <strong>middleware = 干预</strong>（主动改写请求、拦截、加节点，<strong>会改变</strong>流程，第 12 课）。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 何时用哪个</div>
+      <div class="a">要"记录 / 上报 / 监控" → 用 callbacks；要"修改行为 / 加人审 / 限流" → 用 middleware。
+        两者可同时存在，各司其职。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">观察与干预分离，职责清晰：观测代码不会意外改变业务流程，反之亦然。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">3</span> chunk 相加的"+"到底合并了什么 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 合并的不只是文本</div>
+      <div class="a"><span class="mono">AIMessageChunk + AIMessageChunk</span> 会把<strong>正文拼接</strong>、
+        <strong>工具调用片段(ToolCallChunk)拼接</strong>、<strong>token 用量累加</strong>，
+        最终等价于一次性 <span class="mono">invoke</span> 拿到的完整 <span class="mono">AIMessage</span>。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么要可相加</div>
+      <div class="a">流式天然是"碎片化"的。让 chunk 支持 <span class="mono">+</span>，你就能一边实时显示、一边在循环里
+        累加出"完整结果"，无需第二次请求。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 代码对应</div>
+      <div class="a">由 <span class="mono">BaseMessageChunk.__add__</span>（<span class="mono">messages/ai.py</span> 等）实现；
+        辅助函数 <span class="mono">generate_from_stream</span> 把整串 chunk 归并成最终结果。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>

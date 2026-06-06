@@ -297,6 +297,55 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   这套机制纯靠<strong>结构化消息</strong>运转——又一次印证"消息是通用货币"。
 </div>
 
+<h2>🔍 深入理解</h2>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入两个内部机制。</p>
+
+<details class="accordion">
+  <summary><span class="badge-num">1</span> 类型注解是怎么变成 JSON Schema 的 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 映射关系</div>
+      <div class="a"><span class="mono">create_schema_from_function</span> 读取签名，把 Python 类型映射成 JSON Schema 类型：
+<pre class="code">city: str         → {<span class="st">"type"</span>: <span class="st">"string"</span>}
+count: int        → {<span class="st">"type"</span>: <span class="st">"integer"</span>}
+ratio: float      → {<span class="st">"type"</span>: <span class="st">"number"</span>}
+tags: list[str]   → {<span class="st">"type"</span>: <span class="st">"array"</span>, <span class="st">"items"</span>: {<span class="st">"type"</span>: <span class="st">"string"</span>}}
+<span class="cm"># 没有默认值的参数 → required；docstring → description</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么用 pydantic 当中间层</div>
+      <div class="a">pydantic 既能<strong>生成</strong> JSON Schema（给模型看），又能在执行时<strong>校验</strong>模型传回的参数
+        （类型不对就报错）。一举两得，避免脏参数进入你的函数。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 优点</div>
+      <div class="a">你只写普通类型注解，schema 生成与参数校验全自动；想更精细时再用显式 <span class="mono">args_schema</span>。</div>
+    </div>
+  </div>
+</details>
+
+<details class="accordion">
+  <summary><span class="badge-num">2</span> 流式下工具参数是"碎着来"的：ToolCallChunk <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 为什么会有 ToolCallChunk</div>
+      <div class="a">流式输出时，模型生成的工具参数 JSON 是<strong>一段段</strong>吐出来的（如 <span class="mono">{"ci</span> … <span class="mono">ty": "北</span> … <span class="mono">京"}</span>）。
+        每一段是一个 <span class="mono">ToolCallChunk</span>，累加后才拼成完整的 <span class="mono">ToolCall</span>。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 为什么必要</div>
+      <div class="a">要在 UI 上"边生成边显示工具调用"，就不能等参数全部到齐。分块 + 累加让你能实时呈现，
+        最终再得到可执行的完整调用。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 代码对应</div>
+      <div class="a"><span class="mono">ToolCall</span> 与 <span class="mono">ToolCallChunk</span> 都在 <span class="mono">messages/tool.py</span>；
+        chunk 的累加规则与第 13 课的 <span class="mono">AIMessageChunk</span> 相加是同一套思路。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
