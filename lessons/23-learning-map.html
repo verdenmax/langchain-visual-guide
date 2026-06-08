@@ -331,6 +331,18 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   </ul>
 </div>
 
+<div class="card detail">
+  <div class="tag">🔬 术语速查：5 个高频词，一句话各拆一个</div>
+  <table class="t" style="margin-top:.6rem">
+    <tr><th>术语</th><th>一句话理解</th></tr>
+    <tr><td class="mono">PagedAttention</td><td>把 KV-cache 像操作系统的<strong>虚拟内存"分页"</strong>来管，消除显存碎片 → 同一张卡能跑更多并发</td></tr>
+    <tr><td class="mono">continuous batching</td><td>不等"整批"凑齐，谁先生成完就把<strong>新请求填进空位</strong> → GPU 不空转</td></tr>
+    <tr><td>量化 <span class="mono">quantization</span></td><td>用更低精度（int8/int4）存权重，<strong>省显存、提速</strong>，精度略有损失</td></tr>
+    <tr><td class="mono">HNSW</td><td>一种多层"跳表式"图索引，<strong>快速找到最近邻向量</strong>（hnswlib 就是它）</td></tr>
+    <tr><td class="mono">ANN</td><td>近似最近邻：<strong>牺牲一点点精度，换巨大的速度</strong>——向量检索能上规模的关键</td></tr>
+  </table>
+</div>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>

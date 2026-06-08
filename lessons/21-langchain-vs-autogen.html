@@ -248,7 +248,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 
 <div class="card warn">
   <div class="tag">ℹ️ 先说现状</div>
-  AutoGen 目前已进入<strong>维护模式</strong>（不再加新功能），微软推荐新项目用其继任者
+  AutoGen <strong>自 2025 年起</strong>进入<strong>维护模式</strong>（不再加新功能），微软推荐新项目用其继任者
   <strong>Microsoft Agent Framework</strong>。但 AutoGen 的<strong>设计思想</strong>非常有代表性，
   作为"另一种范式"来对照学习，价值依旧很高。
 </div>
@@ -448,6 +448,24 @@ team = RoundRobinGroupChat([writer, critic],
     <tr><td class="mono">OpenAIChatCompletionClient</td><td class="mono">autogen-ext/.../models/openai/_openai_client.py</td></tr>
     <tr><td class="mono">GrpcWorkerAgentRuntime（分布式）</td><td class="mono">autogen-ext/.../runtimes/grpc/</td></tr>
   </table>
+</div>
+
+<h2>怎么选：三步决策</h2>
+<div class="vflow">
+  <div class="step"><div class="num">1</div><div class="sc">
+    <h4>先看任务形态</h4>
+    <p>是<strong>一条可控的流水线 / 工作流</strong>（含 RAG、审批、确定路线）？还是<strong>多个角色自由协作</strong>（头脑风暴、辩论、研究）？</p>
+  </div></div>
+  <div class="step"><div class="num">2</div><div class="sc">
+    <h4>再看你最在意什么</h4>
+    <p>要<strong>可控、可预测、大集成生态、长期稳定</strong> → 倾向 LangChain；要<strong>多 Agent 组队快、行为涌现</strong> → 倾向 AutoGen 系。</p>
+  </div></div>
+  <div class="step"><div class="num">3</div><div class="sc">
+    <h4>给结论</h4>
+    <p><strong>RAG / 可控工具 Agent / 工作流</strong> → <span class="mono">LangChain + LangGraph</span>；
+      <strong>多 Agent 协作 / 研究原型</strong> → <span class="mono">AutoGen</span>（新项目用继任者 <span class="mono">Microsoft Agent Framework</span>）。</p>
+    <p class="mono">边界模糊时：LangGraph 也能做多 Agent，按"默认重心"选即可。</p>
+  </div></div>
 </div>
 
 <div class="card key">

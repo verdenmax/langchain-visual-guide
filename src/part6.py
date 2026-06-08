@@ -12,7 +12,7 @@ LESSON_CMP = r"""
 
 <div class="card warn">
   <div class="tag">ℹ️ 先说现状</div>
-  AutoGen 目前已进入<strong>维护模式</strong>（不再加新功能），微软推荐新项目用其继任者
+  AutoGen <strong>自 2025 年起</strong>进入<strong>维护模式</strong>（不再加新功能），微软推荐新项目用其继任者
   <strong>Microsoft Agent Framework</strong>。但 AutoGen 的<strong>设计思想</strong>非常有代表性，
   作为"另一种范式"来对照学习，价值依旧很高。
 </div>
@@ -214,6 +214,24 @@ team = RoundRobinGroupChat([writer, critic],
   </table>
 </div>
 
+<h2>怎么选：三步决策</h2>
+<div class="vflow">
+  <div class="step"><div class="num">1</div><div class="sc">
+    <h4>先看任务形态</h4>
+    <p>是<strong>一条可控的流水线 / 工作流</strong>（含 RAG、审批、确定路线）？还是<strong>多个角色自由协作</strong>（头脑风暴、辩论、研究）？</p>
+  </div></div>
+  <div class="step"><div class="num">2</div><div class="sc">
+    <h4>再看你最在意什么</h4>
+    <p>要<strong>可控、可预测、大集成生态、长期稳定</strong> → 倾向 LangChain；要<strong>多 Agent 组队快、行为涌现</strong> → 倾向 AutoGen 系。</p>
+  </div></div>
+  <div class="step"><div class="num">3</div><div class="sc">
+    <h4>给结论</h4>
+    <p><strong>RAG / 可控工具 Agent / 工作流</strong> → <span class="mono">LangChain + LangGraph</span>；
+      <strong>多 Agent 协作 / 研究原型</strong> → <span class="mono">AutoGen</span>（新项目用继任者 <span class="mono">Microsoft Agent Framework</span>）。</p>
+    <p class="mono">边界模糊时：LangGraph 也能做多 Agent，按"默认重心"选即可。</p>
+  </div></div>
+</div>
+
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
@@ -353,8 +371,8 @@ LESSON_STACK = r"""
 <div class="card detail">
   <div class="tag">🔬 顺手澄清两个被叫混的协议</div>
   <ul>
-    <li><span class="mono">MCP</span> = <strong>Model Context Protocol</strong>（Anthropic 提出）：标准化"Agent ↔ 工具/数据源"的接法，横跨 L6/L7。<strong>不是</strong>"多 Agent 通信协议"。</li>
-    <li><span class="mono">A2A</span> = <strong>Agent2Agent</strong>（Google 提出）：标准化"Agent ↔ Agent"的协作。</li>
+    <li><span class="mono">MCP</span> = <strong>Model Context Protocol</strong>（Anthropic，2024 年 11 月开源）：标准化"Agent ↔ 工具/数据源"的接法，横跨 L6/L7。<strong>不是</strong>"多 Agent 通信协议"。</li>
+    <li><span class="mono">A2A</span> = <strong>Agent2Agent</strong>（Google，2025 年提出）：标准化"Agent ↔ Agent"的协作。</li>
     <li>一句话记：<strong>MCP 管"Agent 连工具"，A2A 管"Agent 连 Agent"。</strong></li>
   </ul>
 </div>
@@ -481,6 +499,18 @@ LESSON_LEARN = r"""
     <li><strong>懂 L6</strong>：你的 RAG 才能从<strong>"能跑"进化到"答得准"</strong>（选对索引、选对嵌入、调对 chunk）。</li>
     <li>再往下（L3 训练 / L1 硬件）是<strong>另一条职业路线</strong>了——不是不好，而是投入产出比对应用开发者没这么高，按需再说。</li>
   </ul>
+</div>
+
+<div class="card detail">
+  <div class="tag">🔬 术语速查：5 个高频词，一句话各拆一个</div>
+  <table class="t" style="margin-top:.6rem">
+    <tr><th>术语</th><th>一句话理解</th></tr>
+    <tr><td class="mono">PagedAttention</td><td>把 KV-cache 像操作系统的<strong>虚拟内存"分页"</strong>来管，消除显存碎片 → 同一张卡能跑更多并发</td></tr>
+    <tr><td class="mono">continuous batching</td><td>不等"整批"凑齐，谁先生成完就把<strong>新请求填进空位</strong> → GPU 不空转</td></tr>
+    <tr><td>量化 <span class="mono">quantization</span></td><td>用更低精度（int8/int4）存权重，<strong>省显存、提速</strong>，精度略有损失</td></tr>
+    <tr><td class="mono">HNSW</td><td>一种多层"跳表式"图索引，<strong>快速找到最近邻向量</strong>（hnswlib 就是它）</td></tr>
+    <tr><td class="mono">ANN</td><td>近似最近邻：<strong>牺牲一点点精度，换巨大的速度</strong>——向量检索能上规模的关键</td></tr>
+  </table>
 </div>
 
 <div class="card key">

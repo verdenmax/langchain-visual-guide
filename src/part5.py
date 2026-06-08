@@ -222,18 +222,24 @@ RAG（检索增强生成）解决这个问题：<strong>先去知识库里检索
 </div>
 
 <h2>代码：十几行搭一个 RAG</h2>
+<div class="card warn">
+  <div class="tag">⚠️ 这是骨架示意</div>
+  下面 <span class="mono">docs</span> / <span class="mono">embeddings</span> / <span class="mono">SomeVectorStore</span> 是<strong>占位</strong>，
+  请替换成真实对象（下方"深入理解"里有<strong>可直接运行</strong>的完整版）。
+</div>
 <pre class="code"><span class="kw">from</span> langchain_text_splitters <span class="kw">import</span> RecursiveCharacterTextSplitter
 
+<span class="cm"># 0) docs：上一步加载好的文档 list[Document]；embeddings = OpenAIEmbeddings() 之类</span>
 <span class="cm"># 1~2) 文档 → 切块</span>
 splits = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50).split_documents(docs)
 
-<span class="cm"># 3~4) 嵌入 + 存入向量库（embeddings 来自某个 partner，如 OpenAIEmbeddings）</span>
+<span class="cm"># 3~4) 嵌入 + 存入向量库（SomeVectorStore 换成真实实现，如 InMemoryVectorStore / Chroma）</span>
 vectorstore = SomeVectorStore.from_documents(splits, embedding=embeddings)
 
 <span class="cm"># 5) 得到一个检索器</span>
 retriever = vectorstore.as_retriever(search_kwargs={<span class="st">"k"</span>: 4})
 
-docs = retriever.invoke(<span class="st">"北京的退货政策是什么？"</span>)   <span class="cm"># → list[Document]，最相关的 4 块</span>
+hits = retriever.invoke(<span class="st">"北京的退货政策是什么？"</span>)   <span class="cm"># → list[Document]，最相关的 4 块</span>
 </pre>
 
 <div class="card key">
@@ -411,6 +417,31 @@ agent = create_agent(model, tools=[kb_tool])</pre>
   </ul>
 </div>
 
+<details class="accordion">
+  <summary><span class="badge-num">6</span> 从"能跑"到"答得准"：RAG 调优清单 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 四个最该调的旋钮</div>
+      <div class="a">
+<pre class="code">chunk_size / chunk_overlap   <span class="cm"># 切太大→噪声多，切太小→语义碎；常见 300~800 字 + 10~15% 重叠</span>
+k（检索条数）                <span class="cm"># 太少漏召回，太多塞爆上下文；常从 4~8 起调</span>
+重排序 reranking            <span class="cm"># 先粗召回 ~20 条，再用 reranker 精排取前几条，准确率显著提升</span>
+嵌入模型                    <span class="cm"># 中文优先 BGE / bge-m3；换更强的嵌入往往比改 prompt 更有效</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 怎么知道调好了：要评估</div>
+      <div class="a">别凭感觉。准备一组"问题 → 应命中的文档"，量<strong>召回率</strong>（该召回的有没有召回）和
+        <strong>答案正确率</strong>。工具如 <span class="mono">Ragas</span>（第 22 课"横切带"提到过）可自动打分。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 常见翻车点</div>
+      <div class="a">① 文档没清洗（页眉页脚/乱码也进了向量）；② 切块把表格/代码拦腰斩断；
+        ③ 只调 prompt 不调检索——<strong>RAG 的上限通常卡在"检索"而非"生成"</strong>。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card spark">
   <div class="tag">💡 设计亮点</div>
   <ul>
@@ -445,13 +476,14 @@ LESSON_17 = r"""
   再<strong>从里向外穿回来</strong>。每一层都能在"进去前"和"出来后"做点事——记录、改写、拦截、重试。
 </div>
 
-<h2>六个钩子：在循环的关键点插入逻辑</h2>
+<h2>七个钩子：在循环的关键点插入逻辑</h2>
 <p>一个中间件可以实现下面任意几个<strong>钩子方法</strong>，框架会在对应时机自动调用：</p>
 
 <table class="t">
   <tr><th>钩子</th><th>触发时机</th><th>典型用途</th></tr>
   <tr><td class="mono">before_agent</td><td>整个 Agent 开始时（一次）</td><td>初始化、鉴权</td></tr>
   <tr><td class="mono">before_model</td><td>每次调用模型<strong>前</strong></td><td>裁剪历史、注入提示</td></tr>
+  <tr><td class="mono">dynamic_prompt</td><td>每次调用模型<strong>前</strong>（生成系统提示）</td><td>按状态切换 system prompt</td></tr>
   <tr><td class="mono">wrap_model_call</td><td><strong>包裹</strong>整个模型调用</td><td>改请求/响应、重试、降级</td></tr>
   <tr><td class="mono">after_model</td><td>每次调用模型<strong>后</strong></td><td>校验/改写模型输出</td></tr>
   <tr><td class="mono">wrap_tool_call</td><td><strong>包裹</strong>每次工具调用</td><td>工具级重试、审计</td></tr>
@@ -499,7 +531,7 @@ LESSON_17 = r"""
 <p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，逐个吃透中间件机制。</p>
 
 <details class="accordion">
-  <summary><span class="badge-num">1</span> 六个钩子分别在何时触发 <span class="hint">点击展开详解</span></summary>
+  <summary><span class="badge-num">1</span> 七个钩子分别在何时触发 <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
     <div class="qa">
       <div class="q">🧪 执行顺序</div>
@@ -507,6 +539,7 @@ LESSON_17 = r"""
 <pre class="code">before_agent                <span class="cm"># 仅一次</span>
 └─ 循环开始
    before_model             <span class="cm"># 每轮模型调用前</span>
+   dynamic_prompt           <span class="cm"># 每轮模型调用前·按状态生成系统提示</span>
    wrap_model_call ─ 模型 ─┐ <span class="cm"># 包在模型调用外层</span>
    after_model  ◄──────────┘ <span class="cm"># 每轮模型调用后</span>
    wrap_tool_call ─ 工具      <span class="cm"># 每次工具调用外层</span>
@@ -582,6 +615,49 @@ after_agent                 <span class="cm"># 仅一次</span></pre>
   </div>
 </details>
 
+<h2>三个真实场景：中间件到底能干什么</h2>
+<p>光看钩子名字没体感，来看三个生产里最常写的中间件——全部基于 <span class="mono">wrap_model_call</span> / <span class="mono">override</span>：</p>
+<details class="accordion">
+  <summary><span class="badge-num">4</span> 案例库：PII 脱敏 / 成本限速 / A·B 切模型 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 ① PII 脱敏（wrap_model_call + override）</div>
+      <div class="a">只把<strong>发给模型的那份副本</strong>脱敏（手机号/邮箱 → 占位符），原始对话历史<strong>原封不动</strong>：
+<pre class="code"><span class="kw">class</span> <span class="fn">PIIRedaction</span>(AgentMiddleware):
+    <span class="kw">def</span> <span class="fn">wrap_model_call</span>(self, request, handler):
+        clean = request.override(messages=redact(request.messages))
+        <span class="kw">return</span> handler(clean)        <span class="cm"># 敏感数据不出本地</span></pre></div>
+    </div>
+    <div class="qa">
+      <div class="q">🧪 ② 成本 / 限速护栏（wrap_model_call）</div>
+      <div class="a">累加每次调用的 token，超预算就<strong>短路</strong>或降级换更便宜的模型：
+<pre class="code"><span class="kw">class</span> <span class="fn">Budget</span>(AgentMiddleware):
+    <span class="kw">def</span> <span class="fn">wrap_model_call</span>(self, request, handler):
+        <span class="kw">if</span> self.spent &gt; self.cap:
+            <span class="kw">raise</span> RuntimeError(<span class="st">"预算用尽"</span>)      <span class="cm"># 或 override 换便宜模型</span>
+        resp = handler(request)
+        ai = resp.result[-1]                  <span class="cm"># 最新的 AIMessage</span>
+        self.spent += (ai.usage_metadata <span class="kw">or</span> {}).get(<span class="st">"total_tokens"</span>, 0)
+        <span class="kw">return</span> resp</pre></div>
+    </div>
+    <div class="qa">
+      <div class="q">🧪 ③ A/B 切模型（wrap_model_call + override）</div>
+      <div class="a">放一部分流量到候选模型，灰度对比效果——上线新模型的常用手法：
+<pre class="code"><span class="kw">class</span> <span class="fn">ABModel</span>(AgentMiddleware):
+    <span class="kw">def</span> <span class="fn">wrap_model_call</span>(self, request, handler):
+        <span class="kw">if</span> random.random() &lt; 0.1:             <span class="cm"># 10% 流量走候选</span>
+            request = request.override(model=candidate)
+        <span class="kw">return</span> handler(request)</pre></div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 共同套路</div>
+      <div class="a"><strong>读改状态</strong>用 <span class="mono">before/after_model</span>（返回 state 更新）；
+        <strong>拦截 / 改请求 / 重试 / 短路一次调用</strong>用 <span class="mono">wrap_model_call</span>——
+        靠 <span class="mono">request.override(...)</span> 造新请求、靠 <span class="mono">handler(...)</span> 决定调不调、调几次。内置的 retry/fallback/限流就是这么写的。</div>
+    </div>
+  </div>
+</details>
+
 <h2>🔬 实现细节与亮点</h2>
 <p>这是第五部分最值得深挖的一处：<strong>两类钩子用了两种完全不同的实现机制</strong>——这正是 middleware 既灵活又高效的秘密。</p>
 
@@ -626,7 +702,7 @@ graph.add_node(f<span class="st">"{m.name}.after_model"</span>,  after_node,  ..
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li>中间件是 Agent 的核心扩展点：六个钩子 <span class="mono">before_agent / before_model / wrap_model_call / after_model / wrap_tool_call / after_agent</span>。</li>
+    <li>中间件是 Agent 的核心扩展点：七个钩子 <span class="mono">before_agent / before_model / dynamic_prompt / wrap_model_call / after_model / wrap_tool_call / after_agent</span>。</li>
     <li>两种写法：<strong>装饰器</strong>（轻量）与<strong>继承 AgentMiddleware</strong>（功能全）。</li>
     <li><span class="mono">wrap_model_call</span> 能改请求/响应、重试、降级——内置的 retry/fallback 都基于它。</li>
     <li><span class="mono">dynamic_prompt</span> 让系统提示词随运行时上下文动态生成。</li>

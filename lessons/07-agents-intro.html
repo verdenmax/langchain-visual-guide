@@ -406,14 +406,23 @@ agent = create_agent(model, tools=[get_weather], response_format=Answer)
     <div class="qa">
       <div class="q">🧪 两道防线</div>
       <div class="a">
-<pre class="code"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> ModelCallLimitMiddleware
+<pre class="code"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> (
+    ModelCallLimitMiddleware, ToolCallLimitMiddleware,
+)
 
 agent = create_agent(model, tools, middleware=[
-    ModelCallLimitMiddleware(max_calls=8),   <span class="cm"># 业务级：最多调 8 次模型</span>
+    ModelCallLimitMiddleware(max_calls=8),   <span class="cm"># 整体：最多调 8 次模型（思考轮数）</span>
+    ToolCallLimitMiddleware(max_calls=3),    <span class="cm"># 单类工具最多调 3 次（防刷某工具）</span>
 ])
 <span class="cm"># 硬保护：图的递归上限（兜底，超过直接报错）</span>
 agent.invoke(input, config={<span class="st">"recursion_limit"</span>: 25})</pre>
       </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ Model 上限 vs Tool 上限</div>
+      <div class="a"><span class="mono">ModelCallLimitMiddleware</span> 限"<strong>总共思考几轮</strong>"（模型被调用次数）；
+        <span class="mono">ToolCallLimitMiddleware</span> 限"<strong>某个/某类工具最多被调几次</strong>"，防止模型对同一工具反复刷。
+        二者可叠加，分别防"想太久"和"刷某工具"。</div>
     </div>
     <div class="qa">
       <div class="q">❓ 为什么必要</div>

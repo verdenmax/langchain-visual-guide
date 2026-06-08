@@ -275,18 +275,24 @@ RAG（检索增强生成）解决这个问题：<strong>先去知识库里检索
 </div>
 
 <h2>代码：十几行搭一个 RAG</h2>
+<div class="card warn">
+  <div class="tag">⚠️ 这是骨架示意</div>
+  下面 <span class="mono">docs</span> / <span class="mono">embeddings</span> / <span class="mono">SomeVectorStore</span> 是<strong>占位</strong>，
+  请替换成真实对象（下方"深入理解"里有<strong>可直接运行</strong>的完整版）。
+</div>
 <pre class="code"><span class="kw">from</span> langchain_text_splitters <span class="kw">import</span> RecursiveCharacterTextSplitter
 
+<span class="cm"># 0) docs：上一步加载好的文档 list[Document]；embeddings = OpenAIEmbeddings() 之类</span>
 <span class="cm"># 1~2) 文档 → 切块</span>
 splits = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50).split_documents(docs)
 
-<span class="cm"># 3~4) 嵌入 + 存入向量库（embeddings 来自某个 partner，如 OpenAIEmbeddings）</span>
+<span class="cm"># 3~4) 嵌入 + 存入向量库（SomeVectorStore 换成真实实现，如 InMemoryVectorStore / Chroma）</span>
 vectorstore = SomeVectorStore.from_documents(splits, embedding=embeddings)
 
 <span class="cm"># 5) 得到一个检索器</span>
 retriever = vectorstore.as_retriever(search_kwargs={<span class="st">"k"</span>: 4})
 
-docs = retriever.invoke(<span class="st">"北京的退货政策是什么？"</span>)   <span class="cm"># → list[Document]，最相关的 4 块</span>
+hits = retriever.invoke(<span class="st">"北京的退货政策是什么？"</span>)   <span class="cm"># → list[Document]，最相关的 4 块</span>
 </pre>
 
 <div class="card key">
@@ -463,6 +469,31 @@ agent = create_agent(model, tools=[kb_tool])</pre>
     <li><strong>切分器</strong>：递归用越来越细的分隔符切，再 <span class="mono">_merge_splits</span> 按 <span class="mono">chunk_size</span> 打包、留 <span class="mono">chunk_overlap</span>。</li>
   </ul>
 </div>
+
+<details class="accordion">
+  <summary><span class="badge-num">6</span> 从"能跑"到"答得准"：RAG 调优清单 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 四个最该调的旋钮</div>
+      <div class="a">
+<pre class="code">chunk_size / chunk_overlap   <span class="cm"># 切太大→噪声多，切太小→语义碎；常见 300~800 字 + 10~15% 重叠</span>
+k（检索条数）                <span class="cm"># 太少漏召回，太多塞爆上下文；常从 4~8 起调</span>
+重排序 reranking            <span class="cm"># 先粗召回 ~20 条，再用 reranker 精排取前几条，准确率显著提升</span>
+嵌入模型                    <span class="cm"># 中文优先 BGE / bge-m3；换更强的嵌入往往比改 prompt 更有效</span></pre>
+      </div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 怎么知道调好了：要评估</div>
+      <div class="a">别凭感觉。准备一组"问题 → 应命中的文档"，量<strong>召回率</strong>（该召回的有没有召回）和
+        <strong>答案正确率</strong>。工具如 <span class="mono">Ragas</span>（第 22 课"横切带"提到过）可自动打分。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 常见翻车点</div>
+      <div class="a">① 文档没清洗（页眉页脚/乱码也进了向量）；② 切块把表格/代码拦腰斩断；
+        ③ 只调 prompt 不调检索——<strong>RAG 的上限通常卡在"检索"而非"生成"</strong>。</div>
+    </div>
+  </div>
+</details>
 
 <div class="card spark">
   <div class="tag">💡 设计亮点</div>

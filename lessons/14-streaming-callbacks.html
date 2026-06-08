@@ -296,6 +296,20 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 </pre>
 </div>
 
+<div class="card detail">
+  <div class="tag">🔬 自己写一个回调处理器（10 行）</div>
+  <p>不止能用官方追踪——继承 <span class="mono">BaseCallbackHandler</span>，只重写你关心的钩子即可：</p>
+<pre class="code"><span class="kw">from</span> langchain_core.callbacks <span class="kw">import</span> BaseCallbackHandler
+
+<span class="kw">class</span> <span class="fn">MyHandler</span>(BaseCallbackHandler):
+    <span class="kw">def</span> <span class="fn">on_llm_start</span>(self, serialized, prompts, **kw):
+        <span class="nb">print</span>(<span class="st">"→ 模型开始，prompt:"</span>, prompts[0][:30])
+    <span class="kw">def</span> <span class="fn">on_llm_end</span>(self, response, **kw):
+        <span class="nb">print</span>(<span class="st">"← 模型结束，用量:"</span>, response.llm_output)
+
+<span class="cm"># 用法见下方 config={"callbacks": [MyHandler()]}</span></pre>
+</div>
+
 <h2>config：回调/标签如何传进去</h2>
 <p>回调、标签（tags）、元数据通过 <span class="inline">RunnableConfig</span> 这个配置字典在调用时一路传递。
 这就是第 8 课 <span class="mono">invoke(input, config)</span> 里 <span class="inline">config</span> 参数的用途：</p>
@@ -418,6 +432,12 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <details class="accordion">
   <summary><span class="badge-num">5</span> 谁在背后上报：CallbackManager 与 LangChainTracer <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
+    <div class="qa">
+      <div class="q">❓ 什么是"Run / run 树"</div>
+      <div class="a">每次 <span class="mono">invoke</span> 都会生成一个 <strong>Run</strong> 对象（一次可观测的执行记录）；
+        链式的父子调用（链 → 模型 → 工具）层层嵌套，就形成一棵 <strong>run 树</strong>——
+        也就是你在 <strong>LangSmith</strong> 里看到的那棵可展开的调用树。</div>
+    </div>
     <div class="qa">
       <div class="q">🧪 事件的分发与上报链路</div>
       <div class="a">

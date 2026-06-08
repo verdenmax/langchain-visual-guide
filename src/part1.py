@@ -331,7 +331,7 @@ libs/
       位置：<span class="mono">libs/partners/*/</span>。换厂商 = 换这一层的包。</div>
   </div>
   <div class="layer l-main">
-    <div class="lh"><span class="badge">实现层</span><span class="name">langchain（主力包）</span></div>
+    <div class="lh"><span class="badge">编排层</span><span class="name">langchain（主力包）</span></div>
     <div class="ld">面向用户的高级功能：<span class="mono">create_agent</span>、<span class="mono">init_chat_model</span>、中间件等。
       位置：<span class="mono">libs/langchain_v1/langchain/</span>。这是你日常写代码 import 的包。</div>
   </div>
@@ -534,7 +534,7 @@ LESSON_03 = r"""
   <div class="step"><div class="num">1</div><div class="sc">
     <h4>你的代码：传入字符串或消息</h4>
     <p>你调用 <span class="mono">model.invoke("北京天气怎么样？")</span>。输入可以是字符串、字典或消息对象。</p>
-    <p class="mono">📍 实现层 langchain</p>
+    <p class="mono">📍 编排层 langchain</p>
   </div></div>
   <div class="step"><div class="num">2</div><div class="sc">
     <h4>标准化：一切都变成 Messages</h4>

@@ -690,6 +690,28 @@ tags: list[str]   → {<span class="st">"type"</span>: <span class="st">"array"<
   </div>
 </details>
 
+<details class="accordion">
+  <summary><span class="badge-num">3</span> 参数校验失败会怎样：错误如何"回灌"给模型 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 失败路径</div>
+      <div class="a">模型偶尔会传回<strong>不合法的参数</strong>（类型不对、缺必填项）。pydantic 校验不过 → 抛
+        <span class="mono">ValidationError</span>。默认情况下 <span class="mono">ToolNode</span>（<span class="mono">handle_tool_errors</span> 默认开启）会<strong>捕获</strong>它，
+        把错误信息包成一条 <span class="mono">ToolMessage</span>（<span class="mono">status="error"</span>）追加回对话——<strong>而不是让程序崩溃</strong>。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 然后呢：模型会自我纠正</div>
+      <div class="a">这条错误 <span class="mono">ToolMessage</span> 回灌后，Agent 循环把它当作新的"观察"喂给模型，
+        模型通常会<strong>读懂报错、改对参数再调一次</strong>——这正是 Agent "试错 → 纠正"能力的来源。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 可配置 / 可加固</div>
+      <div class="a">行为由 <span class="mono">ToolNode(handle_tool_errors=...)</span> 控制（<span class="mono">langgraph.prebuilt</span>）：可用默认提示、自定义错误文案，或关掉直接抛。
+        还有现成的 <span class="mono">ToolRetryMiddleware</span> 能在工具抖动时自动重试（见第 7 课）。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card spark">
   <div class="tag">💡 设计亮点</div>
   <ul>
@@ -1017,6 +1039,20 @@ LESSON_13 = r"""
 </pre>
 </div>
 
+<div class="card detail">
+  <div class="tag">🔬 自己写一个回调处理器（10 行）</div>
+  <p>不止能用官方追踪——继承 <span class="mono">BaseCallbackHandler</span>，只重写你关心的钩子即可：</p>
+<pre class="code"><span class="kw">from</span> langchain_core.callbacks <span class="kw">import</span> BaseCallbackHandler
+
+<span class="kw">class</span> <span class="fn">MyHandler</span>(BaseCallbackHandler):
+    <span class="kw">def</span> <span class="fn">on_llm_start</span>(self, serialized, prompts, **kw):
+        <span class="nb">print</span>(<span class="st">"→ 模型开始，prompt:"</span>, prompts[0][:30])
+    <span class="kw">def</span> <span class="fn">on_llm_end</span>(self, response, **kw):
+        <span class="nb">print</span>(<span class="st">"← 模型结束，用量:"</span>, response.llm_output)
+
+<span class="cm"># 用法见下方 config={"callbacks": [MyHandler()]}</span></pre>
+</div>
+
 <h2>config：回调/标签如何传进去</h2>
 <p>回调、标签（tags）、元数据通过 <span class="inline">RunnableConfig</span> 这个配置字典在调用时一路传递。
 这就是第 8 课 <span class="mono">invoke(input, config)</span> 里 <span class="inline">config</span> 参数的用途：</p>
@@ -1139,6 +1175,12 @@ LESSON_13 = r"""
 <details class="accordion">
   <summary><span class="badge-num">5</span> 谁在背后上报：CallbackManager 与 LangChainTracer <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
+    <div class="qa">
+      <div class="q">❓ 什么是"Run / run 树"</div>
+      <div class="a">每次 <span class="mono">invoke</span> 都会生成一个 <strong>Run</strong> 对象（一次可观测的执行记录）；
+        链式的父子调用（链 → 模型 → 工具）层层嵌套，就形成一棵 <strong>run 树</strong>——
+        也就是你在 <strong>LangSmith</strong> 里看到的那棵可展开的调用树。</div>
+    </div>
     <div class="qa">
       <div class="q">🧪 事件的分发与上报链路</div>
       <div class="a">

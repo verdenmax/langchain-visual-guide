@@ -364,6 +364,28 @@ tags: list[str]   → {<span class="st">"type"</span>: <span class="st">"array"<
   </div>
 </details>
 
+<details class="accordion">
+  <summary><span class="badge-num">3</span> 参数校验失败会怎样：错误如何"回灌"给模型 <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 失败路径</div>
+      <div class="a">模型偶尔会传回<strong>不合法的参数</strong>（类型不对、缺必填项）。pydantic 校验不过 → 抛
+        <span class="mono">ValidationError</span>。默认情况下 <span class="mono">ToolNode</span>（<span class="mono">handle_tool_errors</span> 默认开启）会<strong>捕获</strong>它，
+        把错误信息包成一条 <span class="mono">ToolMessage</span>（<span class="mono">status="error"</span>）追加回对话——<strong>而不是让程序崩溃</strong>。</div>
+    </div>
+    <div class="qa">
+      <div class="q">❓ 然后呢：模型会自我纠正</div>
+      <div class="a">这条错误 <span class="mono">ToolMessage</span> 回灌后，Agent 循环把它当作新的"观察"喂给模型，
+        模型通常会<strong>读懂报错、改对参数再调一次</strong>——这正是 Agent "试错 → 纠正"能力的来源。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 可配置 / 可加固</div>
+      <div class="a">行为由 <span class="mono">ToolNode(handle_tool_errors=...)</span> 控制（<span class="mono">langgraph.prebuilt</span>）：可用默认提示、自定义错误文案，或关掉直接抛。
+        还有现成的 <span class="mono">ToolRetryMiddleware</span> 能在工具抖动时自动重试（见第 7 课）。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card spark">
   <div class="tag">💡 设计亮点</div>
   <ul>

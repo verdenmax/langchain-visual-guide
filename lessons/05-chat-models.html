@@ -357,6 +357,12 @@ a*      → 上面三个的异步版（FastAPI 等异步框架里用）</pre>
       </div>
     </div>
     <div class="qa">
+      <div class="q">❓ 什么时候用异步版（a*）</div>
+      <div class="a">当代码跑在 <strong>asyncio 事件循环</strong>里（FastAPI、aiohttp、聊天机器人等），用
+        <span class="mono">await model.ainvoke(...)</span> 能在等模型返回时<strong>不阻塞</strong>其它请求，单机扛更多并发；
+        普通脚本或同步框架用同步版即可。<pre class="code"><span class="kw">resp</span> = <span class="kw">await</span> model.ainvoke(<span class="st">"你好"</span>)   <span class="cm"># 必须在 async def 内</span></pre></div>
+    </div>
+    <div class="qa">
       <div class="q">❓ 为什么有这么多</div>
       <div class="a">不同场景对"延迟感受"和"吞吐"诉求不同：用户等单个回答看重<strong>首字延迟</strong>（stream），
         后台批处理看重<strong>总吞吐</strong>（batch）。一套接口覆盖全部，省得你换 API。</div>
