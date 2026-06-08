@@ -19,6 +19,7 @@ sys.path.insert(0, HERE)
 
 import shell  # noqa: E402
 from registry import CONTENT  # noqa: E402
+import quizzes  # noqa: E402
 
 PRINT_CSS = r"""
 /* ===== print / PDF overrides ===== */
@@ -78,7 +79,7 @@ def build_print():
     today = datetime.date.today().isoformat()
     lessons = []
     for idx, (fname, title, part) in enumerate(shell.PAGES):
-        content = CONTENT[fname].replace(
+        content = (CONTENT[fname] + quizzes.render(fname)).replace(
             '<details class="accordion">', '<details class="accordion" open>'
         )
         lessons.append(
@@ -99,7 +100,7 @@ def build_print():
   <div class="emoji">📘</div>
   <h1>LangChain 图解教程</h1>
   <div class="sub">从零理解整个项目 · 宏观 → 用法 → 源码 → 自己动手做 Agent</div>
-  <div class="meta">共 {len(shell.PAGES)} 课 · 5 个部分 · 每课配真实代码对应与设计亮点<br>
+  <div class="meta">共 {len(shell.PAGES)} 课 · {len({p[2] for p in shell.PAGES})} 个部分 · 每课配真实代码对应与设计亮点<br>
     生成日期 {today} · 作者 kws · MIT License</div>
 </section>
 <section class="print-toc"><div class="wrap">{_toc_html()}</div></section>

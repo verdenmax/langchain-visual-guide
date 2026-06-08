@@ -200,6 +200,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
 }
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
 
 /* footer nav */
 .footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
@@ -409,7 +419,68 @@ LangGraph 内置了几种（来自 Pregel 文档）：</p>
     <li>下一课：每个超步存档之后，<strong>持久化、时间旅行、人审、跳转</strong>如何水到渠成。</li>
   </ul>
 </div>
-
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. LangGraph 借用 Pregel/BSP 的“超步”模型，分 Plan→Execution→Update。其中“本步的写、要下一步才可见”最关键保证了什么？</div>
+  <ol class="opts">
+    <li>速度</li>
+    <li>确定性：并行节点看不到彼此本步的半成品，于是同样输入→同样结果，可复现、可持久化</li>
+    <li>省内存</li>
+    <li>好调试</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“写入延迟到下一步可见”消除了并行节点间的竞态，让执行确定可复现——这是能把任意一步存档/重放的前提。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. 状态某个键的 reducer，本质上“就是那个 channel 的更新函数”。把“reducer”和“channel”统一起来，优雅在哪？</div>
+  <ol class="opts">
+    <li>名字统一</li>
+    <li>你在 state 上声明的 reducer，被直接落实为底层通道的合并逻辑——上层语义和底层机制是同一个东西，没有翻译损耗</li>
+    <li>更快</li>
+    <li>巧合</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。上层“标个 reducer”和底层“channel 怎么合并”是一回事。概念在不同抽象层级保持一致，是设计自洽的体现。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. LangGraph 没自己发明执行模型，而是搬来 20 年前 Google Pregel 的成熟图计算范式。这种“借用成熟模型”好在哪？</div>
+  <ol class="opts">
+    <li>省力</li>
+    <li>站在被验证过的理论肩上：BSP 的确定性/并行/可持久化特性现成可用，不必从零趟坑</li>
+    <li>显得有学问</li>
+    <li>没好处</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把一个被充分研究的成熟模型迁移到新场景(LLM Agent)，复用了它所有被验证的好性质。好设计常是“挪用”而非“发明”。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">4. 课里把 <code>recursion_limit</code> 解释为“超步循环 <code>step &gt; stop</code> 的兜底”。从这个实现细节能看出它的真正作用是？</div>
+  <ol class="opts">
+    <li>限制递归函数</li>
+    <li>给“可能无限转圈的图”一个硬性步数上限，是防失控的最后一道保险</li>
+    <li>控制内存</li>
+    <li>限制并发</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。在超步循环里 step 超过 stop 就停。recursion_limit 不是限制递归调用，而是限制“图最多推进多少个超步”——失控的兜底。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>“本步写、下步见”用一条简单规则换来了确定性和可并行。你在并发编程里见过哪些“靠约束可见性/时序来消除竞态”的类似招数？</li>
+    <li>LangGraph 借用了 Pregel(图计算)的成熟模型。如果让你为“LLM Agent 的执行”从零设计引擎，你会从哪个已有领域(数据库事务? actor 模型? 数据流?)借思想？</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="24-langgraph-mental-model.html"><div class="dir">← 上一课</div><div class="ttl">深入 LangGraph：图 / 状态 / 节点 / 边</div></a><a class="next" href="26-langgraph-persistence-control.html"><div class="dir">下一课 →</div><div class="ttl">持久化 · 中断 · 控制流</div></a></div>
 </div>
 

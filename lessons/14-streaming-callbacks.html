@@ -200,6 +200,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
 }
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
 
 /* footer nav */
 .footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
@@ -493,7 +503,68 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <li><strong>第三部分（内部源码）到此结束</strong>。最后一部分教你如何读源码、调试、测试与贡献。</li>
   </ul>
 </div>
-
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. <code>stream()</code> 产出“可相加的 <code>AIMessageChunk</code>”，累加即得完整消息。把流式片段设计成“能用 + 拼得起来”，图什么？</div>
+  <ol class="opts">
+    <li>炫技</li>
+    <li>同一套消息抽象既能表达“完整结果”又能表达“流式片段”，下游处理流式和非流式可统一——累加就还原</li>
+    <li>更省内存</li>
+    <li>更快</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“chunk 可相加”让流式不是另一套世界，而是“完整消息的增量形式”。统一抽象延伸到了流式，处理逻辑得以复用。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. Callbacks 在 on_llm_start/new_token/end 等点触发，且“对所有 Runnable 通用”。把“追踪/监控”做成横切回调而非塞进每个组件，好处是？</div>
+  <ol class="opts">
+    <li>回调更快</li>
+    <li>观测能力与业务逻辑解耦：一处挂钩子、处处生效，加监控不动核心代码</li>
+    <li>减少组件</li>
+    <li>防止出错</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。横切关注点（日志/追踪/监控）用回调统一接入，是“关注点分离”。这也是 LangSmith 能“无侵入”追踪整条链的原因。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 回调、标签、元数据都通过 <code>RunnableConfig</code> 这个“信封”在调用时一路传递。为什么用一个统一 config 携带，而不是给每个方法加一堆参数？</div>
+  <ol class="opts">
+    <li>参数太多难看</li>
+    <li>一个随调用流动的上下文信封，能把横切配置无侵入地带到链的每一层，接口保持干净</li>
+    <li>config 更快</li>
+    <li>没有原因</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。用“上下文信封”承载横切数据，避免每层接口被这些参数污染——又是把横切关注点和核心接口解耦。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">4. <code>astream_events</code> 能订阅“链中每一步”的细粒度事件。为什么需要比 stream 更细的事件流？</div>
+  <ol class="opts">
+    <li>凑功能</li>
+    <li>构建复杂 UI（如展示 Agent 的思考/工具调用过程）需要知道“内部每一步发生了什么”，而不只是最终 token 流</li>
+    <li>更省钱</li>
+    <li>更准确</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。细粒度事件让你能“看见 Agent 内部”，是做“显示推理过程/工具进度”这类高级 UI 的基础。粒度是为表达力服务的。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>“把追踪做成无侵入的横切回调”让你随时加监控。但回调里如果做了重活（同步写日志/网络），会拖慢主流程。你会怎么设计回调以避免它反过来拖累性能？</li>
+    <li>流式让用户更早看到输出，但也让“输出还没完就被读到”成为可能（比如解析到一半的 JSON）。流式带来的这种“不完整可见性”在你的场景里是利还是弊？</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="13-agent-internals.html"><div class="dir">← 上一课</div><div class="ttl">Agent 内部</div></a><a class="next" href="15-contributing.html"><div class="dir">下一课 →</div><div class="ttl">读源码 / 调试 / 测试 / 贡献</div></a></div>
 </div>
 

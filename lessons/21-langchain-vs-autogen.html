@@ -200,6 +200,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
 }
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
 
 /* footer nav */
 .footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
@@ -494,7 +504,68 @@ team = RoundRobinGroupChat([writer, critic],
     <li>🎉 看懂一个框架的最好方式，就是<strong>把它和另一个对照</strong>——你现在两种范式都有了坐标。<strong>下一课</strong>再把镜头拉远，看看这两个框架在<strong>整个 AI 全栈</strong>里站在哪一层。</li>
   </ul>
 </div>
-
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. LangChain = 可组合的图（数据流优先），AutoGen = 自治 actor 的对话（多 Agent 优先）。这个“根本差异”告诉我们，看懂一个框架的关键是？</div>
+  <ol class="opts">
+    <li>记住它的 API</li>
+    <li>抓住它的“核心心智模型/默认重心”——其它差异大多能从这一条推导出来</li>
+    <li>比较谁的星多</li>
+    <li>看谁更新快</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。框架的无数差异，往往源于一个根本的心智模型（图 vs actor）。抓住它，就能预测和理解其余设计——这是对照学习的价值。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. 课里强调两者的差别在“默认重心”而非“能不能”（LangChain 用 LangGraph 也能多 Agent）。为什么要区分“重心”和“能力”？</div>
+  <ol class="opts">
+    <li>咬文嚼字</li>
+    <li>几乎任何框架都“什么都能做”，真正决定体验的是“它让什么变容易”——选型应看默认重心而非功能清单</li>
+    <li>为了显得公平</li>
+    <li>没有意义</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“能不能”的对比常常无意义（都能），“默认让什么顺手”才决定开发体验。这是看待框架对比的成熟视角。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 选型建议：要 RAG/可控工作流→LangChain，要快速多 Agent 协作→AutoGen。这种“按场景选”而非“谁更好”的态度说明？</div>
+  <ol class="opts">
+    <li>和稀泥</li>
+    <li>没有银弹：框架是为不同侧重设计的工具，“适合你的场景”才是唯一有意义的标准</li>
+    <li>两个都不行</li>
+    <li>随便选</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“哪个更好”是伪命题，“哪个更适合这个场景”才有答案。工程选型的本质是匹配需求与工具的默认重心。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">4. 课里说两者“边界在模糊”、可以互相借鉴。这对你理解技术生态有什么启发？</div>
+  <ol class="opts">
+    <li>框架都一样</li>
+    <li>好的设计会互相吸收（LangChain 学团队抽象、AutoGen 学集成/可控），框架在竞争中趋同又各有侧重</li>
+    <li>没必要学多个</li>
+    <li>越新越好</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。生态里的框架既竞争又互鉴、边界流动。理解这点，你就不会“非此即彼”，而是从每个框架学它最擅长的设计。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>“看框架先抓它的核心心智模型（图 vs actor）”。用这个方法，挑一个你最近接触的新框架/库，试着一句话说出它的“默认重心”。</li>
+    <li>“没有银弹，只有适合的场景”。回想一次你的技术选型，当时是按“功能清单”还是“默认重心”选的？如果重来，你会怎么判断？</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="20-capstone.html"><div class="dir">← 上一课</div><div class="ttl">端到端实战：拼一个客服 Agent</div></a><a class="next" href="22-ai-stack.html"><div class="dir">下一课 →</div><div class="ttl">全栈坐标系：从 LangChain 缩放到整个生态</div></a></div>
 </div>
 

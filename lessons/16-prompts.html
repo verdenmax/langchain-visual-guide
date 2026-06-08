@@ -200,6 +200,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
 }
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
 
 /* footer nav */
 .footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
@@ -439,7 +449,68 @@ prompt = ChatPromptTemplate.from_messages([
     <li>下一课：给 Agent 接一个它没学过的<strong>知识库</strong>——RAG。</li>
   </ul>
 </div>
-
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. ChatPromptTemplate 把“提示的结构”和“具体内容”分离（模板 + 变量）。这种分离图什么？</div>
+  <ol class="opts">
+    <li>看起来工整</li>
+    <li>结构固定、内容可变：同一个提示骨架能复用于不同输入，避免到处拼字符串、易维护易测试</li>
+    <li>省 token</li>
+    <li>让提示更短</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“把会变的（内容）和不变的（结构）分开”是模板的通用价值——和第 6 课“代码自描述”、第 3 课“中间表示”一样，都是隔离变化点。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. MessagesPlaceholder 专门为“一整串历史消息”留一个插槽。为什么不直接把历史拼成一段文本塞进去？</div>
+  <ol class="opts">
+    <li>文本太长</li>
+    <li>历史是结构化消息（带角色/工具调用），用占位符保留其结构，模型才能正确理解多轮对话，而非一团文本</li>
+    <li>占位符更快</li>
+    <li>没区别</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。呼应第 4 课——消息的结构化是有意义的。MessagesPlaceholder 保住了这份结构，而不是把它压扁成字符串。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 提示模板也是 Runnable，能直接 <code>prompt | model | parser</code>。把模板纳入 Runnable 体系，好处是？</div>
+  <ol class="opts">
+    <li>凑数</li>
+    <li>提示渲染成了管道的第一节，和模型/解析无缝串联，整条链统一可组合</li>
+    <li>模板更准</li>
+    <li>减少代码</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。又是闭包性的回报——连“填提示”这步都是 Runnable，整条“提示→模型→解析”就是一条同质的链。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">4. few-shot（在提示里给几个范例）被称为“稳定输出格式的利器”。从设计角度，它本质上在做什么？</div>
+  <ol class="opts">
+    <li>让提示更长</li>
+    <li>用“示范”替代“说教”：给模型看几个‘输入→期望输出’的例子，比纯文字描述更能稳定它的行为</li>
+    <li>增加 token 浪费</li>
+    <li>训练模型</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。few-shot 是“用例子定义期望”。它不改模型权重，只在上下文里用范例引导——一种轻量、即时的“行为塑造”。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>“结构与内容分离”让提示可复用，但提示工程里“一字之差结果大不同”。当模板化遇上“提示很敏感”，你会怎么管理和测试不同版本的提示？</li>
+    <li>few-shot 用范例稳定格式，但范例占 token、也可能让模型过拟合到例子。你会怎么权衡“给几个例子”和“成本/泛化”？</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="15-contributing.html"><div class="dir">← 上一课</div><div class="ttl">读源码 / 调试 / 测试 / 贡献</div></a><a class="next" href="17-rag.html"><div class="dir">下一课 →</div><div class="ttl">RAG 检索增强</div></a></div>
 </div>
 

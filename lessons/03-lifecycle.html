@@ -200,6 +200,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
 }
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
 
 /* footer nav */
 .footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
@@ -433,7 +443,68 @@ model.invoke([(<span class="st">"system"</span>, <span class="st">"你是助手"
     <li>第一部分（宏观）到此结束。下一部分进入<strong>用户视角</strong>，从最小的"消息"开始动手。</li>
   </ul>
 </div>
-
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. 一次调用里数据“三次变身”：字符串 → 标准消息 → 厂商格式 → 标准消息。中间非要先转成“标准消息（LangChain 自己的格式）”再转厂商格式，为什么不直接转厂商格式？</div>
+  <ol class="opts">
+    <li>纯属多此一举</li>
+    <li>标准中间表示把“上层逻辑”和“厂商差异”解耦：上层只跟标准消息打交道，每个厂商只负责“标准↔自己格式”的翻译</li>
+    <li>为了更慢</li>
+    <li>厂商强制要求</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。引入统一中间表示，是“用一层间接把 N×M 适配变成 N+M”的经典做法——加一个厂商只写一个翻译器，上层完全不动。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. 请求往下穿三层、响应原路返回，而“你的代码只接触最上层的统一接口”。这对使用者意味着什么？</div>
+  <ol class="opts">
+    <li>你必须懂每一层的细节</li>
+    <li>你对接口编程、对实现无感：底层怎么换、走哪个厂商，你的调用代码都不变</li>
+    <li>你无法做任何定制</li>
+    <li>性能一定更差</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把厂商差异锁在底层、只暴露统一上层接口，使用者获得“稳定的编程面”——这就是可替换性在调用路径上的体现。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 本课点名“统一入口 + 厂商专属 <code>_generate</code>”是可替换性的核心机关。这是哪种设计模式？</div>
+  <ol class="opts">
+    <li>单例模式</li>
+    <li>模板方法模式：公共流程（校验/缓存/回调/重试）在基类固定，只有“真正调厂商”的 <code>_generate</code> 由子类实现</li>
+    <li>观察者模式</li>
+    <li>工厂模式</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。基类把“骨架流程”写死、把“会变的一步”留成抽象方法交给厂商——这正是模板方法。第 11 课会顺着这条调用链看实现。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">4. 要接入一个全新厂商的模型，按这套设计你大概只需做什么？</div>
+  <ol class="opts">
+    <li>重写整个调用流程</li>
+    <li>主要实现“标准消息↔该厂商格式”的转换 + 该厂商的 <code>_generate</code>，上层与其它厂商完全不受影响</li>
+    <li>修改 core 地基</li>
+    <li>改动所有用到模型的业务代码</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。这正是分层 + 模板方法 + 中间表示三者合力的回报——扩展点被精确收敛到“一个厂商适配器”，是“对扩展开放、对修改关闭”的实践。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>“引入一个标准中间表示来解耦 N 个生产者和 M 个消费者”在很多系统里出现（编译器 IR、数据交换 JSON、USB 协议…）。再举一个你见过的例子，说说它把“N×M”省成了“N+M”的哪部分？</li>
+    <li>这套“统一入口 + 可替换实现”也有代价：标准表示可能<strong>表达不了某厂商的独特能力</strong>。遇到“厂商特有特性”，框架一般怎么取舍？你会怎么处理？</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="02-monorepo.html"><div class="dir">← 上一课</div><div class="ttl">Monorepo 全景</div></a><a class="next" href="04-messages.html"><div class="dir">下一课 →</div><div class="ttl">消息系统</div></a></div>
 </div>
 

@@ -200,6 +200,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
 }
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
 
 /* footer nav */
 .footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
@@ -560,7 +570,68 @@ agent = create_agent(model, tools, store=my_store)</pre>
     <li>编译产物是 Runnable，所以能 invoke/stream。下一课：流式与回调系统。</li>
   </ul>
 </div>
-
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. <code>create_agent</code> 把 Agent 循环“编译成一张图（StateGraph）”，而不是直接写个 <code>while</code> 循环。这样设计最主要图什么？</div>
+  <ol class="opts">
+    <li>让代码显得高级</li>
+    <li>图能把“持久化、中断续跑、并行、可视化”变成通用能力，而裸循环这些都得手搓</li>
+    <li>图执行更快</li>
+    <li>为了强制你用 LangGraph</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。一旦是图，状态在节点间流转，checkpointer/interrupt/并行/画图都是图引擎免费给的。“LangChain 组装、LangGraph 运行”的分离正源于此。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. “是否继续循环”用“条件边看 <code>tool_calls</code>”而不是“固定循环 N 次”。为什么？</div>
+  <ol class="opts">
+    <li>条件边写起来短</li>
+    <li>要循环几轮取决于运行时模型每轮是否还要调工具——编译期无法预知，条件边让图按当前状态动态决定</li>
+    <li>固定次数会报错</li>
+    <li>模型不支持计数</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把“终止”做成“看状态的条件边”，才能自适应地停在该停的地方。动态性是 Agent 的本质需求。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 状态里 messages 用 <code>add_messages</code> reducer 合并，节点只返回“新增的那条”。为什么不让节点直接返回完整历史？</div>
+  <ol class="opts">
+    <li>完整历史太大</li>
+    <li>增量 + reducer 让“每个节点只关心自己产出什么”，并天然适配按步存档（checkpoint）与并行分支合并</li>
+    <li>返回完整历史会死循环</li>
+    <li>reducer 是必填的</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。增量更新让节点解耦（各管各的输出），reducer 统一负责“怎么并进去”。这也是状态可逐步持久化、并行写能合并的基础。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">4. 模型一次请求 3 个工具，create_agent 用 <code>Send</code> 把它们“扇出”到 tools 节点。这个设计的好处是？</div>
+  <ol class="opts">
+    <li>节省内存</li>
+    <li>3 个独立工具能在同一超步内并行执行、再汇合，而不是串行一个个等——降低总延迟</li>
+    <li>让代码更短</li>
+    <li>避免使用 ToolNode</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。Send(node, payload) 让同一节点被并发触发多次；多个独立工具因此并行跑。这是“图 + Send”相对手写串行循环的实在优势。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>如果让你<strong>不依赖 LangGraph</strong> 手写一个极简 Agent 循环，你会怎么处理“终止条件 / 工具并行 / 出错重试 / 中途存档”？对照本课，体会 LangGraph 替你省了哪些事。</li>
+    <li>“把循环建模成图”带来了持久化/中断/并行，但也引入了图引擎的复杂度与学习成本。对一个只需“简单问答 + 偶尔调工具”的应用，这套重型设计<strong>值得吗</strong>？</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="12-tool-internals.html"><div class="dir">← 上一课</div><div class="ttl">工具调用内部</div></a><a class="next" href="14-streaming-callbacks.html"><div class="dir">下一课 →</div><div class="ttl">Streaming 与 Callbacks</div></a></div>
 </div>
 

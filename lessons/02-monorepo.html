@@ -200,6 +200,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
 }
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
 
 /* footer nav */
 .footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
@@ -481,7 +491,68 @@ pip install langchain langchain-openai   <span class="cm"># 只装你要的</spa
     <li>下一课：跟着一次真实调用，看数据如何<strong>穿过这三层</strong>。</li>
   </ul>
 </div>
-
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. LangChain 把代码分成 core / langchain / partners 三层，且依赖只能“从上往下”。这种<strong>单向依赖</strong>最主要防止了什么？</div>
+  <ol class="opts">
+    <li>代码总量变多</li>
+    <li>循环依赖与“牵一发动全身”：地基 core 极少变、稳定，上层随便迭代也不会反噬底层</li>
+    <li>编译变慢</li>
+    <li>多人协作的合并冲突</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。core 定义契约且几乎不动，partners/langchain 都依赖它而非互相依赖；这样换厂商、加功能都不会动摇地基，稳定性与可替换性同时得到。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. 每个厂商（openai/anthropic…）单独一个包、独立发版，而不是全塞进一个大包。这样设计图什么？</div>
+  <ol class="opts">
+    <li>显得包很多</li>
+    <li>解耦发布节奏与依赖：只装用到的厂商、某厂商 SDK 升级不波及别人、换厂商=换一个小包</li>
+    <li>方便收费</li>
+    <li>减少代码行数</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把“易变的厂商适配”隔离成可插拔小包，是“核心稳定、边缘灵活”的工程体现——依赖树更干净，升级的爆炸半径更小。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 想确认“主力包到底依赖谁”，本课建议直接读 <code>pyproject.toml</code> 而不是猜。这背后是什么可靠性原则？</div>
+  <ol class="opts">
+    <li>pyproject.toml 是依赖关系的“单一事实来源”：声明式、可机读、不会骗你</li>
+    <li>因为文档都不可信</li>
+    <li>因为代码太难读</li>
+    <li>因为没有别的办法</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。依赖在 pyproject.toml 里显式声明，是确定性的事实。养成“读声明而非靠记忆/猜测”的习惯，在任何项目都更可靠。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">4. core 被设计成“极少变动”。为什么一个被所有上层依赖的“地基”必须保持稳定？</div>
+  <ol class="opts">
+    <li>因为它代码少</li>
+    <li>它是公共契约：一旦改动，所有依赖它的上层与用户代码都可能被波及，所以要苛刻地保持向后兼容</li>
+    <li>因为没人维护它</li>
+    <li>因为它最不重要</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。越底层、被依赖越广，变更成本越高。把抽象/契约放在最稳定的层、让易变的东西留在上层，是分层架构控制变更风险的通用法则。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>你维护过的项目里，有没有“改一个底层小函数、结果上层到处崩”的经历？对照本课的“单向依赖 + 地基稳定”，当时可以怎么设计来避免？</li>
+    <li>“把易变部分隔离成可插拔模块、把稳定契约沉到底层”是通用思路。在你的领域里，哪些东西该当 <code>core</code>、哪些该当 <code>partner</code>？</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="01-what-is-langchain.html"><div class="dir">← 上一课</div><div class="ttl">LangChain 是什么</div></a><a class="next" href="03-lifecycle.html"><div class="dir">下一课 →</div><div class="ttl">一次调用的生命周期</div></a></div>
 </div>
 

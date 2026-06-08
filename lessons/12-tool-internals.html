@@ -200,6 +200,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
 }
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
 
 /* footer nav */
 .footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
@@ -419,7 +429,68 @@ tags: list[str]   → {<span class="st">"type"</span>: <span class="st">"array"<
     <li>下一课：看 Agent 把这套循环编成一张 LangGraph 状态图。</li>
   </ul>
 </div>
-
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. 去程“函数签名 → schema → tool_calls”、回程“tool_calls → 执行 → ToolMessage”全自动。这“两段翻译”把什么复杂性挡在了你看不见的地方？</div>
+  <ol class="opts">
+    <li>没挡什么</li>
+    <li>“Python 世界 ↔ 模型的 JSON 世界”之间繁琐易错的格式转换与配对，你只写普通函数</li>
+    <li>模型推理</li>
+    <li>网络请求</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把“函数↔JSON”双向翻译自动化，你的工具就是普通 Python 函数。这层翻译是 Agent 能“调用代码”的桥，被刻意隐藏。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. 工具结果和请求靠 <code>id</code> 配对（tool_call_id）。为什么需要 id，而不是按顺序匹配？</div>
+  <ol class="opts">
+    <li>凑字段</li>
+    <li>一次可能并行发起多个工具调用，结果回来的顺序不定，用 id 才能可靠地把“结果”对回“请求”</li>
+    <li>id 更短</li>
+    <li>防止重复</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。并行/乱序场景下，位置不可靠、id 才可靠。这个看似不起眼的 id，是支持“并行工具调用”的前提。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 参数校验失败时默认不崩溃，而是把 <code>ValidationError</code> 包成 <code>ToolMessage(error)</code> 回灌给模型。这让 Agent 获得了什么？</div>
+  <ol class="opts">
+    <li>永不失败</li>
+    <li>自我纠正：模型读到报错→改对参数再试，错误成为新观察而非程序崩溃</li>
+    <li>隐藏错误</li>
+    <li>更快崩溃</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把“异常”翻译成“对话里的反馈”，闭环从崩溃变成纠正。这是 Agent 鲁棒性的来源，也呼应第 6 课的“错误转消息”。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">4. 类型注解和 docstring“直接决定模型看到的工具说明”。这把“写好注解/文档”从‘好习惯’变成了什么？</div>
+  <ol class="opts">
+    <li>可选项</li>
+    <li>影响模型能否正确调用工具的“功能性需求”——注解/文档写不好，模型就用不对工具</li>
+    <li>装饰</li>
+    <li>没影响</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。当文档成了“喂给模型的说明书”，它就不再是给人看的可选注释，而是直接影响 Agent 行为的输入。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>用 id 配对支持了“并行工具调用”。但并行也意味着多个工具可能同时改外部状态、互相干扰。你会怎么判断哪些工具适合并行、哪些必须串行？</li>
+    <li>“把工具说明书交给类型注解和 docstring”很优雅，但模型表现就依赖你写得好不好。你会怎么测试“模型到底有没有看懂你的工具”？</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="11-chat-internals.html"><div class="dir">← 上一课</div><div class="ttl">聊天模型内部</div></a><a class="next" href="13-agent-internals.html"><div class="dir">下一课 →</div><div class="ttl">Agent 内部</div></a></div>
 </div>
 

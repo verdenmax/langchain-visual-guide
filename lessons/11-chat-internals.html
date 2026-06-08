@@ -200,6 +200,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
 }
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
 
 /* footer nav */
 .footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
@@ -399,7 +409,68 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <li>下一课：工具调用在内部如何完成"函数 → schema → tool_calls → 执行"。</li>
   </ul>
 </div>
-
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. <code>invoke</code> 的调用链里，前几步所有厂商共享、只有 <code>_generate</code> 各自实现。这种“骨架共享、末端定制”是哪种模式、图什么？</div>
+  <ol class="opts">
+    <li>工厂模式；图省内存</li>
+    <li>模板方法模式；图把“缓存/回调/重试”等通用流程写一遍复用，厂商只填“真正调用”这一步</li>
+    <li>单例；图唯一性</li>
+    <li>装饰器；图加功能</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。模板方法把“不变的流程”固化在基类、“会变的一步”留给子类。这正是第 3 课“统一入口 + 厂商 _generate”在代码里的落点。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. 缓存、回调、重试都放在“共享模板”里，而不是让每个厂商各自实现。这样避免了什么？</div>
+  <ol class="opts">
+    <li>代码太短</li>
+    <li>每个厂商重复实现这些横切逻辑、且实现不一致——放在模板里写一遍，所有厂商行为统一</li>
+    <li>厂商太多</li>
+    <li>缓存失效</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把通用能力上提到共享层，消除重复 + 保证一致。新增厂商自动获得缓存/回调/重试，不必也不该自己写。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 为什么把“会因厂商而异的那一步”精确隔离成 <code>_generate</code> 一个抽象方法，而不是让厂商重写整个 invoke？</div>
+  <ol class="opts">
+    <li>让厂商多写代码</li>
+    <li>把“变化点”收敛到最小：厂商只关心自己独特的部分，其余流程不可能被写错或写偏</li>
+    <li>防止厂商创新</li>
+    <li>没有原因</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“识别变化点、把它隔离成最小扩展接口”是模板方法的精髓——扩展成本低、出错面小、流程一致。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">4. 顺着调用链读源码，能体会到“三层架构”在代码里的样子。这说明好的架构有什么特征？</div>
+  <ol class="opts">
+    <li>文件很多</li>
+    <li>宏观的分层思想能在微观的调用链里被一眼认出——结构是自洽、可追溯的</li>
+    <li>代码很长</li>
+    <li>没有特征</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。当“宏观设计”和“微观实现”对得上（分层 ↔ 调用链 ↔ 模板方法），系统就是可理解的。读一条链就能验证整套架构。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>模板方法把“通用流程”写死在基类。如果某厂商需求恰好和“通用流程”冲突（比如缓存语义不同），这种设计会变成阻碍吗？框架一般怎么留口子？</li>
+    <li>“把变化点隔离成最小接口”听起来简单，但难在“预判哪里会变”。如果变化点选错了（该变的地方写死了），会发生什么？</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="10-output-parsers.html"><div class="dir">← 上一课</div><div class="ttl">输出解析器 Output Parsers</div></a><a class="next" href="12-tool-internals.html"><div class="dir">下一课 →</div><div class="ttl">工具调用内部</div></a></div>
 </div>
 

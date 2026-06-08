@@ -200,6 +200,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
 }
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
 
 /* footer nav */
 .footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
@@ -394,7 +404,68 @@ chain = prompt | model | parser   <span class="cm"># 模型按要求输出 → p
     <li>下一课：深入<strong>聊天模型内部</strong>，看 <span class="mono">invoke</span> 的完整调用链。</li>
   </ul>
 </div>
-
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. 输出解析器也被设计成一个 Runnable，能拼在 <code>prompt | model | parser</code> 末尾。这个“解析也是链的一环”好处是？</div>
+  <ol class="opts">
+    <li>凑数</li>
+    <li>解析作为管道最后一节，和提示、模型无缝衔接、可流式、可复用——而不是调用后另写一段解析代码</li>
+    <li>让解析更准</li>
+    <li>减少 token</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把“后处理”也纳入 Runnable 体系，整条“输入→模型→结构化输出”就是一条统一的链。又是闭包性的红利。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. 解析器提供 <code>get_format_instructions()</code>，把“期望格式说明”注入提示。这种“解析器自己告诉提示该让模型怎么输出”图什么？</div>
+  <ol class="opts">
+    <li>多此一举</li>
+    <li>让“提示”和“解析”协同闭环：同一个解析器既定义格式要求、又负责解析，二者不会对不上</li>
+    <li>让提示更长</li>
+    <li>没有意图</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“谁解析、谁就说明格式”——把格式的“约定”和“解析”收敛到同一对象，避免提示写一套、解析按另一套。单一事实来源再现。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 解析器与 <code>with_structured_output</code> 被说成“互补”：解析器更通用、结构化输出约束更强。为什么两种都保留？</div>
+  <ol class="opts">
+    <li>优柔寡断</li>
+    <li>适用场景不同：结构化输出靠模型原生能力强约束但依赖支持，解析器对任意文本输出都通用——给你按需选择</li>
+    <li>历史包袱</li>
+    <li>没区别</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。提供“强约束（需模型支持）+ 通用（任意输出）”两条路，是务实设计：不同模型/场景能力不同，留选择权给你。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">4. JsonOutputParser 支持“流式逐步解析出 dict”。为什么解析器要费劲支持流式，而不是等完整文本再一次解析？</div>
+  <ol class="opts">
+    <li>炫技</li>
+    <li>配合流式 UI：边生成边解析出可用的部分结构，用户更早看到结果，体验更好</li>
+    <li>更省内存</li>
+    <li>更准确</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。流式解析是为了“边生成边可用”，这要求解析器能处理“不完整的 JSON 片段”——为体验付出的实现复杂度。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>“谁解析、谁负责说明格式”把约定和解析绑在一起。如果模型经常不按格式输出，你会从“提示侧”还是“解析侧”补救？各有什么代价？</li>
+    <li>强约束的结构化输出 vs 通用的文本解析，你的项目更适合哪种？如果模型升级后原生结构化输出变强了，你的选择会变吗？</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="09-runnable-compose.html"><div class="dir">← 上一课</div><div class="ttl">Runnable 如何组合</div></a><a class="next" href="11-chat-internals.html"><div class="dir">下一课 →</div><div class="ttl">聊天模型内部</div></a></div>
 </div>
 

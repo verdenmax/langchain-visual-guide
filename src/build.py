@@ -22,14 +22,16 @@ sys.path.insert(0, HERE)
 
 import shell  # noqa: E402
 from registry import CONTENT  # noqa: E402
+import quizzes  # noqa: E402
 
 
 def build():
     os.makedirs(LESSONS_DIR, exist_ok=True)
     written = []
     for fname, _title, _part in shell.PAGES:
+        content = CONTENT[fname] + quizzes.render(fname)
         html = shell.page(
-            fname, CONTENT[fname], standalone=True, home_href="../index.html"
+            fname, content, standalone=True, home_href="../index.html"
         )
         with open(os.path.join(LESSONS_DIR, fname), "w", encoding="utf-8") as f:
             f.write(html)

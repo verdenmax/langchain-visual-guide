@@ -200,6 +200,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
 }
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
 
 /* footer nav */
 .footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
@@ -453,7 +463,68 @@ chain = RunnableBranch(
     <li>下一课：补上 LCEL 的第三块拼图——<strong>输出解析器</strong>，把模型输出变成程序能用的数据。</li>
   </ul>
 </div>
-
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. <code>a | b | c</code> 得到 RunnableSequence，<code>{'x': a, 'y': b}</code> 得到 RunnableParallel。把“串行/并行”做成两种明确的组合原语，好处是？</div>
+  <ol class="opts">
+    <li>名字多</li>
+    <li>用最小的几种“组合方式”（顺序/并行/分支）就能拼出复杂数据流，心智模型简单且可预测</li>
+    <li>运行更快</li>
+    <li>减少代码</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。少数正交的组合原语 + 闭包性 = 强大的表达力。这是“用简单规则组合出复杂行为”的设计美学。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. RunnableParallel 让多分支“同输入并发执行、输出合并为字典”。为什么专门提供“并行”原语，而不让你自己开线程？</div>
+  <ol class="opts">
+    <li>显得高级</li>
+    <li>把并发的复杂性（调度/收集/错误）收进框架，你只声明“这几支并行”，正确性和性能都不用自己操心</li>
+    <li>线程不安全</li>
+    <li>Python 不支持并发</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。又是“声明意图、框架负责实现”。把易错的并发编排变成一个声明式原语，是抽象在帮你避坑。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. RunnableLambda（包普通函数）和 RunnablePassthrough（透传）被称为“胶水”。为什么要把“普通函数”也包成 Runnable？</div>
+  <ol class="opts">
+    <li>多此一举</li>
+    <li>让任意自定义逻辑也能无缝接入管道——保持“一切皆 Runnable”的闭包性，不破坏链的可组合</li>
+    <li>让函数更快</li>
+    <li>防止函数报错</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。有了 RunnableLambda，你的任意函数都能当积木拼进链，保证了抽象的“完备性”——不会因为“这步是自定义逻辑”就被迫跳出体系。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">4. RunnableBranch 做条件路由。把“if/else”也做成一个可组合的 Runnable，意图是？</div>
+  <ol class="opts">
+    <li>替代 if 语句</li>
+    <li>让“分支选择”也成为数据流的一部分，可声明、可嵌进链、可流式/异步——而不是散落在外部控制流里</li>
+    <li>让代码更长</li>
+    <li>没有意图</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把控制流（分支）纳入可组合体系，整条管道就是自描述的，而非一半在链里、一半在外面的 if。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>“用少数正交原语（顺序/并行/分支）组合出一切”是很多系统的追求（Unix 管道、函数式组合子）。再举一个你见过的“小原语拼大系统”的例子。</li>
+    <li>把 if/else、并行都塞进“可组合的链”很统一，但有人觉得不如直接写 Python 直观。你站哪边？这种“声明式 DSL vs 朴素代码”的取舍你怎么看？</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="08-runnable.html"><div class="dir">← 上一课</div><div class="ttl">Runnable 万物之基</div></a><a class="next" href="10-output-parsers.html"><div class="dir">下一课 →</div><div class="ttl">输出解析器 Output Parsers</div></a></div>
 </div>
 

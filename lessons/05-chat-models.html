@@ -200,6 +200,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
 }
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
 
 /* footer nav */
 .footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
@@ -576,7 +586,68 @@ structured.invoke(<span class="st">"北京 25 度"</span>)
     <li><span class="mono">bind_tools</span> 让模型"知道"有哪些工具——下一课正式认识工具。</li>
   </ul>
 </div>
-
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. <code>init_chat_model('厂商:型号')</code> 把“换模型”做成改一行字符串。为了这个体验，框架在背后承担了什么？</div>
+  <ol class="opts">
+    <li>什么都没做</li>
+    <li>把各厂商千差万别的 SDK/参数/认证统一适配到同一套接口背后——复杂度被收进框架，留给你的是简单</li>
+    <li>让模型变慢</li>
+    <li>限制你只能用大厂</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“你这边一行、框架那边一堆适配”。简单的使用面背后是被吸收的复杂度——这正是好抽象的标志。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. <code>invoke / stream / batch</code> 共用一套接口、还都有 async 版。为什么不为每种场景设计不同的 API？</div>
+  <ol class="opts">
+    <li>偷懒</li>
+    <li>同一个模型对象覆盖“要完整结果/打字机效果/批量吞吐/异步并发”四类需求，你不必换 API、心智负担最小</li>
+    <li>这样更慢</li>
+    <li>厂商规定</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。一套接口、多种执行语义，是 Runnable 抽象的红利（第 8 课）——换场景只换方法名，不换世界观。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 模型行为可调：temperature、缓存、<code>with_retry</code>、限流器…都做成“可叠加的配置/包装”而非写死。好处是？</div>
+  <ol class="opts">
+    <li>配置项多显得专业</li>
+    <li>横切关注点（省钱/抗抖动/防 429）与“调用模型”本身解耦，可按需组合、随时增减，核心逻辑不变</li>
+    <li>强制你全用上</li>
+    <li>让代码更长</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把“重试/缓存/限流”做成可插拔包装，是“关注点分离”——你像搭积木一样按需加固，而不是把这些塞进业务代码。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">4. 输入很灵活（字符串/消息/元组），输出却很统一（<code>AIMessage</code>）。这种“入口宽、出口窄”的设计意图是？</div>
+  <ol class="opts">
+    <li>故意不一致</li>
+    <li>入口宽 = 怎么顺手怎么传；出口统一 = 下游永远拿到同一种结构，可稳定衔接解析器/工具/Agent</li>
+    <li>没什么意图</li>
+    <li>为了少写代码</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“宽进严出”——容忍多样输入降低门槛，收敛统一输出保证可组合性。两头的设计各有目的。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>“把复杂度收进框架、只给用户一行”是好抽象，但有时你需要某厂商的独特参数。当统一接口“漏掉”了你要的特性，框架一般留了什么后门？这种“通用 vs 专有”的张力你怎么平衡？</li>
+    <li>缓存能省钱、但可能返回过时结果；重试能抗抖动、但可能放大重复请求。给“省钱”和“稳定”各举一个<strong>会反噬</strong>的场景。</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="04-messages.html"><div class="dir">← 上一课</div><div class="ttl">消息系统</div></a><a class="next" href="06-tools.html"><div class="dir">下一课 →</div><div class="ttl">工具 Tools</div></a></div>
 </div>
 

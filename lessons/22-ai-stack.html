@@ -200,6 +200,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
 }
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
 
 /* footer nav */
 .footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
@@ -418,7 +428,68 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <li>学会"缩放看坐标"：遇到任何新名词，先问 <strong>"它在第几层？"</strong></li>
   </ul>
 </div>
-
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. 课里反复纠正“LangChain/AutoGen 不是最底层，它们在 L7 编排层”。把“认清自己在第几层”当成核心能力，图什么？</div>
+  <ol class="opts">
+    <li>显得有层次</li>
+    <li>坐标感：知道一个东西在哪一层，就知道它解决什么、依赖什么、和谁是邻居——不会把概念放错位置</li>
+    <li>记住更多名词</li>
+    <li>没用</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。分层是一张“坐标系”。能给任何技术定位，你就能快速理解它的职责与边界——这比记住孤立名词有用得多。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. 课里教你遇到新名词“先问它在第几层”。这个习惯的价值是？</div>
+  <ol class="opts">
+    <li>装专业</li>
+    <li>用一个稳定的坐标系去消化层出不穷的新技术，避免被营销词淹没、能快速判断它和你的关系</li>
+    <li>让你显得懂</li>
+    <li>没价值</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。技术名词爆炸，但分层坐标相对稳定。“先定位再判断”是应对信息过载的认知工具。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 全栈分成“训练侧(L1-L4)”和“应用侧(L4-L7)”两条河，L4 模型是交汇口。这种划分帮你认清了什么？</div>
+  <ol class="opts">
+    <li>河流地理</li>
+    <li>99% 应用开发者只在 L4 以上工作（不需自己训模型），认清这点能让你把精力放对地方</li>
+    <li>训练更重要</li>
+    <li>应用更重要</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。分清“造模型”和“用模型”两条路，你就知道自己该深耕哪侧、哪些层可以“交给大厂”。坐标系帮你做技术取舍。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">4. 把“横切带（评测/可观测/安全）”画成贯穿多层的独立一条，而不是塞进某一层。为什么？</div>
+  <ol class="opts">
+    <li>画着好看</li>
+    <li>这些是“每一层都需要”的横切关注点，独立出来才能表达“它不属于某层、而是贯穿全栈”</li>
+    <li>它们不重要</li>
+    <li>凑数</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。和回调/config 的“横切”思想一致——可观测/安全不是某层专属，而是贯穿性的。画成独立带子是为了表达这种正交性。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>“遇到新名词先问它在第几层”。最近哪个火热的 AI 名词让你困惑过？试着把它放进这张 7 层图里，看看它到底解决哪层的问题。</li>
+    <li>课里说“应用开发者一辈子只在 L4 以上工作”。你认同吗？什么情况下，一个应用工程师值得往下深入到 L5/L3 甚至 L1？</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="21-langchain-vs-autogen.html"><div class="dir">← 上一课</div><div class="ttl">横向对比：LangChain vs AutoGen</div></a><a class="next" href="23-learning-map.html"><div class="dir">下一课 →</div><div class="ttl">隔壁层学习地图：L5 推理 · L6 向量检索</div></a></div>
 </div>
 

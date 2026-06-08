@@ -200,6 +200,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
 }
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
 
 /* footer nav */
 .footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
@@ -415,7 +425,68 @@ snap = app.get_state(cfg)              <span class="cm"># StateSnapshot：看当
     <li>🎉 至此，<span class="mono">create_agent</span> 从"魔法"被彻底拆到了引擎层：<strong>一张状态图，跑在 Pregel 超步引擎上，靠 channel 合并状态、靠 checkpoint 持久化、靠 Send/Command 控制走向。</strong></li>
   </ul>
 </div>
-
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. 课里说持久化、时间旅行、人审“其实是同一个设计的三个面”。这个共同的底座是什么？</div>
+  <ol class="opts">
+    <li>更大的内存</li>
+    <li>“每个超步都把状态存成一个 checkpoint”——有了逐步存档，续跑/回到过去/暂停等人就都水到渠成</li>
+    <li>更快的模型</li>
+    <li>更多的节点</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。一个机制(逐步 checkpoint)派生出多种能力(续跑/时间旅行/人审)。这是“找到正确的底层抽象、上层能力自然涌现”的范例。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. interrupt 的恢复是“从节点开头重新执行”。课里专门把它列为“坑”。这个设计的代价是什么、该怎么应对？</div>
+  <ol class="opts">
+    <li>没有代价</li>
+    <li>interrupt 之前的副作用(已发邮件/已扣款)会重复执行——应把副作用放在 interrupt 之后，或做幂等</li>
+    <li>恢复会变慢</li>
+    <li>状态会丢</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“从头重放”换来了实现的简单与一致，但代价是 interrupt 前的代码会重跑。理解这个取舍，才能避免“重复扣款”这类真实事故。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 多个独立工具调用用 <code>Send</code>“扇出”，把“改状态 + 跳转”统一成 <code>Command</code>。把这两件事分成两个原语，体现了什么？</div>
+  <ol class="opts">
+    <li>原语越多越好</li>
+    <li>用正交的小原语覆盖图的控制流：Send 管“并行分身”、Command 管“状态+去向”，组合起来表达复杂流转</li>
+    <li>为了好记</li>
+    <li>没意图</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。又是“少数正交原语组合出复杂行为”。Send 和 Command 各管一件事，组合起来就能表达 map-reduce、handoff 等复杂控制流。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">4. 多 Agent 的“handoff(交接)”被落实为 <code>Command(goto=另一个 agent)</code>。把“交接”建模成“改状态 + 跳转”，说明了什么？</div>
+  <ol class="opts">
+    <li>handoff 很神秘</li>
+    <li>多 Agent 协作不需要新机制：它就是图里的“带状态更新的跳转”，复用了已有的控制流原语</li>
+    <li>必须用 AutoGen</li>
+    <li>很难实现</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“交接”听起来高级，落到图模型就是 Command(goto)。用已有原语表达新概念，避免为每个新需求发明新机制——抽象选对了，能力就复用。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>“逐步 checkpoint”这一个机制派生出了续跑/时间旅行/人审三种能力。回想你用过的系统，有没有“一个底层设计意外解锁了一堆上层能力”的例子？</li>
+    <li>interrupt“从节点头重放”带来了“副作用会重复”的坑。如果让你设计中断/恢复，你会选“从头重放(简单但有副作用风险)”还是“精确续接(复杂但无重复)”？为什么？</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="25-langgraph-pregel-engine.html"><div class="dir">← 上一课</div><div class="ttl">执行引擎：Pregel 与超步</div></a><a class="next" href="27-glossary.html"><div class="dir">下一课 →</div><div class="ttl">术语表 · 概念索引</div></a></div>
 </div>
 

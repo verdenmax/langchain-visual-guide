@@ -200,6 +200,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
 }
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
 
 /* footer nav */
 .footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
@@ -429,7 +439,68 @@ graph = StateGraph(state_schema, context_schema=context_schema)
     <li>零件都齐了——<strong>下一课把它们拼成一个完整可跑的 Agent</strong>。</li>
   </ul>
 </div>
-
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. <code>context_schema</code> + <code>invoke(context=...)</code> 把 user_id 等运行时数据“注入工具/中间件，但不进消息”。为什么特意不让它进对话？</div>
+  <ol class="opts">
+    <li>消息太长</li>
+    <li>关注点与安全隔离：运行时配置（身份/连接）不该污染“给模型看的对话”，也不该暴露给模型——它是给你的代码用的</li>
+    <li>模型读不懂</li>
+    <li>省 token</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把“对话内容”和“运行时上下文”分开，既保持消息干净，又避免把敏感的身份/连接喂给模型。隔离即安全。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. <code>with_fallbacks</code> 给“任意 Runnable”提供降级兜底。把“降级”做成对任意组件通用的能力，得益于什么？</div>
+  <ol class="opts">
+    <li>运气</li>
+    <li>因为一切都是 Runnable，“失败就换备用”可以统一实现一次、对模型/链/Agent 都适用</li>
+    <li>厂商支持</li>
+    <li>降级很简单</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。又是统一抽象的红利——横切的健壮性能力（重试/降级）只要对 Runnable 实现一次，就处处可用。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. <code>stream_mode</code> 提供 updates/messages/values 几种粒度让你选。为什么不只给一种“流式”？</div>
+  <ol class="opts">
+    <li>选择困难</li>
+    <li>不同 UI 需求要不同粒度：要节点级进展用 updates、要逐 token 用 messages、要整份状态用 values——粒度匹配场景</li>
+    <li>更快</li>
+    <li>凑数</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“提供多种粒度、让调用方按需选”，是把“该看多细”的决定权交给最懂场景的你。粒度即表达力。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">4. 把“运行时数据注入”做成有类型的 <code>context_schema</code>，而不是随便传个字典。这和前面哪些设计一脉相承？</div>
+  <ol class="opts">
+    <li>毫无关系</li>
+    <li>和工具的 pydantic schema、消息的结构化一样——用“有类型的结构”换取可校验、可读、不易错</li>
+    <li>为了更慢</li>
+    <li>偶然</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。贯穿全书的偏好：能用“有类型的结构”就不用“裸字典”。结构带来校验和清晰，是 LangChain 一致的设计口味。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>“运行时上下文不进消息”在身份/连接这类数据上很对。但有时你确实想让模型知道“当前用户是谁”。这条边界你会怎么划？哪些进上下文、哪些进消息？</li>
+    <li><code>with_fallbacks</code> 能降级兜底，但“自动切备用”也可能掩盖真正的问题（主模型一直挂你却没发现）。你会怎么在“高可用”和“可观测/告警”之间平衡？</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="18-custom-middleware.html"><div class="dir">← 上一课</div><div class="ttl">写自己的中间件</div></a><a class="next" href="20-capstone.html"><div class="dir">下一课 →</div><div class="ttl">端到端实战：拼一个客服 Agent</div></a></div>
 </div>
 

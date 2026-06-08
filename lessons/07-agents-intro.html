@@ -200,6 +200,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
 }
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
 
 /* footer nav */
 .footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
@@ -521,7 +531,68 @@ agent = create_agent(primary_model, tools, middleware=[
     <li><strong>第二部分（用户视角）到此结束</strong>。接下来掀开盖子，看这些便利背后的源码机制。</li>
   </ul>
 </div>
-
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. <code>create_agent</code> 把“调用→判断→执行工具→回灌→再调用”这个循环自动化。它体现的核心设计哲学是？</div>
+  <ol class="opts">
+    <li>命令式：你写每一步</li>
+    <li>声明式：你只声明“用什么（模型/工具/护栏）”，循环的编排交给框架</li>
+    <li>函数式</li>
+    <li>面向对象</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“声明用什么、而非手写怎么循环”是本课灵魂。便利来自把易错的循环编排收进框架——也因此后面要掀开盖子看它其实是张图。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. Agent 是否继续循环，判据简单到只有一句：“最新 AIMessage 还有没有 <code>tool_calls</code>”。把复杂行为压成这么简单的判据，好处是？</div>
+  <ol class="opts">
+    <li>显得简单</li>
+    <li>终止逻辑清晰、可预测、好调试：复杂度都在“模型决定要不要调工具”，而控制流本身极简</li>
+    <li>限制了能力</li>
+    <li>纯属巧合</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把“智能”（要不要继续）交给模型、把“控制流”做到极简，是关注点分离的漂亮例子——引擎简单，灵活性来自模型输出。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 生产里给 Agent 装“刹车与护栏”（限次/人审/重试/降级），做成可插拔的 middleware 而非写进核心循环。为什么？</div>
+  <ol class="opts">
+    <li>显得模块多</li>
+    <li>核心循环保持稳定纯净，安全/健壮性按需声明式叠加，不同项目装不同护栏、互不污染</li>
+    <li>让 Agent 更慢</li>
+    <li>强制都用上</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把横切的护栏与核心循环解耦，你能像配置一样增减能力（第 18 课看机制）。核心不变、外围灵活，又是分离思想。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">4. <code>ModelCallLimitMiddleware</code> 限“思考几轮”、<code>recursion_limit</code> 是“图的硬上限”。同时有软上限和硬上限两道防线，图什么？</div>
+  <ol class="opts">
+    <li>重复造轮子</li>
+    <li>软上限给友好行为（到点收尾），硬上限做最后兜底（绝不无限跑）；分层防御，体验与安全兼顾</li>
+    <li>让配置更复杂</li>
+    <li>没有意义</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。软硬两道防线分工不同：一个为“优雅降级”，一个为“绝对安全”。关键系统常用这种“多层兜底”。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li><code>create_agent</code> 把循环“自动化”了，但也“藏起来”了。什么情况下这种“便利的黑盒”反而会成为问题？什么时候你宁愿自己用 LangGraph 手搭图？</li>
+    <li>给 Agent 加护栏几乎总是对的，但每道护栏都增加复杂度与延迟。如果只能选<strong>一道</strong>护栏上生产，你会选哪个、为什么？</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="06-tools.html"><div class="dir">← 上一课</div><div class="ttl">工具 Tools</div></a><a class="next" href="08-runnable.html"><div class="dir">下一课 →</div><div class="ttl">Runnable 万物之基</div></a></div>
 </div>
 

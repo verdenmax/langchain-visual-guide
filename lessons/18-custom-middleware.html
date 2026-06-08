@@ -200,6 +200,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
 }
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
 
 /* footer nav */
 .footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
@@ -501,7 +511,68 @@ graph.add_node(f<span class="st">"{m.name}.after_model"</span>,  after_node,  ..
     <li>下一课：把运行时数据传进去（context）、加降级、把思考流式推给 UI。</li>
   </ul>
 </div>
-
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. 中间件让你“在不改核心循环的前提下”插入逻辑。这个“扩展点”最体现哪条原则？</div>
+  <ol class="opts">
+    <li>DRY</li>
+    <li>开闭原则：对扩展开放（随便加中间件）、对修改关闭（核心循环不动）</li>
+    <li>单例</li>
+    <li>KISS</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“不改核心、靠加插件扩展”正是开闭原则。它让 Agent 行为高度可定制，同时核心保持稳定。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. 两类钩子用了两种实现：状态钩子编译成图节点、包裹钩子组合成洋葱式嵌套函数。为什么不统一成一种？</div>
+  <ol class="opts">
+    <li>偷懒</li>
+    <li>两类需求本质不同：状态钩子“读改状态”适合做图节点（可持久化），包裹钩子“控制前后/能否调用”适合做嵌套函数（能重试/短路）——各取所长</li>
+    <li>历史原因</li>
+    <li>没区别</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“改状态”和“包裹一次调用”是两种语义，分别用最契合的机制实现。这是“按需选择实现”而非强行统一的务实设计。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 内置的 retry/fallback 都基于 <code>wrap_model_call</code> 实现。为什么“拿到 handler 回调、能重复调内层”就足以实现重试？</div>
+  <ol class="opts">
+    <li>handler 很快</li>
+    <li>wrap 拿到了“执行内层”的回调，于是可以失败了换个请求再调一次 handler——重试/降级本质就是“多调几次内层”</li>
+    <li>handler 自带重试</li>
+    <li>巧合</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。洋葱式的“外层掌控内层调用”是个强大原语：重试=多调、降级=换参再调、短路=不调。一个机制覆盖多种健壮性需求。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">4. “零开销原则”：没被覆盖的钩子根本不进图。这个设计图什么？</div>
+  <ol class="opts">
+    <li>代码好看</li>
+    <li>不写就没成本：丰富的扩展点（七个钩子）不以“拖慢每次循环”为代价，按需付费</li>
+    <li>防止出错</li>
+    <li>减少内存</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“未使用即零成本”让框架能提供丰富扩展点而不牺牲性能——你只为用到的能力买单。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>中间件让 Agent 高度可定制，但一堆中间件叠在一起，执行顺序和相互影响也会变复杂。你会怎么管理“中间件栈”以免它变成新的复杂度黑洞？</li>
+    <li>“状态钩子做节点、包裹钩子做嵌套函数”是按语义选实现。如果让你设计扩展点，你会倾向“少而统一”还是“多而专用”？为什么？</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="17-rag.html"><div class="dir">← 上一课</div><div class="ttl">RAG 检索增强</div></a><a class="next" href="19-runtime-context.html"><div class="dir">下一课 →</div><div class="ttl">运行时上下文与健壮性</div></a></div>
 </div>
 
