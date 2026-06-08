@@ -244,6 +244,12 @@ table.t th, table.t td { padding: .6rem .8rem; text-align: left; border-bottom: 
 table.t th { background: var(--panel-2); font-size: .8rem; letter-spacing: .02em; }
 table.t tr:last-child td { border-bottom: none; }
 table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-size: .82rem; color: var(--accent-ink); }
+@media (max-width: 640px) {
+  /* Wide multi-column tables: scroll within their own box instead of
+     forcing page-level horizontal overflow (which clipped right columns). */
+  table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.t th, table.t td { padding: .5rem .6rem; }
+}
 
 /* footer nav */
 .footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
