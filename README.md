@@ -1,5 +1,10 @@
 # LangChain 图解教程 · 从零理解整个项目
 
+[![📖 在线阅读](https://img.shields.io/badge/%F0%9F%93%96%20%E5%9C%A8%E7%BA%BF%E9%98%85%E8%AF%BB-Read%20Online-1a7f64?style=for-the-badge)](https://verdenmax.github.io/langchain-visual-guide/)
+[![📄 下载 PDF](https://img.shields.io/badge/%F0%9F%93%84%20%E4%B8%8B%E8%BD%BD%20PDF-Download-b4690e?style=for-the-badge)](https://github.com/verdenmax/langchain-visual-guide/releases/latest/download/langchain-visual-guide.pdf)
+
+> 🌐 **在线阅读**：<https://verdenmax.github.io/langchain-visual-guide/>　·　📄 **下载 PDF（全 23 课）**：[langchain-visual-guide.pdf](https://github.com/verdenmax/langchain-visual-guide/releases/latest/download/langchain-visual-guide.pdf)
+
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Lessons](https://img.shields.io/badge/lessons-23-blue.svg)
 ![Parts](https://img.shields.io/badge/parts-6-9cf.svg)
