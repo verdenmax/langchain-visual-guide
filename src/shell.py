@@ -371,7 +371,7 @@ def index_page(standalone=False, lesson_prefix=""):
         "10-output-parsers.html": "StrOutputParser · JsonOutputParser · 闭环",
         "11-chat-internals.html": "BaseChatModel 调用链",
         "12-tool-internals.html": "函数 → JSON Schema → tool_calls",
-        "13-agent-internals.html": "LangGraph 状态图 + middleware",
+        "13-agent-internals.html": "LangGraph 状态图 · Send/Command · add_messages reducer",
         "14-streaming-callbacks.html": "流式输出与回调追踪",
         "15-contributing.html": "uv · 测试 · 调试 · 贡献",
         "16-prompts.html": "ChatPromptTemplate · MessagesPlaceholder · few-shot",

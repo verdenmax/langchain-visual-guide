@@ -777,14 +777,31 @@ graph.add_conditional_edges(<span class="st">"tools"</span>, ...)   <span class=
 <div class="card detail">
   <div class="tag">🔬 细节 / 代码对应</div>
   <ul>
-    <li>Agent 引擎来自<strong>独立库 LangGraph</strong>（<span class="mono">langchain</span> 主力包依赖它）。
-      <span class="mono">StateGraph</span>、<span class="mono">ToolNode</span> 都从 <span class="mono">langgraph</span> 导入。</li>
+    <li>Agent 引擎来自<strong>独立库 LangGraph</strong>——它是<strong>另一个仓库</strong>（<span class="mono">langchain-ai/langgraph</span>），
+      <strong>不在</strong>你一直读的 langchain monorepo 的 <span class="mono">libs/</span> 里；<span class="mono">langchain</span> 主力包<strong>依赖</strong>它。
+      <span class="mono">StateGraph</span>、<span class="mono">ToolNode</span> 等都从 <span class="mono">langgraph</span> 导入。</li>
     <li><span class="mono">create_agent</span> 在 <span class="mono">agents/factory.py</span>：定义 <span class="mono">model_node</span>，加 <span class="mono">"model"</span>/<span class="mono">"tools"</span> 两节点，
       用 <span class="mono">add_conditional_edges</span> 接好循环，最后 <span class="mono">compile()</span>。</li>
     <li>返回的 <span class="mono">CompiledStateGraph</span> <strong>本身也是一个 Runnable</strong>——所以你能对它
       <span class="mono">invoke</span>/<span class="mono">stream</span>（呼应第 8 课）。</li>
   </ul>
 </div>
+
+<h2>create_agent 用到的 LangGraph 零件清单</h2>
+<p>你问"LangGraph 的代码细节到底用了哪些"——这张表一次说清。<span class="mono">factory.py</span> 顶部就 import 了它们：</p>
+<table class="t">
+  <tr><th>LangGraph 零件</th><th>作用</th><th>教程位置</th></tr>
+  <tr><td class="mono">StateGraph / CompiledStateGraph</td><td>定义并编译整张 Agent 图</td><td>本课</td></tr>
+  <tr><td class="mono">START / END</td><td>图的入口与出口</td><td>本课流程图</td></tr>
+  <tr><td class="mono">add_conditional_edges</td><td>"去 tools 还是结束"的条件路由</td><td>本课 · 深入 ①</td></tr>
+  <tr><td class="mono">ToolNode</td><td>执行工具、产出 ToolMessage 的节点</td><td>第 12 课</td></tr>
+  <tr><td class="mono">add_messages（reducer）</td><td>messages 的<strong>合并规则</strong>（按 id 追加/替换）</td><td>下方 ⤵</td></tr>
+  <tr><td class="mono">Send</td><td><strong>并行扇出</strong>多个工具调用</td><td>本课 · 进阶 ④</td></tr>
+  <tr><td class="mono">Command</td><td>状态更新 + 跳转（多 Agent <strong>handoff</strong> 的底座）</td><td>本课 · 进阶 ④ · 第 21 课</td></tr>
+  <tr><td class="mono">Checkpointer / Store</td><td>持久化会话 / 长期记忆</td><td>本课 · 进阶 ①③</td></tr>
+  <tr><td class="mono">interrupt</td><td>中断等人审批（HITL）</td><td>本课 · 进阶 ② · 第 7 课</td></tr>
+  <tr><td class="mono">Runtime</td><td>运行时上下文（依赖注入）</td><td>第 19 课</td></tr>
+</table>
 
 <h2>状态：在节点间流动的是什么？</h2>
 <p>图里流动的不是裸消息，而是 <span class="inline">AgentState</span>——一个至少含 <span class="inline">messages</span> 键的状态字典。
@@ -793,6 +810,18 @@ graph.add_conditional_edges(<span class="st">"tools"</span>, ...)   <span class=
 {<span class="st">"messages"</span>: [HumanMessage(...), AIMessage(...), ToolMessage(...), ...]}
 <span class="cm"># model 节点追加 AIMessage；tools 节点追加 ToolMessage</span>
 </pre>
+
+<div class="card detail">
+  <div class="tag">🔬 关键细节：messages 为什么是"追加"而非"覆盖"</div>
+  <p>真实定义是 <span class="mono">messages: Annotated[list[AnyMessage], add_messages]</span>（<span class="mono">agents/middleware/types.py</span>）。
+  这个 <span class="mono">add_messages</span> 是 LangGraph 的 <strong>reducer（归并函数）</strong>：当节点/中间件返回
+  <span class="mono">{"messages": [...]}</span> 时，框架<strong>不是覆盖</strong>旧列表，而是用它把新消息<strong>按 id 合并</strong>进去（id 相同则替换、不同则追加）。</p>
+  <ul>
+    <li>所以 <span class="mono">"model"</span> 节点只要 <span class="mono">return {"messages": [ai]}</span> 就能"追加一条"，不必自己拼回整段历史。</li>
+    <li>想<strong>删 / 改</strong>历史？返回<strong>相同 id</strong> 的消息可替换，或用 <span class="mono">RemoveMessage</span> 删除——直接塞一个新列表是<strong>删不掉</strong>的（只会被合并进去）。</li>
+    <li>这也解释了第 18 课中间件改消息为何要小心：你返回的是会被 reducer <strong>归并</strong>的"更新"，而不是整份状态。</li>
+  </ul>
+</div>
 
 <h2>middleware：在循环里插钩子</h2>
 <p>第 7 课签名里的 <span class="inline">middleware</span> 参数，就是往这张图里<strong>插入额外节点/包裹逻辑</strong>的机制——
@@ -965,6 +994,31 @@ agent = create_agent(model, tools, store=my_store)</pre>
   </div>
 </details>
 
+<details class="accordion">
+  <summary><span class="badge-num">4</span> 控制流原语：Send（并行扇出）与 Command（跳转 / handoff） <span class="hint">点击展开详解</span></summary>
+  <div class="acc-body">
+    <div class="qa">
+      <div class="q">🧪 Send：一次请求多个工具，怎么并行</div>
+      <div class="a">当一条 AIMessage 里有<strong>多个 tool_calls</strong> 时，路由不是简单返回 <span class="mono">"tools"</span>，而是给每个调用发一个 <span class="mono">Send</span>：
+<pre class="code"><span class="cm"># factory.py：把 N 个工具调用并行扇出到 tools 节点</span>
+<span class="kw">return</span> [Send(<span class="st">"tools"</span>, [tc]) <span class="kw">for</span> tc <span class="kw">in</span> pending_tool_calls]</pre>
+        这就是"<strong>并行工具调用</strong>"的真实机制：<span class="mono">Send(node, payload)</span> 让同一个节点<strong>被并发触发多次</strong>，各跑各的、再汇合回 model。</div>
+    </div>
+    <div class="qa">
+      <div class="q">🧪 Command：状态更新 + 跳转（多 Agent handoff）</div>
+      <div class="a">普通节点返回一个 <span class="mono">dict</span> 只更新状态；返回 <span class="mono">Command</span> 则能<strong>同时</strong>"改状态 + 指定下一步去哪"：
+<pre class="code"><span class="kw">from</span> langgraph.types <span class="kw">import</span> Command
+<span class="kw">return</span> Command(update={<span class="st">"messages"</span>: [...]}, goto=<span class="st">"researcher"</span>)  <span class="cm"># 改状态并跳到另一个 agent</span></pre>
+        多 Agent <strong>handoff</strong>（第 21 课对照 AutoGen 时提到的"交接"）正是用 <span class="mono">Command(goto=...)</span> 实现的——一个 Agent 把任务<strong>交棒</strong>给另一个。</div>
+    </div>
+    <div class="qa">
+      <div class="q">✅ 一句话记</div>
+      <div class="a"><span class="mono">Send</span> = <strong>"分身并行"</strong>（fan-out，如多工具）；<span class="mono">Command</span> = <strong>"改状态 + 改去向"</strong>（含 handoff）。
+        二者都来自 <span class="mono">langgraph.types</span>，是 LangGraph 控制流的两块基石。</div>
+    </div>
+  </div>
+</details>
+
 <div class="card spark">
   <div class="tag">💡 设计亮点</div>
   <ul>
@@ -976,7 +1030,8 @@ agent = create_agent(model, tools, store=my_store)</pre>
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
     <li>两个节点：<span class="mono">"model"</span>（调模型）、<span class="mono">"tools"</span>（ToolNode 执行工具）；条件边按 <span class="mono">tool_calls</span> 决定走向。</li>
-    <li>流动的状态是 <span class="mono">AgentState</span>（含 <span class="mono">messages</span>）；<span class="mono">middleware</span> 可在循环中插钩子。</li>
+    <li>流动的状态是 <span class="mono">AgentState</span>（含 <span class="mono">messages</span>，靠 <span class="mono">add_messages</span> reducer <strong>合并</strong>而非覆盖）；<span class="mono">middleware</span> 可在循环中插钩子。</li>
+    <li>它<strong>直接复用 LangGraph 的零件</strong>：<span class="mono">StateGraph / ToolNode / Send（并行）/ Command（handoff）/ checkpointer / interrupt</span>——LangChain 组装、LangGraph 运行。</li>
     <li>编译产物是 Runnable，所以能 invoke/stream。下一课：流式与回调系统。</li>
   </ul>
 </div>
