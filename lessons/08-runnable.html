@@ -36,7 +36,7 @@
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
     "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -44,7 +44,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-decoration: none; }
-code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
 
 /* ---- top progress bar ---- */
 .topbar {
@@ -185,7 +185,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
 @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
-.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
 .col h4 { margin: 0 0 .4rem; font-size: .95rem; }
 
 table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
@@ -487,49 +487,49 @@ chain.configurable_alternatives(ConfigurableField(<span class="st">"llm"</span>)
 <div class="quiz">
   <div class="qn">1. LangChain 让“模型/提示/工具/解析器”全都实现同一个 <code>Runnable</code> 接口。这个“万物皆 Runnable”的统一抽象，最大的回报是？</div>
   <ol class="opts">
-    <li>名字好听</li>
     <li>任意组件能用同一套接口（invoke/stream/batch）调用、并用 <code>|</code> 自由拼接——可组合性</li>
     <li>运行更快</li>
+    <li>名字好听</li>
     <li>减少类的数量</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。统一接口是“可组合”的前提：因为大家长一个样，才能像管道一样首尾相接。抽象的价值在于它解锁的组合能力。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。统一接口是“可组合”的前提：因为大家长一个样，才能像管道一样首尾相接。抽象的价值在于它解锁的组合能力。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">2. <code>invoke</code> 是抽象方法（每个组件必须实现），而 <code>stream/batch</code> 给了默认实现。这种“必须实现一个、其余白送”图什么？</div>
   <ol class="opts">
-    <li>偷懒</li>
     <li>降低实现成本：你只需实现核心的 invoke，就免费获得流式/批量（默认实现基于 invoke），需要时再自定义</li>
-    <li>让 stream 更慢</li>
     <li>强制重写所有方法</li>
+    <li>偷懒</li>
+    <li>让 stream 更慢</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“提供合理默认、允许覆盖”是好框架的体现——实现一个新组件的门槛被压到最低，同时保留优化空间。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。“提供合理默认、允许覆盖”是好框架的体现——实现一个新组件的门槛被压到最低，同时保留优化空间。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">3. 用 <code>|</code> 拼组件，而不是写嵌套调用 <code>f(g(h(x)))</code>。这种“声明式管道”相比“命令式嵌套”，好处是？</div>
   <ol class="opts">
-    <li>字符更少</li>
     <li>数据流向从左到右一目了然、易读易改易复用，且产物本身还是 Runnable 可继续拼</li>
-    <li>运行更快</li>
     <li>没区别</li>
+    <li>字符更少</li>
+    <li>运行更快</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。管道把“数据怎么流”显式画出来，可读性和可组合性都强于深层嵌套。本质是 DSL 对表达力的提升。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。管道把“数据怎么流”显式画出来，可读性和可组合性都强于深层嵌套。本质是 DSL 对表达力的提升。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">4. “链本身也是 Runnable”——拼出来的链和单个组件长一个样。这个“闭包性”（组合的结果仍是同类）为什么重要？</div>
   <ol class="opts">
-    <li>没什么用</li>
-    <li>它让组合可以无限嵌套：链能当组件再拼进更大的链，复杂度可分层组装</li>
     <li>让链更短</li>
+    <li>它让组合可以无限嵌套：链能当组件再拼进更大的链，复杂度可分层组装</li>
     <li>防止出错</li>
+    <li>没什么用</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>

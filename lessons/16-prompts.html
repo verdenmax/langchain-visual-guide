@@ -36,7 +36,7 @@
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
     "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -44,7 +44,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-decoration: none; }
-code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
 
 /* ---- top progress bar ---- */
 .topbar {
@@ -185,7 +185,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
 @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
-.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
 .col h4 { margin: 0 0 .4rem; font-size: .95rem; }
 
 table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
@@ -454,53 +454,53 @@ prompt = ChatPromptTemplate.from_messages([
 <div class="quiz">
   <div class="qn">1. ChatPromptTemplate 把“提示的结构”和“具体内容”分离（模板 + 变量）。这种分离图什么？</div>
   <ol class="opts">
-    <li>看起来工整</li>
-    <li>结构固定、内容可变：同一个提示骨架能复用于不同输入，避免到处拼字符串、易维护易测试</li>
-    <li>省 token</li>
     <li>让提示更短</li>
+    <li>看起来工整</li>
+    <li>省 token</li>
+    <li>结构固定、内容可变：同一个提示骨架能复用于不同输入，避免到处拼字符串、易维护易测试</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“把会变的（内容）和不变的（结构）分开”是模板的通用价值——和第 6 课“代码自描述”、第 3 课“中间表示”一样，都是隔离变化点。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。“把会变的（内容）和不变的（结构）分开”是模板的通用价值——和第 6 课“代码自描述”、第 3 课“中间表示”一样，都是隔离变化点。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">2. MessagesPlaceholder 专门为“一整串历史消息”留一个插槽。为什么不直接把历史拼成一段文本塞进去？</div>
   <ol class="opts">
-    <li>文本太长</li>
-    <li>历史是结构化消息（带角色/工具调用），用占位符保留其结构，模型才能正确理解多轮对话，而非一团文本</li>
     <li>占位符更快</li>
     <li>没区别</li>
+    <li>文本太长</li>
+    <li>历史是结构化消息（带角色/工具调用），用占位符保留其结构，模型才能正确理解多轮对话，而非一团文本</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。呼应第 4 课——消息的结构化是有意义的。MessagesPlaceholder 保住了这份结构，而不是把它压扁成字符串。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。呼应第 4 课——消息的结构化是有意义的。MessagesPlaceholder 保住了这份结构，而不是把它压扁成字符串。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">3. 提示模板也是 Runnable，能直接 <code>prompt | model | parser</code>。把模板纳入 Runnable 体系，好处是？</div>
   <ol class="opts">
     <li>凑数</li>
-    <li>提示渲染成了管道的第一节，和模型/解析无缝串联，整条链统一可组合</li>
-    <li>模板更准</li>
     <li>减少代码</li>
+    <li>模板更准</li>
+    <li>提示渲染成了管道的第一节，和模型/解析无缝串联，整条链统一可组合</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。又是闭包性的回报——连“填提示”这步都是 Runnable，整条“提示→模型→解析”就是一条同质的链。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。又是闭包性的回报——连“填提示”这步都是 Runnable，整条“提示→模型→解析”就是一条同质的链。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">4. few-shot（在提示里给几个范例）被称为“稳定输出格式的利器”。从设计角度，它本质上在做什么？</div>
   <ol class="opts">
+    <li>训练模型</li>
     <li>让提示更长</li>
     <li>用“示范”替代“说教”：给模型看几个‘输入→期望输出’的例子，比纯文字描述更能稳定它的行为</li>
     <li>增加 token 浪费</li>
-    <li>训练模型</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。few-shot 是“用例子定义期望”。它不改模型权重，只在上下文里用范例引导——一种轻量、即时的“行为塑造”。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。few-shot 是“用例子定义期望”。它不改模型权重，只在上下文里用范例引导——一种轻量、即时的“行为塑造”。</div></div></div>
   </details>
 </div>
 <div class="card spark">

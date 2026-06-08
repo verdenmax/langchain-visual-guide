@@ -36,7 +36,7 @@
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
     "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -44,7 +44,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-decoration: none; }
-code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
 
 /* ---- top progress bar ---- */
 .topbar {
@@ -185,7 +185,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
 @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
-.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
 .col h4 { margin: 0 0 .4rem; font-size: .95rem; }
 
 table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
@@ -591,14 +591,14 @@ structured.invoke(<span class="st">"北京 25 度"</span>)
 <div class="quiz">
   <div class="qn">1. <code>init_chat_model('厂商:型号')</code> 把“换模型”做成改一行字符串。为了这个体验，框架在背后承担了什么？</div>
   <ol class="opts">
-    <li>什么都没做</li>
-    <li>把各厂商千差万别的 SDK/参数/认证统一适配到同一套接口背后——复杂度被收进框架，留给你的是简单</li>
-    <li>让模型变慢</li>
     <li>限制你只能用大厂</li>
+    <li>什么都没做</li>
+    <li>让模型变慢</li>
+    <li>把各厂商千差万别的 SDK/参数/认证统一适配到同一套接口背后——复杂度被收进框架，留给你的是简单</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“你这边一行、框架那边一堆适配”。简单的使用面背后是被吸收的复杂度——这正是好抽象的标志。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。“你这边一行、框架那边一堆适配”。简单的使用面背后是被吸收的复杂度——这正是好抽象的标志。</div></div></div>
   </details>
 </div>
 <div class="quiz">
@@ -606,8 +606,8 @@ structured.invoke(<span class="st">"北京 25 度"</span>)
   <ol class="opts">
     <li>偷懒</li>
     <li>同一个模型对象覆盖“要完整结果/打字机效果/批量吞吐/异步并发”四类需求，你不必换 API、心智负担最小</li>
-    <li>这样更慢</li>
     <li>厂商规定</li>
+    <li>这样更慢</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
@@ -617,10 +617,10 @@ structured.invoke(<span class="st">"北京 25 度"</span>)
 <div class="quiz">
   <div class="qn">3. 模型行为可调：temperature、缓存、<code>with_retry</code>、限流器…都做成“可叠加的配置/包装”而非写死。好处是？</div>
   <ol class="opts">
-    <li>配置项多显得专业</li>
+    <li>让代码更长</li>
     <li>横切关注点（省钱/抗抖动/防 429）与“调用模型”本身解耦，可按需组合、随时增减，核心逻辑不变</li>
     <li>强制你全用上</li>
-    <li>让代码更长</li>
+    <li>配置项多显得专业</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
@@ -631,13 +631,13 @@ structured.invoke(<span class="st">"北京 25 度"</span>)
   <div class="qn">4. 输入很灵活（字符串/消息/元组），输出却很统一（<code>AIMessage</code>）。这种“入口宽、出口窄”的设计意图是？</div>
   <ol class="opts">
     <li>故意不一致</li>
+    <li>为了少写代码</li>
     <li>入口宽 = 怎么顺手怎么传；出口统一 = 下游永远拿到同一种结构，可稳定衔接解析器/工具/Agent</li>
     <li>没什么意图</li>
-    <li>为了少写代码</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“宽进严出”——容忍多样输入降低门槛，收敛统一输出保证可组合性。两头的设计各有目的。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。“宽进严出”——容忍多样输入降低门槛，收敛统一输出保证可组合性。两头的设计各有目的。</div></div></div>
   </details>
 </div>
 <div class="card spark">

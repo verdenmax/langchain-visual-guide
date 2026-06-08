@@ -36,7 +36,7 @@
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
     "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -44,7 +44,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-decoration: none; }
-code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
 
 /* ---- top progress bar ---- */
 .topbar {
@@ -185,7 +185,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
 @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
-.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
 .col h4 { margin: 0 0 .4rem; font-size: .95rem; }
 
 table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
@@ -575,10 +575,10 @@ agent = create_agent(model, tools, store=my_store)</pre>
 <div class="quiz">
   <div class="qn">1. <code>create_agent</code> 把 Agent 循环“编译成一张图（StateGraph）”，而不是直接写个 <code>while</code> 循环。这样设计最主要图什么？</div>
   <ol class="opts">
-    <li>让代码显得高级</li>
+    <li>为了强制你用 LangGraph</li>
     <li>图能把“持久化、中断续跑、并行、可视化”变成通用能力，而裸循环这些都得手搓</li>
     <li>图执行更快</li>
-    <li>为了强制你用 LangGraph</li>
+    <li>让代码显得高级</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
@@ -588,40 +588,40 @@ agent = create_agent(model, tools, store=my_store)</pre>
 <div class="quiz">
   <div class="qn">2. “是否继续循环”用“条件边看 <code>tool_calls</code>”而不是“固定循环 N 次”。为什么？</div>
   <ol class="opts">
-    <li>条件边写起来短</li>
-    <li>要循环几轮取决于运行时模型每轮是否还要调工具——编译期无法预知，条件边让图按当前状态动态决定</li>
     <li>固定次数会报错</li>
+    <li>条件边写起来短</li>
     <li>模型不支持计数</li>
+    <li>要循环几轮取决于运行时模型每轮是否还要调工具——编译期无法预知，条件边让图按当前状态动态决定</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把“终止”做成“看状态的条件边”，才能自适应地停在该停的地方。动态性是 Agent 的本质需求。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。把“终止”做成“看状态的条件边”，才能自适应地停在该停的地方。动态性是 Agent 的本质需求。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">3. 状态里 messages 用 <code>add_messages</code> reducer 合并，节点只返回“新增的那条”。为什么不让节点直接返回完整历史？</div>
   <ol class="opts">
-    <li>完整历史太大</li>
     <li>增量 + reducer 让“每个节点只关心自己产出什么”，并天然适配按步存档（checkpoint）与并行分支合并</li>
-    <li>返回完整历史会死循环</li>
+    <li>完整历史太大</li>
     <li>reducer 是必填的</li>
+    <li>返回完整历史会死循环</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。增量更新让节点解耦（各管各的输出），reducer 统一负责“怎么并进去”。这也是状态可逐步持久化、并行写能合并的基础。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。增量更新让节点解耦（各管各的输出），reducer 统一负责“怎么并进去”。这也是状态可逐步持久化、并行写能合并的基础。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">4. 模型一次请求 3 个工具，create_agent 用 <code>Send</code> 把它们“扇出”到 tools 节点。这个设计的好处是？</div>
   <ol class="opts">
     <li>节省内存</li>
-    <li>3 个独立工具能在同一超步内并行执行、再汇合，而不是串行一个个等——降低总延迟</li>
     <li>让代码更短</li>
     <li>避免使用 ToolNode</li>
+    <li>3 个独立工具能在同一超步内并行执行、再汇合，而不是串行一个个等——降低总延迟</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。Send(node, payload) 让同一节点被并发触发多次；多个独立工具因此并行跑。这是“图 + Send”相对手写串行循环的实在优势。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。Send(node, payload) 让同一节点被并发触发多次；多个独立工具因此并行跑。这是“图 + Send”相对手写串行循环的实在优势。</div></div></div>
   </details>
 </div>
 <div class="card spark">

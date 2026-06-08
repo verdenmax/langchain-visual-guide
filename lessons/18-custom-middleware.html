@@ -36,7 +36,7 @@
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
     "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -44,7 +44,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-decoration: none; }
-code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
 
 /* ---- top progress bar ---- */
 .topbar {
@@ -185,7 +185,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
 @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
-.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
 .col h4 { margin: 0 0 .4rem; font-size: .95rem; }
 
 table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
@@ -516,53 +516,53 @@ graph.add_node(f<span class="st">"{m.name}.after_model"</span>,  after_node,  ..
 <div class="quiz">
   <div class="qn">1. 中间件让你“在不改核心循环的前提下”插入逻辑。这个“扩展点”最体现哪条原则？</div>
   <ol class="opts">
-    <li>DRY</li>
-    <li>开闭原则：对扩展开放（随便加中间件）、对修改关闭（核心循环不动）</li>
     <li>单例</li>
     <li>KISS</li>
+    <li>开闭原则：对扩展开放（随便加中间件）、对修改关闭（核心循环不动）</li>
+    <li>DRY</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“不改核心、靠加插件扩展”正是开闭原则。它让 Agent 行为高度可定制，同时核心保持稳定。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。“不改核心、靠加插件扩展”正是开闭原则。它让 Agent 行为高度可定制，同时核心保持稳定。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">2. 两类钩子用了两种实现：状态钩子编译成图节点、包裹钩子组合成洋葱式嵌套函数。为什么不统一成一种？</div>
   <ol class="opts">
-    <li>偷懒</li>
     <li>两类需求本质不同：状态钩子“读改状态”适合做图节点（可持久化），包裹钩子“控制前后/能否调用”适合做嵌套函数（能重试/短路）——各取所长</li>
     <li>历史原因</li>
+    <li>偷懒</li>
     <li>没区别</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“改状态”和“包裹一次调用”是两种语义，分别用最契合的机制实现。这是“按需选择实现”而非强行统一的务实设计。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。“改状态”和“包裹一次调用”是两种语义，分别用最契合的机制实现。这是“按需选择实现”而非强行统一的务实设计。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">3. 内置的 retry/fallback 都基于 <code>wrap_model_call</code> 实现。为什么“拿到 handler 回调、能重复调内层”就足以实现重试？</div>
   <ol class="opts">
-    <li>handler 很快</li>
     <li>wrap 拿到了“执行内层”的回调，于是可以失败了换个请求再调一次 handler——重试/降级本质就是“多调几次内层”</li>
-    <li>handler 自带重试</li>
     <li>巧合</li>
+    <li>handler 很快</li>
+    <li>handler 自带重试</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。洋葱式的“外层掌控内层调用”是个强大原语：重试=多调、降级=换参再调、短路=不调。一个机制覆盖多种健壮性需求。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。洋葱式的“外层掌控内层调用”是个强大原语：重试=多调、降级=换参再调、短路=不调。一个机制覆盖多种健壮性需求。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">4. “零开销原则”：没被覆盖的钩子根本不进图。这个设计图什么？</div>
   <ol class="opts">
-    <li>代码好看</li>
     <li>不写就没成本：丰富的扩展点（七个钩子）不以“拖慢每次循环”为代价，按需付费</li>
-    <li>防止出错</li>
     <li>减少内存</li>
+    <li>防止出错</li>
+    <li>代码好看</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“未使用即零成本”让框架能提供丰富扩展点而不牺牲性能——你只为用到的能力买单。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。“未使用即零成本”让框架能提供丰富扩展点而不牺牲性能——你只为用到的能力买单。</div></div></div>
   </details>
 </div>
 <div class="card spark">

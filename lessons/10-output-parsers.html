@@ -36,7 +36,7 @@
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
     "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -44,7 +44,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-decoration: none; }
-code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
 
 /* ---- top progress bar ---- */
 .topbar {
@@ -185,7 +185,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
 @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
-.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
 .col h4 { margin: 0 0 .4rem; font-size: .95rem; }
 
 table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
@@ -409,10 +409,10 @@ chain = prompt | model | parser   <span class="cm"># 模型按要求输出 → p
 <div class="quiz">
   <div class="qn">1. 输出解析器也被设计成一个 Runnable，能拼在 <code>prompt | model | parser</code> 末尾。这个“解析也是链的一环”好处是？</div>
   <ol class="opts">
-    <li>凑数</li>
-    <li>解析作为管道最后一节，和提示、模型无缝衔接、可流式、可复用——而不是调用后另写一段解析代码</li>
     <li>让解析更准</li>
+    <li>解析作为管道最后一节，和提示、模型无缝衔接、可流式、可复用——而不是调用后另写一段解析代码</li>
     <li>减少 token</li>
+    <li>凑数</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
@@ -422,36 +422,36 @@ chain = prompt | model | parser   <span class="cm"># 模型按要求输出 → p
 <div class="quiz">
   <div class="qn">2. 解析器提供 <code>get_format_instructions()</code>，把“期望格式说明”注入提示。这种“解析器自己告诉提示该让模型怎么输出”图什么？</div>
   <ol class="opts">
-    <li>多此一举</li>
-    <li>让“提示”和“解析”协同闭环：同一个解析器既定义格式要求、又负责解析，二者不会对不上</li>
-    <li>让提示更长</li>
     <li>没有意图</li>
+    <li>多此一举</li>
+    <li>让提示更长</li>
+    <li>让“提示”和“解析”协同闭环：同一个解析器既定义格式要求、又负责解析，二者不会对不上</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“谁解析、谁就说明格式”——把格式的“约定”和“解析”收敛到同一对象，避免提示写一套、解析按另一套。单一事实来源再现。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。“谁解析、谁就说明格式”——把格式的“约定”和“解析”收敛到同一对象，避免提示写一套、解析按另一套。单一事实来源再现。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">3. 解析器与 <code>with_structured_output</code> 被说成“互补”：解析器更通用、结构化输出约束更强。为什么两种都保留？</div>
   <ol class="opts">
-    <li>优柔寡断</li>
     <li>适用场景不同：结构化输出靠模型原生能力强约束但依赖支持，解析器对任意文本输出都通用——给你按需选择</li>
     <li>历史包袱</li>
     <li>没区别</li>
+    <li>优柔寡断</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。提供“强约束（需模型支持）+ 通用（任意输出）”两条路，是务实设计：不同模型/场景能力不同，留选择权给你。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。提供“强约束（需模型支持）+ 通用（任意输出）”两条路，是务实设计：不同模型/场景能力不同，留选择权给你。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">4. JsonOutputParser 支持“流式逐步解析出 dict”。为什么解析器要费劲支持流式，而不是等完整文本再一次解析？</div>
   <ol class="opts">
-    <li>炫技</li>
-    <li>配合流式 UI：边生成边解析出可用的部分结构，用户更早看到结果，体验更好</li>
     <li>更省内存</li>
+    <li>配合流式 UI：边生成边解析出可用的部分结构，用户更早看到结果，体验更好</li>
     <li>更准确</li>
+    <li>炫技</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>

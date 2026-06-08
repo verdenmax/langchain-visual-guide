@@ -36,7 +36,7 @@
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
     "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -44,7 +44,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-decoration: none; }
-code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
 
 /* ---- top progress bar ---- */
 .topbar {
@@ -185,7 +185,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
 @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
-.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
 .col h4 { margin: 0 0 .4rem; font-size: .95rem; }
 
 table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
@@ -461,22 +461,22 @@ model.invoke([(<span class="st">"system"</span>, <span class="st">"你是助手"
 <div class="quiz">
   <div class="qn">2. 请求往下穿三层、响应原路返回，而“你的代码只接触最上层的统一接口”。这对使用者意味着什么？</div>
   <ol class="opts">
-    <li>你必须懂每一层的细节</li>
     <li>你对接口编程、对实现无感：底层怎么换、走哪个厂商，你的调用代码都不变</li>
-    <li>你无法做任何定制</li>
     <li>性能一定更差</li>
+    <li>你无法做任何定制</li>
+    <li>你必须懂每一层的细节</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把厂商差异锁在底层、只暴露统一上层接口，使用者获得“稳定的编程面”——这就是可替换性在调用路径上的体现。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。把厂商差异锁在底层、只暴露统一上层接口，使用者获得“稳定的编程面”——这就是可替换性在调用路径上的体现。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">3. 本课点名“统一入口 + 厂商专属 <code>_generate</code>”是可替换性的核心机关。这是哪种设计模式？</div>
   <ol class="opts">
-    <li>单例模式</li>
-    <li>模板方法模式：公共流程（校验/缓存/回调/重试）在基类固定，只有“真正调厂商”的 <code>_generate</code> 由子类实现</li>
     <li>观察者模式</li>
+    <li>模板方法模式：公共流程（校验/缓存/回调/重试）在基类固定，只有“真正调厂商”的 <code>_generate</code> 由子类实现</li>
+    <li>单例模式</li>
     <li>工厂模式</li>
   </ol>
   <details class="accordion">
@@ -487,10 +487,10 @@ model.invoke([(<span class="st">"system"</span>, <span class="st">"你是助手"
 <div class="quiz">
   <div class="qn">4. 要接入一个全新厂商的模型，按这套设计你大概只需做什么？</div>
   <ol class="opts">
-    <li>重写整个调用流程</li>
+    <li>改动所有用到模型的业务代码</li>
     <li>主要实现“标准消息↔该厂商格式”的转换 + 该厂商的 <code>_generate</code>，上层与其它厂商完全不受影响</li>
     <li>修改 core 地基</li>
-    <li>改动所有用到模型的业务代码</li>
+    <li>重写整个调用流程</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>

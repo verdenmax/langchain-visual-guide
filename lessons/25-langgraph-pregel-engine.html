@@ -36,7 +36,7 @@
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
     "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -44,7 +44,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-decoration: none; }
-code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
 
 /* ---- top progress bar ---- */
 .topbar {
@@ -185,7 +185,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
 @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
-.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
 .col h4 { margin: 0 0 .4rem; font-size: .95rem; }
 
 table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
@@ -424,49 +424,49 @@ LangGraph 内置了几种（来自 Pregel 文档）：</p>
 <div class="quiz">
   <div class="qn">1. LangGraph 借用 Pregel/BSP 的“超步”模型，分 Plan→Execution→Update。其中“本步的写、要下一步才可见”最关键保证了什么？</div>
   <ol class="opts">
-    <li>速度</li>
-    <li>确定性：并行节点看不到彼此本步的半成品，于是同样输入→同样结果，可复现、可持久化</li>
     <li>省内存</li>
+    <li>速度</li>
     <li>好调试</li>
+    <li>确定性：并行节点看不到彼此本步的半成品，于是同样输入→同样结果，可复现、可持久化</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“写入延迟到下一步可见”消除了并行节点间的竞态，让执行确定可复现——这是能把任意一步存档/重放的前提。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。“写入延迟到下一步可见”消除了并行节点间的竞态，让执行确定可复现——这是能把任意一步存档/重放的前提。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">2. 状态某个键的 reducer，本质上“就是那个 channel 的更新函数”。把“reducer”和“channel”统一起来，优雅在哪？</div>
   <ol class="opts">
     <li>名字统一</li>
-    <li>你在 state 上声明的 reducer，被直接落实为底层通道的合并逻辑——上层语义和底层机制是同一个东西，没有翻译损耗</li>
-    <li>更快</li>
     <li>巧合</li>
+    <li>更快</li>
+    <li>你在 state 上声明的 reducer，被直接落实为底层通道的合并逻辑——上层语义和底层机制是同一个东西，没有翻译损耗</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。上层“标个 reducer”和底层“channel 怎么合并”是一回事。概念在不同抽象层级保持一致，是设计自洽的体现。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。上层“标个 reducer”和底层“channel 怎么合并”是一回事。概念在不同抽象层级保持一致，是设计自洽的体现。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">3. LangGraph 没自己发明执行模型，而是搬来 20 年前 Google Pregel 的成熟图计算范式。这种“借用成熟模型”好在哪？</div>
   <ol class="opts">
-    <li>省力</li>
-    <li>站在被验证过的理论肩上：BSP 的确定性/并行/可持久化特性现成可用，不必从零趟坑</li>
-    <li>显得有学问</li>
     <li>没好处</li>
+    <li>显得有学问</li>
+    <li>站在被验证过的理论肩上：BSP 的确定性/并行/可持久化特性现成可用，不必从零趟坑</li>
+    <li>省力</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把一个被充分研究的成熟模型迁移到新场景(LLM Agent)，复用了它所有被验证的好性质。好设计常是“挪用”而非“发明”。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。把一个被充分研究的成熟模型迁移到新场景(LLM Agent)，复用了它所有被验证的好性质。好设计常是“挪用”而非“发明”。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">4. 课里把 <code>recursion_limit</code> 解释为“超步循环 <code>step &gt; stop</code> 的兜底”。从这个实现细节能看出它的真正作用是？</div>
   <ol class="opts">
-    <li>限制递归函数</li>
-    <li>给“可能无限转圈的图”一个硬性步数上限，是防失控的最后一道保险</li>
-    <li>控制内存</li>
     <li>限制并发</li>
+    <li>给“可能无限转圈的图”一个硬性步数上限，是防失控的最后一道保险</li>
+    <li>限制递归函数</li>
+    <li>控制内存</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>

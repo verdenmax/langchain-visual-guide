@@ -36,7 +36,7 @@
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
     "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -44,7 +44,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-decoration: none; }
-code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
 
 /* ---- top progress bar ---- */
 .topbar {
@@ -185,7 +185,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
 @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
-.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
 .col h4 { margin: 0 0 .4rem; font-size: .95rem; }
 
 table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
@@ -444,27 +444,27 @@ graph = StateGraph(state_schema, context_schema=context_schema)
 <div class="quiz">
   <div class="qn">1. <code>context_schema</code> + <code>invoke(context=...)</code> 把 user_id 等运行时数据“注入工具/中间件，但不进消息”。为什么特意不让它进对话？</div>
   <ol class="opts">
-    <li>消息太长</li>
-    <li>关注点与安全隔离：运行时配置（身份/连接）不该污染“给模型看的对话”，也不该暴露给模型——它是给你的代码用的</li>
     <li>模型读不懂</li>
     <li>省 token</li>
+    <li>消息太长</li>
+    <li>关注点与安全隔离：运行时配置（身份/连接）不该污染“给模型看的对话”，也不该暴露给模型——它是给你的代码用的</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把“对话内容”和“运行时上下文”分开，既保持消息干净，又避免把敏感的身份/连接喂给模型。隔离即安全。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。把“对话内容”和“运行时上下文”分开，既保持消息干净，又避免把敏感的身份/连接喂给模型。隔离即安全。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">2. <code>with_fallbacks</code> 给“任意 Runnable”提供降级兜底。把“降级”做成对任意组件通用的能力，得益于什么？</div>
   <ol class="opts">
-    <li>运气</li>
     <li>因为一切都是 Runnable，“失败就换备用”可以统一实现一次、对模型/链/Agent 都适用</li>
-    <li>厂商支持</li>
     <li>降级很简单</li>
+    <li>运气</li>
+    <li>厂商支持</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。又是统一抽象的红利——横切的健壮性能力（重试/降级）只要对 Runnable 实现一次，就处处可用。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。又是统一抽象的红利——横切的健壮性能力（重试/降级）只要对 Runnable 实现一次，就处处可用。</div></div></div>
   </details>
 </div>
 <div class="quiz">
@@ -472,8 +472,8 @@ graph = StateGraph(state_schema, context_schema=context_schema)
   <ol class="opts">
     <li>选择困难</li>
     <li>不同 UI 需求要不同粒度：要节点级进展用 updates、要逐 token 用 messages、要整份状态用 values——粒度匹配场景</li>
-    <li>更快</li>
     <li>凑数</li>
+    <li>更快</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
@@ -483,14 +483,14 @@ graph = StateGraph(state_schema, context_schema=context_schema)
 <div class="quiz">
   <div class="qn">4. 把“运行时数据注入”做成有类型的 <code>context_schema</code>，而不是随便传个字典。这和前面哪些设计一脉相承？</div>
   <ol class="opts">
-    <li>毫无关系</li>
     <li>和工具的 pydantic schema、消息的结构化一样——用“有类型的结构”换取可校验、可读、不易错</li>
-    <li>为了更慢</li>
+    <li>毫无关系</li>
     <li>偶然</li>
+    <li>为了更慢</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。贯穿全书的偏好：能用“有类型的结构”就不用“裸字典”。结构带来校验和清晰，是 LangChain 一致的设计口味。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。贯穿全书的偏好：能用“有类型的结构”就不用“裸字典”。结构带来校验和清晰，是 LangChain 一致的设计口味。</div></div></div>
   </details>
 </div>
 <div class="card spark">

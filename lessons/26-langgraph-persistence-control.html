@@ -36,7 +36,7 @@
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
     "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -44,7 +44,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-decoration: none; }
-code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
 
 /* ---- top progress bar ---- */
 .topbar {
@@ -185,7 +185,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
 @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
-.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
 .col h4 { margin: 0 0 .4rem; font-size: .95rem; }
 
 table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
@@ -430,53 +430,53 @@ snap = app.get_state(cfg)              <span class="cm"># StateSnapshot：看当
 <div class="quiz">
   <div class="qn">1. 课里说持久化、时间旅行、人审“其实是同一个设计的三个面”。这个共同的底座是什么？</div>
   <ol class="opts">
-    <li>更大的内存</li>
     <li>“每个超步都把状态存成一个 checkpoint”——有了逐步存档，续跑/回到过去/暂停等人就都水到渠成</li>
     <li>更快的模型</li>
     <li>更多的节点</li>
+    <li>更大的内存</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。一个机制(逐步 checkpoint)派生出多种能力(续跑/时间旅行/人审)。这是“找到正确的底层抽象、上层能力自然涌现”的范例。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。一个机制(逐步 checkpoint)派生出多种能力(续跑/时间旅行/人审)。这是“找到正确的底层抽象、上层能力自然涌现”的范例。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">2. interrupt 的恢复是“从节点开头重新执行”。课里专门把它列为“坑”。这个设计的代价是什么、该怎么应对？</div>
   <ol class="opts">
-    <li>没有代价</li>
-    <li>interrupt 之前的副作用(已发邮件/已扣款)会重复执行——应把副作用放在 interrupt 之后，或做幂等</li>
-    <li>恢复会变慢</li>
     <li>状态会丢</li>
+    <li>恢复会变慢</li>
+    <li>interrupt 之前的副作用(已发邮件/已扣款)会重复执行——应把副作用放在 interrupt 之后，或做幂等</li>
+    <li>没有代价</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“从头重放”换来了实现的简单与一致，但代价是 interrupt 前的代码会重跑。理解这个取舍，才能避免“重复扣款”这类真实事故。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。“从头重放”换来了实现的简单与一致，但代价是 interrupt 前的代码会重跑。理解这个取舍，才能避免“重复扣款”这类真实事故。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">3. 多个独立工具调用用 <code>Send</code>“扇出”，把“改状态 + 跳转”统一成 <code>Command</code>。把这两件事分成两个原语，体现了什么？</div>
   <ol class="opts">
-    <li>原语越多越好</li>
-    <li>用正交的小原语覆盖图的控制流：Send 管“并行分身”、Command 管“状态+去向”，组合起来表达复杂流转</li>
     <li>为了好记</li>
+    <li>原语越多越好</li>
     <li>没意图</li>
+    <li>用正交的小原语覆盖图的控制流：Send 管“并行分身”、Command 管“状态+去向”，组合起来表达复杂流转</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。又是“少数正交原语组合出复杂行为”。Send 和 Command 各管一件事，组合起来就能表达 map-reduce、handoff 等复杂控制流。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。又是“少数正交原语组合出复杂行为”。Send 和 Command 各管一件事，组合起来就能表达 map-reduce、handoff 等复杂控制流。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">4. 多 Agent 的“handoff(交接)”被落实为 <code>Command(goto=另一个 agent)</code>。把“交接”建模成“改状态 + 跳转”，说明了什么？</div>
   <ol class="opts">
-    <li>handoff 很神秘</li>
-    <li>多 Agent 协作不需要新机制：它就是图里的“带状态更新的跳转”，复用了已有的控制流原语</li>
-    <li>必须用 AutoGen</li>
     <li>很难实现</li>
+    <li>必须用 AutoGen</li>
+    <li>多 Agent 协作不需要新机制：它就是图里的“带状态更新的跳转”，复用了已有的控制流原语</li>
+    <li>handoff 很神秘</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“交接”听起来高级，落到图模型就是 Command(goto)。用已有原语表达新概念，避免为每个新需求发明新机制——抽象选对了，能力就复用。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。“交接”听起来高级，落到图模型就是 Command(goto)。用已有原语表达新概念，避免为每个新需求发明新机制——抽象选对了，能力就复用。</div></div></div>
   </details>
 </div>
 <div class="card spark">

@@ -36,7 +36,7 @@
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
     "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -44,7 +44,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-decoration: none; }
-code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
 
 /* ---- top progress bar ---- */
 .topbar {
@@ -185,7 +185,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
 @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
-.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
 .col h4 { margin: 0 0 .4rem; font-size: .95rem; }
 
 table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
@@ -536,53 +536,53 @@ agent = create_agent(primary_model, tools, middleware=[
 <div class="quiz">
   <div class="qn">1. <code>create_agent</code> 把“调用→判断→执行工具→回灌→再调用”这个循环自动化。它体现的核心设计哲学是？</div>
   <ol class="opts">
-    <li>命令式：你写每一步</li>
-    <li>声明式：你只声明“用什么（模型/工具/护栏）”，循环的编排交给框架</li>
     <li>函数式</li>
     <li>面向对象</li>
+    <li>命令式：你写每一步</li>
+    <li>声明式：你只声明“用什么（模型/工具/护栏）”，循环的编排交给框架</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“声明用什么、而非手写怎么循环”是本课灵魂。便利来自把易错的循环编排收进框架——也因此后面要掀开盖子看它其实是张图。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。“声明用什么、而非手写怎么循环”是本课灵魂。便利来自把易错的循环编排收进框架——也因此后面要掀开盖子看它其实是张图。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">2. Agent 是否继续循环，判据简单到只有一句：“最新 AIMessage 还有没有 <code>tool_calls</code>”。把复杂行为压成这么简单的判据，好处是？</div>
   <ol class="opts">
-    <li>显得简单</li>
     <li>终止逻辑清晰、可预测、好调试：复杂度都在“模型决定要不要调工具”，而控制流本身极简</li>
+    <li>显得简单</li>
     <li>限制了能力</li>
     <li>纯属巧合</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把“智能”（要不要继续）交给模型、把“控制流”做到极简，是关注点分离的漂亮例子——引擎简单，灵活性来自模型输出。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。把“智能”（要不要继续）交给模型、把“控制流”做到极简，是关注点分离的漂亮例子——引擎简单，灵活性来自模型输出。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">3. 生产里给 Agent 装“刹车与护栏”（限次/人审/重试/降级），做成可插拔的 middleware 而非写进核心循环。为什么？</div>
   <ol class="opts">
-    <li>显得模块多</li>
-    <li>核心循环保持稳定纯净，安全/健壮性按需声明式叠加，不同项目装不同护栏、互不污染</li>
-    <li>让 Agent 更慢</li>
     <li>强制都用上</li>
+    <li>显得模块多</li>
+    <li>让 Agent 更慢</li>
+    <li>核心循环保持稳定纯净，安全/健壮性按需声明式叠加，不同项目装不同护栏、互不污染</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把横切的护栏与核心循环解耦，你能像配置一样增减能力（第 18 课看机制）。核心不变、外围灵活，又是分离思想。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。把横切的护栏与核心循环解耦，你能像配置一样增减能力（第 18 课看机制）。核心不变、外围灵活，又是分离思想。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">4. <code>ModelCallLimitMiddleware</code> 限“思考几轮”、<code>recursion_limit</code> 是“图的硬上限”。同时有软上限和硬上限两道防线，图什么？</div>
   <ol class="opts">
-    <li>重复造轮子</li>
-    <li>软上限给友好行为（到点收尾），硬上限做最后兜底（绝不无限跑）；分层防御，体验与安全兼顾</li>
-    <li>让配置更复杂</li>
     <li>没有意义</li>
+    <li>重复造轮子</li>
+    <li>让配置更复杂</li>
+    <li>软上限给友好行为（到点收尾），硬上限做最后兜底（绝不无限跑）；分层防御，体验与安全兼顾</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。软硬两道防线分工不同：一个为“优雅降级”，一个为“绝对安全”。关键系统常用这种“多层兜底”。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。软硬两道防线分工不同：一个为“优雅降级”，一个为“绝对安全”。关键系统常用这种“多层兜底”。</div></div></div>
   </details>
 </div>
 <div class="card spark">

@@ -36,7 +36,7 @@
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
     "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -44,7 +44,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-decoration: none; }
-code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
 
 /* ---- top progress bar ---- */
 .topbar {
@@ -185,7 +185,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
 @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
-.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
 .col h4 { margin: 0 0 .4rem; font-size: .95rem; }
 
 table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
@@ -384,49 +384,49 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="quiz">
   <div class="qn">1. 课里建议优先下探 L5(推理) 和 L6(检索)，而不是 L3(训练) 或 L1(硬件)。这个优先级的依据是？</div>
   <ol class="opts">
-    <li>它们更简单</li>
-    <li>投入产出比：L5/L6 紧挨着你已会的应用层、学了立刻能用（解释慢/贵、让 RAG 更准），而 L3/L1 是另一条职业路线</li>
-    <li>它们更火</li>
     <li>随便选的</li>
+    <li>它们更简单</li>
+    <li>它们更火</li>
+    <li>投入产出比：L5/L6 紧挨着你已会的应用层、学了立刻能用（解释慢/贵、让 RAG 更准），而 L3/L1 是另一条职业路线</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。学习路径应按“与你当前能力的邻接度 + 即时收益”排序。L5/L6 是应用开发者性价比最高的下探方向。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。学习路径应按“与你当前能力的邻接度 + 即时收益”排序。L5/L6 是应用开发者性价比最高的下探方向。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">2. vLLM 的 PagedAttention 把 KV-cache 当“虚拟内存分页”来管。理解这个设计，能让你抓住推理引擎的核心矛盾是？</div>
   <ol class="opts">
     <li>模型太大</li>
-    <li>显存的高效利用：把“碎片化的显存”用分页管起来，同一张卡就能扛更多并发——推理优化常是“显存/吞吐”之争</li>
-    <li>网络太慢</li>
     <li>CPU 太弱</li>
+    <li>网络太慢</li>
+    <li>显存的高效利用：把“碎片化的显存”用分页管起来，同一张卡就能扛更多并发——推理优化常是“显存/吞吐”之争</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。借操作系统的成熟思想（分页）解决新问题（KV-cache 碎片），是好设计的共性。理解它，你就抓住了“推理服务”这层的核心矛盾。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。借操作系统的成熟思想（分页）解决新问题（KV-cache 碎片），是好设计的共性。理解它，你就抓住了“推理服务”这层的核心矛盾。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">3. 推荐主线都是“先用(Ollama/Chroma 起步)→再读核心(vLLM/hnswlib)→要深度再扩展”。这个学习节奏的意图是？</div>
   <ol class="opts">
-    <li>拖时间</li>
     <li>先建立直觉再啃原理：能跑起来获得反馈，再深入实现，避免一上来啃硬骨头劝退</li>
     <li>让你多学</li>
     <li>没意图</li>
+    <li>拖时间</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“能跑→读核心→工程深度”是符合认知规律的路径：先有体感、再求甚解。这本身就是一种教学设计。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。“能跑→读核心→工程深度”是符合认知规律的路径：先有体感、再求甚解。这本身就是一种教学设计。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">4. hnswlib 被选为 L6 主攻，理由是“代码小、最适合读懂向量检索到底怎么算”。这种“选小而核心的项目入门”好在哪？</div>
   <ol class="opts">
-    <li>省时间</li>
-    <li>用最小的代码量看清一个核心算法(HNSW/ANN)的本质，不被工程噪声淹没，学到可迁移的原理</li>
-    <li>它最流行</li>
     <li>它最快</li>
+    <li>用最小的代码量看清一个核心算法(HNSW/ANN)的本质，不被工程噪声淹没，学到可迁移的原理</li>
+    <li>省时间</li>
+    <li>它最流行</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>

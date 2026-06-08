@@ -36,7 +36,7 @@
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
     "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -44,7 +44,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-decoration: none; }
-code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
 
 /* ---- top progress bar ---- */
 .topbar {
@@ -185,7 +185,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
 @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
-.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
 .col h4 { margin: 0 0 .4rem; font-size: .95rem; }
 
 table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
@@ -433,10 +433,10 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="quiz">
   <div class="qn">1. 课里反复纠正“LangChain/AutoGen 不是最底层，它们在 L7 编排层”。把“认清自己在第几层”当成核心能力，图什么？</div>
   <ol class="opts">
-    <li>显得有层次</li>
-    <li>坐标感：知道一个东西在哪一层，就知道它解决什么、依赖什么、和谁是邻居——不会把概念放错位置</li>
-    <li>记住更多名词</li>
     <li>没用</li>
+    <li>坐标感：知道一个东西在哪一层，就知道它解决什么、依赖什么、和谁是邻居——不会把概念放错位置</li>
+    <li>显得有层次</li>
+    <li>记住更多名词</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
@@ -446,10 +446,10 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="quiz">
   <div class="qn">2. 课里教你遇到新名词“先问它在第几层”。这个习惯的价值是？</div>
   <ol class="opts">
-    <li>装专业</li>
-    <li>用一个稳定的坐标系去消化层出不穷的新技术，避免被营销词淹没、能快速判断它和你的关系</li>
-    <li>让你显得懂</li>
     <li>没价值</li>
+    <li>用一个稳定的坐标系去消化层出不穷的新技术，避免被营销词淹没、能快速判断它和你的关系</li>
+    <li>装专业</li>
+    <li>让你显得懂</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
@@ -460,26 +460,26 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="qn">3. 全栈分成“训练侧(L1-L4)”和“应用侧(L4-L7)”两条河，L4 模型是交汇口。这种划分帮你认清了什么？</div>
   <ol class="opts">
     <li>河流地理</li>
-    <li>99% 应用开发者只在 L4 以上工作（不需自己训模型），认清这点能让你把精力放对地方</li>
-    <li>训练更重要</li>
     <li>应用更重要</li>
+    <li>训练更重要</li>
+    <li>99% 应用开发者只在 L4 以上工作（不需自己训模型），认清这点能让你把精力放对地方</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。分清“造模型”和“用模型”两条路，你就知道自己该深耕哪侧、哪些层可以“交给大厂”。坐标系帮你做技术取舍。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。分清“造模型”和“用模型”两条路，你就知道自己该深耕哪侧、哪些层可以“交给大厂”。坐标系帮你做技术取舍。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">4. 把“横切带（评测/可观测/安全）”画成贯穿多层的独立一条，而不是塞进某一层。为什么？</div>
   <ol class="opts">
-    <li>画着好看</li>
     <li>这些是“每一层都需要”的横切关注点，独立出来才能表达“它不属于某层、而是贯穿全栈”</li>
+    <li>画着好看</li>
     <li>它们不重要</li>
     <li>凑数</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。和回调/config 的“横切”思想一致——可观测/安全不是某层专属，而是贯穿性的。画成独立带子是为了表达这种正交性。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。和回调/config 的“横切”思想一致——可观测/安全不是某层专属，而是贯穿性的。画成独立带子是为了表达这种正交性。</div></div></div>
   </details>
 </div>
 <div class="card spark">

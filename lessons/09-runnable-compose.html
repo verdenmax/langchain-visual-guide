@@ -36,7 +36,7 @@
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
     "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -44,7 +44,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-decoration: none; }
-code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
 
 /* ---- top progress bar ---- */
 .topbar {
@@ -185,7 +185,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
 @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
-.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
 .col h4 { margin: 0 0 .4rem; font-size: .95rem; }
 
 table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
@@ -469,35 +469,35 @@ chain = RunnableBranch(
   <div class="qn">1. <code>a | b | c</code> 得到 RunnableSequence，<code>{'x': a, 'y': b}</code> 得到 RunnableParallel。把“串行/并行”做成两种明确的组合原语，好处是？</div>
   <ol class="opts">
     <li>名字多</li>
-    <li>用最小的几种“组合方式”（顺序/并行/分支）就能拼出复杂数据流，心智模型简单且可预测</li>
-    <li>运行更快</li>
     <li>减少代码</li>
+    <li>运行更快</li>
+    <li>用最小的几种“组合方式”（顺序/并行/分支）就能拼出复杂数据流，心智模型简单且可预测</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。少数正交的组合原语 + 闭包性 = 强大的表达力。这是“用简单规则组合出复杂行为”的设计美学。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。少数正交的组合原语 + 闭包性 = 强大的表达力。这是“用简单规则组合出复杂行为”的设计美学。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">2. RunnableParallel 让多分支“同输入并发执行、输出合并为字典”。为什么专门提供“并行”原语，而不让你自己开线程？</div>
   <ol class="opts">
-    <li>显得高级</li>
-    <li>把并发的复杂性（调度/收集/错误）收进框架，你只声明“这几支并行”，正确性和性能都不用自己操心</li>
     <li>线程不安全</li>
     <li>Python 不支持并发</li>
+    <li>显得高级</li>
+    <li>把并发的复杂性（调度/收集/错误）收进框架，你只声明“这几支并行”，正确性和性能都不用自己操心</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。又是“声明意图、框架负责实现”。把易错的并发编排变成一个声明式原语，是抽象在帮你避坑。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。又是“声明意图、框架负责实现”。把易错的并发编排变成一个声明式原语，是抽象在帮你避坑。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">3. RunnableLambda（包普通函数）和 RunnablePassthrough（透传）被称为“胶水”。为什么要把“普通函数”也包成 Runnable？</div>
   <ol class="opts">
-    <li>多此一举</li>
-    <li>让任意自定义逻辑也能无缝接入管道——保持“一切皆 Runnable”的闭包性，不破坏链的可组合</li>
     <li>让函数更快</li>
+    <li>让任意自定义逻辑也能无缝接入管道——保持“一切皆 Runnable”的闭包性，不破坏链的可组合</li>
     <li>防止函数报错</li>
+    <li>多此一举</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
@@ -507,14 +507,14 @@ chain = RunnableBranch(
 <div class="quiz">
   <div class="qn">4. RunnableBranch 做条件路由。把“if/else”也做成一个可组合的 Runnable，意图是？</div>
   <ol class="opts">
-    <li>替代 if 语句</li>
     <li>让“分支选择”也成为数据流的一部分，可声明、可嵌进链、可流式/异步——而不是散落在外部控制流里</li>
-    <li>让代码更长</li>
     <li>没有意图</li>
+    <li>替代 if 语句</li>
+    <li>让代码更长</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把控制流（分支）纳入可组合体系，整条管道就是自描述的，而非一半在链里、一半在外面的 if。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。把控制流（分支）纳入可组合体系，整条管道就是自描述的，而非一半在链里、一半在外面的 if。</div></div></div>
   </details>
 </div>
 <div class="card spark">

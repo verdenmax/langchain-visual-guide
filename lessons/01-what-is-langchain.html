@@ -36,7 +36,7 @@
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
     "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -44,7 +44,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-decoration: none; }
-code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
 
 /* ---- top progress bar ---- */
 .topbar {
@@ -185,7 +185,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
 @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
-.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
 .col h4 { margin: 0 0 .4rem; font-size: .95rem; }
 
 table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
@@ -552,49 +552,49 @@ result = agent.invoke({<span class="st">"messages"</span>: [{<span class="st">"r
 <div class="quiz">
   <div class="qn">1. LangChain 的核心价值是给 LLM 应用提供“标准化的管道与编排层”。这种“多加一层抽象”的设计，最主要换来了什么？</div>
   <ol class="opts">
-    <li>更快的推理速度</li>
-    <li>可替换性：换模型只改一行、换工具不重写胶水、多步循环不手搓</li>
-    <li>更便宜的 API 价格</li>
     <li>更大的上下文窗口</li>
+    <li>更便宜的 API 价格</li>
+    <li>可替换性：换模型只改一行、换工具不重写胶水、多步循环不手搓</li>
+    <li>更快的推理速度</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。抽象的代价是多一层，换来的是“对接口编程而非对厂商编程”——底层换 GPT/Claude/本地模型，上层代码几乎不动。这是它存在的根本理由。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。抽象的代价是多一层，换来的是“对接口编程而非对厂商编程”——底层换 GPT/Claude/本地模型，上层代码几乎不动。这是它存在的根本理由。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">2. 教程主线定为 Messages → Chat Model → Tools → Agent，把“消息”放在最前面作为一切起点。这个设计意图是？</div>
   <ol class="opts">
-    <li>消息最容易上手</li>
-    <li>消息是贯穿全程的统一数据契约：模型读它、工具结果写回它、Agent 循环也在它上面跑</li>
     <li>消息是唯一不变的东西</li>
+    <li>消息最容易上手</li>
     <li>因为厂商都用消息</li>
+    <li>消息是贯穿全程的统一数据契约：模型读它、工具结果写回它、Agent 循环也在它上面跑</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。先把“对话”统一成结构化消息列表，后面的模型调用、工具往返、Agent 状态全都围绕这一份契约展开——先立契约，再谈流转。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。先把“对话”统一成结构化消息列表，后面的模型调用、工具往返、Agent 状态全都围绕这一份契约展开——先立契约，再谈流转。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">3. LangChain 自己不训练模型、也不做底层推理。从分层角度看，它的这个“定位选择”说明了什么取舍？</div>
   <ol class="opts">
-    <li>它在最底层，所以最重要</li>
-    <li>它定位在上层的编排/集成层（L7）：专注把模型变成能干活的应用，把训练/推理交给下面的层</li>
     <li>它要替代模型本身</li>
     <li>它本质是个数据库</li>
+    <li>它定位在上层的编排/集成层（L7）：专注把模型变成能干活的应用，把训练/推理交给下面的层</li>
+    <li>它在最底层，所以最重要</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。选择“只做编排不做底层”，意味着放弃造模型、转而最大化集成与可组合性——这正是它生态庞大的原因，也是它的边界。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。选择“只做编排不做底层”，意味着放弃造模型、转而最大化集成与可组合性——这正是它生态庞大的原因，也是它的边界。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">4. “调工具不写胶水、多步推理不手搓循环”——这类承诺背后共同的设计哲学是什么？</div>
   <ol class="opts">
     <li>把复杂、重复、易错的“管道工作”标准化并自动化，让你只表达业务意图</li>
-    <li>隐藏所有细节，让你无法定制</li>
-    <li>用更多代码换更少 bug</li>
     <li>强制所有人用同一种写法</li>
+    <li>用更多代码换更少 bug</li>
+    <li>隐藏所有细节，让你无法定制</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>

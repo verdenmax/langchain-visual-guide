@@ -36,7 +36,7 @@
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
     "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -44,7 +44,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-decoration: none; }
-code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
 
 /* ---- top progress bar ---- */
 .topbar {
@@ -185,7 +185,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
 @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
-.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
 .col h4 { margin: 0 0 .4rem; font-size: .95rem; }
 
 table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
@@ -296,7 +296,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="flow" style="flex-direction:column;gap:.7rem">
   <div class="node hl" style="flex:0 0 auto">BaseMessage<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">公共字段：content（内容）+ 角色标识</span></div>
   <div class="arrow" style="transform:rotate(90deg)">→</div>
-  <div style="display:flex;gap:.6rem;width:100%">
+  <div style="display:flex;flex-wrap:wrap;gap:.6rem;width:100%">
     <div class="node">SystemMessage</div>
     <div class="node">HumanMessage</div>
     <div class="node">AIMessage</div>
@@ -702,22 +702,22 @@ chat = RunnableWithMessageHistory(
   <div class="qn">1. 对话被建模成“一串结构化消息（System/Human/AI/Tool）”而不是一团纯文本。这种“结构化”最大的设计收益是？</div>
   <ol class="opts">
     <li>看起来整齐</li>
-    <li>每条消息带类型与元数据，程序能精确区分“谁说的、是不是工具请求、用了多少 token”，从而可裁剪/筛选/路由</li>
     <li>省 token</li>
     <li>厂商要求</li>
+    <li>每条消息带类型与元数据，程序能精确区分“谁说的、是不是工具请求、用了多少 token”，从而可裁剪/筛选/路由</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。纯文本只能整段处理；结构化消息让“角色、工具调用、用量”都成为可编程字段，上下文管理（裁剪/筛选/摘要）才有抓手。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。纯文本只能整段处理；结构化消息让“角色、工具调用、用量”都成为可编程字段，上下文管理（裁剪/筛选/摘要）才有抓手。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">2. 模型想用工具时不是直接执行，而是在 <code>AIMessage.tool_calls</code> 里“写一个请求”，由你的程序去执行。这个“只请求、不执行”的设计图什么？</div>
   <ol class="opts">
-    <li>让模型更慢</li>
+    <li>纯粹历史遗留</li>
     <li>把执行的控制权和安全边界留在你手里：你能审批、改参、限流、记录，模型碰不到真实副作用</li>
     <li>因为模型不会执行代码</li>
-    <li>纯粹历史遗留</li>
+    <li>让模型更慢</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
@@ -728,22 +728,22 @@ chat = RunnableWithMessageHistory(
   <div class="qn">3. 四种消息都继承自 <code>BaseMessage</code>。这个“共同基类”让什么变得可能？</div>
   <ol class="opts">
     <li>节省内存</li>
+    <li>防止新增消息类型</li>
     <li>统一处理：序列化、流式 chunk 相加、传给模型前的标准化，都能对“任意消息”一视同仁</li>
     <li>消息更短</li>
-    <li>防止新增消息类型</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。共同基类 = 共同契约。凡是“对消息做的通用操作”只写一遍、对所有子类生效——又是“统一抽象”的回报。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。共同基类 = 共同契约。凡是“对消息做的通用操作”只写一遍、对所有子类生效——又是“统一抽象”的回报。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">4. “上下文 = 你传进去的消息列表”。把上下文显式建模成“一串可增删改的消息”，相比“框架帮你藏起来的隐式记忆”，好处是？</div>
   <ol class="opts">
-    <li>更神秘</li>
-    <li>完全可控可观测：你清楚模型到底看到了什么，能精确裁剪/筛选/注入，调试和省 token 都有据可依</li>
-    <li>不用管理上下文</li>
     <li>上下文自动变长</li>
+    <li>完全可控可观测：你清楚模型到底看到了什么，能精确裁剪/筛选/注入，调试和省 token 都有据可依</li>
+    <li>更神秘</li>
+    <li>不用管理上下文</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>

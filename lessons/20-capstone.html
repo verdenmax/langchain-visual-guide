@@ -36,7 +36,7 @@
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
     "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -44,7 +44,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-decoration: none; }
-code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
 
 /* ---- top progress bar ---- */
 .topbar {
@@ -185,7 +185,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
 @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
-.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
 .col h4 { margin: 0 0 .4rem; font-size: .95rem; }
 
 table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
@@ -435,53 +435,53 @@ test_agent = create_agent(model=GenericFakeChatModel(messages=iter([...])), tool
 <div class="quiz">
   <div class="qn">1. 客服 Agent 里：“身份走 context、护栏走 middleware、知识走 RAG 工具、格式走 response_format”。这种“各走各的机制”体现了什么？</div>
   <ol class="opts">
+    <li>炫技</li>
     <li>机制太多</li>
     <li>关注点干净分离：每类需求用最合适、互不纠缠的机制实现，改一处不影响其它</li>
-    <li>炫技</li>
     <li>凑参数</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把不同维度的需求（身份/安全/知识/格式）分派到正交机制上，是整套教程设计哲学的集大成——也是系统能长大而不乱的原因。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。把不同维度的需求（身份/安全/知识/格式）分派到正交机制上，是整套教程设计哲学的集大成——也是系统能长大而不乱的原因。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">2. 课里说这个 Agent“要长大很平滑”：加 checkpointer 就有记忆、加 stream_mode 就有 UI、换假模型就能测试。这得益于什么？</div>
   <ol class="opts">
-    <li>运气好</li>
     <li>各能力都是正交、可插拔的零件，新增能力是“插上一个参数/组件”，而非重写</li>
     <li>代码少</li>
+    <li>运气好</li>
     <li>模型强</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。当系统由“可插拔的正交零件”组成，演进就是“加零件”而非“动手术”。可组合性最终兑现为可演进性。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。当系统由“可插拔的正交零件”组成，演进就是“加零件”而非“动手术”。可组合性最终兑现为可演进性。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">3. create_agent 把 model/tools/system_prompt/middleware/context_schema/response_format 都做成“参数”。这种“用参数声明一切”图什么？</div>
   <ol class="opts">
-    <li>参数多显得强</li>
-    <li>声明式装配：你把学过的零件“插到对应参数上”就拼出 Agent，意图清晰、组合自由</li>
     <li>让调用更长</li>
     <li>没有意图</li>
+    <li>参数多显得强</li>
+    <li>声明式装配：你把学过的零件“插到对应参数上”就拼出 Agent，意图清晰、组合自由</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把各能力暴露成正交参数，使用者用“声明”而非“编码”来组装系统——这是声明式设计在 API 层的体现。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。把各能力暴露成正交参数，使用者用“声明”而非“编码”来组装系统——这是声明式设计在 API 层的体现。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">4. 走完主线你会发现：实战不是学新东西，而是“把学过的零件插到对应位置”。这说明这套框架的设计成功在哪？</div>
   <ol class="opts">
-    <li>功能多</li>
-    <li>概念一致、可组合：前面每课学的零件，到实战时无缝拼合，没有“实战要另学一套”的断层</li>
     <li>文档好</li>
     <li>模型强</li>
+    <li>功能多</li>
+    <li>概念一致、可组合：前面每课学的零件，到实战时无缝拼合，没有“实战要另学一套”的断层</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。当“局部概念”能直接组合成“完整系统”而无须额外胶水，说明抽象选对了。可组合性让学习曲线和工程曲线对齐。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。当“局部概念”能直接组合成“完整系统”而无须额外胶水，说明抽象选对了。可组合性让学习曲线和工程曲线对齐。</div></div></div>
   </details>
 </div>
 <div class="card spark">

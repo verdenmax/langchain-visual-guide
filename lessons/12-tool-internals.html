@@ -36,7 +36,7 @@
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
     "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -44,7 +44,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--accent); text-decoration: none; }
-code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
 
 /* ---- top progress bar ---- */
 .topbar {
@@ -185,7 +185,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
 @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
-.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
 .col h4 { margin: 0 0 .4rem; font-size: .95rem; }
 
 table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
@@ -434,27 +434,27 @@ tags: list[str]   → {<span class="st">"type"</span>: <span class="st">"array"<
 <div class="quiz">
   <div class="qn">1. 去程“函数签名 → schema → tool_calls”、回程“tool_calls → 执行 → ToolMessage”全自动。这“两段翻译”把什么复杂性挡在了你看不见的地方？</div>
   <ol class="opts">
-    <li>没挡什么</li>
     <li>“Python 世界 ↔ 模型的 JSON 世界”之间繁琐易错的格式转换与配对，你只写普通函数</li>
+    <li>没挡什么</li>
     <li>模型推理</li>
     <li>网络请求</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把“函数↔JSON”双向翻译自动化，你的工具就是普通 Python 函数。这层翻译是 Agent 能“调用代码”的桥，被刻意隐藏。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。把“函数↔JSON”双向翻译自动化，你的工具就是普通 Python 函数。这层翻译是 Agent 能“调用代码”的桥，被刻意隐藏。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">2. 工具结果和请求靠 <code>id</code> 配对（tool_call_id）。为什么需要 id，而不是按顺序匹配？</div>
   <ol class="opts">
-    <li>凑字段</li>
     <li>一次可能并行发起多个工具调用，结果回来的顺序不定，用 id 才能可靠地把“结果”对回“请求”</li>
-    <li>id 更短</li>
     <li>防止重复</li>
+    <li>id 更短</li>
+    <li>凑字段</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。并行/乱序场景下，位置不可靠、id 才可靠。这个看似不起眼的 id，是支持“并行工具调用”的前提。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。并行/乱序场景下，位置不可靠、id 才可靠。这个看似不起眼的 id，是支持“并行工具调用”的前提。</div></div></div>
   </details>
 </div>
 <div class="quiz">
@@ -462,8 +462,8 @@ tags: list[str]   → {<span class="st">"type"</span>: <span class="st">"array"<
   <ol class="opts">
     <li>永不失败</li>
     <li>自我纠正：模型读到报错→改对参数再试，错误成为新观察而非程序崩溃</li>
-    <li>隐藏错误</li>
     <li>更快崩溃</li>
+    <li>隐藏错误</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
@@ -474,13 +474,13 @@ tags: list[str]   → {<span class="st">"type"</span>: <span class="st">"array"<
   <div class="qn">4. 类型注解和 docstring“直接决定模型看到的工具说明”。这把“写好注解/文档”从‘好习惯’变成了什么？</div>
   <ol class="opts">
     <li>可选项</li>
-    <li>影响模型能否正确调用工具的“功能性需求”——注解/文档写不好，模型就用不对工具</li>
     <li>装饰</li>
+    <li>影响模型能否正确调用工具的“功能性需求”——注解/文档写不好，模型就用不对工具</li>
     <li>没影响</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。当文档成了“喂给模型的说明书”，它就不再是给人看的可选注释，而是直接影响 Agent 行为的输入。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。当文档成了“喂给模型的说明书”，它就不再是给人看的可选注释，而是直接影响 Agent 行为的输入。</div></div></div>
   </details>
 </div>
 <div class="card spark">

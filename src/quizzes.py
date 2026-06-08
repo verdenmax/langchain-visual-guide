@@ -13,9 +13,25 @@ Schema per lesson::
         "open": ["发散题 1", "发散题 2"],
     }
 
-``answer`` is the 0-based index of the correct option. Use <code>…</code> for
-inline code and single quotes inside it to avoid escaping.
+``answer`` is the 0-based index of the correct option (into ``opts`` as written).
+At render time the options are deterministically shuffled per question so the
+correct answer is spread across A/B/C/D (otherwise authors tend to always put it
+first/second). Use <code>…</code> for inline code and single quotes inside it to
+avoid escaping.
 """
+
+import hashlib
+
+
+def _shuffle(opts, answer, seed):
+    """Deterministically permute ``opts`` (stable across builds) and return
+    ``(new_opts, new_answer_index)`` so the correct option lands in a varied
+    position instead of always being first/second."""
+    order = sorted(
+        range(len(opts)),
+        key=lambda i: hashlib.md5(f"{seed}:{i}".encode("utf-8")).hexdigest(),
+    )
+    return [opts[i] for i in order], order.index(answer)
 
 QUIZZES = {
     # ===== 第一部分 · 宏观全景 =================================================
@@ -1393,8 +1409,9 @@ def render(fname):
         return ""
     out = ['<div class="selftest">', "<h2>🧪 自测 · 想一想为什么这么设计</h2>"]
     for i, item in enumerate(data.get("mcq", []), 1):
-        opts = "\n".join(f"    <li>{o}</li>" for o in item["opts"])
-        letter = chr(65 + item["answer"])
+        shuffled, ans = _shuffle(item["opts"], item["answer"], f"{fname}:{i}")
+        opts = "\n".join(f"    <li>{o}</li>" for o in shuffled)
+        letter = chr(65 + ans)
         out.append(
             f'<div class="quiz">\n'
             f'  <div class="qn">{i}. {item["q"]}</div>\n'

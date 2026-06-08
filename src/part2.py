@@ -31,7 +31,7 @@ LESSON_04 = r"""
 <div class="flow" style="flex-direction:column;gap:.7rem">
   <div class="node hl" style="flex:0 0 auto">BaseMessage<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">公共字段：content（内容）+ 角色标识</span></div>
   <div class="arrow" style="transform:rotate(90deg)">→</div>
-  <div style="display:flex;gap:.6rem;width:100%">
+  <div style="display:flex;flex-wrap:wrap;gap:.6rem;width:100%">
     <div class="node">SystemMessage</div>
     <div class="node">HumanMessage</div>
     <div class="node">AIMessage</div>
