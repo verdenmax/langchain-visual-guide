@@ -217,6 +217,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
 .toc .tt { font-weight: 650; color: var(--ink); }
 .toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.toc-search { position: relative; margin: 1.6rem 0 -.4rem; }
+.toc-search input { width: 100%; box-sizing: border-box; padding: .75rem 2.8rem .75rem 1rem;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font-size: .98rem; box-shadow: var(--shadow); }
+.toc-search input:focus { outline: none; border-color: var(--accent); }
+.toc-search .qcount { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+  color: var(--faint); font-size: .8rem; pointer-events: none; }
+.toc a.hide, .toc .toc-part.hide { display: none; }
+.toc-empty { display: none; color: var(--muted); padding: 1rem; text-align: center; }
+.toc-empty.show { display: block; }
 .hero.index h1 { font-size: 2.3rem; }
 .legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
 .legend span { display:flex; align-items:center; gap:.4rem; }
@@ -231,9 +241,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第二部分 · 用户视角</span>
-    <span class="pill">04 / 26</span>
+    <span class="pill">04 / 27</span>
   </div>
-  <div class="progress"><span style="width:15%"></span></div>
+  <div class="progress"><span style="width:14%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
@@ -444,12 +454,12 @@ ToolMessage(content=<span class="st">"北京 晴 25°C"</span>, tool_call_id=<sp
     </div>
     <div class="qa">
       <div class="q">❓ 流式时怎么统计</div>
-      <div class="a">流式下用量也是碎片化的。<span class="mono">add_usage</span>（<span class="mono">messages/ai.py:721</span>）在
+      <div class="a">流式下用量也是碎片化的。<span class="mono">add_usage</span>（<span class="mono">messages/ai.py</span>）在
         <span class="mono">AIMessageChunk</span> 相加时<strong>累计 token</strong>，最终得到整次调用的总用量。</div>
     </div>
     <div class="qa">
       <div class="q">✅ 为什么重要</div>
-      <div class="a">成本核算、配额监控、可观测都靠它。结构定义在 <span class="mono">messages/ai.py:104</span>
+      <div class="a">成本核算、配额监控、可观测都靠它。结构定义在 <span class="mono">messages/ai.py</span>
         （含 <span class="mono">InputTokenDetails</span>/<span class="mono">OutputTokenDetails</span>）。</div>
     </div>
   </div>

@@ -205,12 +205,12 @@ ToolMessage(content=<span class="st">"北京 晴 25°C"</span>, tool_call_id=<sp
     </div>
     <div class="qa">
       <div class="q">❓ 流式时怎么统计</div>
-      <div class="a">流式下用量也是碎片化的。<span class="mono">add_usage</span>（<span class="mono">messages/ai.py:721</span>）在
+      <div class="a">流式下用量也是碎片化的。<span class="mono">add_usage</span>（<span class="mono">messages/ai.py</span>）在
         <span class="mono">AIMessageChunk</span> 相加时<strong>累计 token</strong>，最终得到整次调用的总用量。</div>
     </div>
     <div class="qa">
       <div class="q">✅ 为什么重要</div>
-      <div class="a">成本核算、配额监控、可观测都靠它。结构定义在 <span class="mono">messages/ai.py:104</span>
+      <div class="a">成本核算、配额监控、可观测都靠它。结构定义在 <span class="mono">messages/ai.py</span>
         （含 <span class="mono">InputTokenDetails</span>/<span class="mono">OutputTokenDetails</span>）。</div>
     </div>
   </div>
@@ -730,8 +730,8 @@ structured.invoke(<span class="st">"北京 25 度"</span>)
     <div class="qa">
       <div class="q">✅ 在 Agent 里：三种策略</div>
       <div class="a"><span class="mono">response_format</span>（第 7 课）底层用
-        <span class="mono">ToolStrategy</span>（structured_output.py:195）/ <span class="mono">ProviderStrategy</span>（:261）/
-        <span class="mono">AutoStrategy</span>（:447，自动选）。核心签名在 <span class="mono">chat_models.py:2344</span>。</div>
+        <span class="mono">ToolStrategy</span>（structured_output.py）/ <span class="mono">ProviderStrategy</span>（:261）/
+        <span class="mono">AutoStrategy</span>（:447，自动选）。核心签名在 <span class="mono">chat_models.py</span>。</div>
     </div>
   </div>
 </details>
@@ -1043,11 +1043,11 @@ agent = create_agent(model, tools=large_toolset, middleware=[
       <div class="a">数据库、文件系统等常有"一组配套工具"。<span class="mono">BaseToolkit</span> 把它们打成一包：
 <pre class="code">toolkit = SomeDatabaseToolkit(db=db)
 agent = create_agent(model, tools=toolkit.get_tools())   <span class="cm"># 一次性给一组工具</span></pre>
-        位置：<span class="mono">core/tools/base.py:1580</span>。</div>
+        位置：<span class="mono">core/tools/base.py</span>。</div>
     </div>
     <div class="qa">
       <div class="q">❓ InjectedToolArg 是什么</div>
-      <div class="a">它是<strong>所有"注入参数"的基类</strong>（<span class="mono">tools/base.py:1374</span>）：第 6 课的
+      <div class="a">它是<strong>所有"注入参数"的基类</strong>（<span class="mono">tools/base.py</span>）：第 6 课的
         <span class="mono">InjectedState</span>、<span class="mono">InjectedToolCallId</span>（:1404）都继承它。
         被它标记的参数<strong>由框架注入、不出现在给模型的 schema 里</strong>。</div>
     </div>

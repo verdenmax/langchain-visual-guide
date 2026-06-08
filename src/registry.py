@@ -10,6 +10,7 @@ import part4
 import part5
 import part6
 import part7
+import glossary
 
 # Ordered to match shell.PAGES. Filename -> content HTML string.
 CONTENT = {
@@ -39,4 +40,5 @@ CONTENT = {
     "24-langgraph-mental-model.html": part7.LESSON_LG1,
     "25-langgraph-pregel-engine.html": part7.LESSON_LG2,
     "26-langgraph-persistence-control.html": part7.LESSON_LG3,
+    "27-glossary.html": glossary.LESSON_GLOSSARY,
 }

@@ -194,8 +194,8 @@ chain.configurable_alternatives(ConfigurableField(<span class="st">"llm"</span>)
     </div>
     <div class="qa">
       <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">configurable_fields</span>（<span class="mono">runnables/base.py:2792</span>）/
-        <span class="mono">configurable_alternatives</span>（<span class="mono">:2850</span>）；实现类在 <span class="mono">runnables/configurable.py</span>。</div>
+      <div class="a"><span class="mono">configurable_fields</span>（<span class="mono">runnables/base.py</span>）/
+        <span class="mono">configurable_alternatives</span>（<span class="mono">同文件</span>）；实现类在 <span class="mono">runnables/configurable.py</span>。</div>
     </div>
   </div>
 </details>
@@ -394,7 +394,7 @@ chain = RunnableBranch(
     </div>
     <div class="qa">
       <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">RunnableBranch</span> 在 <span class="mono">core/runnables/branch.py:42</span>，本身也是 Runnable——
+      <div class="a"><span class="mono">RunnableBranch</span> 在 <span class="mono">core/runnables/branch.py</span>，本身也是 Runnable——
         所以条件路由也能无缝拼进更大的链。</div>
     </div>
   </div>
@@ -1247,13 +1247,13 @@ LESSON_13 = r"""
     </div>
     <div class="qa">
       <div class="q">❓ 各自职责</div>
-      <div class="a"><span class="mono">CallbackManager</span>（<span class="mono">callbacks/manager.py:1343</span>）负责"把一次事件<strong>广播</strong>给所有处理器"；
-        <span class="mono">LangChainTracer</span>（<span class="mono">tracers/langchain.py:134</span>）是其中一个处理器，专门把运行树<strong>上报 LangSmith</strong>——
+      <div class="a"><span class="mono">CallbackManager</span>（<span class="mono">callbacks/manager.py</span>）负责"把一次事件<strong>广播</strong>给所有处理器"；
+        <span class="mono">LangChainTracer</span>（<span class="mono">tracers/langchain.py</span>）是其中一个处理器，专门把运行树<strong>上报 LangSmith</strong>——
         这就是全书反复说的"LangSmith 追踪"的落地实现。</div>
     </div>
     <div class="qa">
       <div class="q">✅ 进阶</div>
-      <div class="a"><span class="mono">dispatch_custom_event</span>（<span class="mono">callbacks/manager.py:2705</span>）让你在自己的工具/链里<strong>发自定义事件</strong>，
+      <div class="a"><span class="mono">dispatch_custom_event</span>（<span class="mono">callbacks/manager.py</span>）让你在自己的工具/链里<strong>发自定义事件</strong>，
         一并出现在 <span class="mono">astream_events</span> 流里。</div>
     </div>
   </div>
@@ -1351,11 +1351,11 @@ chain = prompt | model | parser   <span class="cm"># 模型按要求输出 → p
 <div class="card detail">
   <div class="tag">🔬 继承体系</div>
   <ul>
-    <li><span class="mono">BaseOutputParser</span>（<span class="mono">base.py:136</span>）是 Runnable，<span class="mono">invoke</span> → <span class="mono">parse</span>。</li>
-    <li><span class="mono">StrOutputParser</span>（<span class="mono">string.py:8</span>）最简单：直接返回文本。</li>
-    <li><span class="mono">JsonOutputParser</span>（<span class="mono">json.py:31</span>）继承 <span class="mono">BaseCumulativeTransformOutputParser</span>——
+    <li><span class="mono">BaseOutputParser</span>（<span class="mono">base.py</span>）是 Runnable，<span class="mono">invoke</span> → <span class="mono">parse</span>。</li>
+    <li><span class="mono">StrOutputParser</span>（<span class="mono">string.py</span>）最简单：直接返回文本。</li>
+    <li><span class="mono">JsonOutputParser</span>（<span class="mono">json.py</span>）继承 <span class="mono">BaseCumulativeTransformOutputParser</span>——
       <strong>支持流式</strong>：边接收边解析出"部分 JSON"。</li>
-    <li><span class="mono">PydanticOutputParser</span>（<span class="mono">pydantic.py:19</span>）在 Json 之上再做<strong>pydantic 校验</strong>。</li>
+    <li><span class="mono">PydanticOutputParser</span>（<span class="mono">pydantic.py</span>）在 Json 之上再做<strong>pydantic 校验</strong>。</li>
   </ul>
 </div>
 

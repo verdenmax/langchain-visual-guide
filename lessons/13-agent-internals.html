@@ -217,6 +217,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
 .toc .tt { font-weight: 650; color: var(--ink); }
 .toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.toc-search { position: relative; margin: 1.6rem 0 -.4rem; }
+.toc-search input { width: 100%; box-sizing: border-box; padding: .75rem 2.8rem .75rem 1rem;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font-size: .98rem; box-shadow: var(--shadow); }
+.toc-search input:focus { outline: none; border-color: var(--accent); }
+.toc-search .qcount { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+  color: var(--faint); font-size: .8rem; pointer-events: none; }
+.toc a.hide, .toc .toc-part.hide { display: none; }
+.toc-empty { display: none; color: var(--muted); padding: 1rem; text-align: center; }
+.toc-empty.show { display: block; }
 .hero.index h1 { font-size: 2.3rem; }
 .legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
 .legend span { display:flex; align-items:center; gap:.4rem; }
@@ -231,9 +241,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第三部分 · 内部源码</span>
-    <span class="pill">13 / 26</span>
+    <span class="pill">13 / 27</span>
   </div>
-  <div class="progress"><span style="width:50%"></span></div>
+  <div class="progress"><span style="width:48%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">

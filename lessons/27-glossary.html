@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>24 · 深入 LangGraph：图 / 状态 / 节点 / 边 — LangChain 图解教程</title>
-<meta name="description" content="第七部分 · 深入 LangGraph｜深入 LangGraph：图 / 状态 / 节点 / 边：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>27 · 术语表 · 概念索引 — LangChain 图解教程</title>
+<meta name="description" content="第八部分 · 速查｜术语表 · 概念索引：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="24 · 深入 LangGraph：图 / 状态 / 节点 / 边 — LangChain 图解教程">
-<meta property="og:description" content="第七部分 · 深入 LangGraph｜深入 LangGraph：图 / 状态 / 节点 / 边：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="27 · 术语表 · 概念索引 — LangChain 图解教程">
+<meta property="og:description" content="第八部分 · 速查｜术语表 · 概念索引：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="24 · 深入 LangGraph：图 / 状态 / 节点 / 边 — LangChain 图解教程">
-<meta name="twitter:description" content="第七部分 · 深入 LangGraph｜深入 LangGraph：图 / 状态 / 节点 / 边：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="27 · 术语表 · 概念索引 — LangChain 图解教程">
+<meta name="twitter:description" content="第八部分 · 速查｜术语表 · 概念索引：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -240,190 +240,99 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第七部分 · 深入 LangGraph</span>
-    <span class="pill">24 / 27</span>
+    <span class="pill">第八部分 · 速查</span>
+    <span class="pill">27 / 27</span>
   </div>
-  <div class="progress"><span style="width:88%"></span></div>
+  <div class="progress"><span style="width:100%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第七部分 · 深入 LangGraph</div>
-    <h1>深入 LangGraph：图 / 状态 / 节点 / 边</h1>
+    <div class="part">第八部分 · 速查</div>
+    <h1>术语表 · 概念索引</h1>
   </div>
   
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-第 13 课你看到：<span class="inline">create_agent</span> 把 Agent 循环<strong>编译成一张 LangGraph 状态图</strong>。
-这一部分（3 课）我们把这张图的<strong>引擎彻底拆开</strong>。先从最基本的问题开始：
-<strong>LangGraph 到底是什么、为什么需要它。</strong>
+全教程术语很多。这一页把它们<strong>一网打尽</strong>：每个术语<strong>一句话</strong>说清，并<strong>点一下就跳到</strong>讲它的那一课。
+它也是<strong>"概念索引"</strong>——忘了某个东西在哪讲，从这里查最快。
 </p>
 
-<div class="card analogy">
-  <div class="tag">🚆 一句话类比</div>
-  你在第 8/9 课学的 <strong>LCEL（<span class="mono">Runnable |</span>）像一条直的传送带</strong>——东西一头进、一头出，绝不回头。
-  而 <strong>LangGraph 像一整套带道岔和环线的铁路网 + 一个调度塔</strong>：列车能<strong>转圈、并行、
-  中途停车存档、改天从原地继续</strong>。
-</div>
-
-<h2>为什么 LCEL 不够：DAG vs 状态图</h2>
-<p>LCEL 把程序表达成一条<strong>有向无环图（DAG）</strong>——非常适合"prompt → model → parser"这种<strong>直线链</strong>。
-但 Agent 天生不是直线：</p>
-<div class="cols">
-  <div class="col">
-    <h4>🟦 LCEL：有向无环图（DAG）</h4>
-    <p>一头流到另一头，<strong>不能转圈</strong>、不能暂停存档。适合<strong>确定的线性管道</strong>。</p>
-  </div>
-  <div class="col">
-    <h4>🟩 LangGraph：有状态的图（状态机）</h4>
-    <p>补上 <strong>环（cycle）+ 共享状态（state）+ 持久化 + 人在回路</strong>。适合<strong>会循环、会分支</strong>的 Agent。</p>
-  </div>
-</div>
 <div class="card detail">
-  <div class="tag">🔬 关键差别</div>
-  Agent 的本质是"<strong>循环 + 分支</strong>"：反复"想 → 调工具 → 把结果回灌 → 再想"，直到完成。
-  用 DAG <strong>表达不了"绕回去"</strong>；而图天然能画出"从 tools 节点连一条边<strong>回到</strong> model 节点"的环。
+  <div class="tag">🔎 用法</div>
+  想找某个词？用浏览器的 <strong>Ctrl/⌘ + F</strong> 在本页内搜索；点"<strong>见课</strong>"列的链接直接跳到对应课。
+  术语按 <strong>① LangChain 核心 → ② LangGraph 引擎 → ③ 生态与全栈</strong> 分三组。
 </div>
 
-<h2>四件套：State / Node / Edge / compile</h2>
-<p>LangGraph 的全部心智，就是这四个词。官方 <span class="mono">StateGraph</span> 的文档一句话点透：
-<strong>"一张图，其节点通过读写一份共享状态来通信；每个节点的签名是 <span class="mono">State → 部分 State</span>"</strong>。</p>
+<h2>① LangChain 核心</h2>
+<table class="t">
+  <tr><th>术语</th><th>一句话</th><th>见课</th></tr>
+  <tr><td class="mono">Runnable</td><td>统一接口（invoke/stream/batch），LangChain 万物之基</td><td><a href="08-runnable.html">第 8 课</a></td></tr>
+  <tr><td class="mono">LCEL（| 管道）</td><td>用 <span class="mono">|</span> 把多个 Runnable 串成一条链</td><td><a href="09-runnable-compose.html">第 9 课</a></td></tr>
+  <tr><td class="mono">invoke / stream / batch</td><td>一问一答 / 流式 / 批量，三种调用方式（含异步 a*）</td><td><a href="05-chat-models.html">第 5 课</a></td></tr>
+  <tr><td class="mono">init_chat_model</td><td>一行代码拿到任意厂商的聊天模型</td><td><a href="05-chat-models.html">第 5 课</a></td></tr>
+  <tr><td class="mono">BaseChatModel</td><td>所有聊天模型的基类，定义调用链</td><td><a href="11-chat-internals.html">第 11 课</a></td></tr>
+  <tr><td class="mono">Message（Human/AI/Tool/System）</td><td>四种标准消息类型</td><td><a href="04-messages.html">第 4 课</a></td></tr>
+  <tr><td class="mono">AIMessage.tool_calls</td><td>模型输出里"想调用的工具"——Agent 循环的引擎</td><td><a href="04-messages.html">第 4</a> · <a href="06-tools.html">6 课</a></td></tr>
+  <tr><td class="mono">ToolMessage</td><td>工具执行结果，靠 <span class="mono">tool_call_id</span> 与请求配对</td><td><a href="06-tools.html">第 6 课</a></td></tr>
+  <tr><td class="mono">@tool</td><td>把普通函数变成工具（自动生成 schema）</td><td><a href="06-tools.html">第 6</a> · <a href="12-tool-internals.html">12 课</a></td></tr>
+  <tr><td class="mono">bind_tools</td><td>告诉模型"你有哪些工具可用"</td><td><a href="06-tools.html">第 6 课</a></td></tr>
+  <tr><td class="mono">create_agent</td><td>一行造 Agent——内部编译成一张 LangGraph 状态图</td><td><a href="07-agents-intro.html">第 7</a> · <a href="13-agent-internals.html">13 课</a></td></tr>
+  <tr><td class="mono">middleware / AgentMiddleware</td><td>Agent 的扩展点：在循环关键处插钩子</td><td><a href="18-custom-middleware.html">第 18 课</a></td></tr>
+  <tr><td>七个钩子（before_model / wrap_model_call …）</td><td>中间件可覆盖的生命周期钩子</td><td><a href="18-custom-middleware.html">第 18 课</a></td></tr>
+  <tr><td class="mono">Output Parser</td><td>把模型的文本输出解析成结构化数据</td><td><a href="10-output-parsers.html">第 10 课</a></td></tr>
+  <tr><td>结构化输出（with_structured_output）</td><td>强制模型直接吐出符合 schema 的对象</td><td><a href="06-tools.html">第 6 课</a></td></tr>
+  <tr><td class="mono">ChatPromptTemplate / MessagesPlaceholder</td><td>提示词模板与"历史插槽"</td><td><a href="16-prompts.html">第 16 课</a></td></tr>
+  <tr><td class="mono">RAG</td><td>检索增强生成：先查知识、再让模型作答</td><td><a href="17-rag.html">第 17 课</a></td></tr>
+  <tr><td class="mono">Document / VectorStore / Retriever / Embeddings</td><td>RAG 的四个核心零件</td><td><a href="17-rag.html">第 17 课</a></td></tr>
+  <tr><td class="mono">Runtime / context_schema</td><td>运行时上下文：把 user_id / db 等注入节点</td><td><a href="19-runtime-context.html">第 19 课</a></td></tr>
+  <tr><td class="mono">with_retry / with_fallbacks</td><td>调用级重试 / 主模型失败切备用</td><td><a href="19-runtime-context.html">第 19 课</a></td></tr>
+  <tr><td class="mono">Callbacks / BaseCallbackHandler</td><td>在生命周期关键点挂钩子（追踪、日志）</td><td><a href="14-streaming-callbacks.html">第 14 课</a></td></tr>
+  <tr><td class="mono">Run / run 树 / LangSmith</td><td>一次执行的记录树，上报 LangSmith 可视化</td><td><a href="14-streaming-callbacks.html">第 14 课</a></td></tr>
+  <tr><td class="mono">streaming / stream_mode</td><td>边生成边返回；updates/values/messages 几种模式</td><td><a href="14-streaming-callbacks.html">第 14</a> · <a href="19-runtime-context.html">19 课</a></td></tr>
+</table>
 
-<div class="layers">
-  <div class="layer l-core">
-    <div class="lh"><span class="badge">State</span><span class="name">共享状态</span></div>
-    <div class="ld">一个数据字典（如 <span class="mono">{"messages": [...]}</span>），在图里流动。<strong>每个键可标注一个 reducer</strong>（归并函数 <span class="mono">(旧, 新) → 新</span>），决定多个节点的写如何合并。</div>
-  </div>
-  <div class="layer l-main">
-    <div class="lh"><span class="badge">Node</span><span class="name">节点</span></div>
-    <div class="ld">一个<strong>普通函数</strong>：读 <span class="mono">state</span> → 返回一份<strong>部分更新</strong>（如 <span class="mono">{"messages": [ai]}</span>）。"调模型""执行工具"各是一个节点。</div>
-  </div>
-  <div class="layer l-part">
-    <div class="lh"><span class="badge">Edge</span><span class="name">边</span></div>
-    <div class="ld"><strong>普通边</strong> <span class="mono">A→B</span>；<strong>条件边</strong>按一个路由函数<strong>动态</strong>选下一站；特殊节点 <span class="mono">START</span> / <span class="mono">END</span> 是入口与出口。</div>
-  </div>
-  <div class="layer l-app">
-    <div class="lh"><span class="badge">compile</span><span class="name">编译</span></div>
-    <div class="ld"><span class="mono">StateGraph</span> 只是<strong>建造者</strong>，不能直接跑；<span class="mono">.compile()</span> 出一个 <strong>CompiledStateGraph</strong>（可执行，<strong>本身就是 Runnable</strong>）。</div>
-  </div>
-</div>
+<h2>② LangGraph 引擎</h2>
+<table class="t">
+  <tr><th>术语</th><th>一句话</th><th>见课</th></tr>
+  <tr><td class="mono">LangGraph</td><td>独立的"有状态图"编排引擎，create_agent 建在它上</td><td><a href="24-langgraph-mental-model.html">第 24 课</a></td></tr>
+  <tr><td class="mono">StateGraph / CompiledStateGraph</td><td>状态图的建造者 / 编译产物（是 Runnable，继承 Pregel）</td><td><a href="24-langgraph-mental-model.html">第 24 课</a></td></tr>
+  <tr><td>State / Node / Edge</td><td>共享状态 / 节点（<span class="mono">state→部分 state</span>）/ 边</td><td><a href="24-langgraph-mental-model.html">第 24 课</a></td></tr>
+  <tr><td class="mono">条件边（add_conditional_edges）</td><td>按路由函数动态选下一个节点</td><td><a href="13-agent-internals.html">第 13</a> · <a href="24-langgraph-mental-model.html">24 课</a></td></tr>
+  <tr><td class="mono">reducer / add_messages</td><td>状态某键的"合并函数"；add_messages 按 id 追加消息</td><td><a href="13-agent-internals.html">第 13</a> · <a href="25-langgraph-pregel-engine.html">25 课</a></td></tr>
+  <tr><td class="mono">Pregel / 超步 / BSP</td><td>执行引擎：actors+channels，分超步 Plan→Execution→Update</td><td><a href="25-langgraph-pregel-engine.html">第 25 课</a></td></tr>
+  <tr><td class="mono">channel（LastValue/Topic/Aggregate）</td><td>状态的底层通道；reducer 就是它的更新函数</td><td><a href="25-langgraph-pregel-engine.html">第 25 课</a></td></tr>
+  <tr><td class="mono">checkpointer / Checkpoint / thread_id</td><td>每超步存档，按 thread_id 区分会话、可续跑</td><td><a href="13-agent-internals.html">第 13</a> · <a href="26-langgraph-persistence-control.html">26 课</a></td></tr>
+  <tr><td class="mono">StateSnapshot / 时间旅行</td><td>某步的状态快照；可回到历史 checkpoint 重跑</td><td><a href="26-langgraph-persistence-control.html">第 26 课</a></td></tr>
+  <tr><td class="mono">interrupt / 人在回路（HITL）</td><td>在节点里暂停等人，Command(resume) 恢复</td><td><a href="07-agents-intro.html">第 7</a> · <a href="26-langgraph-persistence-control.html">26 课</a></td></tr>
+  <tr><td class="mono">Send</td><td>动态扇出：把多个任务并行投给同一节点（并行工具）</td><td><a href="26-langgraph-persistence-control.html">第 26 课</a></td></tr>
+  <tr><td class="mono">Command</td><td>改状态 + 跳转（goto）；多 Agent handoff 的底座</td><td><a href="26-langgraph-persistence-control.html">第 26 课</a></td></tr>
+  <tr><td class="mono">recursion_limit</td><td>图执行步数的硬上限（防失控的兜底）</td><td><a href="07-agents-intro.html">第 7</a> · <a href="25-langgraph-pregel-engine.html">25 课</a></td></tr>
+</table>
 
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">你的代码</span><span class="ln">最小可跑的 StateGraph（真实 API）</span></div>
-<pre><span class="kw">from</span> typing_extensions <span class="kw">import</span> TypedDict, Annotated
-<span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, START, END
-<span class="kw">import</span> operator
-
-<span class="kw">class</span> <span class="fn">State</span>(TypedDict):
-    count: Annotated[int, operator.add]   <span class="cm"># 给 count 标个 reducer：累加</span>
-
-<span class="kw">def</span> <span class="fn">step</span>(state):                       <span class="cm"># 节点：state → 部分 state</span>
-    <span class="kw">return</span> {<span class="st">"count"</span>: 1}
-
-g = StateGraph(State)
-g.add_node(<span class="st">"step"</span>, step)
-g.add_edge(START, <span class="st">"step"</span>)               <span class="cm"># 入口 → step</span>
-g.add_edge(<span class="st">"step"</span>, END)                 <span class="cm"># step → 出口</span>
-app = g.compile()                         <span class="cm"># 得到可执行图（也是 Runnable）</span>
-
-<span class="nb">print</span>(app.invoke({<span class="st">"count"</span>: 0}))       <span class="cm"># {'count': 1}（reducer 把 0 和 1 累加）</span>
-</pre>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 代码对应（langgraph 仓库）</div>
-  <table class="t" style="margin-top:.6rem">
-    <tr><th>概念</th><th>位置</th></tr>
-    <tr><td class="mono">StateGraph / add_node / add_edge / add_conditional_edges / compile</td><td class="mono">graph/state.py</td></tr>
-    <tr><td class="mono">CompiledStateGraph（compile 的产物）</td><td class="mono">graph/state.py · 继承 Pregel</td></tr>
-    <tr><td class="mono">START / END</td><td class="mono">constants.py（值是 "__start__" / "__end__"）</td></tr>
-    <tr><td>reducer（如 add_messages）</td><td class="mono">graph/message.py · 第 25 课详解</td></tr>
-  </table>
-</div>
-
-<h2>和 LangChain 的关系（回顾 + 定位）</h2>
-<div class="cols">
-  <div class="col">
-    <h4>LangChain（你一直在学）</h4>
-    <p><strong>高层便利</strong>：<span class="mono">create_agent</span> 帮你把这张图<strong>搭好</strong>，你不用碰节点和边。</p>
-  </div>
-  <div class="col">
-    <h4>LangGraph（这一部分）</h4>
-    <p><strong>底层引擎</strong>：真正<strong>运行</strong>这张图。它是<strong>另一个独立仓库</strong> <span class="mono">langchain-ai/langgraph</span>，<span class="mono">langchain</span> 依赖它；你也能<strong>单独用</strong>它从零搭图。</p>
-  </div>
-</div>
-<div class="card detail">
-  <div class="tag">🔬 一个会反复用到的事实</div>
-  <span class="mono">CompiledStateGraph</span> <strong>本身就是一个 Runnable</strong>，所以第 8 课关于 Runnable 的一切
-  （<span class="mono">invoke</span>/<span class="mono">stream</span>/<span class="mono">batch</span>、<span class="mono">config</span>、回调）对整张图都成立。
-  在第 22 课的全栈图里，LangChain 与 LangGraph 都在 <strong>L7 编排层</strong>。
-</div>
-
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，抠三个常被问到的细节。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 条件边的路由函数到底返回什么 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 返回值</div>
-      <div class="a"><span class="mono">add_conditional_edges(源节点, path, path_map=None)</span>：<span class="mono">path</span> 是一个看 state 的函数，
-        返回<strong>下一个节点名</strong>（或名字列表，甚至 <span class="mono">Send</span>）；返回 <span class="mono">"END"</span> 就结束。
-        可选的 <span class="mono">path_map</span> 把返回值映射到节点名。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 小坑</div>
-      <div class="a">官方建议给 <span class="mono">path</span> 的返回值<strong>加类型注解</strong>（如 <span class="mono">-&gt; Literal["tools", "__end__"]</span>），
-        否则画图工具无法得知这条条件边有哪些可能目标。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> 为什么必须 compile() <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 两个阶段</div>
-      <div class="a"><span class="mono">StateGraph</span> 只是<strong>建造者</strong>，存着"节点 + 边"的图纸，不能执行。
-        <span class="mono">compile()</span> 会<strong>校验图</strong>（节点是否连通、键是否合法）并把图纸编成一个可执行的 <span class="mono">Pregel</span>（即 <span class="mono">CompiledStateGraph</span>）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 顺带的好处</div>
-      <div class="a">产物是 <strong>Runnable</strong>，于是 <span class="mono">invoke/stream/batch</span>、回调、<span class="mono">config</span> 全部免费获得（第 8 课）。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> reducer 的签名与默认行为 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 签名</div>
-      <div class="a">reducer 是 <span class="mono">(旧值, 新值) → 新值</span>。键<strong>不标</strong> reducer 时默认是 <span class="mono">LastValue</span>——<strong>后写覆盖前值</strong>；
-        标了（如 <span class="mono">operator.add</span> / <span class="mono">add_messages</span>）就按你的函数<strong>合并</strong>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 它在哪生效</div>
-      <div class="a">第 25 课会看到：编译时<strong>每个键变成一个 channel</strong>，reducer 就是那个 channel 的"更新函数"。</div>
-    </div>
-  </div>
-</details>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点：把"图"当成一等公民</div>
-  一旦把程序建模成"<strong>状态 + 节点 + 边</strong>"，那些最难的能力——<strong>循环、分支、并行、持久化、人审、时间旅行</strong>——
-  就都变成<strong>图引擎的通用能力</strong>，而不必每个 Agent 各写一遍。这正是 LangGraph 存在的理由，下一课我们看它怎么"跑"。
-</div>
+<h2>③ 生态与全栈</h2>
+<table class="t">
+  <tr><th>术语</th><th>一句话</th><th>见课</th></tr>
+  <tr><td class="mono">AutoGen</td><td>微软的多 Agent 对话框架（与 LangChain 对照）</td><td><a href="21-langchain-vs-autogen.html">第 21 课</a></td></tr>
+  <tr><td class="mono">handoff（交接）</td><td>一个 Agent 把任务交棒给另一个</td><td><a href="21-langchain-vs-autogen.html">第 21</a> · <a href="26-langgraph-persistence-control.html">26 课</a></td></tr>
+  <tr><td class="mono">MCP</td><td>Model Context Protocol（Anthropic）：标准化"Agent↔工具"</td><td><a href="22-ai-stack.html">第 22 课</a></td></tr>
+  <tr><td class="mono">A2A</td><td>Agent2Agent（Google）：标准化"Agent↔Agent"</td><td><a href="22-ai-stack.html">第 22 课</a></td></tr>
+  <tr><td>AI 全栈 7 层</td><td>硬件→基础设施→训练→模型→推理→检索→编排+应用</td><td><a href="22-ai-stack.html">第 22 课</a></td></tr>
+  <tr><td class="mono">vLLM / PagedAttention</td><td>主流推理引擎 / 它的核心显存分页技术（L5）</td><td><a href="23-learning-map.html">第 23 课</a></td></tr>
+  <tr><td class="mono">continuous batching / 量化</td><td>推理提速的两大手段（吞吐 / 省显存）</td><td><a href="23-learning-map.html">第 23 课</a></td></tr>
+  <tr><td class="mono">HNSW / ANN</td><td>向量检索的近似最近邻算法（L6 底座）</td><td><a href="23-learning-map.html">第 23 课</a></td></tr>
+  <tr><td class="mono">嵌入 / BGE</td><td>把文本变向量；BGE 是中文友好的开源嵌入模型</td><td><a href="23-learning-map.html">第 23 课</a></td></tr>
+</table>
 
 <div class="card key">
-  <div class="tag">✅ 本课要点</div>
+  <div class="tag">✅ 怎么用好这页</div>
   <ul>
-    <li>LCEL 是 <strong>DAG（不能转圈）</strong>；LangGraph 是<strong>有状态的图</strong>，补上环 / 状态 / 持久化 / 人审。</li>
-    <li>四件套：<strong>State</strong>（共享状态，键可带 reducer）、<strong>Node</strong>（<span class="mono">state → 部分 state</span>）、<strong>Edge</strong>（普通/条件，<span class="mono">START/END</span>）、<strong>compile()</strong>（产出可执行的 <span class="mono">CompiledStateGraph</span>）。</li>
-    <li><span class="mono">CompiledStateGraph</span> 是 Runnable；LangGraph 是<strong>独立仓库</strong>，<span class="mono">create_agent</span> 依赖它、也能单独用。</li>
-    <li>下一课：编译产物到底怎么"跑"——揭开 <strong>Pregel 引擎</strong>。</li>
+    <li><strong>查词</strong>：忘了术语含义 → Ctrl/⌘ + F 搜本页，一行看懂。</li>
+    <li><strong>跳课</strong>：想看细节 → 点"见课"链接直达讲解。</li>
+    <li><strong>复习</strong>：通读三张表，就是一份全书<strong>概念地图</strong>。</li>
+    <li>🎉 至此，从"LangChain 一个点"到"整个 AI 生态 + LangGraph 引擎"，你已经走完全程。</li>
   </ul>
 </div>
 
-  <div class="footnav"><a class="prev" href="23-learning-map.html"><div class="dir">← 上一课</div><div class="ttl">隔壁层学习地图：L5 推理 · L6 向量检索</div></a><a class="next" href="25-langgraph-pregel-engine.html"><div class="dir">下一课 →</div><div class="ttl">执行引擎：Pregel 与超步</div></a></div>
+  <div class="footnav"><a class="prev" href="26-langgraph-persistence-control.html"><div class="dir">← 上一课</div><div class="ttl">持久化 · 中断 · 控制流</div></a><a class="next" href="../index.html"><div class="dir">完成 →</div><div class="ttl">返回目录</div></a></div>
 </div>
 
 </body></html>

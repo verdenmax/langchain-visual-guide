@@ -337,20 +337,20 @@ agent = create_agent(model, tools=[search_kb])   <span class="cm"># Agent 自己
 
 vs = InMemoryVectorStore.from_texts(["北京晴", "上海雨"], embedding=embeddings)
 vs.similarity_search("北京天气", k=1)</pre>
-        位置：<span class="mono">core/vectorstores/in_memory.py:34</span>。</div>
+        位置：<span class="mono">core/vectorstores/in_memory.py</span>。</div>
     </div>
     <div class="qa">
       <div class="q">❓ 真实项目：怎么避免每次全量重嵌入</div>
       <div class="a">文档会更新，但大部分没变。core 的<strong>索引 API</strong> 用一个 <span class="mono">RecordManager</span> 记录"哪些文档已入库"，
         <span class="mono">index()</span> 只对<strong>新增/变更</strong>的文档重新嵌入入库，并清理已删除的：
-<pre class="code"><span class="kw">from</span> langchain_core.indexing <span class="kw">import</span> index   <span class="cm"># indexing/api.py:296</span>
+<pre class="code"><span class="kw">from</span> langchain_core.indexing <span class="kw">import</span> index   <span class="cm"># indexing/api.py</span>
 index(docs, record_manager, vectorstore, cleanup=<span class="st">"incremental"</span>)</pre>
       </div>
     </div>
     <div class="qa">
       <div class="q">✅ 为什么重要</div>
       <div class="a">这正是"<strong>玩具 RAG</strong> ↔ <strong>可维护 RAG</strong>"的分水岭：避免重复嵌入（省钱省时）、自动去重、同步删除。
-        <span class="mono">RecordManager</span> 在 <span class="mono">indexing/base.py:22</span>（含内存版 <span class="mono">InMemoryRecordManager</span>）。</div>
+        <span class="mono">RecordManager</span> 在 <span class="mono">indexing/base.py</span>（含内存版 <span class="mono">InMemoryRecordManager</span>）。</div>
     </div>
   </div>
 </details>
@@ -366,11 +366,11 @@ index(docs, record_manager, vectorstore, cleanup=<span class="st">"incremental"<
 kb_tool = create_retriever_tool(
     retriever, name=<span class="st">"search_kb"</span>, description=<span class="st">"检索公司知识库"</span>)
 agent = create_agent(model, tools=[kb_tool])</pre>
-        位置：<span class="mono">core/tools/retriever.py:31</span>。</div>
+        位置：<span class="mono">core/tools/retriever.py</span>。</div>
     </div>
     <div class="qa">
       <div class="q">❓ 嵌入太贵？给它加缓存</div>
-      <div class="a"><span class="mono">CacheBackedEmbeddings</span>（<span class="mono">langchain_classic/embeddings/cache.py:108</span>）
+      <div class="a"><span class="mono">CacheBackedEmbeddings</span>（<span class="mono">langchain_classic/embeddings/cache.py</span>）
         把"文本 → 向量"的结果缓存起来，<strong>相同文本不再重复调用嵌入 API</strong>，显著省钱（尤其重复构建索引时）。</div>
     </div>
     <div class="qa">
@@ -410,9 +410,9 @@ agent = create_agent(model, tools=[kb_tool])</pre>
   <div class="tag">🔬 实现要点</div>
   <ul>
     <li><strong>Retriever</strong>：子类只需实现 <span class="mono">_get_relevant_documents</span>，<span class="mono">invoke</span> 自动包上回调/追踪/异步。</li>
-    <li><strong>VectorStore.search</strong>（<span class="mono">vectorstores/base.py:293</span>）按 <span class="mono">search_type</span> 分发：
+    <li><strong>VectorStore.search</strong>（<span class="mono">vectorstores/base.py</span>）按 <span class="mono">search_type</span> 分发：
       <span class="mono">similarity</span> / <span class="mono">similarity_score_threshold</span> / <span class="mono">mmr</span>；
-      <span class="mono">VectorStoreRetriever</span>（<span class="mono">:964</span>）只是<strong>委托</strong>调用它。</li>
+      <span class="mono">VectorStoreRetriever</span>（<span class="mono">同文件</span>）只是<strong>委托</strong>调用它。</li>
     <li><strong>切分器</strong>：递归用越来越细的分隔符切，再 <span class="mono">_merge_splits</span> 按 <span class="mono">chunk_size</span> 打包、留 <span class="mono">chunk_overlap</span>。</li>
   </ul>
 </div>

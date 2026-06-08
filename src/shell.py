@@ -58,6 +58,7 @@ PAGES = [
     ("24-langgraph-mental-model.html", "深入 LangGraph：图 / 状态 / 节点 / 边", "第七部分 · 深入 LangGraph"),
     ("25-langgraph-pregel-engine.html", "执行引擎：Pregel 与超步", "第七部分 · 深入 LangGraph"),
     ("26-langgraph-persistence-control.html", "持久化 · 中断 · 控制流", "第七部分 · 深入 LangGraph"),
+    ("27-glossary.html", "术语表 · 概念索引", "第八部分 · 速查"),
 ]
 
 INDEX_FILE = "index.html"
@@ -266,6 +267,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
 .toc .tt { font-weight: 650; color: var(--ink); }
 .toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.toc-search { position: relative; margin: 1.6rem 0 -.4rem; }
+.toc-search input { width: 100%; box-sizing: border-box; padding: .75rem 2.8rem .75rem 1rem;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font-size: .98rem; box-shadow: var(--shadow); }
+.toc-search input:focus { outline: none; border-color: var(--accent); }
+.toc-search .qcount { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+  color: var(--faint); font-size: .8rem; pointer-events: none; }
+.toc a.hide, .toc .toc-part.hide { display: none; }
+.toc-empty { display: none; color: var(--muted); padding: 1rem; text-align: center; }
+.toc-empty.show { display: block; }
 .hero.index h1 { font-size: 2.3rem; }
 .legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
 .legend span { display:flex; align-items:center; gap:.4rem; }
@@ -274,6 +285,36 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+"""
+
+SEARCH_JS = """
+(function(){
+  var q=document.getElementById('q'); if(!q) return;
+  var toc=document.querySelector('.toc');
+  var empty=document.getElementById('tocempty');
+  var count=document.getElementById('qcount');
+  var links=[].slice.call(toc.querySelectorAll('a'));
+  var heads=[].slice.call(toc.querySelectorAll('.toc-part'));
+  links.forEach(function(a){ a.setAttribute('data-s',(a.textContent||'').toLowerCase()); });
+  function run(){
+    var t=(q.value||'').toLowerCase().trim(), n=0;
+    links.forEach(function(a){
+      var hit=!t||a.getAttribute('data-s').indexOf(t)>=0;
+      a.classList.toggle('hide',!hit); if(hit)n++;
+    });
+    heads.forEach(function(h){
+      var el=h.nextElementSibling, any=false;
+      while(el && !el.classList.contains('toc-part')){
+        if(el.tagName==='A' && !el.classList.contains('hide')){any=true;break;}
+        el=el.nextElementSibling;
+      }
+      h.classList.toggle('hide',!any);
+    });
+    empty.classList.toggle('show', !!t && n===0);
+    count.textContent = t ? (n+' \u8bfe') : '';
+  }
+  q.addEventListener('input',run);
+})();
 """
 
 NAV_SCRIPT = """
@@ -388,6 +429,7 @@ def index_page(standalone=False, lesson_prefix=""):
         "24-langgraph-mental-model.html": "为什么 LCEL 不够 · State/Node/Edge/compile",
         "25-langgraph-pregel-engine.html": "Pregel/BSP 超步 · Plan→Execution→Update · channels",
         "26-langgraph-persistence-control.html": "Checkpoint/StateSnapshot · interrupt · Send/Command",
+        "27-glossary.html": "全书术语一句话查 + 点链接跳到对应课",
     }
     for part in order:
         blocks.append(f'<div class="toc-part">{part}</div>')
@@ -432,10 +474,17 @@ def index_page(standalone=False, lesson_prefix=""):
     <div style="margin-top:1.1rem">
       <a href="langchain-visual-guide.pdf" class="pdf-btn">📄 下载完整 PDF（全 {len(PAGES)} 课）</a>
     </div>
+    <p style="margin:.8rem 0 0;color:var(--faint);font-size:.8rem">📌 对照 <strong>LangChain v1（<span class="mono">langchain_v1</span>）</strong> 与 <strong>LangGraph</strong> 源码讲解 · 最后核验 2026-06 · 源码引用以"文件 + 符号名"为主（行号会随上游更新而变）</p>
+  </div>
+  <div class="toc-search">
+    <input id="q" type="search" placeholder="🔎 搜索课程：标题 / 关键词（如 RAG、Pregel、中间件）" autocomplete="off" aria-label="搜索课程">
+    <span class="qcount" id="qcount"></span>
   </div>
   <div class="toc">{toc}</div>
+  <div class="toc-empty" id="tocempty">没有匹配的课程，换个关键词试试。</div>
 </div>
 {script_tag}
+<script>{SEARCH_JS}</script>
 </body></html>"""
     if standalone:
         html = html.replace('data-nav="', 'href="')

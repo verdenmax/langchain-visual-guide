@@ -217,6 +217,16 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
 .toc .tt { font-weight: 650; color: var(--ink); }
 .toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.toc-search { position: relative; margin: 1.6rem 0 -.4rem; }
+.toc-search input { width: 100%; box-sizing: border-box; padding: .75rem 2.8rem .75rem 1rem;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font-size: .98rem; box-shadow: var(--shadow); }
+.toc-search input:focus { outline: none; border-color: var(--accent); }
+.toc-search .qcount { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+  color: var(--faint); font-size: .8rem; pointer-events: none; }
+.toc a.hide, .toc .toc-part.hide { display: none; }
+.toc-empty { display: none; color: var(--muted); padding: 1rem; text-align: center; }
+.toc-empty.show { display: block; }
 .hero.index h1 { font-size: 2.3rem; }
 .legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
 .legend span { display:flex; align-items:center; gap:.4rem; }
@@ -231,9 +241,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第七部分 · 深入 LangGraph</span>
-    <span class="pill">26 / 26</span>
+    <span class="pill">26 / 27</span>
   </div>
-  <div class="progress"><span style="width:100%"></span></div>
+  <div class="progress"><span style="width:96%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
@@ -400,7 +410,7 @@ snap = app.get_state(cfg)              <span class="cm"># StateSnapshot：看当
   </ul>
 </div>
 
-  <div class="footnav"><a class="prev" href="25-langgraph-pregel-engine.html"><div class="dir">← 上一课</div><div class="ttl">执行引擎：Pregel 与超步</div></a><a class="next" href="../index.html"><div class="dir">完成 →</div><div class="ttl">返回目录</div></a></div>
+  <div class="footnav"><a class="prev" href="25-langgraph-pregel-engine.html"><div class="dir">← 上一课</div><div class="ttl">执行引擎：Pregel 与超步</div></a><a class="next" href="27-glossary.html"><div class="dir">下一课 →</div><div class="ttl">术语表 · 概念索引</div></a></div>
 </div>
 
 </body></html>

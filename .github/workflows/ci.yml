@@ -32,3 +32,7 @@ jobs:
       - name: Check internal links
         working-directory: src
         run: python check_links.py
+
+      - name: Check HTML structure & consistency
+        working-directory: src
+        run: python check_html.py
