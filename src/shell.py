@@ -55,6 +55,9 @@ PAGES = [
     ("21-langchain-vs-autogen.html", "横向对比：LangChain vs AutoGen", "第六部分 · 番外篇"),
     ("22-ai-stack.html", "全栈坐标系：从 LangChain 缩放到整个生态", "第六部分 · 番外篇"),
     ("23-learning-map.html", "隔壁层学习地图：L5 推理 · L6 向量检索", "第六部分 · 番外篇"),
+    ("24-langgraph-mental-model.html", "深入 LangGraph：图 / 状态 / 节点 / 边", "第七部分 · 深入 LangGraph"),
+    ("25-langgraph-pregel-engine.html", "执行引擎：Pregel 与超步", "第七部分 · 深入 LangGraph"),
+    ("26-langgraph-persistence-control.html", "持久化 · 中断 · 控制流", "第七部分 · 深入 LangGraph"),
 ]
 
 INDEX_FILE = "index.html"
@@ -382,6 +385,9 @@ def index_page(standalone=False, lesson_prefix=""):
         "21-langchain-vs-autogen.html": "两种范式对照：图/管道 vs 多 Agent 对话",
         "22-ai-stack.html": "Agent 编排 5 流派 · AI 全栈 7 层 · 你在哪",
         "23-learning-map.html": "vLLM/llama.cpp/Ollama · hnswlib/pgvector/Qdrant",
+        "24-langgraph-mental-model.html": "为什么 LCEL 不够 · State/Node/Edge/compile",
+        "25-langgraph-pregel-engine.html": "Pregel/BSP 超步 · Plan→Execution→Update · channels",
+        "26-langgraph-persistence-control.html": "Checkpoint/StateSnapshot · interrupt · Send/Command",
     }
     for part in order:
         blocks.append(f'<div class="toc-part">{part}</div>')

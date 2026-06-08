@@ -802,6 +802,7 @@ graph.add_conditional_edges(<span class="st">"tools"</span>, ...)   <span class=
   <tr><td class="mono">interrupt</td><td>中断等人审批（HITL）</td><td>本课 · 进阶 ② · 第 7 课</td></tr>
   <tr><td class="mono">Runtime</td><td>运行时上下文（依赖注入）</td><td>第 19 课</td></tr>
 </table>
+<p style="color:var(--muted);font-size:.9rem">想把这些零件<strong>逐个拆到引擎层</strong>（Pregel 超步、channels、checkpoint、Send/Command 的实现）？见 <strong>第七部分 · 深入 LangGraph</strong>。</p>
 
 <h2>状态：在节点间流动的是什么？</h2>
 <p>图里流动的不是裸消息，而是 <span class="inline">AgentState</span>——一个至少含 <span class="inline">messages</span> 键的状态字典。

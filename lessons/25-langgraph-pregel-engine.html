@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>09 · Runnable 如何组合 — LangChain 图解教程</title>
-<meta name="description" content="第三部分 · 内部源码｜Runnable 如何组合：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>25 · 执行引擎：Pregel 与超步 — LangChain 图解教程</title>
+<meta name="description" content="第七部分 · 深入 LangGraph｜执行引擎：Pregel 与超步：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="09 · Runnable 如何组合 — LangChain 图解教程">
-<meta property="og:description" content="第三部分 · 内部源码｜Runnable 如何组合：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="25 · 执行引擎：Pregel 与超步 — LangChain 图解教程">
+<meta property="og:description" content="第七部分 · 深入 LangGraph｜执行引擎：Pregel 与超步：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="09 · Runnable 如何组合 — LangChain 图解教程">
-<meta name="twitter:description" content="第三部分 · 内部源码｜Runnable 如何组合：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="25 · 执行引擎：Pregel 与超步 — LangChain 图解教程">
+<meta name="twitter:description" content="第七部分 · 深入 LangGraph｜执行引擎：Pregel 与超步：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -230,215 +230,171 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第三部分 · 内部源码</span>
-    <span class="pill">09 / 26</span>
+    <span class="pill">第七部分 · 深入 LangGraph</span>
+    <span class="pill">25 / 26</span>
   </div>
-  <div class="progress"><span style="width:34%"></span></div>
+  <div class="progress"><span style="width:96%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第三部分 · 内部源码</div>
-    <h1>Runnable 如何组合</h1>
+    <div class="part">第七部分 · 深入 LangGraph</div>
+    <h1>执行引擎：Pregel 与超步</h1>
   </div>
   
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-上一课我们用 <span class="inline">a | b | c</span> 拼了链。那么——<strong>拼出来的到底是什么？</strong>
-答案是一个 <span class="inline">RunnableSequence</span> 对象。这一课拆解"顺序"与"并行"两种核心组合，
-以及几个最常用的"胶水" Runnable。
+上一课的 <span class="inline">compile()</span> 产物到底怎么"跑"？答案藏在一个名字里：<strong>Pregel</strong>。
+你编译出来的图，<strong>本质上就是一个 <span class="mono">Pregel</span> 对象</strong>。这是整个第七部分<strong>最硬核</strong>的一课。
 </p>
 
 <div class="card analogy">
-  <div class="tag">🏭 生活类比</div>
-  <strong>顺序组合</strong>像<strong>流水线</strong>：上一站的产出是下一站的原料，一站接一站。
-  <strong>并行组合</strong>像<strong>多个窗口同时办理</strong>：同一份输入分发给几条线<strong>同时</strong>处理，最后把各自结果汇总成一张表。
+  <div class="tag">♟️ 一句话类比：回合制</div>
+  把图的运行想成<strong>回合制游戏</strong>：每一<strong>回合（超步 super-step）</strong>里，所有"该动的"节点<strong>同时行动</strong>，
+  各自把要写的东西<strong>先攒着</strong>；回合一结束，<strong>统一结算</strong>到共享状态，再开下一回合——直到没有节点要动。
 </div>
 
-<h2>顺序组合：RunnableSequence</h2>
-<p>当你写 <span class="inline">a | b | c</span>，<span class="inline">__or__</span> 会把它们打包成一个
-<span class="inline">RunnableSequence</span>。它的 <span class="inline">invoke</span> 做的事极其朴素——<strong>依次调用、首尾相接</strong>：</p>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/runnables/base.py</span><span class="ln">class RunnableSequence</span></div>
-<pre><span class="kw">class</span> <span class="fn">RunnableSequence</span>(RunnableSerializable):
-    <span class="kw">def</span> <span class="fn">invoke</span>(self, input, config=None):
-        <span class="kw">for</span> step <span class="kw">in</span> self.steps:        <span class="cm"># 依次跑每一步</span>
-            input = step.invoke(input)   <span class="cm"># 上一步输出 = 下一步输入</span>
-        <span class="kw">return</span> input
-</pre>
+<h2>编译产物 = 一个 Pregel</h2>
+<p>官方源码 <span class="mono">pregel/main.py</span> 里 <span class="mono">Pregel</span> 类的文档说得很直白（这里翻译关键句）：</p>
+<div class="card detail">
+  <div class="tag">🔬 Pregel 类文档（直译）</div>
+  <p>"<strong>Pregel 把 actors（行动者）和 channels（通道）组合成一个应用。</strong>
+  Actors 从 channels 读数据、往 channels 写数据。Pregel 把执行组织成<strong>多个步骤</strong>，
+  遵循 <strong>Pregel 算法 / Bulk Synchronous Parallel（BSP，整体同步并行）模型</strong>。"</p>
+  <ul>
+    <li><strong>actor = 一个 <span class="mono">PregelNode</span></strong>（它也实现了 LangChain 的 <span class="mono">Runnable</span>）。</li>
+    <li>"Graph API（<span class="mono">StateGraph</span>）/ Functional API 都会在底层<strong>编译成 Pregel</strong>。"——你的图就是这么跑的。</li>
+  </ul>
 </div>
+<p style="color:var(--muted);font-size:.9rem">＊ Pregel 是 Google 2010 年提出的大规模图计算模型，LangGraph 把这套"消息传递 + 逐步推进"的成熟范式搬来跑 LLM 应用。</p>
 
-<div class="flow">
-  <div class="node">input</div><div class="arrow">→</div>
-  <div class="node hl">step1</div><div class="arrow">→</div>
-  <div class="node hl">step2</div><div class="arrow">→</div>
-  <div class="node hl">step3</div><div class="arrow">→</div>
-  <div class="node">output</div>
-</div>
-
-<h2>并行组合：RunnableParallel</h2>
-<p>当你把<strong>一个字典</strong>放进链里（值都是 Runnable），就得到 <span class="inline">RunnableParallel</span>：
-同一份输入<strong>同时</strong>喂给每个分支，结果合并成一个字典。</p>
-
-<pre class="code"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnableParallel
-
-parallel = RunnableParallel(
-    weather=get_weather_chain,   <span class="cm"># 分支 1</span>
-    news=get_news_chain,         <span class="cm"># 分支 2</span>
-)
-parallel.invoke(<span class="st">"北京"</span>)
-<span class="cm"># → {"weather": ..., "news": ...}  两条分支并发执行</span>
-</pre>
-
-<div class="flow" style="flex-direction:column;gap:.6rem;align-items:center">
-  <div class="node hl" style="flex:0 0 auto">同一份 input</div>
-  <div class="arrow" style="transform:rotate(90deg)">→</div>
-  <div style="display:flex;gap:1rem">
-    <div class="node">分支 weather</div>
-    <div class="node">分支 news</div>
-  </div>
-  <div class="arrow" style="transform:rotate(90deg)">→</div>
-  <div class="node hl" style="flex:0 0 auto">合并成 {weather, news}</div>
-</div>
-
-<h2>两个最常用的"胶水"</h2>
-<div class="cols">
-  <div class="col">
-    <h4>RunnableLambda</h4>
-    <p>把<strong>任意普通函数</strong>变成 Runnable，好塞进链里。</p>
-    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnableLambda
-upper = RunnableLambda(<span class="kw">lambda</span> x: x.upper())
-chain = upper | model</pre>
-  </div>
-  <div class="col">
-    <h4>RunnablePassthrough</h4>
-    <p>原样透传输入，常用于"<strong>保留原值 + 旁加一个新字段</strong>"。</p>
-    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnablePassthrough
-RunnablePassthrough.assign(
-  weather=get_weather_chain)</pre>
-  </div>
+<h2>一个"超步"的三阶段：Plan → Execution → Update</h2>
+<p>每一个超步（step）都严格走三步（直接来自 Pregel 类文档）：</p>
+<div class="vflow">
+  <div class="step"><div class="num">1</div><div class="sc">
+    <h4>Plan（计划）：选出本步要执行的节点</h4>
+    <p>挑出"<strong>订阅了『上一步被更新的 channel』</strong>"的那些 actor。第一步则选订阅<strong>输入通道</strong>的节点。</p>
+  </div></div>
+  <div class="step"><div class="num">2</div><div class="sc">
+    <h4>Execution（执行）：并行跑选中的节点</h4>
+    <p>选中的 actor <strong>并行执行</strong>。<strong>关键</strong>：本步产生的 channel 写入，<strong>对本步的 actor 不可见</strong>——要到下一步才生效。</p>
+  </div></div>
+  <div class="step"><div class="num">3</div><div class="sc">
+    <h4>Update（更新）：把写入统一应用到 channels</h4>
+    <p>把本步所有节点写的值，<strong>一次性</strong>结算进 channels。然后回到 Plan，开下一超步——直到没有节点被触发，或到达步数上限。</p>
+  </div></div>
 </div>
 
 <div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应</div>
-  全部在 <span class="mono">core/langchain_core/runnables/</span> 下：
-  <table class="t" style="margin-top:.6rem">
-    <tr><th>类</th><th>文件</th><th>作用</th></tr>
-    <tr><td class="mono">RunnableSequence</td><td class="mono">base.py</td><td>顺序（<span class="mono">|</span> 的产物）</td></tr>
-    <tr><td class="mono">RunnableParallel</td><td class="mono">base.py</td><td>并行（别名 <span class="mono">RunnableMap</span>）</td></tr>
-    <tr><td class="mono">RunnableLambda</td><td class="mono">base.py</td><td>包装函数</td></tr>
-    <tr><td class="mono">RunnablePassthrough</td><td class="mono">passthrough.py</td><td>透传 / assign</td></tr>
-  </table>
+  <div class="tag">🔬 确定性从哪来 + 代码对应</div>
+  <p>"<strong>本步的写下一步才可见</strong>"是整个模型的灵魂：它让<strong>并行节点不会看到彼此的半成品</strong>，
+  于是同样输入 → 同样结果，可复现、可持久化。</p>
+  <ul>
+    <li>超步循环：<span class="mono">pregel/_loop.py · PregelLoop.tick()</span>——里面先 <span class="mono">prepare_next_tasks(...)</span>（Plan），执行后 <span class="mono">apply_writes(...)</span>（Update）。</li>
+    <li>步数上限：<span class="mono">tick()</span> 开头检查 <span class="mono">step &gt; stop</span> → 置 <span class="mono">out_of_steps</span>。这就是第 7 课 <span class="mono">recursion_limit</span> 的<strong>兜底实现</strong>。</li>
+  </ul>
 </div>
 
-<div class="card macro">
-  <div class="tag">🌍 宏观理解</div>
-  所有复杂的"链"，本质都是这几种基础 Runnable 的<strong>嵌套套娃</strong>：
-  顺序里套并行、并行的分支里又是顺序……因为<strong>组合的产物还是 Runnable</strong>，
-  所以可以无限拼下去，且整体永远支持 invoke/stream/batch。
+<h2>channels：状态到底怎么存与合并</h2>
+<p>"状态的每个键"在底层其实是一个 <strong>channel（通道）</strong>。每个 channel 有<strong>值类型 + 更新函数（reducer）</strong>。
+LangGraph 内置了几种（来自 Pregel 文档）：</p>
+<table class="t">
+  <tr><th>Channel</th><th>行为</th><th>用途</th></tr>
+  <tr><td class="mono">LastValue</td><td><strong>默认</strong>：只存"最后写入的值"</td><td>键没标 reducer 时；在步与步之间传值</td></tr>
+  <tr><td class="mono">BinaryOperatorAggregate</td><td>用<strong>二元运算</strong>把每次写入累积进去（如 <span class="mono">operator.add</span>）</td><td>需要"累加/合并"的键（reducer 的真身）</td></tr>
+  <tr><td class="mono">Topic</td><td>可配置的 <strong>PubSub</strong>，能累积 / 去重</td><td>多个 actor 之间多值传递</td></tr>
+  <tr><td class="mono">EphemeralValue / Context</td><td>只活一步的临时值 / 暴露上下文管理器</td><td>临时数据 / 外部资源生命周期</td></tr>
+</table>
+
+<div class="card detail">
+  <div class="tag">🔬 reducer 的真身 = channel 的更新函数</div>
+  <p>第 13 课你见过 <span class="mono">messages: Annotated[list[AnyMessage], add_messages]</span>。现在能说清它的实现了：
+  <strong>编译时，这个标注让 "messages" 键变成一个『以 <span class="mono">add_messages</span> 为更新函数』的 channel</strong>。
+  节点写 <span class="mono">{"messages": [ai]}</span> 时，channel 用 <span class="mono">add_messages</span> 把新值<strong>归并</strong>进旧值——这就是"追加而非覆盖"。</p>
+  <ul>
+    <li><span class="mono">add_messages</span>（<span class="mono">graph/message.py</span>）默认<strong>"append-only"</strong>：按 <span class="mono">id</span> 合并（同 id 替换、不同 id 追加），还支持 <span class="mono">RemoveMessage</span> 删除。</li>
+    <li>你自定义的 reducer 也一样：标 <span class="mono">Annotated[T, 你的函数]</span>，编译时就接到对应 channel 上。</li>
+  </ul>
+</div>
+
+<h2>回到 Agent：model / tools 两节点怎么在超步里转</h2>
+<p>把上面这套套回第 13 课那张图，"Agent 循环"就清清楚楚是<strong>一串超步</strong>：</p>
+<div class="vflow">
+  <div class="step"><div class="num">1</div><div class="sc"><h4>超步 A</h4><p><span class="mono">model</span> 节点执行 → 往 <span class="mono">messages</span> channel 写一条 <span class="mono">AIMessage</span>。</p></div></div>
+  <div class="step"><div class="num">2</div><div class="sc"><h4>超步 B</h4><p><span class="mono">model</span> 的<strong>条件边</strong>据 <span class="mono">tool_calls</span> 选定下一站为 <span class="mono">tools</span> → 这一步执行 <span class="mono">tools</span> 节点 → 写回 <span class="mono">ToolMessage</span>。</p></div></div>
+  <div class="step"><div class="num">3</div><div class="sc"><h4>超步 C…</h4><p>又选中 <span class="mono">model</span>……如此往复，<strong>直到某次 AIMessage 没有 <span class="mono">tool_calls</span></strong> → 路由到 <span class="mono">END</span>，循环停。</p></div></div>
+</div>
+<div class="card detail">
+  <div class="tag">🔬 多个工具如何"同一超步并行"</div>
+  当一条 AIMessage 里有<strong>多个 <span class="mono">tool_calls</span></strong>，路由会用 <span class="mono">Send</span> 把它们<strong>同时</strong>扇给 <span class="mono">tools</span> 节点，
+  于是它们在<strong>同一个超步内并发执行</strong>、再一起结算。<span class="mono">Send</span> 的细节留到第 26 课。
 </div>
 
 <h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入两个常见实战问题。</p>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入超步引擎的三个细节。</p>
 
 <details class="accordion">
-  <summary><span class="badge-num">1</span> 一个 RAG 链如何用顺序 + 并行拼出来 <span class="hint">点击展开详解</span></summary>
+  <summary><span class="badge-num">1</span> Plan 阶段怎么"选中"要跑的节点 <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
     <div class="qa">
-      <div class="q">🧪 经典 RAG 形状</div>
-      <div class="a">
-<pre class="code"><span class="cm"># 并行：同时"检索上下文"和"透传原问题"</span>
-setup = RunnableParallel(
-    context=retriever,                  <span class="cm"># 检索分支</span>
-    question=RunnablePassthrough(),     <span class="cm"># 原样透传问题</span>
-)
-<span class="cm"># 顺序：把上一步的 dict 灌进 prompt → model → parser</span>
-rag_chain = setup | prompt | model | parser</pre>
-      </div>
+      <div class="q">🧪 订阅机制</div>
+      <div class="a">每个节点<strong>订阅</strong>若干 channel。一个超步结束后，引擎看<strong>哪些 channel 被更新了</strong>，
+        就在下一步<strong>触发订阅了它们的节点</strong>（源码里叫 <span class="mono">trigger_to_nodes</span>）。</div>
     </div>
     <div class="qa">
-      <div class="q">❓ 为什么要并行那一步</div>
-      <div class="a">prompt 需要<strong>两样东西</strong>：检索到的上下文 + 用户原问题。
-        用 <span class="mono">RunnableParallel</span> 同时备齐这两者并打包成 dict，正好喂给下一步的 prompt。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">整条 RAG 用几个基础 Runnable 声明式拼出，无需手写胶水；检索与透传<strong>并发</strong>执行，更快。</div>
+      <div class="q">❓ 套到 Agent</div>
+      <div class="a"><span class="mono">model</span> 节点写了 <span class="mono">messages</span>，其<strong>条件边</strong>据 <span class="mono">tool_calls</span> 选定下一站 → 下一超步执行 <span class="mono">tools</span>（或走 <span class="mono">END</span>）。没有任何节点被触发时，图自然停下。</div>
     </div>
   </div>
 </details>
 
 <details class="accordion">
-  <summary><span class="badge-num">2</span> RunnableLambda vs RunnablePassthrough，别搞混 <span class="hint">点击展开详解</span></summary>
+  <summary><span class="badge-num">2</span> 除了 LastValue / Aggregate 还有哪些 channel <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
     <div class="qa">
-      <div class="q">🧪 区别</div>
-      <div class="a">
-<pre class="code">RunnableLambda(f)            <span class="cm"># 把输入"变形"：output = f(input)</span>
-RunnablePassthrough()        <span class="cm"># 原样透传：output = input</span>
-RunnablePassthrough.assign(  <span class="cm"># 保留原 dict，再"旁加"一个新字段</span>
-    extra=some_runnable)</pre>
-      </div>
+      <div class="q">🧪 常见几种</div>
+      <div class="a"><span class="mono">Topic</span>（PubSub，可累积/去重，多节点多值传递）、<span class="mono">EphemeralValue</span>（只活一个超步的临时值）、
+        <span class="mono">Context</span>（暴露上下文管理器，管外部资源生命周期）等。</div>
     </div>
     <div class="qa">
-      <div class="q">❓ 各自解决什么</div>
-      <div class="a"><span class="mono">Lambda</span> 用于"我要对数据做个小处理再往下传"；
-        <span class="mono">Passthrough</span> 用于"这一步我啥也不改，只是占位/保留"；
-        <span class="mono">assign</span> 用于"保留已有字段的同时再算一个新字段"（RAG 里常见）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 记忆法</div>
-      <div class="a">Lambda=变；Passthrough=不变；assign=加。三个胶水覆盖了链里 90% 的"数据搬运"需求。</div>
+      <div class="q">✅ 实际上</div>
+      <div class="a">用 <span class="mono">StateGraph</span> 时你几乎只碰两种：<strong>不标 reducer 的键 = LastValue</strong>，<strong>标了 reducer 的键 = 聚合通道</strong>。其余是底层在用。</div>
     </div>
   </div>
 </details>
 
 <details class="accordion">
-  <summary><span class="badge-num">3</span> RunnableBranch：链里的 if / else 条件路由 <span class="hint">点击展开详解</span></summary>
+  <summary><span class="badge-num">3</span> 超步与流式：stream_mode 看到的是什么 <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
     <div class="qa">
-      <div class="q">🧪 按条件走不同分支</div>
-      <div class="a">前面的组合都是"固定流程"。要根据输入<strong>动态选路</strong>，用 <span class="mono">RunnableBranch</span>：
-<pre class="code"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnableBranch
-
-chain = RunnableBranch(
-    (<span class="kw">lambda</span> x: <span class="st">"代码"</span> <span class="kw">in</span> x[<span class="st">"q"</span>], code_chain),    <span class="cm"># 条件 → 分支</span>
-    (<span class="kw">lambda</span> x: <span class="st">"翻译"</span> <span class="kw">in</span> x[<span class="st">"q"</span>], translate_chain),
-    default_chain,                                  <span class="cm"># 都不满足 → 兜底</span>
-)</pre>
-      </div>
+      <div class="q">🧪 对应关系</div>
+      <div class="a"><span class="mono">stream_mode="updates"</span>：每个超步吐出<strong>被更新节点的输出</strong>；
+        <span class="mono">"values"</span>：每步吐出<strong>整份状态</strong>；<span class="mono">"messages"</span>：逐 token。呼应第 14、19 课。</div>
     </div>
     <div class="qa">
-      <div class="q">❓ 它解决什么</div>
-      <div class="a">同一个入口，按内容<strong>分流到不同子链</strong>（如"问代码走代码链、问翻译走翻译链"）。
-        每个 <span class="mono">(条件, 分支)</span> 依次判断，命中即走该分支；都不中走 <span class="mono">default</span>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">RunnableBranch</span> 在 <span class="mono">core/runnables/branch.py:42</span>，本身也是 Runnable——
-        所以条件路由也能无缝拼进更大的链。</div>
+      <div class="q">❓ 为什么能逐步流</div>
+      <div class="a">正因为执行被切成<strong>一个个离散超步</strong>，引擎才能在<strong>每步边界</strong>把进展推给你——这是"边想边显示 Agent 过程"的基础。</div>
     </div>
   </div>
 </details>
 
 <div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li>再复杂的链都只是几种基础 Runnable 的<strong>套娃</strong>：顺序里套并行、并行里套顺序、再加条件路由。</li>
-    <li>因为产物仍是 Runnable，<strong>组合没有尽头</strong>，invoke/stream/batch 永远可用。</li>
-  </ul>
+  <div class="tag">💡 设计亮点：借一套 20 年的成熟模型来跑 Agent</div>
+  LangGraph 没有自己发明轮子，而是把 Google <strong>Pregel（大规模图计算）</strong>的 <strong>BSP 超步模型</strong>搬过来——
+  "actors 读写 channels、逐超步推进、写入延迟到下一步可见"。这套范式天生<strong>确定、可并行、可在任意一步存档</strong>，
+  正好满足 Agent 对"可控 + 可持久化"的需求。
 </div>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li><span class="mono">a | b | c</span> 的产物是 <span class="mono">RunnableSequence</span>，invoke = 依次调用、首尾相接。</li>
-    <li>字典形式得到 <span class="mono">RunnableParallel</span>：同输入并发多分支，输出合并为字典。</li>
-    <li><span class="mono">RunnableLambda</span>（包函数）和 <span class="mono">RunnablePassthrough</span>（透传/assign）是最常用胶水；<span class="mono">RunnableBranch</span> 做条件路由。</li>
-    <li>下一课：补上 LCEL 的第三块拼图——<strong>输出解析器</strong>，把模型输出变成程序能用的数据。</li>
+    <li>你 <span class="mono">compile()</span> 出的图<strong>就是一个 <span class="mono">Pregel</span></strong>（<span class="mono">CompiledStateGraph</span> 继承 Pregel）。</li>
+    <li>运行 = 一串<strong>超步</strong>，每步三阶段 <strong>Plan → Execution → Update</strong>；"<strong>本步写、下步见</strong>"保证确定性。</li>
+    <li>状态的每个键是一个 <strong>channel</strong>；<strong>reducer 就是 channel 的更新函数</strong>（<span class="mono">add_messages</span> = "messages" 通道的更新函数）。</li>
+    <li>Agent 循环 = model/tools 两节点在超步间往复，靠 <span class="mono">tool_calls</span> 决定继续还是 <span class="mono">END</span>。</li>
+    <li>下一课：每个超步存档之后，<strong>持久化、时间旅行、人审、跳转</strong>如何水到渠成。</li>
   </ul>
 </div>
 
-  <div class="footnav"><a class="prev" href="08-runnable.html"><div class="dir">← 上一课</div><div class="ttl">Runnable 万物之基</div></a><a class="next" href="10-output-parsers.html"><div class="dir">下一课 →</div><div class="ttl">输出解析器 Output Parsers</div></a></div>
+  <div class="footnav"><a class="prev" href="24-langgraph-mental-model.html"><div class="dir">← 上一课</div><div class="ttl">深入 LangGraph：图 / 状态 / 节点 / 边</div></a><a class="next" href="26-langgraph-persistence-control.html"><div class="dir">下一课 →</div><div class="ttl">持久化 · 中断 · 控制流</div></a></div>
 </div>
 
 </body></html>

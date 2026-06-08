@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>09 · Runnable 如何组合 — LangChain 图解教程</title>
-<meta name="description" content="第三部分 · 内部源码｜Runnable 如何组合：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>26 · 持久化 · 中断 · 控制流 — LangChain 图解教程</title>
+<meta name="description" content="第七部分 · 深入 LangGraph｜持久化 · 中断 · 控制流：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="09 · Runnable 如何组合 — LangChain 图解教程">
-<meta property="og:description" content="第三部分 · 内部源码｜Runnable 如何组合：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="26 · 持久化 · 中断 · 控制流 — LangChain 图解教程">
+<meta property="og:description" content="第七部分 · 深入 LangGraph｜持久化 · 中断 · 控制流：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="09 · Runnable 如何组合 — LangChain 图解教程">
-<meta name="twitter:description" content="第三部分 · 内部源码｜Runnable 如何组合：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="26 · 持久化 · 中断 · 控制流 — LangChain 图解教程">
+<meta name="twitter:description" content="第七部分 · 深入 LangGraph｜持久化 · 中断 · 控制流：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -230,215 +230,177 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第三部分 · 内部源码</span>
-    <span class="pill">09 / 26</span>
+    <span class="pill">第七部分 · 深入 LangGraph</span>
+    <span class="pill">26 / 26</span>
   </div>
-  <div class="progress"><span style="width:34%"></span></div>
+  <div class="progress"><span style="width:100%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第三部分 · 内部源码</div>
-    <h1>Runnable 如何组合</h1>
+    <div class="part">第七部分 · 深入 LangGraph</div>
+    <h1>持久化 · 中断 · 控制流</h1>
   </div>
   
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-上一课我们用 <span class="inline">a | b | c</span> 拼了链。那么——<strong>拼出来的到底是什么？</strong>
-答案是一个 <span class="inline">RunnableSequence</span> 对象。这一课拆解"顺序"与"并行"两种核心组合，
-以及几个最常用的"胶水" Runnable。
+有了"超步"引擎，LangGraph 最强的能力就<strong>水到渠成</strong>了：把<strong>每个超步存档</strong>（持久化 / 时间旅行 / 人审），
+以及用<strong>原语控制图的走向</strong>（并行 / 跳转 / 多 Agent 交接）。这一课把它们的实现一次讲透。
 </p>
 
 <div class="card analogy">
-  <div class="tag">🏭 生活类比</div>
-  <strong>顺序组合</strong>像<strong>流水线</strong>：上一站的产出是下一站的原料，一站接一站。
-  <strong>并行组合</strong>像<strong>多个窗口同时办理</strong>：同一份输入分发给几条线<strong>同时</strong>处理，最后把各自结果汇总成一张表。
+  <div class="tag">💾 一句话类比：游戏存档</div>
+  因为引擎<strong>每个超步都自动存了一个档（checkpoint）</strong>，你才能：<strong>关机改天接着玩</strong>（续跑）、
+  <strong>读任意旧档重来</strong>（时间旅行）、<strong>在剧情关键点暂停等你决定</strong>（人审）。
 </div>
 
-<h2>顺序组合：RunnableSequence</h2>
-<p>当你写 <span class="inline">a | b | c</span>，<span class="inline">__or__</span> 会把它们打包成一个
-<span class="inline">RunnableSequence</span>。它的 <span class="inline">invoke</span> 做的事极其朴素——<strong>依次调用、首尾相接</strong>：</p>
-
+<h2>持久化：每个超步存一个 checkpoint</h2>
+<p>挂上一个 <strong>checkpointer</strong> 后，引擎会在<strong>每个超步后</strong>把状态存成一个 <span class="mono">Checkpoint</span>。</p>
+<div class="card detail">
+  <div class="tag">🔬 存的是什么（checkpoint/base.py）</div>
+  <ul>
+    <li><span class="mono">Checkpoint</span> 里有 <span class="mono">channel_values</span>（<strong>所有 channel 的当前值＝状态快照</strong>）、<span class="mono">channel_versions</span>、<span class="mono">versions_seen</span>。</li>
+    <li><span class="mono">BaseCheckpointSaver</span> 是<strong>存储接口</strong>：开发用 <span class="mono">InMemorySaver</span>，生产换 <span class="mono">Postgres</span> / <span class="mono">SQLite</span> 版，<strong>代码不变</strong>。</li>
+    <li>对外读状态是 <span class="mono">StateSnapshot</span>（<span class="mono">types.py</span>）：<span class="mono">values</span>（当前状态）、<span class="mono">next</span>（下一步要执行的节点）、<span class="mono">config</span>、<span class="mono">tasks</span>、<span class="mono">interrupts</span> 等——<span class="mono">graph.get_state(config)</span> 返回它。</li>
+  </ul>
+</div>
 <div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/runnables/base.py</span><span class="ln">class RunnableSequence</span></div>
-<pre><span class="kw">class</span> <span class="fn">RunnableSequence</span>(RunnableSerializable):
-    <span class="kw">def</span> <span class="fn">invoke</span>(self, input, config=None):
-        <span class="kw">for</span> step <span class="kw">in</span> self.steps:        <span class="cm"># 依次跑每一步</span>
-            input = step.invoke(input)   <span class="cm"># 上一步输出 = 下一步输入</span>
-        <span class="kw">return</span> input
+  <div class="cf-head"><span class="dot"></span><span class="path">你的代码</span><span class="ln">checkpointer + thread_id（承接第 13 课，这里看实现）</span></div>
+<pre><span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> InMemorySaver
+
+app = g.compile(checkpointer=InMemorySaver())
+cfg = {<span class="st">"configurable"</span>: {<span class="st">"thread_id"</span>: <span class="st">"user-1"</span>}}
+
+app.invoke({<span class="st">"messages"</span>: [...]}, cfg)   <span class="cm"># 每个超步后存一个 checkpoint（绑 thread_id）</span>
+app.invoke({<span class="st">"messages"</span>: [...]}, cfg)   <span class="cm"># 同 thread：从最后的 checkpoint 恢复状态继续</span>
+
+snap = app.get_state(cfg)              <span class="cm"># StateSnapshot：看当前状态 / 下一步</span>
 </pre>
 </div>
 
-<div class="flow">
-  <div class="node">input</div><div class="arrow">→</div>
-  <div class="node hl">step1</div><div class="arrow">→</div>
-  <div class="node hl">step2</div><div class="arrow">→</div>
-  <div class="node hl">step3</div><div class="arrow">→</div>
-  <div class="node">output</div>
+<h2>时间旅行（time-travel）</h2>
+<p>因为<strong>每一步的状态都存了</strong>，"回到第 N 步、换个选择重来"就成了可能——这是调试 Agent 的利器。</p>
+<div class="card detail">
+  <div class="tag">🔬 怎么做</div>
+  <span class="mono">graph.get_state_history(cfg)</span> 返回一串历史 <span class="mono">StateSnapshot</span>（每个超步一个）。
+  挑中某个旧 snapshot，把它的 <span class="mono">config</span>（含该 checkpoint 的 id）传回 <span class="mono">invoke</span>，图就会<strong>从那个点 fork 出去重跑</strong>，
+  让你"在岔路口换条路走"。
 </div>
 
-<h2>并行组合：RunnableParallel</h2>
-<p>当你把<strong>一个字典</strong>放进链里（值都是 Runnable），就得到 <span class="inline">RunnableParallel</span>：
-同一份输入<strong>同时</strong>喂给每个分支，结果合并成一个字典。</p>
-
-<pre class="code"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnableParallel
-
-parallel = RunnableParallel(
-    weather=get_weather_chain,   <span class="cm"># 分支 1</span>
-    news=get_news_chain,         <span class="cm"># 分支 2</span>
-)
-parallel.invoke(<span class="st">"北京"</span>)
-<span class="cm"># → {"weather": ..., "news": ...}  两条分支并发执行</span>
-</pre>
-
-<div class="flow" style="flex-direction:column;gap:.6rem;align-items:center">
-  <div class="node hl" style="flex:0 0 auto">同一份 input</div>
-  <div class="arrow" style="transform:rotate(90deg)">→</div>
-  <div style="display:flex;gap:1rem">
-    <div class="node">分支 weather</div>
-    <div class="node">分支 news</div>
-  </div>
-  <div class="arrow" style="transform:rotate(90deg)">→</div>
-  <div class="node hl" style="flex:0 0 auto">合并成 {weather, news}</div>
+<h2>中断与恢复：interrupt 的真实机制</h2>
+<p>人在回路（HITL）不是什么黑魔法，就是<strong>"存档 + 重放"</strong>的直接产物。官方 <span class="mono">interrupt()</span> 文档说得很清楚：</p>
+<div class="vflow">
+  <div class="step"><div class="num">1</div><div class="sc"><h4>暂停</h4><p>在节点里调 <span class="mono">interrupt(value)</span> → <strong>第一次会抛出 <span class="mono">GraphInterrupt</span></strong>，执行停住，<span class="mono">value</span> 被交给客户端（如"请审批这笔转账"）。</p></div></div>
+  <div class="step"><div class="num">2</div><div class="sc"><h4>等待</h4><p>状态已存档，<strong>不占用任何运行资源</strong>；可以等几秒，也可以等几天。</p></div></div>
+  <div class="step"><div class="num">3</div><div class="sc"><h4>恢复</h4><p>客户端用 <span class="mono">Command(resume=值)</span> 继续；<strong>图会从该节点的开头<u>重新执行</u></strong>，这次 <span class="mono">interrupt()</span> 直接返回你给的值。需要 <strong>checkpointer</strong>。</p></div></div>
+</div>
+<div class="card warn">
+  <div class="tag">⚠️ 真实的坑：恢复是"从节点头重跑"</div>
+  因为恢复会<strong>重新执行整个节点</strong>，所以 <span class="mono">interrupt()</span> <strong>之前</strong>的副作用（比如"已经发了邮件""已经扣了款"）会<strong>再执行一遍</strong>。
+  原则：<strong>把副作用放在 <span class="mono">interrupt()</span> 之后</strong>，或做幂等。第 7 课的 <span class="mono">HumanInTheLoopMiddleware</span> 正是基于这套机制。
 </div>
 
-<h2>两个最常用的"胶水"</h2>
+<h2>控制流原语：Send 与 Command（实现细节）</h2>
+<p>第 13 课点过名，这里看它们在 <span class="mono">types.py</span> 里到底是什么、能干什么。</p>
 <div class="cols">
   <div class="col">
-    <h4>RunnableLambda</h4>
-    <p>把<strong>任意普通函数</strong>变成 Runnable，好塞进链里。</p>
-    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnableLambda
-upper = RunnableLambda(<span class="kw">lambda</span> x: x.upper())
-chain = upper | model</pre>
+    <h4><span class="mono">Send</span>：动态扇出（map-reduce）</h4>
+    <p>文档原话：<strong>"在条件边里用来动态调用一个节点，并可携带与主 state 不同的自定义 state"</strong>。
+    典型就是 map-reduce / 并行：</p>
+<pre class="code"><span class="cm"># 给每个 subject 派发一个并行任务</span>
+<span class="kw">return</span> [Send(<span class="st">"gen_joke"</span>, {<span class="st">"subject"</span>: s})
+        <span class="kw">for</span> s <span class="kw">in</span> state[<span class="st">"subjects"</span>]]</pre>
+    <p>Agent 的<strong>并行工具调用</strong>就是用它把多个 <span class="mono">tool_call</span> 扇给 <span class="mono">tools</span> 节点。</p>
   </div>
   <div class="col">
-    <h4>RunnablePassthrough</h4>
-    <p>原样透传输入，常用于"<strong>保留原值 + 旁加一个新字段</strong>"。</p>
-    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnablePassthrough
-RunnablePassthrough.assign(
-  weather=get_weather_chain)</pre>
+    <h4><span class="mono">Command</span>：改状态 + 改去向</h4>
+    <p>一个节点返回普通 <span class="mono">dict</span> 只能<strong>改状态</strong>；返回 <span class="mono">Command</span> 能<strong>同时</strong>改状态<strong>并指定下一步</strong>：</p>
+<pre class="code"><span class="kw">from</span> langgraph.types <span class="kw">import</span> Command
+
+<span class="kw">return</span> Command(
+    update={<span class="st">"messages"</span>: [...]},   <span class="cm"># 改状态</span>
+    goto=<span class="st">"researcher"</span>,            <span class="cm"># 跳到另一个 agent</span>
+)</pre>
+    <p>字段：<span class="mono">update</span> / <span class="mono">goto</span>（节点名 / <span class="mono">Send</span> / 序列）/ <span class="mono">resume</span>（配合 interrupt）/ <span class="mono">graph</span>（当前或 <span class="mono">PARENT</span>）。</p>
   </div>
 </div>
-
 <div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应</div>
-  全部在 <span class="mono">core/langchain_core/runnables/</span> 下：
+  <div class="tag">🔬 这就是"多 Agent handoff"</div>
+  第 21 课对照 AutoGen 时提到的"<strong>交接（handoff）</strong>"，落到 LangGraph 就是 <span class="mono">Command(goto="另一个 agent", update=...)</span>：
+  一个 Agent <strong>改完共享状态、把控制权交棒</strong>给另一个。<span class="mono">Command</span> 还实现了 <span class="mono">ToolOutputMixin</span>——意味着<strong>工具直接返回 Command</strong> 也能驱动跳转。
   <table class="t" style="margin-top:.6rem">
-    <tr><th>类</th><th>文件</th><th>作用</th></tr>
-    <tr><td class="mono">RunnableSequence</td><td class="mono">base.py</td><td>顺序（<span class="mono">|</span> 的产物）</td></tr>
-    <tr><td class="mono">RunnableParallel</td><td class="mono">base.py</td><td>并行（别名 <span class="mono">RunnableMap</span>）</td></tr>
-    <tr><td class="mono">RunnableLambda</td><td class="mono">base.py</td><td>包装函数</td></tr>
-    <tr><td class="mono">RunnablePassthrough</td><td class="mono">passthrough.py</td><td>透传 / assign</td></tr>
+    <tr><th>原语</th><th>位置</th></tr>
+    <tr><td class="mono">Send / Command / interrupt() / Interrupt / StateSnapshot</td><td class="mono">types.py</td></tr>
+    <tr><td class="mono">Checkpoint / BaseCheckpointSaver</td><td class="mono">checkpoint/base.py</td></tr>
   </table>
 </div>
 
-<div class="card macro">
-  <div class="tag">🌍 宏观理解</div>
-  所有复杂的"链"，本质都是这几种基础 Runnable 的<strong>嵌套套娃</strong>：
-  顺序里套并行、并行的分支里又是顺序……因为<strong>组合的产物还是 Runnable</strong>，
-  所以可以无限拼下去，且整体永远支持 invoke/stream/batch。
-</div>
-
 <h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入两个常见实战问题。</p>
+<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，抠持久化与中断的三个细节。</p>
 
 <details class="accordion">
-  <summary><span class="badge-num">1</span> 一个 RAG 链如何用顺序 + 并行拼出来 <span class="hint">点击展开详解</span></summary>
+  <summary><span class="badge-num">1</span> checkpoint 里的 versions_seen 是干嘛的 <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
     <div class="qa">
-      <div class="q">🧪 经典 RAG 形状</div>
-      <div class="a">
-<pre class="code"><span class="cm"># 并行：同时"检索上下文"和"透传原问题"</span>
-setup = RunnableParallel(
-    context=retriever,                  <span class="cm"># 检索分支</span>
-    question=RunnablePassthrough(),     <span class="cm"># 原样透传问题</span>
-)
-<span class="cm"># 顺序：把上一步的 dict 灌进 prompt → model → parser</span>
-rag_chain = setup | prompt | model | parser</pre>
-      </div>
+      <div class="q">🧪 三个字段的分工</div>
+      <div class="a"><span class="mono">channel_values</span> = 状态快照；<span class="mono">channel_versions</span> = 每个 channel 的<strong>当前版本号</strong>；
+        <span class="mono">versions_seen</span> = "<strong>每个节点看过哪个版本</strong>"。</div>
     </div>
     <div class="qa">
-      <div class="q">❓ 为什么要并行那一步</div>
-      <div class="a">prompt 需要<strong>两样东西</strong>：检索到的上下文 + 用户原问题。
-        用 <span class="mono">RunnableParallel</span> 同时备齐这两者并打包成 dict，正好喂给下一步的 prompt。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">整条 RAG 用几个基础 Runnable 声明式拼出，无需手写胶水；检索与透传<strong>并发</strong>执行，更快。</div>
+      <div class="q">❓ 有什么用</div>
+      <div class="a">引擎对比"channel 现在的版本"和"某节点已看过的版本"，决定这个节点<strong>要不要（再）跑</strong>——
+        避免对<strong>同一次更新</strong>重复处理，也让断点续跑能精确知道"还差哪些没做"。</div>
     </div>
   </div>
 </details>
 
 <details class="accordion">
-  <summary><span class="badge-num">2</span> RunnableLambda vs RunnablePassthrough，别搞混 <span class="hint">点击展开详解</span></summary>
+  <summary><span class="badge-num">2</span> InMemorySaver 和生产用的 saver <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
     <div class="qa">
-      <div class="q">🧪 区别</div>
-      <div class="a">
-<pre class="code">RunnableLambda(f)            <span class="cm"># 把输入"变形"：output = f(input)</span>
-RunnablePassthrough()        <span class="cm"># 原样透传：output = input</span>
-RunnablePassthrough.assign(  <span class="cm"># 保留原 dict，再"旁加"一个新字段</span>
-    extra=some_runnable)</pre>
-      </div>
+      <div class="q">🧪 同一个接口</div>
+      <div class="a">都实现 <span class="mono">BaseCheckpointSaver</span>。开发/测试用 <span class="mono">InMemorySaver</span>（进程内）；
+        生产换 <span class="mono">langgraph-checkpoint-postgres</span> / <span class="mono">-sqlite</span>，<strong>业务代码不用改</strong>。</div>
     </div>
     <div class="qa">
-      <div class="q">❓ 各自解决什么</div>
-      <div class="a"><span class="mono">Lambda</span> 用于"我要对数据做个小处理再往下传"；
-        <span class="mono">Passthrough</span> 用于"这一步我啥也不改，只是占位/保留"；
-        <span class="mono">assign</span> 用于"保留已有字段的同时再算一个新字段"（RAG 里常见）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 记忆法</div>
-      <div class="a">Lambda=变；Passthrough=不变；assign=加。三个胶水覆盖了链里 90% 的"数据搬运"需求。</div>
+      <div class="q">❓ 怎么选</div>
+      <div class="a">要<strong>跨进程 / 重启后仍能续跑</strong>（真实用户会话、长任务）就用数据库版；只是本地跑通用内存版即可。</div>
     </div>
   </div>
 </details>
 
 <details class="accordion">
-  <summary><span class="badge-num">3</span> RunnableBranch：链里的 if / else 条件路由 <span class="hint">点击展开详解</span></summary>
+  <summary><span class="badge-num">3</span> 一个节点里有多个 interrupt 怎么办 <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
     <div class="qa">
-      <div class="q">🧪 按条件走不同分支</div>
-      <div class="a">前面的组合都是"固定流程"。要根据输入<strong>动态选路</strong>，用 <span class="mono">RunnableBranch</span>：
-<pre class="code"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnableBranch
-
-chain = RunnableBranch(
-    (<span class="kw">lambda</span> x: <span class="st">"代码"</span> <span class="kw">in</span> x[<span class="st">"q"</span>], code_chain),    <span class="cm"># 条件 → 分支</span>
-    (<span class="kw">lambda</span> x: <span class="st">"翻译"</span> <span class="kw">in</span> x[<span class="st">"q"</span>], translate_chain),
-    default_chain,                                  <span class="cm"># 都不满足 → 兜底</span>
-)</pre>
-      </div>
+      <div class="q">🧪 按顺序匹配</div>
+      <div class="a">LangGraph 按 <span class="mono">interrupt()</span> 在节点里<strong>出现的顺序</strong>，把你给的 resume 值依次对上；
+        这份 resume 值列表<strong>只属于当前这个 task</strong>，不跨任务共享。</div>
     </div>
     <div class="qa">
-      <div class="q">❓ 它解决什么</div>
-      <div class="a">同一个入口，按内容<strong>分流到不同子链</strong>（如"问代码走代码链、问翻译走翻译链"）。
-        每个 <span class="mono">(条件, 分支)</span> 依次判断，命中即走该分支；都不中走 <span class="mono">default</span>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">RunnableBranch</span> 在 <span class="mono">core/runnables/branch.py:42</span>，本身也是 Runnable——
-        所以条件路由也能无缝拼进更大的链。</div>
+      <div class="q">❓ 回顾那个坑</div>
+      <div class="a">别忘了恢复是"<strong>从节点头重跑</strong>"：已经返回过值的 interrupt 会直接返回上次的 resume 值，但<strong>它们之间的普通代码会重新执行一遍</strong>。</div>
     </div>
   </div>
 </details>
 
 <div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li>再复杂的链都只是几种基础 Runnable 的<strong>套娃</strong>：顺序里套并行、并行里套顺序、再加条件路由。</li>
-    <li>因为产物仍是 Runnable，<strong>组合没有尽头</strong>，invoke/stream/batch 永远可用。</li>
-  </ul>
+  <div class="tag">💡 设计亮点：一个设计的三个面</div>
+  持久化、时间旅行、人审、可靠跳转——看似四件事，其实是<strong>同一个设计</strong>的不同侧面：
+  <strong>因为状态被逐超步持久化</strong>，"续跑 / 回到过去 / 暂停等人 / 跨节点跳转"才统统成立。
+  这就是"用图 + checkpoint 运行"相比"裸 while 循环"<strong>质的差距</strong>。
 </div>
 
 <div class="card key">
-  <div class="tag">✅ 本课要点</div>
+  <div class="tag">✅ 本课要点 & 第七部分收尾</div>
   <ul>
-    <li><span class="mono">a | b | c</span> 的产物是 <span class="mono">RunnableSequence</span>，invoke = 依次调用、首尾相接。</li>
-    <li>字典形式得到 <span class="mono">RunnableParallel</span>：同输入并发多分支，输出合并为字典。</li>
-    <li><span class="mono">RunnableLambda</span>（包函数）和 <span class="mono">RunnablePassthrough</span>（透传/assign）是最常用胶水；<span class="mono">RunnableBranch</span> 做条件路由。</li>
-    <li>下一课：补上 LCEL 的第三块拼图——<strong>输出解析器</strong>，把模型输出变成程序能用的数据。</li>
+    <li><strong>持久化</strong>：每个超步存一个 <span class="mono">Checkpoint</span>（<span class="mono">channel_values</span> = 状态快照）；<span class="mono">thread_id</span> 区分会话；<span class="mono">get_state</span> 返回 <span class="mono">StateSnapshot</span>。</li>
+    <li><strong>时间旅行</strong>：<span class="mono">get_state_history</span> + 旧 checkpoint 的 config → 从任意一步 fork 重跑。</li>
+    <li><strong>interrupt</strong>：抛 <span class="mono">GraphInterrupt</span> 暂停、<span class="mono">Command(resume=...)</span> 恢复，且<strong>从节点头重放</strong>（副作用要放在 interrupt 之后）。</li>
+    <li><strong>控制流</strong>：<span class="mono">Send</span> = 动态扇出/并行；<span class="mono">Command</span> = 改状态 + 跳转（多 Agent handoff 的底座）。</li>
+    <li>🎉 至此，<span class="mono">create_agent</span> 从"魔法"被彻底拆到了引擎层：<strong>一张状态图，跑在 Pregel 超步引擎上，靠 channel 合并状态、靠 checkpoint 持久化、靠 Send/Command 控制走向。</strong></li>
   </ul>
 </div>
 
-  <div class="footnav"><a class="prev" href="08-runnable.html"><div class="dir">← 上一课</div><div class="ttl">Runnable 万物之基</div></a><a class="next" href="10-output-parsers.html"><div class="dir">下一课 →</div><div class="ttl">输出解析器 Output Parsers</div></a></div>
+  <div class="footnav"><a class="prev" href="25-langgraph-pregel-engine.html"><div class="dir">← 上一课</div><div class="ttl">执行引擎：Pregel 与超步</div></a><a class="next" href="../index.html"><div class="dir">完成 →</div><div class="ttl">返回目录</div></a></div>
 </div>
 
 </body></html>
