@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>16 · 提示词 Prompts — LangChain 图解教程</title>
-<meta name="description" content="第五部分 · 自己动手做 Agent｜提示词 Prompts：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>23 · 隔壁层学习地图：L5 推理 · L6 向量检索 — LangChain 图解教程</title>
+<meta name="description" content="第六部分 · 番外篇｜隔壁层学习地图：L5 推理 · L6 向量检索：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="16 · 提示词 Prompts — LangChain 图解教程">
-<meta property="og:description" content="第五部分 · 自己动手做 Agent｜提示词 Prompts：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="23 · 隔壁层学习地图：L5 推理 · L6 向量检索 — LangChain 图解教程">
+<meta property="og:description" content="第六部分 · 番外篇｜隔壁层学习地图：L5 推理 · L6 向量检索：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="16 · 提示词 Prompts — LangChain 图解教程">
-<meta name="twitter:description" content="第五部分 · 自己动手做 Agent｜提示词 Prompts：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="23 · 隔壁层学习地图：L5 推理 · L6 向量检索 — LangChain 图解教程">
+<meta name="twitter:description" content="第六部分 · 番外篇｜隔壁层学习地图：L5 推理 · L6 向量检索：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -230,201 +230,119 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第五部分 · 自己动手做 Agent</span>
-    <span class="pill">16 / 23</span>
+    <span class="pill">第六部分 · 番外篇</span>
+    <span class="pill">23 / 23</span>
   </div>
-  <div class="progress"><span style="width:69%"></span></div>
+  <div class="progress"><span style="width:100%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第五部分 · 自己动手做 Agent</div>
-    <h1>提示词 Prompts</h1>
+    <div class="part">第六部分 · 番外篇</div>
+    <h1>隔壁层学习地图：L5 推理 · L6 向量检索</h1>
   </div>
   
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-前面我们用一个 <span class="inline">system_prompt</span> 字符串就把 Agent 的"人设"定了。
-但真实应用里，提示词往往需要<strong>带变量、插入对话历史、给模型示范</strong>——这就要用到
-LangChain 的<strong>提示词模板（Prompt Template）</strong>系统。
+学完编排层（L7），想往下探一层？最值得动手的是<strong>紧挨着你的两层</strong>：
+<strong>L5 推理服务</strong>（让模型高效跑起来）和 <strong>L6 向量检索</strong>（RAG 的底座）。
+这一课给你一张<strong>"该读哪些项目、按什么顺序"</strong>的实战地图。
 </p>
 
 <div class="card analogy">
-  <div class="tag">✉️ 生活类比</div>
-  提示词模板就像<strong>邮件模板 / 填空题</strong>：你预先写好骨架，留几个空
-  （<span class="mono">{name}</span>、<span class="mono">{question}</span>），用的时候把变量填进去，
-  就生成一封"具体的信"。它把"提示词的结构"和"每次的具体内容"分开了。
+  <div class="tag">🏭 一句话类比</div>
+  如果 <strong>L7（你已会）</strong>是"一个会用工具的工人"，那么
+  <strong>L5</strong> 是<strong>给工人配一台高效引擎</strong>（同样的活，更快更省）；
+  <strong>L6</strong> 是<strong>给工人一个随手可查的资料库</strong>（不靠死记，靠查）。
 </div>
 
-<h2>从字符串到模板</h2>
-<p>最常用的是 <span class="inline">ChatPromptTemplate</span>，它用一组"角色 + 模板字符串"构建一串消息：</p>
+<div class="card warn">
+  <div class="tag">⚠️ 这是"地图"，不是"作业"</div>
+  下面项目<strong>不用全学</strong>。每层我都标了一个 <strong>⭐ 主攻项目</strong>和一条<strong>推荐主线</strong>——
+  先跟主线走通一条，建立体感，再按兴趣横向铺开。<strong>能跑 → 读核心 → 工程深度</strong>，三步走。
+</div>
 
-<pre class="code"><span class="kw">from</span> langchain_core.prompts <span class="kw">import</span> ChatPromptTemplate, MessagesPlaceholder
+<h2>L5 · 推理 / 服务：让模型高效跑起来</h2>
+<p>这层解决一件事：<strong>同一个模型，怎么更快、更省、更高并发地对外提供</strong>。
+核心关键词：<span class="mono">KV-cache</span>、<span class="mono">PagedAttention</span>、
+<span class="mono">continuous batching</span>、<span class="mono">量化(quantization)</span>。</p>
 
-prompt = ChatPromptTemplate.from_messages([
-    (<span class="st">"system"</span>, <span class="st">"你是 {domain} 领域的助手，回答要简洁。"</span>),
-    MessagesPlaceholder(<span class="st">"history"</span>),     <span class="cm"># ← 这里会插入整段对话历史</span>
-    (<span class="st">"human"</span>, <span class="st">"{question}"</span>),
-])
-
-messages = prompt.invoke({
-    <span class="st">"domain"</span>: <span class="st">"天气"</span>,
-    <span class="st">"history"</span>: [],
-    <span class="st">"question"</span>: <span class="st">"北京今天热吗？"</span>,
-})
-<span class="cm"># 得到一串标准消息，可直接喂给模型</span>
-</pre>
+<table class="t">
+  <tr><th>项目</th><th>语言</th><th>难度</th><th>读它能学到</th></tr>
+  <tr><td class="mono">⭐ vLLM</td><td>Python/CUDA</td><td>中</td><td><strong>生产级推理引擎的范式</strong>：PagedAttention、continuous batching、OpenAI 兼容 server</td></tr>
+  <tr><td class="mono">SGLang</td><td>Python</td><td>中</td><td>vLLM 之外的前沿：<strong>RadixAttention</strong>、结构化输出、超高并发</td></tr>
+  <tr><td class="mono">llama.cpp</td><td>C/C++</td><td>中高</td><td>从底层吃透<strong>量化与推理</strong>：GGUF、纯 CPU 也能跑大模型</td></tr>
+  <tr><td class="mono">Ollama</td><td>Go</td><td>低</td><td>本地<strong>一键起模型</strong>（底层基于 llama.cpp / GGML）——最快练手</td></tr>
+  <tr><td class="mono">TensorRT-LLM · TGI</td><td>C++ · Rust</td><td>高</td><td>厂商级<strong>极致优化</strong>，进阶 / 特定硬件再看</td></tr>
+</table>
 
 <div class="card key">
-  <div class="tag">🔑 核心认知</div>
-  <strong>提示词模板本身也是 Runnable</strong>（第 8 课）。所以它能用 <span class="inline">|</span> 直接接到模型后面，
-  组成最经典的链：<span class="inline">prompt | model | parser</span>。
-</div>
-
-<div class="flow">
-  <div class="node">变量 dict</div><div class="arrow">→</div>
-  <div class="node hl">prompt<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">填空→消息</span></div><div class="arrow">→</div>
-  <div class="node hl">model</div><div class="arrow">→</div>
-  <div class="node">AIMessage</div>
+  <div class="tag">✅ L5 推荐主线</div>
+  <strong>① 用 Ollama 跑起来</strong>（10 分钟建立"模型在本地转"的直觉）→
+  <strong>② 主攻 vLLM</strong>（读懂生产级推理怎么做高吞吐，这是行业事实标准）→
+  <strong>③ 想深入底层再啃 llama.cpp</strong>（量化、算子）。
 </div>
 
 <div class="card detail">
-  <div class="tag">🔬 代码对应</div>
+  <div class="tag">🔬 vLLM 想先读哪几处</div>
   <ul>
-    <li><span class="mono">ChatPromptTemplate</span> / <span class="mono">MessagesPlaceholder</span> → <span class="mono">core/prompts/chat.py</span></li>
-    <li><span class="mono">PromptTemplate</span>（纯字符串提示，给非聊天模型用）→ <span class="mono">core/prompts/prompt.py</span></li>
+    <li><strong>PagedAttention / KV-cache 管理</strong>——它最核心的创新，把"显存碎片"问题用"分页"解决。</li>
+    <li><strong>Scheduler（continuous batching）</strong>——为什么它能把 GPU 利用率拉满。</li>
+    <li><strong>OpenAI 兼容 server 入口</strong>——看"一个请求进来后怎么被排队、批处理、流式返回"。</li>
   </ul>
 </div>
 
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，逐个吃透模板的三个能力。</p>
+<h2>L6 · 检索 / 记忆：RAG 的底座</h2>
+<p>你在<strong>第 17 课</strong>已经用过 <span class="mono">VectorStore / Retriever</span>——这层就是它们的<strong>"引擎室"</strong>。
+核心关键词：<span class="mono">向量(embedding)</span>、<span class="mono">相似度</span>、
+<span class="mono">ANN 近邻索引(HNSW / IVF)</span>。它分三小块：①向量索引/库　②嵌入模型　③长期记忆。</p>
 
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 变量填充：让提示词随输入变化 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">模板里 <span class="mono">{xxx}</span> 是占位符，<span class="mono">invoke</span> 时用 dict 填：
-<pre class="code">tpl = ChatPromptTemplate.from_messages([
-    (<span class="st">"system"</span>, <span class="st">"用 {style} 的风格回答"</span>),
-    (<span class="st">"human"</span>, <span class="st">"{q}"</span>),
-])
-tpl.invoke({<span class="st">"style"</span>: <span class="st">"幽默"</span>, <span class="st">"q"</span>: <span class="st">"什么是 LLM？"</span>})</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么不直接用 f-string 拼字符串</div>
-      <div class="a">模板能<strong>校验缺漏变量</strong>、支持<strong>部分填充</strong>、能和其它 Runnable 组合、还能被序列化/复用。
-        手写 f-string 在复杂场景（多角色、插历史、few-shot）会很快失控。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">提示词成为<strong>可复用、可测试、可组合</strong>的组件，而不是散落在代码里的字符串拼接。</div>
-    </div>
-  </div>
-</details>
+<h3>① 向量索引 / 数据库</h3>
+<table class="t">
+  <tr><th>项目</th><th>语言</th><th>难度</th><th>读它能学到</th></tr>
+  <tr><td class="mono">⭐ hnswlib</td><td>C++/Python</td><td>中</td><td><strong>HNSW 算法本身</strong>（ANN 检索的核心）。代码极小，最适合读懂"向量检索到底怎么算"</td></tr>
+  <tr><td class="mono">FAISS</td><td>C++/Python</td><td>中高</td><td>工业级<strong>索引大全</strong>（IVF / PQ / HNSW），Meta 出品</td></tr>
+  <tr><td class="mono">pgvector</td><td>C</td><td>中</td><td>在 <strong>Postgres 里做向量检索</strong>——最贴近真实业务落地</td></tr>
+  <tr><td class="mono">Qdrant</td><td>Rust</td><td>中</td><td>生产级向量数据库的<strong>完整工程</strong>（过滤 + payload + 分布式）</td></tr>
+  <tr><td class="mono">Chroma</td><td>Python</td><td>低</td><td>最易上手，<strong>本地 RAG 原型</strong>首选（第 17 课就是它这类）</td></tr>
+  <tr><td class="mono">Milvus · Weaviate</td><td>Go</td><td>高</td><td>大规模<strong>分布式</strong>向量库，海量数据再看</td></tr>
+</table>
 
-<details class="accordion">
-  <summary><span class="badge-num">2</span> MessagesPlaceholder：把对话历史插进模板 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 它占的是"一串消息"的位置</div>
-      <div class="a">普通 <span class="mono">{var}</span> 填的是一段文本；而 <span class="mono">MessagesPlaceholder("history")</span>
-        填的是<strong>一整串消息</strong>（之前的多轮对话）：
-<pre class="code">prompt.invoke({
-    <span class="st">"history"</span>: [HumanMessage(<span class="st">"上一轮问题"</span>), AIMessage(<span class="st">"上一轮回答"</span>)],
-    <span class="st">"question"</span>: <span class="st">"接着问"</span>,
-})</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">多轮对话要把"历史消息"原样塞进提示词的中间位置。占位符让你能<strong>动态注入任意长度的历史</strong>，
-        正好衔接第 4 课的"上下文管理"——你裁剪/摘要后的历史，就从这里放进去。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">把"系统设定 + 历史 + 当前问题"清晰分层，历史的拼装与裁剪逻辑和提示词结构解耦。</div>
-    </div>
-  </div>
-</details>
+<h3>② 嵌入模型　③ 长期记忆</h3>
+<table class="t">
+  <tr><th>项目</th><th>属于</th><th>读它能学到</th></tr>
+  <tr><td class="mono">BGE（bge-m3 等）</td><td>嵌入模型</td><td>把文本变向量，<strong>中文友好、开源</strong>，RAG 检索质量的关键一环</td></tr>
+  <tr><td class="mono">sentence-transformers</td><td>库</td><td>跑 / 微调嵌入模型的<strong>标准库</strong></td></tr>
+  <tr><td class="mono">Mem0 · Zep</td><td>记忆层</td><td>在向量库之上给 Agent 加<strong>"长期记忆"</strong>（跨会话记住用户）</td></tr>
+</table>
 
-<details class="accordion">
-  <summary><span class="badge-num">3</span> few-shot：用示范教模型怎么答 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 思路</div>
-      <div class="a">在提示词里塞几组"输入→理想输出"的<strong>范例</strong>，模型会照着学：
-<pre class="code">examples = [
-    (<span class="st">"human"</span>, <span class="st">"2+2"</span>), (<span class="st">"ai"</span>, <span class="st">"4"</span>),
-    (<span class="st">"human"</span>, <span class="st">"3+5"</span>), (<span class="st">"ai"</span>, <span class="st">"8"</span>),
-]
-prompt = ChatPromptTemplate.from_messages([
-    (<span class="st">"system"</span>, <span class="st">"只输出数字结果"</span>), *examples, (<span class="st">"human"</span>, <span class="st">"{q}"</span>),
-])</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么有效</div>
-      <div class="a">大模型擅长<strong>模仿示范</strong>。给几个例子（few-shot），常比写一大段规则更能稳定输出格式与风格——
-        这是"提示工程"里性价比最高的技巧之一。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 进阶</div>
-      <div class="a">LangChain 还有 <span class="mono">FewShotChatMessagePromptTemplate</span> 与"示例选择器"，能按当前问题<strong>动态挑最相关的范例</strong>。</div>
-    </div>
-  </div>
-</details>
-
-<h2>🔬 实现细节与亮点</h2>
-<p>看清提示词模板在源码里是怎么把"变量 + 模板"变成"一串消息"的，以及它聪明在哪。</p>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/prompts/chat.py</span><span class="ln">invoke → format_prompt → ChatPromptValue</span></div>
-<pre><span class="kw">class</span> <span class="fn">ChatPromptTemplate</span>(BaseChatPromptTemplate):   <span class="cm"># ← 它是 Runnable</span>
-    <span class="kw">def</span> <span class="fn">format_messages</span>(self, **kwargs) -> list[BaseMessage]:
-        result = []
-        <span class="kw">for</span> part <span class="kw">in</span> self.messages:        <span class="cm"># 逐个模板片段</span>
-            <span class="kw">if</span> isinstance(part, MessagesPlaceholder):
-                result.extend(kwargs[part.variable_name])  <span class="cm"># 展开成"一串消息"</span>
-            <span class="kw">else</span>:
-                result.append(part.format(**kwargs))        <span class="cm"># 填变量→一条消息</span>
-        <span class="kw">return</span> result
-    <span class="kw">def</span> <span class="fn">format_prompt</span>(self, **kwargs) -> ChatPromptValue:
-        <span class="kw">return</span> ChatPromptValue(messages=self.format_messages(**kwargs))
-</pre>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 实现流程</div>
-  <ol>
-    <li><span class="mono">invoke(vars)</span> → <span class="mono">format_prompt</span> → 返回一个 <strong>PromptValue</strong>（<span class="mono">ChatPromptValue</span>）。</li>
-    <li><span class="mono">format_messages</span> 遍历每个模板片段：普通片段<strong>填变量得一条消息</strong>，
-      <span class="mono">MessagesPlaceholder</span> 则把变量里的<strong>一串消息整段展开</strong>。</li>
-    <li><span class="mono">from_messages([(role, tmpl), ...])</span> 在构建时由 <span class="mono">_convert_to_message_template</span>
-      把 <span class="mono">("system","…")</span> 这类元组解析成对应的<strong>消息模板对象</strong>。</li>
-  </ol>
+<div class="card key">
+  <div class="tag">✅ L6 推荐主线</div>
+  <strong>① 读 hnswlib</strong>（2~3 个核心文件就能看懂 HNSW，从此"向量检索"不再是黑盒）→
+  <strong>② 用 pgvector 或 Chroma 落地一个 RAG</strong>（把第 17 课的玩具升级成能用的东西）→
+  <strong>③ 要工程深度再看 Qdrant / FAISS</strong>。嵌入选 <strong>BGE</strong>，要记忆看 <strong>Mem0 / Zep</strong>。
 </div>
 
 <div class="card spark">
-  <div class="tag">💡 设计亮点</div>
+  <div class="tag">💡 设计亮点：为什么偏偏是这两层</div>
   <ul>
-    <li><strong>提示词是 Runnable</strong>：所以能直接 <span class="mono">prompt | model</span> 拼链——又一次复用第 8 课的统一抽象，无需任何"胶水"。</li>
-    <li><strong>PromptValue 作中间层</strong>：同一份模板既能 <span class="mono">.to_messages()</span>（喂聊天模型）又能 <span class="mono">.to_string()</span>（喂纯文本 LLM），<strong>一套模板适配两类模型</strong>。</li>
-    <li><strong>占位符是一等公民</strong>：<span class="mono">MessagesPlaceholder</span> 让"插入任意长度历史"成为模板语法的一部分，把第 4 课的上下文管理与提示词结构干净地解耦。</li>
+    <li>L5 和 L6 是<strong>"应用开发者最该下探的两层"</strong>——它们紧挨着你已会的 L7，学了立刻能用。</li>
+    <li><strong>懂 L5</strong>：你能解释"为什么慢 / 为什么贵"，能判断<strong>本地 vs API</strong> 怎么选。</li>
+    <li><strong>懂 L6</strong>：你的 RAG 才能从<strong>"能跑"进化到"答得准"</strong>（选对索引、选对嵌入、调对 chunk）。</li>
+    <li>再往下（L3 训练 / L1 硬件）是<strong>另一条职业路线</strong>了——不是不好，而是投入产出比对应用开发者没这么高，按需再说。</li>
   </ul>
 </div>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li>提示词模板把"结构"与"具体内容"分离：<span class="mono">ChatPromptTemplate.from_messages([...])</span>。</li>
-    <li><span class="mono">{var}</span> 填文本，<span class="mono">MessagesPlaceholder</span> 填一整串历史消息。</li>
-    <li>模板是 <strong>Runnable</strong>，可直接 <span class="mono">prompt | model | parser</span>。</li>
-    <li>few-shot（给范例）是稳定输出格式的利器。</li>
-    <li>下一课：给 Agent 接一个它没学过的<strong>知识库</strong>——RAG。</li>
+    <li><strong>L5 主攻 vLLM</strong>（先 Ollama 起步，深入再读 llama.cpp）；关键词 <span class="mono">PagedAttention / continuous batching / 量化</span>。</li>
+    <li><strong>L6 主攻 hnswlib</strong>（懂算法）+ <strong>pgvector / Chroma</strong>（会落地）；关键词 <span class="mono">HNSW / ANN / 嵌入</span>。</li>
+    <li>嵌入选 <strong>BGE</strong>，长期记忆看 <strong>Mem0 / Zep</strong>。</li>
+    <li>统一学习节奏：<strong>能跑 → 读核心 → 工程深度</strong>，先走通一条主线再横向铺开。</li>
+    <li>🎉 番外到此为止——你已从"LangChain 一个点"，缩放到了"整个 AI 生态的坐标系"，并拿到了往下探的地图。祝你走得更远。</li>
   </ul>
 </div>
 
-  <div class="footnav"><a class="prev" href="15-contributing.html"><div class="dir">← 上一课</div><div class="ttl">读源码 / 调试 / 测试 / 贡献</div></a><a class="next" href="17-rag.html"><div class="dir">下一课 →</div><div class="ttl">RAG 检索增强</div></a></div>
+  <div class="footnav"><a class="prev" href="22-ai-stack.html"><div class="dir">← 上一课</div><div class="ttl">全栈坐标系：从 LangChain 缩放到整个生态</div></a><a class="next" href="../index.html"><div class="dir">完成 →</div><div class="ttl">返回目录</div></a></div>
 </div>
 
 </body></html>

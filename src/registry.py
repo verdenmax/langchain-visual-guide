@@ -33,4 +33,6 @@ CONTENT = {
     "19-runtime-context.html": part5.LESSON_18,
     "20-capstone.html": part5.LESSON_CAP,
     "21-langchain-vs-autogen.html": part6.LESSON_CMP,
+    "22-ai-stack.html": part6.LESSON_STACK,
+    "23-learning-map.html": part6.LESSON_LEARN,
 }

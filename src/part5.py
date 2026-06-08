@@ -974,7 +974,7 @@ test_agent = create_agent(model=GenericFakeChatModel(messages=iter([...])), tool
     <li>一个真实 Agent = <strong>把学过的零件插到 <span class="mono">create_agent</span> 的对应参数上</strong>：model / tools / system_prompt / middleware / context_schema / response_format。</li>
     <li>身份走 <strong>context</strong>、护栏走 <strong>middleware</strong>、知识走 <strong>RAG 工具</strong>、格式走 <strong>response_format</strong>——关注点干净分离。</li>
     <li>要长大很平滑：<span class="mono">checkpointer</span> 加记忆、<span class="mono">stream_mode</span> 加 UI、假模型做测试。</li>
-    <li>🎉 <strong>恭喜你走完 LangChain 主线！</strong>你已经把它从<strong>宏观结构</strong>、<strong>用户用法</strong>、<strong>内部源码</strong>到<strong>自己动手做 Agent</strong> 完整走了一遍。下一课是<strong>番外对比篇</strong>：把 LangChain 与微软 AutoGen 对照，帮你看清设计取舍。</li>
+    <li>🎉 <strong>恭喜你走完 LangChain 主线！</strong>你已经把它从<strong>宏观结构</strong>、<strong>用户用法</strong>、<strong>内部源码</strong>到<strong>自己动手做 Agent</strong> 完整走了一遍。接下来是<strong>番外篇（3 课）</strong>：先把 LangChain 与微软 AutoGen 对照，再<strong>缩放看整个 AI 全栈坐标系</strong>，最后给你<strong>隔壁层（推理/向量检索）的学习地图</strong>。</li>
   </ul>
 </div>
 """

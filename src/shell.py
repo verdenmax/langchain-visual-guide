@@ -52,7 +52,9 @@ PAGES = [
     ("18-custom-middleware.html", "写自己的中间件", "第五部分 · 自己动手做 Agent"),
     ("19-runtime-context.html", "运行时上下文与健壮性", "第五部分 · 自己动手做 Agent"),
     ("20-capstone.html", "端到端实战：拼一个客服 Agent", "第五部分 · 自己动手做 Agent"),
-    ("21-langchain-vs-autogen.html", "横向对比：LangChain vs AutoGen", "第六部分 · 横向对比（番外）"),
+    ("21-langchain-vs-autogen.html", "横向对比：LangChain vs AutoGen", "第六部分 · 番外篇"),
+    ("22-ai-stack.html", "全栈坐标系：从 LangChain 缩放到整个生态", "第六部分 · 番外篇"),
+    ("23-learning-map.html", "隔壁层学习地图：L5 推理 · L6 向量检索", "第六部分 · 番外篇"),
 ]
 
 INDEX_FILE = "index.html"
@@ -378,6 +380,8 @@ def index_page(standalone=False, lesson_prefix=""):
         "19-runtime-context.html": "context_schema · with_fallbacks · stream_mode",
         "20-capstone.html": "把所有零件拼成一个完整可跑的 Agent",
         "21-langchain-vs-autogen.html": "两种范式对照：图/管道 vs 多 Agent 对话",
+        "22-ai-stack.html": "Agent 编排 5 流派 · AI 全栈 7 层 · 你在哪",
+        "23-learning-map.html": "vLLM/llama.cpp/Ollama · hnswlib/pgvector/Qdrant",
     }
     for part in order:
         blocks.append(f'<div class="toc-part">{part}</div>')
@@ -402,7 +406,7 @@ def index_page(standalone=False, lesson_prefix=""):
 <div class="topbar">
   <div class="topbar-inner">
     <span class="home">📘 LangChain 图解教程</span>
-    <span class="pill">共 {len(PAGES)} 课 · 4 个部分</span>
+    <span class="pill">共 {len(PAGES)} 课 · {len(order)} 个部分</span>
   </div>
   <div class="progress"><span style="width:100%"></span></div>
 </div>
@@ -420,7 +424,7 @@ def index_page(standalone=False, lesson_prefix=""):
       <span><i style="background:var(--accent)"></i>关键要点</span>
     </div>
     <div style="margin-top:1.1rem">
-      <a href="langchain-visual-guide.pdf" class="pdf-btn">📄 下载完整 PDF（全 20 课）</a>
+      <a href="langchain-visual-guide.pdf" class="pdf-btn">📄 下载完整 PDF（全 {len(PAGES)} 课）</a>
     </div>
   </div>
   <div class="toc">{toc}</div>
