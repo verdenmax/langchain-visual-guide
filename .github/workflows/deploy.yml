@@ -63,14 +63,9 @@ jobs:
           path: langchain-visual-guide.pdf
           if-no-files-found: error
 
-      # Pages-specific steps. `enablement: true` auto-enables Pages (with the
-      # GitHub Actions build type) on first run for public repos — no manual
-      # Settings step needed. On private repos this requires a paid plan.
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
+      # Pages artifact (independent of Pages being enabled). Building this in
+      # the `build` job keeps it decoupled from Pages configuration, so a Pages
+      # problem can never fail the build or block the PDF Release.
       - name: Assemble _site
         run: |
           mkdir -p _site
@@ -91,6 +86,15 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
+      # `enablement: true` auto-enables Pages (with the GitHub Actions build
+      # type) on first run for public repos — no manual Settings step needed.
+      # Kept in the deploy job so a Pages failure only fails deploy, not build
+      # or release.
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
       - name: Deploy to GitHub Pages
         id: deploy
         uses: actions/deploy-pages@v4
