@@ -406,7 +406,7 @@ def index_page(standalone=False, lesson_prefix=""):
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LangChain 图解教程 · 从零理解整个项目</title>
-{head_meta("LangChain 图解教程 · 从零理解整个项目", "从零理解整个 LangChain 项目的图解教程：宏观结构、用户用法、内部源码、自己动手做 Agent。5 部分 20 课，每课配真实代码对应、折叠深挖与设计亮点。", og_type="website")}
+{head_meta("LangChain 图解教程 · 从零理解整个项目", f"从零理解整个 LangChain 项目的图解教程：宏观结构、用户用法、内部源码、自己动手做 Agent，外加横向对比 / AI 全栈坐标系 / LangGraph 引擎深入等番外。{len(order)} 部分 {len(PAGES)} 课，每课配真实代码对应、折叠深挖与设计亮点。", og_type="website")}
 <style>{CSS}</style>
 </head><body>
 <div class="topbar">
@@ -420,8 +420,8 @@ def index_page(standalone=False, lesson_prefix=""):
   <div class="hero index">
     <div class="part">从零开始 · 面向完全新手</div>
     <h1>用图解理解整个 LangChain 项目</h1>
-    <p class="lead">这套教程分四步带你走：先建立<strong>宏观全景</strong>，再从<strong>用户视角</strong>学会使用，
-    然后深入<strong>内部源码</strong>看它如何实现，最后教你<strong>读源码与贡献</strong>。
+    <p class="lead">这套教程带你<strong>层层深入</strong>：先建立<strong>宏观全景</strong>，再从<strong>用户视角</strong>学会使用，
+    然后深入<strong>内部源码</strong>，接着<strong>自己动手做 Agent</strong>，最后还有<strong>横向对比、AI 全栈坐标系、深入 LangGraph 引擎</strong>等番外。
     每一课都配有真实的代码文件对应，既有宏观理解，也有细节拆解。</p>
     <div class="legend">
       <span><i style="background:var(--blue)"></i>宏观理解</span>
