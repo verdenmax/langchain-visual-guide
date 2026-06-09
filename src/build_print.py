@@ -101,7 +101,7 @@ def build_print():
   <h1>LangChain 图解教程</h1>
   <div class="sub">从零理解整个项目 · 宏观 → 用法 → 源码 → 自己动手做 Agent</div>
   <div class="meta">共 {len(shell.PAGES)} 课 · {len({p[2] for p in shell.PAGES})} 个部分 · 每课配真实代码对应与设计亮点<br>
-    生成日期 {today} · 作者 kws · MIT License</div>
+    生成日期 {today} · MIT License</div>
 </section>
 <section class="print-toc"><div class="wrap">{_toc_html()}</div></section>
 {body}
