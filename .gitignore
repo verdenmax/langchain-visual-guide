@@ -17,3 +17,4 @@ print.html
 *.pdf
 _site/
 .superpowers/
+.worktrees/
