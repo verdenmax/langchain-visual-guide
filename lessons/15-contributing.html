@@ -251,6 +251,38 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
 </style>
 </head><body>
 <div class="topbar">
