@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>18 · 提示词 Prompts — LangChain 图解教程</title>
-<meta name="description" content="第五部分 · 自己动手做 Agent｜提示词 Prompts：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>09 · 提示词 Prompts — LangChain 图解教程</title>
+<meta name="description" content="第二部分 · 用户 API 基础｜提示词 Prompts：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="18 · 提示词 Prompts — LangChain 图解教程">
-<meta property="og:description" content="第五部分 · 自己动手做 Agent｜提示词 Prompts：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="09 · 提示词 Prompts — LangChain 图解教程">
+<meta property="og:description" content="第二部分 · 用户 API 基础｜提示词 Prompts：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="18 · 提示词 Prompts — LangChain 图解教程">
-<meta name="twitter:description" content="第五部分 · 自己动手做 Agent｜提示词 Prompts：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="09 · 提示词 Prompts — LangChain 图解教程">
+<meta name="twitter:description" content="第二部分 · 用户 API 基础｜提示词 Prompts：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -288,199 +288,18 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第五部分 · 自己动手做 Agent</span>
-    <span class="pill">18 / 29</span>
+    <span class="pill">第二部分 · 用户 API 基础</span>
+    <span class="pill">09 / 29</span>
   </div>
-  <div class="progress"><span style="width:62%"></span></div>
+  <div class="progress"><span style="width:31%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第五部分 · 自己动手做 Agent</div>
+    <div class="part">第二部分 · 用户 API 基础</div>
     <h1>提示词 Prompts</h1>
   </div>
   
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-前面我们用一个 <span class="inline">system_prompt</span> 字符串就把 Agent 的"人设"定了。
-但真实应用里，提示词往往需要<strong>带变量、插入对话历史、给模型示范</strong>——这就要用到
-LangChain 的<strong>提示词模板（Prompt Template）</strong>系统。
-</p>
-
-<div class="card analogy">
-  <div class="tag">✉️ 生活类比</div>
-  提示词模板就像<strong>邮件模板 / 填空题</strong>：你预先写好骨架，留几个空
-  （<span class="mono">{name}</span>、<span class="mono">{question}</span>），用的时候把变量填进去，
-  就生成一封"具体的信"。它把"提示词的结构"和"每次的具体内容"分开了。
-</div>
-
-<h2>从字符串到模板</h2>
-<p>最常用的是 <span class="inline">ChatPromptTemplate</span>，它用一组"角色 + 模板字符串"构建一串消息：</p>
-
-<pre class="code"><span class="kw">from</span> langchain_core.prompts <span class="kw">import</span> ChatPromptTemplate, MessagesPlaceholder
-
-prompt = ChatPromptTemplate.from_messages([
-    (<span class="st">"system"</span>, <span class="st">"你是 {domain} 领域的助手，回答要简洁。"</span>),
-    MessagesPlaceholder(<span class="st">"history"</span>),     <span class="cm"># ← 这里会插入整段对话历史</span>
-    (<span class="st">"human"</span>, <span class="st">"{question}"</span>),
-])
-
-messages = prompt.invoke({
-    <span class="st">"domain"</span>: <span class="st">"天气"</span>,
-    <span class="st">"history"</span>: [],
-    <span class="st">"question"</span>: <span class="st">"北京今天热吗？"</span>,
-})
-<span class="cm"># 得到一串标准消息，可直接喂给模型</span>
-</pre>
-
-<div class="card key">
-  <div class="tag">🔑 核心认知</div>
-  <strong>提示词模板本身也是 Runnable</strong>（第 10 课）。所以它能用 <span class="inline">|</span> 直接接到模型后面，
-  组成最经典的链：<span class="inline">prompt | model | parser</span>。
-</div>
-
-<div class="flow">
-  <div class="node">变量 dict</div><div class="arrow">→</div>
-  <div class="node hl">prompt<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">填空→消息</span></div><div class="arrow">→</div>
-  <div class="node hl">model</div><div class="arrow">→</div>
-  <div class="node">AIMessage</div>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 代码对应</div>
-  <ul>
-    <li><span class="mono">ChatPromptTemplate</span> / <span class="mono">MessagesPlaceholder</span> → <span class="mono">core/prompts/chat.py</span></li>
-    <li><span class="mono">PromptTemplate</span>（纯字符串提示，给非聊天模型用）→ <span class="mono">core/prompts/prompt.py</span></li>
-  </ul>
-</div>
-
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，逐个吃透模板的三个能力。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 变量填充：让提示词随输入变化 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">模板里 <span class="mono">{xxx}</span> 是占位符，<span class="mono">invoke</span> 时用 dict 填：
-<pre class="code">tpl = ChatPromptTemplate.from_messages([
-    (<span class="st">"system"</span>, <span class="st">"用 {style} 的风格回答"</span>),
-    (<span class="st">"human"</span>, <span class="st">"{q}"</span>),
-])
-tpl.invoke({<span class="st">"style"</span>: <span class="st">"幽默"</span>, <span class="st">"q"</span>: <span class="st">"什么是 LLM？"</span>})</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么不直接用 f-string 拼字符串</div>
-      <div class="a">模板能<strong>校验缺漏变量</strong>、支持<strong>部分填充</strong>、能和其它 Runnable 组合、还能被序列化/复用。
-        手写 f-string 在复杂场景（多角色、插历史、few-shot）会很快失控。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">提示词成为<strong>可复用、可测试、可组合</strong>的组件，而不是散落在代码里的字符串拼接。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> MessagesPlaceholder：把对话历史插进模板 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 它占的是"一串消息"的位置</div>
-      <div class="a">普通 <span class="mono">{var}</span> 填的是一段文本；而 <span class="mono">MessagesPlaceholder("history")</span>
-        填的是<strong>一整串消息</strong>（之前的多轮对话）：
-<pre class="code">prompt.invoke({
-    <span class="st">"history"</span>: [HumanMessage(<span class="st">"上一轮问题"</span>), AIMessage(<span class="st">"上一轮回答"</span>)],
-    <span class="st">"question"</span>: <span class="st">"接着问"</span>,
-})</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">多轮对话要把"历史消息"原样塞进提示词的中间位置。占位符让你能<strong>动态注入任意长度的历史</strong>，
-        正好衔接第 6 课的"上下文管理"——你裁剪/摘要后的历史，就从这里放进去。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">把"系统设定 + 历史 + 当前问题"清晰分层，历史的拼装与裁剪逻辑和提示词结构解耦。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> few-shot：用示范教模型怎么答 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 思路</div>
-      <div class="a">在提示词里塞几组"输入→理想输出"的<strong>范例</strong>，模型会照着学：
-<pre class="code">examples = [
-    (<span class="st">"human"</span>, <span class="st">"2+2"</span>), (<span class="st">"ai"</span>, <span class="st">"4"</span>),
-    (<span class="st">"human"</span>, <span class="st">"3+5"</span>), (<span class="st">"ai"</span>, <span class="st">"8"</span>),
-]
-prompt = ChatPromptTemplate.from_messages([
-    (<span class="st">"system"</span>, <span class="st">"只输出数字结果"</span>), *examples, (<span class="st">"human"</span>, <span class="st">"{q}"</span>),
-])</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么有效</div>
-      <div class="a">大模型擅长<strong>模仿示范</strong>。给几个例子（few-shot），常比写一大段规则更能稳定输出格式与风格——
-        这是"提示工程"里性价比最高的技巧之一。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 进阶</div>
-      <div class="a">LangChain 还有 <span class="mono">FewShotChatMessagePromptTemplate</span> 与"示例选择器"，能按当前问题<strong>动态挑最相关的范例</strong>。</div>
-    </div>
-  </div>
-</details>
-
-<h2>🔬 实现细节与亮点</h2>
-<p>看清提示词模板在源码里是怎么把"变量 + 模板"变成"一串消息"的，以及它聪明在哪。</p>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/prompts/chat.py</span><span class="ln">invoke → format_prompt → ChatPromptValue</span></div>
-<pre><span class="kw">class</span> <span class="fn">ChatPromptTemplate</span>(BaseChatPromptTemplate):   <span class="cm"># ← 它是 Runnable</span>
-    <span class="kw">def</span> <span class="fn">format_messages</span>(self, **kwargs) -> list[BaseMessage]:
-        result = []
-        <span class="kw">for</span> part <span class="kw">in</span> self.messages:        <span class="cm"># 逐个模板片段</span>
-            <span class="kw">if</span> isinstance(part, MessagesPlaceholder):
-                result.extend(kwargs[part.variable_name])  <span class="cm"># 展开成"一串消息"</span>
-            <span class="kw">else</span>:
-                result.append(part.format(**kwargs))        <span class="cm"># 填变量→一条消息</span>
-        <span class="kw">return</span> result
-    <span class="kw">def</span> <span class="fn">format_prompt</span>(self, **kwargs) -> ChatPromptValue:
-        <span class="kw">return</span> ChatPromptValue(messages=self.format_messages(**kwargs))
-</pre>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 实现流程</div>
-  <ol>
-    <li><span class="mono">invoke(vars)</span> → <span class="mono">format_prompt</span> → 返回一个 <strong>PromptValue</strong>（<span class="mono">ChatPromptValue</span>）。</li>
-    <li><span class="mono">format_messages</span> 遍历每个模板片段：普通片段<strong>填变量得一条消息</strong>，
-      <span class="mono">MessagesPlaceholder</span> 则把变量里的<strong>一串消息整段展开</strong>。</li>
-    <li><span class="mono">from_messages([(role, tmpl), ...])</span> 在构建时由 <span class="mono">_convert_to_message_template</span>
-      把 <span class="mono">("system","…")</span> 这类元组解析成对应的<strong>消息模板对象</strong>。</li>
-  </ol>
-</div>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li><strong>提示词是 Runnable</strong>：所以能直接 <span class="mono">prompt | model</span> 拼链——又一次复用第 10 课的统一抽象，无需任何"胶水"。</li>
-    <li><strong>PromptValue 作中间层</strong>：同一份模板既能 <span class="mono">.to_messages()</span>（喂聊天模型）又能 <span class="mono">.to_string()</span>（喂纯文本 LLM），<strong>一套模板适配两类模型</strong>。</li>
-    <li><strong>占位符是一等公民</strong>：<span class="mono">MessagesPlaceholder</span> 让"插入任意长度历史"成为模板语法的一部分，把第 6 课的上下文管理与提示词结构干净地解耦。</li>
-  </ul>
-</div>
-
-<div class="card key">
-  <div class="tag">✅ 本课要点</div>
-  <ul>
-    <li>提示词模板把"结构"与"具体内容"分离：<span class="mono">ChatPromptTemplate.from_messages([...])</span>。</li>
-    <li><span class="mono">{var}</span> 填文本，<span class="mono">MessagesPlaceholder</span> 填一整串历史消息。</li>
-    <li>模板是 <strong>Runnable</strong>，可直接 <span class="mono">prompt | model | parser</span>。</li>
-    <li>few-shot（给范例）是稳定输出格式的利器。</li>
-    <li>下一课：给 Agent 接一个它没学过的<strong>知识库</strong>——RAG。</li>
-  </ul>
-</div>
+<p class="lead">M2 临时页面：Task 2 会把这里替换为完整 C-level lesson。</p>
 <div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
@@ -543,7 +362,7 @@ prompt = ChatPromptTemplate.from_messages([
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="15-contributing.html"><div class="dir">← 上一课</div><div class="ttl">读源码 / 调试 / 测试 / 贡献</div></a><a class="next" href="17-rag.html"><div class="dir">下一课 →</div><div class="ttl">RAG 检索增强</div></a></div>
+  <div class="footnav"><a class="prev" href="06-tools.html"><div class="dir">← 上一课</div><div class="ttl">工具 Tools</div></a><a class="next" href="10-output-parsers.html"><div class="dir">下一课 →</div><div class="ttl">输出解析器 Output Parsers</div></a></div>
 </div>
 
 </body></html>

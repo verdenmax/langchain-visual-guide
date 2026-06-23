@@ -3,16 +3,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LangChain 图解教程 · 从零理解整个项目</title>
-<meta name="description" content="从零理解整个 LangChain 项目的图解教程：宏观结构、用户用法、内部源码、自己动手做 Agent，外加横向对比 / AI 全栈坐标系 / LangGraph 引擎深入等番外。8 部分 29 课，每课配真实代码对应、折叠深挖与设计亮点。">
+<meta name="description" content="从零理解整个 LangChain 项目的图解教程：宏观结构、用户用法、内部源码、自己动手做 Agent，外加横向对比 / AI 全栈坐标系 / LangGraph 引擎深入等番外。9 部分 29 课，每课配真实代码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="LangChain 图解教程">
 <meta property="og:title" content="LangChain 图解教程 · 从零理解整个项目">
-<meta property="og:description" content="从零理解整个 LangChain 项目的图解教程：宏观结构、用户用法、内部源码、自己动手做 Agent，外加横向对比 / AI 全栈坐标系 / LangGraph 引擎深入等番外。8 部分 29 课，每课配真实代码对应、折叠深挖与设计亮点。">
+<meta property="og:description" content="从零理解整个 LangChain 项目的图解教程：宏观结构、用户用法、内部源码、自己动手做 Agent，外加横向对比 / AI 全栈坐标系 / LangGraph 引擎深入等番外。9 部分 29 课，每课配真实代码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="LangChain 图解教程 · 从零理解整个项目">
-<meta name="twitter:description" content="从零理解整个 LangChain 项目的图解教程：宏观结构、用户用法、内部源码、自己动手做 Agent，外加横向对比 / AI 全栈坐标系 / LangGraph 引擎深入等番外。8 部分 29 课，每课配真实代码对应、折叠深挖与设计亮点。">
+<meta name="twitter:description" content="从零理解整个 LangChain 项目的图解教程：宏观结构、用户用法、内部源码、自己动手做 Agent，外加横向对比 / AI 全栈坐标系 / LangGraph 引擎深入等番外。9 部分 29 课，每课配真实代码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -288,7 +288,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <span class="home">📘 LangChain 图解教程</span>
-    <span class="pill">共 29 课 · 8 个部分</span>
+    <span class="pill">共 29 课 · 9 个部分</span>
   </div>
   <div class="progress"><span style="width:100%"></span></div>
 </div>
@@ -320,23 +320,24 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <a href="lessons/03-lifecycle.html"><span class="n">03</span><span class="tt">一次调用的全链路</span><span class="ts">从用户代码到 provider API 的完整调用链</span></a>
 <a href="lessons/04-source-reading-map.html"><span class="n">04</span><span class="tt">源码阅读地图</span><span class="ts">读源码先看哪些文件、类、函数和调用方向</span></a>
 <a href="lessons/05-learning-path.html"><span class="n">05</span><span class="tt">学习路径与实验方法</span><span class="ts">如何按主线学习、调试、做实验和复习</span></a>
+<div class="toc-part">第二部分 · 用户 API 基础</div>
+<a href="lessons/04-messages.html"><span class="n">06</span><span class="tt">消息系统</span><span class="ts">BaseMessage · Human/AI/System/Tool · tool_calls · usage_metadata</span></a>
+<a href="lessons/05-chat-models.html"><span class="n">07</span><span class="tt">聊天模型</span><span class="ts">init_chat_model · BaseChatModel.invoke · provider wrapper</span></a>
+<a href="lessons/06-tools.html"><span class="n">08</span><span class="tt">工具 Tools</span><span class="ts">@tool · BaseTool · schema 生成 · ToolMessage 回填</span></a>
+<a href="lessons/16-prompts.html"><span class="n">09</span><span class="tt">提示词 Prompts</span><span class="ts">ChatPromptTemplate · MessagesPlaceholder · PromptValue · partial</span></a>
+<a href="lessons/10-output-parsers.html"><span class="n">10</span><span class="tt">输出解析器 Output Parsers</span><span class="ts">StrOutputParser · JsonOutputParser · structured output · repair loop</span></a>
+<a href="lessons/14-streaming-callbacks.html"><span class="n">11</span><span class="tt">Streaming 与 Callbacks</span><span class="ts">stream/astream_events · callback manager · run tree</span></a>
 <div class="toc-part">第二部分 · 用户视角</div>
-<a href="lessons/04-messages.html"><span class="n">06</span><span class="tt">消息系统</span><span class="ts">Human / AI / Tool / System 消息</span></a>
-<a href="lessons/05-chat-models.html"><span class="n">07</span><span class="tt">聊天模型</span><span class="ts">init_chat_model · invoke / stream / batch</span></a>
-<a href="lessons/06-tools.html"><span class="n">08</span><span class="tt">工具 Tools</span><span class="ts">@tool 装饰器 · 工具调用</span></a>
-<a href="lessons/07-agents-intro.html"><span class="n">09</span><span class="tt">Agent 入门</span><span class="ts">create_agent · Agent 循环</span></a>
+<a href="lessons/07-agents-intro.html"><span class="n">12</span><span class="tt">Agent 入门</span><span class="ts">create_agent · Agent 循环</span></a>
 <div class="toc-part">第三部分 · 内部源码</div>
-<a href="lessons/08-runnable.html"><span class="n">10</span><span class="tt">Runnable 万物之基</span><span class="ts">invoke/stream/batch · LCEL 管道 |</span></a>
-<a href="lessons/09-runnable-compose.html"><span class="n">11</span><span class="tt">Runnable 如何组合</span><span class="ts">Sequence / Parallel / Branch 组合</span></a>
-<a href="lessons/10-output-parsers.html"><span class="n">12</span><span class="tt">输出解析器 Output Parsers</span><span class="ts">StrOutputParser · JsonOutputParser · 闭环</span></a>
-<a href="lessons/11-chat-internals.html"><span class="n">13</span><span class="tt">聊天模型内部</span><span class="ts">BaseChatModel 调用链</span></a>
-<a href="lessons/12-tool-internals.html"><span class="n">14</span><span class="tt">工具调用内部</span><span class="ts">函数 → JSON Schema → tool_calls</span></a>
-<a href="lessons/13-agent-internals.html"><span class="n">15</span><span class="tt">Agent 内部</span><span class="ts">LangGraph 状态图 · Send/Command · add_messages reducer</span></a>
-<a href="lessons/14-streaming-callbacks.html"><span class="n">16</span><span class="tt">Streaming 与 Callbacks</span><span class="ts">流式输出与回调追踪</span></a>
+<a href="lessons/08-runnable.html"><span class="n">13</span><span class="tt">Runnable 万物之基</span><span class="ts">invoke/stream/batch · LCEL 管道 |</span></a>
+<a href="lessons/09-runnable-compose.html"><span class="n">14</span><span class="tt">Runnable 如何组合</span><span class="ts">Sequence / Parallel / Branch 组合</span></a>
+<a href="lessons/11-chat-internals.html"><span class="n">15</span><span class="tt">聊天模型内部</span><span class="ts">BaseChatModel 调用链</span></a>
+<a href="lessons/12-tool-internals.html"><span class="n">16</span><span class="tt">工具调用内部</span><span class="ts">函数 → JSON Schema → tool_calls</span></a>
+<a href="lessons/13-agent-internals.html"><span class="n">17</span><span class="tt">Agent 内部</span><span class="ts">LangGraph 状态图 · Send/Command · add_messages reducer</span></a>
 <div class="toc-part">第四部分 · 进阶</div>
-<a href="lessons/15-contributing.html"><span class="n">17</span><span class="tt">读源码 / 调试 / 测试 / 贡献</span><span class="ts">uv · 测试 · 调试 · 贡献</span></a>
+<a href="lessons/15-contributing.html"><span class="n">18</span><span class="tt">读源码 / 调试 / 测试 / 贡献</span><span class="ts">uv · 测试 · 调试 · 贡献</span></a>
 <div class="toc-part">第五部分 · 自己动手做 Agent</div>
-<a href="lessons/16-prompts.html"><span class="n">18</span><span class="tt">提示词 Prompts</span><span class="ts">ChatPromptTemplate · MessagesPlaceholder · few-shot</span></a>
 <a href="lessons/17-rag.html"><span class="n">19</span><span class="tt">RAG 检索增强</span><span class="ts">Document → 切块 → Embeddings → VectorStore → Retriever</span></a>
 <a href="lessons/18-custom-middleware.html"><span class="n">20</span><span class="tt">写自己的中间件</span><span class="ts">AgentMiddleware 钩子 · before/after/wrap</span></a>
 <a href="lessons/19-runtime-context.html"><span class="n">21</span><span class="tt">运行时上下文与健壮性</span><span class="ts">context_schema · with_fallbacks · stream_mode</span></a>

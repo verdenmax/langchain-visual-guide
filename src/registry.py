@@ -4,6 +4,7 @@ Both the site build (build.py) and the print/PDF build (build_print.py) import
 this so the lesson set stays in sync.
 """
 import part01_overview
+import part02_user_api
 import part2
 import part3
 import part4
@@ -19,19 +20,19 @@ CONTENT = {
     "03-lifecycle.html": part01_overview.LESSON_03,
     "04-source-reading-map.html": part01_overview.LESSON_04,
     "05-learning-path.html": part01_overview.LESSON_05,
-    "04-messages.html": part2.LESSON_04,
-    "05-chat-models.html": part2.LESSON_05,
-    "06-tools.html": part2.LESSON_06,
+    "04-messages.html": part02_user_api.LESSON_06_MESSAGES,
+    "05-chat-models.html": part02_user_api.LESSON_07_CHAT_MODELS,
+    "06-tools.html": part02_user_api.LESSON_08_TOOLS,
+    "16-prompts.html": part02_user_api.LESSON_09_PROMPTS,
+    "10-output-parsers.html": part02_user_api.LESSON_10_OUTPUT_PARSERS,
+    "14-streaming-callbacks.html": part02_user_api.LESSON_11_STREAMING,
     "07-agents-intro.html": part2.LESSON_07,
     "08-runnable.html": part3.LESSON_08,
     "09-runnable-compose.html": part3.LESSON_09,
-    "10-output-parsers.html": part3.LESSON_OP,
     "11-chat-internals.html": part3.LESSON_10,
     "12-tool-internals.html": part3.LESSON_11,
     "13-agent-internals.html": part3.LESSON_12,
-    "14-streaming-callbacks.html": part3.LESSON_13,
     "15-contributing.html": part4.LESSON_14,
-    "16-prompts.html": part5.LESSON_15,
     "17-rag.html": part5.LESSON_16,
     "18-custom-middleware.html": part5.LESSON_17,
     "19-runtime-context.html": part5.LESSON_18,

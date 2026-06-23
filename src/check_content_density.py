@@ -23,6 +23,12 @@ C_LEVEL_PAGES = {
     "03-lifecycle.html": {"min_cjk": 4500, "min_visual": 5},
     "04-source-reading-map.html": {"min_cjk": 4500, "min_visual": 5},
     "05-learning-path.html": {"min_cjk": 4200, "min_visual": 4},
+    "04-messages.html": {"min_cjk": 4500, "min_visual": 5},
+    "05-chat-models.html": {"min_cjk": 4500, "min_visual": 5},
+    "06-tools.html": {"min_cjk": 4500, "min_visual": 5},
+    "16-prompts.html": {"min_cjk": 4500, "min_visual": 5},
+    "10-output-parsers.html": {"min_cjk": 4500, "min_visual": 5},
+    "14-streaming-callbacks.html": {"min_cjk": 4500, "min_visual": 5},
 }
 
 RE_SCRIPT_STYLE = re.compile(r"<(script|style)\b.*?</\1>", re.I | re.S)

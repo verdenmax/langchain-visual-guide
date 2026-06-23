@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>12 · 输出解析器 Output Parsers — LangChain 图解教程</title>
-<meta name="description" content="第三部分 · 内部源码｜输出解析器 Output Parsers：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>10 · 输出解析器 Output Parsers — LangChain 图解教程</title>
+<meta name="description" content="第二部分 · 用户 API 基础｜输出解析器 Output Parsers：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="12 · 输出解析器 Output Parsers — LangChain 图解教程">
-<meta property="og:description" content="第三部分 · 内部源码｜输出解析器 Output Parsers：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="10 · 输出解析器 Output Parsers — LangChain 图解教程">
+<meta property="og:description" content="第二部分 · 用户 API 基础｜输出解析器 Output Parsers：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="12 · 输出解析器 Output Parsers — LangChain 图解教程">
-<meta name="twitter:description" content="第三部分 · 内部源码｜输出解析器 Output Parsers：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="10 · 输出解析器 Output Parsers — LangChain 图解教程">
+<meta name="twitter:description" content="第二部分 · 用户 API 基础｜输出解析器 Output Parsers：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -288,154 +288,18 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第三部分 · 内部源码</span>
-    <span class="pill">12 / 29</span>
+    <span class="pill">第二部分 · 用户 API 基础</span>
+    <span class="pill">10 / 29</span>
   </div>
-  <div class="progress"><span style="width:41%"></span></div>
+  <div class="progress"><span style="width:34%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第三部分 · 内部源码</div>
+    <div class="part">第二部分 · 用户 API 基础</div>
     <h1>输出解析器 Output Parsers</h1>
   </div>
   
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-第 10、11 课你反复见到 <span class="inline">prompt | model | parser</span> 这条链，但 <strong>parser（输出解析器）</strong>一直没讲。
-它负责把模型吐出的"一段文本"变成<strong>程序能直接用的结构化数据</strong>——这是 LCEL 链里缺失的第三块拼图。
-</p>
-
-<div class="card analogy">
-  <div class="tag">🧾 生活类比</div>
-  模型像一位<strong>口述答案的专家</strong>：它说得很好，但说出来的是"一段话"。
-  输出解析器就是旁边的<strong>速记员</strong>：把这段口述<strong>整理成表格/卡片/JSON</strong>，让后面的程序能直接录入、计算、入库。
-</div>
-
-<h2>为什么需要它</h2>
-<p>模型 <span class="inline">invoke</span> 返回的是 <span class="inline">AIMessage</span>，其 <span class="inline">.content</span> 是<strong>字符串</strong>。
-但你的程序往往需要的是 <strong>纯文本 / 字典 / 强类型对象</strong>。解析器就站在链的末尾，完成这"最后一步翻译"。</p>
-
-<div class="flow">
-  <div class="node">prompt</div><div class="arrow">→</div>
-  <div class="node">model</div><div class="arrow">→</div>
-  <div class="node">AIMessage<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">.content 是字符串</span></div>
-  <div class="arrow">→</div>
-  <div class="node hl">parser<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">→ str / dict / 对象</span></div>
-</div>
-
-<h2>三个最常用的解析器</h2>
-<table class="t">
-  <tr><th>解析器</th><th>把输出变成</th><th>典型场景</th></tr>
-  <tr><td class="mono">StrOutputParser</td><td>纯字符串（取 <span class="mono">.content</span>）</td><td>几乎每条链的结尾</td></tr>
-  <tr><td class="mono">JsonOutputParser</td><td>dict（支持流式增量）</td><td>要 JSON 结果</td></tr>
-  <tr><td class="mono">PydanticOutputParser</td><td>pydantic 对象 + 校验</td><td>强类型结构化数据</td></tr>
-</table>
-
-<pre class="code"><span class="kw">from</span> langchain_core.output_parsers <span class="kw">import</span> StrOutputParser
-
-chain = prompt | model | StrOutputParser()
-text: str = chain.invoke({<span class="st">"q"</span>: <span class="st">"你好"</span>})   <span class="cm"># 直接拿到字符串，而不是 AIMessage</span>
-</pre>
-
-<div class="card key">
-  <div class="tag">🔑 核心认知</div>
-  <strong>解析器也是 Runnable</strong>（第 10 课）。所以它能用 <span class="inline">|</span> 接在 model 后面，
-  成为链的最后一环——这就是 <span class="inline">prompt | model | parser</span> 三段式的由来。
-</div>
-
-<h2>闭环技巧：get_format_instructions</h2>
-<p>解析器还能<strong>反过来生成提示</strong>：告诉模型"请按这个格式输出"，再由它自己解析回来，形成闭环：</p>
-<pre class="code"><span class="kw">from</span> langchain_core.output_parsers <span class="kw">import</span> PydanticOutputParser
-parser = PydanticOutputParser(pydantic_object=Weather)
-
-prompt = ChatPromptTemplate.from_messages([
-    (<span class="st">"system"</span>, <span class="st">"{format_instructions}"</span>),   <span class="cm"># ← 把格式说明塞进提示</span>
-    (<span class="st">"human"</span>, <span class="st">"{q}"</span>),
-]).partial(format_instructions=parser.get_format_instructions())
-
-chain = prompt | model | parser   <span class="cm"># 模型按要求输出 → parser 解析成 Weather 对象</span>
-</pre>
-
-<h2>🔬 实现细节与亮点</h2>
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/output_parsers/base.py</span><span class="ln">BaseOutputParser 是 Runnable</span></div>
-<pre><span class="kw">class</span> <span class="fn">BaseOutputParser</span>(..., Runnable[..., T]):
-    <span class="kw">def</span> <span class="fn">invoke</span>(self, input, config=None):
-        <span class="cm"># 取出 AIMessage.content，交给 parse()</span>
-        <span class="kw">return</span> self.parse(input.content <span class="kw">if</span> isinstance(input, BaseMessage) <span class="kw">else</span> input)
-    <span class="kw">def</span> <span class="fn">parse</span>(self, text: str) -> T: ...          <span class="cm"># 子类实现：文本 → 结构化</span>
-    <span class="kw">def</span> <span class="fn">get_format_instructions</span>(self) -> str: ...  <span class="cm"># 反向：生成格式说明</span>
-</pre>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 继承体系</div>
-  <ul>
-    <li><span class="mono">BaseOutputParser</span>（<span class="mono">base.py</span>）是 Runnable，<span class="mono">invoke</span> → <span class="mono">parse</span>。</li>
-    <li><span class="mono">StrOutputParser</span>（<span class="mono">string.py</span>）最简单：直接返回文本。</li>
-    <li><span class="mono">JsonOutputParser</span>（<span class="mono">json.py</span>）继承 <span class="mono">BaseCumulativeTransformOutputParser</span>——
-      <strong>支持流式</strong>：边接收边解析出"部分 JSON"。</li>
-    <li><span class="mono">PydanticOutputParser</span>（<span class="mono">pydantic.py</span>）在 Json 之上再做<strong>pydantic 校验</strong>。</li>
-  </ul>
-</div>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li><strong>解析器是 Runnable</strong>：所以无缝拼进链，且自动获得 stream/batch/async——这是 <span class="mono">prompt|model|parser</span> 能成立的根基。</li>
-    <li><strong>get_format_instructions 形成闭环</strong>：同一个 parser 既<strong>告诉模型怎么输出</strong>，又<strong>负责把输出解析回来</strong>，提示与解析两端由一个对象统一保证。</li>
-    <li><strong>流式可增量解析</strong>：<span class="mono">JsonOutputParser</span> 能在 JSON 还没输出完时就给出"部分结果"，适合实时 UI。</li>
-  </ul>
-</div>
-
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，吃透解析器的取舍。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 输出解析器 vs with_structured_output，怎么选 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 两条路线</div>
-      <div class="a"><strong>解析器路线</strong>：模型<strong>自由输出文本</strong> → 事后用 parser 解析（靠提示 + 解析，<strong>任何模型都能用</strong>）。
-        <strong>with_structured_output 路线</strong>（第 7 课）：用工具调用 / JSON 模式<strong>强约束</strong>模型输出（更可靠，但需模型支持）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 各自适合</div>
-      <div class="a">模型不支持工具/JSON 模式，或想要更灵活的后处理 → 用<strong>解析器</strong>；
-        要"几乎不会解析失败"的强保证、且模型支持 → 用 <span class="mono">with_structured_output</span>。
-        二者背后都离不开 schema 约束的思想。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 关系</div>
-      <div class="a">其实 <span class="mono">with_structured_output</span> 内部也用到 tool/JSON 解析器（第 13 课）。解析器是更底层、更通用的一层。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> 为什么几乎每条链结尾都有 StrOutputParser <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">❓ 不加会怎样</div>
-      <div class="a">不加，链的输出是 <span class="mono">AIMessage</span>（还要 <span class="mono">.content</span> 取文本）。
-        加上 <span class="mono">StrOutputParser()</span>，链<strong>直接产出干净的字符串</strong>，下游（打印、拼接、再喂下一步）更顺手。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 还有一个好处</div>
-      <div class="a"><span class="mono">StrOutputParser</span> 对<strong>流式</strong>友好：逐 token 产出纯文本块，正好做打字机效果（第 16 课）。</div>
-    </div>
-  </div>
-</details>
-
-<div class="card key">
-  <div class="tag">✅ 本课要点</div>
-  <ul>
-    <li>输出解析器是 <span class="mono">prompt | model | parser</span> 的<strong>第三块拼图</strong>：把模型输出的文本变成 str / dict / 对象。</li>
-    <li>三个常用：<span class="mono">StrOutputParser</span>（文本）/<span class="mono">JsonOutputParser</span>（dict，可流式）/<span class="mono">PydanticOutputParser</span>（强类型）。</li>
-    <li>解析器<strong>也是 Runnable</strong>；<span class="mono">get_format_instructions</span> 让"提示↔解析"闭环。</li>
-    <li>与 <span class="mono">with_structured_output</span> 互补：解析器更通用，结构化输出更强约束。</li>
-    <li>下一课：深入<strong>聊天模型内部</strong>，看 <span class="mono">invoke</span> 的完整调用链。</li>
-  </ul>
-</div>
+<p class="lead">M2 临时页面：Task 2 会把这里替换为完整 C-level lesson。</p>
 <div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
@@ -498,7 +362,7 @@ chain = prompt | model | parser   <span class="cm"># 模型按要求输出 → p
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="09-runnable-compose.html"><div class="dir">← 上一课</div><div class="ttl">Runnable 如何组合</div></a><a class="next" href="11-chat-internals.html"><div class="dir">下一课 →</div><div class="ttl">聊天模型内部</div></a></div>
+  <div class="footnav"><a class="prev" href="16-prompts.html"><div class="dir">← 上一课</div><div class="ttl">提示词 Prompts</div></a><a class="next" href="14-streaming-callbacks.html"><div class="dir">下一课 →</div><div class="ttl">Streaming 与 Callbacks</div></a></div>
 </div>
 
 </body></html>
