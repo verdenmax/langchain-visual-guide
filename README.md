@@ -126,7 +126,7 @@ langchain-visual-guide/
 │   ├── check_html.py       HTML 结构与一致性检查
 │   └── check_content_density.py  内容密度质量检查
 ├── .github/workflows/
-│   ├── ci.yml              CI：构建 / 链接 / HTML 结构 / 内容密度防回归检查
+│   ├── ci.yml              CI：站点 + print HTML 构建 / 链接 / HTML 结构 / 内容密度防回归检查
 │   └── deploy.yml          CI：自动部署 Pages + 生成 PDF
 ├── README.md
 └── LICENSE
@@ -162,7 +162,7 @@ chromium --headless=new --no-pdf-header-footer \
 3. 把 `index.html`、`lessons/`、`langchain-visual-guide.pdf` 部署到 **GitHub Pages**；
 4. PDF 同时作为构建产物上传；打 `v*` **标签**时还会自动发布 Release 并附带 PDF。
 
-另有 `.github/workflows/ci.yml`（每次 push / PR 触发）做**防回归**：① 重新运行 `build.py` 并校验提交的 HTML 与 `src/` **没有漂移**；② 运行 `check_links.py` 确保**内部链接无死链**；③ 运行 `check_html.py` 与 `check_content_density.py` 检查 **HTML 结构 / 一致性** 和 **C 级内容密度**。
+另有 `.github/workflows/ci.yml`（每次 push / PR 触发）做**防回归**：① 重新运行 `build.py` 并校验提交的站点 HTML 与 `src/` **没有漂移**；② 运行 `build_print.py` 校验 `print.html` 可重新构建；③ 运行 `check_links.py` 确保**内部链接无死链**；④ 运行 `check_html.py` 与 `check_content_density.py` 检查 **HTML 结构 / 一致性** 和 **C 级内容密度**。
 
 **首次启用（一次性）：**
 1. 在 GitHub 新建仓库并推送：
