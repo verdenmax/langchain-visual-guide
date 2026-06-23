@@ -408,62 +408,49 @@ def lookup_order(order_id: str) -&gt; str:
 <div class="card version"><div class="tag">📌 版本锚点</div>本课以 LangChain core tools、function_calling 转换和 v1 create_agent 的边界为锚点。provider 工具格式会变化，但“函数 → schema → tool_calls → 执行 → ToolMessage”的工程契约是阅读新版工具系统的主线。</div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. <code>@tool</code> 从函数的“名字 / docstring / 类型注解”自动生成给模型看的 schema。这种“让代码自己描述自己”图什么？</div>
+  <div class="qn">1. 工具的 schema 与工具执行之间的关系是什么？</div>
   <ol class="opts">
-    <li>少写文档</li>
-    <li>单一事实来源：工具说明直接来自函数本身，改了签名描述自动同步，避免“代码和 schema 两处维护、对不上”</li>
-    <li>让模型更聪明</li>
-    <li>纯属方便</li>
+    <li>schema 告诉模型可填哪些参数；执行是应用校验参数后调用真实函数</li>
+    <li>schema 一生成，工具就会自动执行</li>
+    <li>schema 只给人类看，模型不会读取</li>
+    <li>执行结果应该写回 schema，供下次复用</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。从函数推断 schema，消除了“手写 schema 与实现脱节”的经典 bug；代价是你必须写好类型注解和 docstring（它们成了模型的“说明书”）。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。schema 是模型可见接口，执行是程序控制的副作用边界。把二者分开，才能审批、限流、记录和处理错误。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. 底层用 pydantic 当“函数↔JSON Schema”的中间层。为什么挑 pydantic 而不是手写转换？</div>
+  <div class="qn">2. 为什么工具函数的 docstring 和类型注解会影响模型调用质量？</div>
   <ol class="opts">
-    <li>因为没有别的库</li>
-    <li>因为它最快</li>
-    <li>因为它流行</li>
-    <li>它一举两得：既能从类型生成 JSON Schema（给模型看），又能在执行时校验模型传回的参数（挡住脏数据）</li>
+    <li>它们会替代权限检查</li>
+    <li>它们能保证工具永远不会失败</li>
+    <li>它们通常会变成工具名称、参数 schema 和描述，直接指导模型如何填参</li>
+    <li>它们只影响 Python 编辑器提示，不会进入工具 schema</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。“生成 + 校验”两件事共用一套类型定义，天然一致、避免重复——选 pydantic 是为了让“描述”和“校验”共用一个事实来源。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。工具说明是模型的操作手册。含糊 docstring 或缺类型注解会让 schema 变窄、变错或难以让模型正确选择。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 模型只把工具调用“写进 <code>AIMessage.tool_calls</code>”，执行交给你的程序。把“决定调用”与“实际执行”分开，最关键的好处是？</div>
+  <div class="qn">3. 为什么 <code>ToolMessage.tool_call_id</code> 必须和原始 tool call id 配对？</div>
   <ol class="opts">
-    <li>代码好看</li>
-    <li>减少调用次数</li>
-    <li>因为模型不会写代码</li>
-    <li>在“提议”和“执行”之间留出了插入审批、改参、限流、记录的空间——安全与可控</li>
+    <li>让模型和 trace 知道哪条工具观察对应哪次请求，尤其支持并行、失败和重试</li>
+    <li>让 ToolMessage 可以替代 AIMessage</li>
+    <li>让 token 计费更便宜</li>
+    <li>让工具名更短</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。这个“缝隙”正是人审（HITL）、错误自愈、工具限流等护栏的落点。分离不是麻烦，而是为可控性留的接口。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. 进阶里“错误转消息（自愈）”：工具报错不抛异常，而是把错误包成 <code>ToolMessage</code> 回灌给模型。这让 Agent 获得了什么能力？</div>
-  <ol class="opts">
-    <li>永不出错</li>
-    <li>更快失败</li>
-    <li>隐藏所有错误</li>
-    <li>“试错→读报错→改对再来”的自我纠正能力：错误成了模型的新观察，而不是让程序崩溃</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。把异常变成“对话里的一条反馈”，闭环就从“崩溃”变成“纠正”。这是 Agent 鲁棒性的重要来源（第 14 课看实现）。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。tool_call_id 是工具回合的连接键。缺它时，多工具场景中的观察结果会失去归属，错误恢复也难以审计。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>“让代码自己描述自己”很优雅，但也把“写好类型注解和 docstring”变成了硬要求。如果团队里有人偷懒不写，会怎样？你会用什么机制保证质量？</li>
-    <li>工具出错时“把错误回灌给模型让它自己改”很聪明，但也可能让模型陷入“反复试错烧钱”。你会怎么给这种自愈加上“<strong>刹车</strong>”？</li>
+    <li>设计一个安全工具：写出函数名、参数、docstring 应表达的约束，以及执行前需要做的权限、范围和速率检查。</li>
+    <li>工具执行失败时，不要让错误无声消失。说明你会何时抛异常，何时构造带同一 <code>tool_call_id</code> 的 ToolMessage 把错误显式交给模型。</li>
   </ul>
 </div>
 </div>

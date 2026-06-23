@@ -308,36 +308,45 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 
 <h2>本课地图：从输入形状到可追踪对话状态</h2>
 <p>学习消息系统时，不要先背所有子类，而要先抓住一条主线：输入会被规范化为消息对象；provider adapter 会把消息对象翻译为厂商 payload；模型响应会再被归一化为 <span class="mono">AIMessage</span>；如果它包含 <span class="mono">tool_calls</span>，程序执行工具并追加 <span class="mono">ToolMessage</span>；随后 Runnable、Agent 或图节点继续读取同一份消息状态。</p>
-<div class="lesson-map"><div class="lm-title">🗺️ 消息系统的五个检查点</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">原始输入</div><div class="mn-desc">字符串、二元组、dict、BaseMessage 列表都可能出现在用户层</div></div><div class="map-node now"><div class="mn-label">规范化</div><div class="mn-desc">convert_to_messages 把松散输入变成明确消息对象</div></div><div class="map-node source"><div class="mn-label">适配器</div><div class="mn-desc">provider wrapper 读取 role/content/tool_calls 并生成厂商请求</div></div><div class="map-node now"><div class="mn-label">工具回合</div><div class="mn-desc">AIMessage.tool_calls 表达意图，ToolMessage 表达执行观察</div></div><div class="map-node after"><div class="mn-label">下游状态</div><div class="mn-desc">Runnable、Agent、LangGraph 节点共享同一种消息列表</div></div></div></div>
+<div class="lesson-map"><div class="lm-title">🗺️ 消息系统的五个检查点</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">原始输入</div><div class="mn-desc">字符串、PromptValue、BaseMessage 序列都可能出现在用户层</div></div><div class="map-node now"><div class="mn-label">规范化</div><div class="mn-desc">BaseChatModel._convert_input 先分流；序列元素再由 convert_to_messages 规范化</div></div><div class="map-node source"><div class="mn-label">适配器</div><div class="mn-desc">provider wrapper 读取 role/content/tool_calls 并生成厂商请求</div></div><div class="map-node now"><div class="mn-label">工具回合</div><div class="mn-desc">AIMessage.tool_calls 表达意图，ToolMessage 表达执行观察</div></div><div class="map-node after"><div class="mn-label">下游状态</div><div class="mn-desc">Runnable、Agent、LangGraph 节点共享同一种消息列表</div></div></div></div>
 <h2>源码入口：文件 + 符号名</h2>
 <p>下面的表只写文件和符号，不写行号。行号会随版本漂移，符号职责更稳定。读源码时先从基类看公共字段，再看具体消息如何补充语义，最后看工具函数如何把各种输入变成这些对象。</p>
-<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/messages/base.py</td><td class="mono">BaseMessage</td><td>定义 content、additional_kwargs、response_metadata、id、name、type 等公共消息字段。</td><td>所有具体消息继承它，模型接口围绕它传递数据。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/human.py</td><td class="mono">HumanMessage</td><td>表示用户或外部人类发出的内容，是最常见的输入消息。</td><td>由输入转换层创建，传入聊天模型。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/ai.py</td><td class="mono">AIMessage</td><td>表示模型回复，承载 content、tool_calls、invalid_tool_calls、usage_metadata。</td><td>由模型包装器返回，下游循环继续消费。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/tool.py</td><td class="mono">ToolMessage</td><td>表示工具执行结果，并用 tool_call_id 对齐某个 AIMessage 工具请求。</td><td>由工具执行层追加，再回灌给模型。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/utils.py</td><td class="mono">convert_to_messages</td><td>把字符串、元组、dict、PromptValue 或消息对象列表转换为标准消息列表。</td><td>模型调用前的输入边界。</td></tr></table>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/messages/base.py</td><td class="mono">BaseMessage</td><td>定义 content、additional_kwargs、response_metadata、id、name、type 等公共消息字段。</td><td>所有具体消息继承它，模型接口围绕它传递数据。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/human.py</td><td class="mono">HumanMessage</td><td>表示用户或外部人类发出的内容，是最常见的输入消息。</td><td>由输入转换层创建，传入聊天模型。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/ai.py</td><td class="mono">AIMessage</td><td>表示模型回复，承载 content、tool_calls、invalid_tool_calls、usage_metadata。</td><td>由模型包装器返回，下游循环继续消费。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/tool.py</td><td class="mono">ToolMessage</td><td>表示工具执行结果，并用 tool_call_id 对齐某个 AIMessage 工具请求。</td><td>由工具执行层追加，再回灌给模型。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/utils.py</td><td class="mono">convert_to_messages / _convert_to_message</td><td>把 PromptValue 或消息表示序列转换为标准消息列表；序列里的单个 str、二元组、dict、BaseMessage 由 _convert_to_message 处理。</td><td>BaseChatModel._convert_input 处理序列分支时调用它。</td></tr><tr><td class="mono">libs/core/langchain_core/language_models/chat_models.py</td><td class="mono">BaseChatModel._convert_input</td><td>把裸字符串先变成 StringPromptValue，把消息序列变成 ChatPromptValue；不是直接把裸 str 交给 convert_to_messages。</td><td>聊天模型 invoke/stream 前的真实输入分流点。</td></tr></table>
 <h2>主流程：字符串 / 列表 / 字典如何进入工具回合</h2>
-<p>消息规范化不是装饰步骤，而是系统边界。字符串在调用便利层里通常会变成 <span class="mono">HumanMessage</span>；<span class="mono">[(\"system\", \"...\"), (\"human\", \"...\")]</span> 会变成对应消息；已经是 <span class="mono">BaseMessage</span> 的对象则尽量保留。规范化之后，provider adapter 才能做确定翻译：role 映射到厂商字段，content 映射到文本或多模态块，tool_calls 映射到函数调用格式，metadata 映射到追踪信息。</p>
-<div class="flow call-graph"><div class="node hl"><div class="nt">string / list / dict 输入</div><div class="nd">用户层为了方便允许多种表示</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">message objects</div><div class="nd">convert_to_messages 统一成 BaseMessage 子类</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">provider adapter</div><div class="nd">翻译 role、content、tool schema 和额外字段</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">AIMessage/tool_calls</div><div class="nd">模型返回内容或请求工具执行</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">Runnable / Agent</div><div class="nd">下游读取同一消息列表继续编排</div></div></div>
+<p>消息规范化不是装饰步骤，而是系统边界。真实聊天模型入口会先经过 <span class="mono">BaseChatModel._convert_input</span>：裸字符串变成 <span class="mono">StringPromptValue</span>；<span class="mono">PromptValue</span> 原样保留；消息序列才交给 <span class="mono">convert_to_messages</span>。在序列内部，<span class="mono">(\"system\", \"...\")</span>、dict 或已经构造好的 <span class="mono">BaseMessage</span> 元素再由 <span class="mono">_convert_to_message</span> 逐个转成明确消息对象。规范化之后，provider adapter 才能做确定翻译：role 映射到厂商字段，content 映射到文本或多模态块，tool_calls 映射到函数调用格式，metadata 映射到追踪信息。</p>
+<div class="flow call-graph"><div class="node hl"><div class="nt">str / PromptValue / sequence 输入</div><div class="nd">BaseChatModel._convert_input 先按顶层类型分流</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">StringPromptValue / ChatPromptValue</div><div class="nd">裸字符串不直接进 convert_to_messages；序列才会继续转换</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">sequence items</div><div class="nd">convert_to_messages 逐个调用 _convert_to_message</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">message objects</div><div class="nd">序列里的 BaseMessage 元素会被保留，tuple/dict/str 元素被转成消息</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">provider adapter</div><div class="nd">翻译 role、content、tool schema 和额外字段</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">AIMessage/tool_calls</div><div class="nd">模型返回内容或请求工具执行</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">Runnable / Agent</div><div class="nd">下游读取同一消息列表继续编排</div></div></div>
 <h2>代码走读：简化版消息规范化</h2>
-<p>真实 <span class="mono">convert_to_messages</span> 需要处理更多输入类型和错误分支。下面的伪代码保留 C 级阅读时最重要的判断顺序：如果已经是消息对象就保留；如果是字符串就当作人类输入；如果是二元组或字典，就根据 role/type 选择子类；如果无法识别，应尽早报错，而不是把不明结构悄悄塞进模型。</p>
-<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/core/langchain_core/messages/utils.py :: convert_to_messages</span><span class="ln">简化版</span></div><pre>def convert_to_messages(value):
-    if isinstance(value, BaseMessage):
-        return [value]
-    if isinstance(value, str):
-        return [HumanMessage(content=value)]
-    if isinstance(value, list):
-        return [convert_one(item) for item in value]
+<p>真实源码里要分清两层：聊天模型的 <span class="mono">_convert_input</span> 负责顶层输入分流，消息工具里的 <span class="mono">convert_to_messages</span> 负责把“消息表示的序列”逐项转换。也就是说，裸 <span class="mono">str</span> 会先成为 <span class="mono">StringPromptValue</span>；单个裸 <span class="mono">BaseMessage</span> 不是 <span class="mono">convert_to_messages</span> 的常规入口；序列中的单个元素才会委托给 <span class="mono">_convert_to_message</span>。下面的伪代码保留这条来源准确的阅读路径。</p>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/core/langchain_core/language_models/chat_models.py + messages/utils.py :: BaseChatModel._convert_input / convert_to_messages</span><span class="ln">简化版</span></div><pre>class BaseChatModel:
+    def _convert_input(self, input):
+        if isinstance(input, PromptValue):
+            return input
+        if isinstance(input, str):
+            return StringPromptValue(text=input)
+        if isinstance(input, Sequence):
+            return ChatPromptValue(messages=convert_to_messages(input))
+        raise ValueError(&quot;Invalid input type&quot;)
 
-def convert_one(item):
+def convert_to_messages(messages):
+    if isinstance(messages, PromptValue):
+        return messages.to_messages()
+    return [_convert_to_message(item) for item in messages]
+
+def _convert_to_message(item):
     if isinstance(item, BaseMessage):
         return item
+    if isinstance(item, str):
+        return HumanMessage(content=item)
     if isinstance(item, tuple):
         role, content = item
         return message_from_role(role, content)
     if isinstance(item, dict):
         role = item.get(&quot;role&quot;) or item.get(&quot;type&quot;)
         return message_from_role(role, item.get(&quot;content&quot;), item)
-    raise ValueError(&quot;unsupported message representation&quot;)</pre><div class="cw-note">这是教学伪代码：真实实现还会处理 PromptValue、content blocks、message chunk 和更细的校验。</div></div>
+    raise ValueError(&quot;unsupported message representation&quot;)</pre><div class="cw-note">这是教学伪代码：真实实现还会处理 content blocks、message chunk 和更细的校验；重点是顶层 str 由 _convert_input 包成 StringPromptValue，序列元素才走 _convert_to_message。</div></div>
 <h2>例子追踪：“查订单 123”的一轮工具调用</h2>
 <p>下面的 trace 故意把每个中间对象写出来。关键点是：<span class="mono">AIMessage.tool_calls</span> 只是模型提出的意图，不是工具已经执行；真正的执行结果必须成为 <span class="mono">ToolMessage</span>，并且它的 <span class="mono">tool_call_id</span> 要和原始调用 id 对上。没有这个 id，下一轮模型就不知道哪条观察对应哪次请求。</p>
-<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1 用户输入</td><td>查订单 123</td><td>输入边界把字符串包装成 HumanMessage。</td><td>HumanMessage(content=&#x27;查订单 123&#x27;)</td></tr><tr><td>2 模型判断</td><td>HumanMessage + order_lookup schema</td><td>模型决定调用工具，返回带 tool_calls 列表的 AIMessage。</td><td>AIMessage(tool_calls=[{&#x27;id&#x27;:&#x27;call_1&#x27;,&#x27;name&#x27;:&#x27;lookup_order&#x27;,&#x27;args&#x27;:{&#x27;id&#x27;:&#x27;123&#x27;}}])</td></tr><tr><td>3 程序执行</td><td>call_1 / lookup_order / id=123</td><td>你的代码调用真实订单系统，获得状态。</td><td>订单 123 已发往上海</td></tr><tr><td>4 工具观察</td><td>执行结果 + call_1</td><td>把结果包装为 ToolMessage，绑定 tool_call_id。</td><td>ToolMessage(content=&#x27;已发往上海&#x27;, tool_call_id=&#x27;call_1&#x27;)</td></tr><tr><td>5 最终回复</td><td>HumanMessage + AIMessage + ToolMessage</td><td>模型看到工具观察，生成不再含 tool_calls 的最终回答。</td><td>AIMessage(content=&#x27;订单 123 已发往上海。&#x27;)</td></tr></table>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1 用户输入</td><td>查订单 123</td><td>BaseChatModel._convert_input 先把裸字符串包装成 StringPromptValue，生成时再展开成 HumanMessage。</td><td>StringPromptValue(text=&#x27;查订单 123&#x27;) → HumanMessage(content=&#x27;查订单 123&#x27;)</td></tr><tr><td>2 模型判断</td><td>HumanMessage + order_lookup schema</td><td>模型决定调用工具，返回带 tool_calls 列表的 AIMessage。</td><td>AIMessage(tool_calls=[{&#x27;id&#x27;:&#x27;call_1&#x27;,&#x27;name&#x27;:&#x27;lookup_order&#x27;,&#x27;args&#x27;:{&#x27;id&#x27;:&#x27;123&#x27;}}])</td></tr><tr><td>3 程序执行</td><td>call_1 / lookup_order / id=123</td><td>你的代码调用真实订单系统，获得状态。</td><td>订单 123 已发往上海</td></tr><tr><td>4 工具观察</td><td>执行结果 + call_1</td><td>把结果包装为 ToolMessage，绑定 tool_call_id。</td><td>ToolMessage(content=&#x27;已发往上海&#x27;, tool_call_id=&#x27;call_1&#x27;)</td></tr><tr><td>5 最终回复</td><td>HumanMessage + AIMessage + ToolMessage</td><td>模型看到工具观察，生成不再含 tool_calls 的最终回答。</td><td>AIMessage(content=&#x27;订单 123 已发往上海。&#x27;)</td></tr></table>
 <h2>字段拆解：role、content 与 metadata 不是一回事</h2>
 <p><strong>role / type</strong> 是消息在对话里的身份。它告诉模型和适配器这段内容应被当作系统指令、人类输入、AI 回复还是工具观察。很多 provider 的字段名不同，但 LangChain 在上层保留统一语义。不要把 role 当作业务权限，也不要把系统消息当作绝对安全边界；它只是模型上下文里的优先级提示和结构提示。</p>
 <p><strong>content</strong> 是消息主要承载的信息。它可以是普通字符串，也可以是更结构化的内容块，例如文本、图片描述或 provider 支持的多模态片段。C 级排错时要看 content 是否在转换中被拼成了错误字符串，是否把历史消息压成一段难以区分说话人的文本，是否把工具结果误放进 AIMessage.content 而不是 ToolMessage。</p>
@@ -401,62 +410,49 @@ def convert_one(item):
 <div class="card version"><div class="tag">📌 版本锚点</div>本课以 LangChain v1 时代的 core 消息契约为锚点：字段名和 provider 细节会演进，但文件 + 符号名所表达的边界——BaseMessage 家族、convert_to_messages、AIMessage.tool_calls 与 ToolMessage.tool_call_id——是阅读新版源码时最稳定的地图。</div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. 对话被建模成“一串结构化消息（System/Human/AI/Tool）”而不是一团纯文本。这种“结构化”最大的设计收益是？</div>
+  <div class="qn">1. 为什么说消息是“模型上下文的契约”，而不只是聊天记录文本？</div>
   <ol class="opts">
-    <li>看起来整齐</li>
-    <li>省 token</li>
-    <li>厂商要求</li>
-    <li>每条消息带类型与元数据，程序能精确区分“谁说的、是不是工具请求、用了多少 token”，从而可裁剪/筛选/路由</li>
+    <li>因为消息只负责让页面显示得更整齐</li>
+    <li>因为消息会自动执行所有工具</li>
+    <li>因为消息会把业务数据库状态也保存起来</li>
+    <li>因为每条消息保留角色、内容、工具关系和元数据，下游组件能按结构理解一次运行</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。纯文本只能整段处理；结构化消息让“角色、工具调用、用量”都成为可编程字段，上下文管理（裁剪/筛选/摘要）才有抓手。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。消息契约让模型、工具执行器、trace 和裁剪逻辑面对同一种结构；聊天记录字符串会丢失角色、tool_call_id 和 usage 等证据。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. 模型想用工具时不是直接执行，而是在 <code>AIMessage.tool_calls</code> 里“写一个请求”，由你的程序去执行。这个“只请求、不执行”的设计图什么？</div>
+  <div class="qn">2. <code>AIMessage.tool_calls</code> 和 <code>ToolMessage</code> 的边界是什么？</div>
   <ol class="opts">
-    <li>纯粹历史遗留</li>
-    <li>把执行的控制权和安全边界留在你手里：你能审批、改参、限流、记录，模型碰不到真实副作用</li>
-    <li>因为模型不会执行代码</li>
-    <li>让模型更慢</li>
+    <li><code>tool_calls</code> 保存工具返回值，<code>ToolMessage</code> 保存用户输入</li>
+    <li>二者都是工具定义 schema，可以互换</li>
+    <li><code>ToolMessage</code> 表示模型打算调用工具，但还没执行</li>
+    <li><code>tool_calls</code> 是模型提出的调用请求，<code>ToolMessage</code> 是程序执行后的观察</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“模型提议、程序执行”是 Agent 安全的基石——危险操作可人审、可拦截。控制权不在模型而在你，这是刻意设计。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。模型只提出意图；应用负责校验、执行并追加 ToolMessage。把结果误塞进 tool_calls 或普通文本，会破坏工具回合的证据链。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 四种消息都继承自 <code>BaseMessage</code>。这个“共同基类”让什么变得可能？</div>
+  <div class="qn">3. <code>usage_metadata</code> 最适合承担哪类责任？</div>
   <ol class="opts">
-    <li>节省内存</li>
-    <li>防止新增消息类型</li>
-    <li>统一处理：序列化、流式 chunk 相加、传给模型前的标准化，都能对“任意消息”一视同仁</li>
-    <li>消息更短</li>
+    <li>记录 token 用量、成本分析和调试观察</li>
+    <li>保存用户权限和业务主状态</li>
+    <li>决定订单是否付款成功</li>
+    <li>替代 <code>tool_call_id</code> 做工具配对</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。共同基类 = 共同契约。凡是“对消息做的通用操作”只写一遍、对所有子类生效——又是“统一抽象”的回报。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. “上下文 = 你传进去的消息列表”。把上下文显式建模成“一串可增删改的消息”，相比“框架帮你藏起来的隐式记忆”，好处是？</div>
-  <ol class="opts">
-    <li>上下文自动变长</li>
-    <li>完全可控可观测：你清楚模型到底看到了什么，能精确裁剪/筛选/注入，调试和省 token 都有据可依</li>
-    <li>更神秘</li>
-    <li>不用管理上下文</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。显式 = 可控。把“模型看到什么”摊在你眼前的消息列表里，是 LangChain 偏“确定可控”哲学的体现（对比某些框架的隐式记忆黑盒）。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。usage_metadata 是观测数据，不是业务事实。它适合进日志、指标和 trace，不应驱动领域状态变更。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>“模型只提议、程序来执行”把控制权留给了你。如果反过来让模型<strong>直接执行</strong>工具，会带来哪些风险？你愿意为“自动化程度”放弃多少“控制权”？</li>
-    <li>上下文就是那串消息。当对话很长、塞不下时，你有哪些“管理这串消息”的策略（裁剪/摘要/检索…）？各自<strong>牺牲了什么</strong>？</li>
+    <li>追踪一组消息列表：HumanMessage 提问、AIMessage 带两个 tool_calls、两个 ToolMessage 返回、最终 AIMessage 回复。写出每一步哪些字段必须保留。</li>
+    <li>给出一个无效工具结果例子，并说明为什么它不能正确回灌给模型：缺 <code>tool_call_id</code>、id 不匹配、还是把结果放错了消息类型？</li>
   </ul>
 </div>
 </div>

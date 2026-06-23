@@ -415,62 +415,49 @@ model.invoke(messages, config={&quot;callbacks&quot;: [PrintingHandler()]})</pre
 <div class="card version"><div class="tag">📌 版本锚点</div>本课以 BaseChatModel.stream、Runnable.astream_events、CallbackManager、BaseCallbackHandler 和 BaseTracer 为锚点。事件字段和平台集成会演进，但“运行开始、增量事件、结束或错误、trace 关联”的可观测性模型稳定适用。</div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. <code>stream()</code> 产出“可相加的 <code>AIMessageChunk</code>”，累加即得完整消息。把流式片段设计成“能用 + 拼得起来”，图什么？</div>
+  <div class="qn">1. stream 中的 chunk 与最终 <code>AIMessage</code> 是什么关系？</div>
   <ol class="opts">
-    <li>同一套消息抽象既能表达“完整结果”又能表达“流式片段”，下游处理流式和非流式可统一——累加就还原</li>
-    <li>炫技</li>
-    <li>更省内存</li>
-    <li>更快</li>
+    <li>chunk 就是已经完成的最终消息，不能再合并</li>
+    <li>chunk 是增量片段，通常需要合并后才得到完整消息和最终元数据</li>
+    <li>chunk 只用于日志，不会给 UI 使用</li>
+    <li>最终消息会自动执行所有 chunk 中的工具</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。“chunk 可相加”让流式不是另一套世界，而是“完整消息的增量形式”。统一抽象延伸到了流式，处理逻辑得以复用。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。流式输出让用户更早看到增量，但 chunk 边界不等于完整语义边界。最终消息仍是更稳定的结果对象。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. Callbacks 在 on_llm_start/new_token/end 等点触发，且“对所有 Runnable 通用”。把“追踪/监控”做成横切回调而非塞进每个组件，好处是？</div>
+  <div class="qn">2. callbacks 与 middleware 的边界更接近哪种描述？</div>
   <ol class="opts">
-    <li>回调更快</li>
-    <li>防止出错</li>
-    <li>减少组件</li>
-    <li>观测能力与业务逻辑解耦：一处挂钩子、处处生效，加监控不动核心代码</li>
+    <li>callbacks 偏观察事件，middleware 偏改变或包裹运行行为</li>
+    <li>二者完全等价，没有设计边界</li>
+    <li>二者都只能在页面层工作</li>
+    <li>callbacks 负责业务权限，middleware 只能打印 token</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。横切关注点（日志/追踪/监控）用回调统一接入，是“关注点分离”。这也是 LangSmith 能“无侵入”追踪整条链的原因。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。callbacks 适合 tracing、日志和 token 事件；middleware 更适合拦截、限流、重试或注入策略。混用会模糊责任。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 回调、标签、元数据都通过 <code>RunnableConfig</code> 这个“信封”在调用时一路传递。为什么用一个统一 config 携带，而不是给每个方法加一堆参数？</div>
+  <div class="qn">3. 为什么需要 <code>astream_events</code> 这类事件流，而不只看最终文本？</div>
   <ol class="opts">
-    <li>没有原因</li>
-    <li>参数太多难看</li>
-    <li>一个随调用流动的上下文信封，能把横切配置无侵入地带到链的每一层，接口保持干净</li>
-    <li>config 更快</li>
+    <li>事件流只包含最终答案，没有中间过程</li>
+    <li>事件流能展示链、模型、工具等内部步骤的 start/stream/end/error，支撑细粒度 UI 和排错</li>
+    <li>事件流会提高模型准确率</li>
+    <li>事件流会替代所有业务日志和数据库</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。用“上下文信封”承载横切数据，避免每层接口被这些参数污染——又是把横切关注点和核心接口解耦。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. <code>astream_events</code> 能订阅“链中每一步”的细粒度事件。为什么需要比 stream 更细的事件流？</div>
-  <ol class="opts">
-    <li>构建复杂 UI（如展示 Agent 的思考/工具调用过程）需要知道“内部每一步发生了什么”，而不只是最终 token 流</li>
-    <li>更准确</li>
-    <li>凑功能</li>
-    <li>更省钱</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。细粒度事件让你能“看见 Agent 内部”，是做“显示推理过程/工具进度”这类高级 UI 的基础。粒度是为表达力服务的。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。复杂链路中，最终文本不足以解释发生了什么。事件流把内部运行过程变成可观察证据。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>“把追踪做成无侵入的横切回调”让你随时加监控。但回调里如果做了重活（同步写日志/网络），会拖慢主流程。你会怎么设计回调以避免它反过来拖累性能？</li>
-    <li>流式让用户更早看到输出，但也让“输出还没完就被读到”成为可能（比如解析到一半的 JSON）。流式带来的这种“不完整可见性”在你的场景里是利还是弊？</li>
+    <li>设计一个 UI token stream：前端如何接收 chunk、节流渲染、处理最终消息和错误状态，避免把半截 JSON 当成完成结果？</li>
+    <li>如果 callbacks 要记录调试信息，如何避免把系统提示、用户隐私、工具返回的秘密写进日志？请写出脱敏或白名单策略。</li>
   </ul>
 </div>
 </div>

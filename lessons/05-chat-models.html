@@ -314,9 +314,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/langchain_v1/langchain/chat_models/base.py</td><td class="mono">init_chat_model</td><td>用户友好的模型工厂，解析 provider:model 字符串并实例化对应聊天模型。</td><td>从应用配置进入 partner wrapper。</td></tr><tr><td class="mono">libs/core/langchain_core/language_models/chat_models.py</td><td class="mono">BaseChatModel</td><td>聊天模型抽象基类，定义输入转换、invoke、stream、batch、工具绑定和结构化输出等公共行为。</td><td>具体 provider wrapper 继承并实现底层生成。</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/config.py</td><td class="mono">RunnableConfig</td><td>携带 tags、metadata、callbacks、run_name、max_concurrency 等运行配置。</td><td>从上层 Runnable 调用向模型和子调用传播。</td></tr><tr><td class="mono">libs/partners/openai/langchain_openai/chat_models/base.py</td><td class="mono">ChatOpenAI</td><td>OpenAI 聊天模型 wrapper，负责参数映射、消息转换、工具调用和响应解析。</td><td>实现 BaseChatModel 并调用 OpenAI SDK。</td></tr><tr><td class="mono">libs/partners/anthropic/langchain_anthropic/chat_models.py</td><td class="mono">ChatAnthropic</td><td>Anthropic 聊天模型 wrapper，处理 Anthropic 消息格式、流式 chunk 和工具调用差异。</td><td>实现 BaseChatModel 并调用 Anthropic SDK。</td></tr></table>
 <h2>状态流：从模型字符串到 AIMessage</h2>
 <p>下面的状态流展示为什么“换模型只改配置”在理想情况下可行。上层构造消息列表，模型工厂选 wrapper，wrapper 负责把标准消息变成 provider 请求，响应再被包装回 <span class="mono">AIMessage</span>。如果你把 provider 原始响应穿透到业务层，这条稳定路径就会被打破。</p>
-<div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>模型字符串</h4><p>例如 openai:gpt-5.1 或 anthropic:claude-sonnet-4-5，前缀决定 provider，后半段决定模型名。</p><div class="mono">provider:model</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>provider 包查找</h4><p>init_chat_model 解析前缀，检查可选依赖，找到 ChatOpenAI 或 ChatAnthropic。</p><div class="mono">init_chat_model(...)</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>wrapper 初始化</h4><p>统一参数和 provider-specific kwargs 被保存到模型对象。</p><div class="mono">BaseChatModel subclass</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>消息转换</h4><p>invoke 前把字符串、PromptValue 或消息列表规范化为 BaseMessage 列表。</p><div class="mono">convert input</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>provider 请求</h4><p>wrapper 翻译 role/content/tools/config，调用厂商 SDK。</p><div class="mono">SDK request</div></div></div><div class="step"><div class="num">6</div><div class="sc"><h4>AIMessage</h4><p>响应被解析为 content、tool_calls、response_metadata、usage_metadata。</p><div class="mono">AIMessage</div></div></div></div>
+<div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>模型字符串</h4><p>例如 openai:gpt-5.1 或 anthropic:claude-sonnet-4-5，前缀决定 provider，后半段决定模型名。</p><div class="mono">provider:model</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>provider 包查找</h4><p>init_chat_model 解析前缀，检查可选依赖，找到 ChatOpenAI 或 ChatAnthropic。</p><div class="mono">init_chat_model(...)</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>wrapper 初始化</h4><p>统一参数和 provider-specific kwargs 被保存到模型对象。</p><div class="mono">BaseChatModel subclass</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>消息转换</h4><p>invoke 前用 _convert_input 得到 PromptValue；消息序列分支才规范化为 BaseMessage 列表。</p><div class="mono">convert input</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>provider 请求</h4><p>wrapper 翻译 role/content/tools/config，调用厂商 SDK。</p><div class="mono">SDK request</div></div></div><div class="step"><div class="num">6</div><div class="sc"><h4>AIMessage</h4><p>响应被解析为 content、tool_calls、response_metadata、usage_metadata。</p><div class="mono">AIMessage</div></div></div></div>
 <h2>代码走读：简化版 init_chat_model + invoke</h2>
-<p>真实代码会处理更多 provider、可选依赖、声明式配置、回调和缓存。这里保留两条关键路径：构造时把 provider 字符串映射到 wrapper；调用时把输入转成消息，合并 config，交给 provider 实现，最后返回标准 <span class="mono">AIMessage</span>。</p>
+<p>真实代码会处理更多 provider、可选依赖、声明式配置、回调和缓存。这里保留两条关键路径：构造时把 provider 字符串映射到 wrapper；调用时先把输入转成 <span class="mono">PromptValue</span>，再从 <span class="mono">RunnableConfig</span> 中取 callbacks、tags、metadata、run_name、run_id 传给 <span class="mono">generate_prompt</span>，最后返回标准 <span class="mono">AIMessage</span>。</p>
 <div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/langchain_v1/langchain/chat_models/base.py :: init_chat_model / BaseChatModel.invoke</span><span class="ln">简化版</span></div><pre>def init_chat_model(model, **kwargs):
     provider, model_name = parse_provider(model)
     if provider == &quot;openai&quot;:
@@ -327,10 +327,18 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 
 class BaseChatModel:
     def invoke(self, input, config=None, **kwargs):
-        messages = self._convert_input(input).to_messages()
-        run_config = ensure_config(config)
-        result = self.generate_prompt([messages], run_config, **kwargs)
-        return result.generations[0][0].message</pre><div class="cw-note">这是教学伪代码：真实 BaseChatModel 会经过 callback manager、缓存、批量生成、stream 适配和错误处理。</div></div>
+        prompt_value = self._convert_input(input)
+        config = ensure_config(config)
+        result = self.generate_prompt(
+            [prompt_value],
+            callbacks=config.get(&quot;callbacks&quot;),
+            tags=config.get(&quot;tags&quot;),
+            metadata=config.get(&quot;metadata&quot;),
+            run_name=config.get(&quot;run_name&quot;),
+            run_id=config.get(&quot;run_id&quot;),
+            **kwargs,
+        )
+        return result.generations[0][0].message</pre><div class="cw-note">这是教学伪代码：真实 BaseChatModel 还会经过 callback manager、缓存、批量生成、stream 适配和错误处理；这里强调 invoke 传给 generate_prompt 的是 PromptValue 列表和展开后的运行配置。</div></div>
 <h2>切换 provider 的追踪：业务消息不变</h2>
 <p>假设你的客服链只依赖消息和 <span class="mono">AIMessage</span>。当配置从 OpenAI 切到 Anthropic 时，变化应该集中在初始化层；prompt、工具 schema、输出解析器和下游 Runnable 仍面对同一种消息契约。下面的 trace 展示稳定部分和变化部分。</p>
 <table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1 初始配置</td><td>openai:gpt-5.1</td><td>init_chat_model 选择 ChatOpenAI。</td><td>model 是 BaseChatModel wrapper</td></tr><tr><td>2 调用链</td><td>[SystemMessage, HumanMessage]</td><td>业务代码调用 model.invoke(messages)。</td><td>AIMessage(content=..., response_metadata=...)</td></tr><tr><td>3 切换配置</td><td>anthropic:claude-sonnet-4-5</td><td>同一工厂选择 ChatAnthropic。</td><td>另一个 BaseChatModel wrapper</td></tr><tr><td>4 下游不变</td><td>相同 messages / parser / Runnable</td><td>调用代码仍读取 AIMessage.content 或 tool_calls。</td><td>业务层无需处理 Anthropic 原始响应</td></tr><tr><td>5 差异隔离</td><td>provider-specific kwargs</td><td>只在模型构造处处理特殊参数和能力差异。</td><td>爆炸半径被限制在适配层</td></tr></table>
@@ -405,62 +413,49 @@ class BaseChatModel:
 <div class="card version"><div class="tag">📌 版本锚点</div>本课以 LangChain v1 的 init_chat_model、BaseChatModel 和 partner wrapper 分层为锚点。不同版本的模型名、可选依赖和 provider 参数会变化，但“高层工厂 → BaseChatModel → partner wrapper → AIMessage”的阅读路径保持稳定。</div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. <code>init_chat_model('厂商:型号')</code> 把“换模型”做成改一行字符串。为了这个体验，框架在背后承担了什么？</div>
+  <div class="qn">1. 聊天模型 wrapper 与 provider 原生 SDK 的边界，最准确的说法是？</div>
   <ol class="opts">
-    <li>限制你只能用大厂</li>
-    <li>什么都没做</li>
-    <li>让模型变慢</li>
-    <li>把各厂商千差万别的 SDK/参数/认证统一适配到同一套接口背后——复杂度被收进框架，留给你的是简单</li>
+    <li>wrapper 只负责保存 API key，不处理消息转换</li>
+    <li>wrapper 实现 LangChain 的 Runnable/消息契约，内部才调用 provider SDK</li>
+    <li>业务代码应该读取 provider 原始 HTTP 响应来保持灵活</li>
+    <li>wrapper 就是 provider SDK 的别名，不改变输入输出</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。“你这边一行、框架那边一堆适配”。简单的使用面背后是被吸收的复杂度——这正是好抽象的标志。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。边界在 wrapper：上层面对 BaseChatModel、RunnableConfig 和 AIMessage；provider SDK、payload 差异和响应解析应被隔离在适配层。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. <code>invoke / stream / batch</code> 共用一套接口、还都有 async 版。为什么不为每种场景设计不同的 API？</div>
+  <div class="qn">2. <code>model.invoke(...)</code> 的标准返回类型是什么？</div>
   <ol class="opts">
-    <li>偷懒</li>
-    <li>同一个模型对象覆盖“要完整结果/打字机效果/批量吞吐/异步并发”四类需求，你不必换 API、心智负担最小</li>
-    <li>厂商规定</li>
-    <li>这样更慢</li>
+    <li><code>AIMessage</code>，其中可能包含 content、tool_calls、usage_metadata 等字段</li>
+    <li>裸字符串，因为下游只需要文本</li>
+    <li>总是 JSON dict，和工具 schema 一样</li>
+    <li>provider SDK 的原始响应对象</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。一套接口、多种执行语义，是 Runnable 抽象的红利（第 10 课）——换场景只换方法名，不换世界观。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。invoke 的统一输出是 AIMessage。想要字符串可再接 StrOutputParser；直接假设裸字符串会丢掉工具调用和元数据。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 模型行为可调：temperature、缓存、<code>with_retry</code>、限流器…都做成“可叠加的配置/包装”而非写死。好处是？</div>
+  <div class="qn">3. <code>bind_tools</code> 对聊天模型做了什么？</div>
   <ol class="opts">
-    <li>让代码更长</li>
-    <li>横切关注点（省钱/抗抖动/防 429）与“调用模型”本身解耦，可按需组合、随时增减，核心逻辑不变</li>
-    <li>强制你全用上</li>
-    <li>配置项多显得专业</li>
+    <li>保证模型一定会调用某个工具</li>
+    <li>立即调用所有工具并把结果写入数据库</li>
+    <li>把工具函数转换成 prompt 字符串后删除 schema</li>
+    <li>把工具 schema 绑定到模型请求上，让模型可以返回 tool_calls，但不执行工具</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把“重试/缓存/限流”做成可插拔包装，是“关注点分离”——你像搭积木一样按需加固，而不是把这些塞进业务代码。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. 输入很灵活（字符串/消息/元组），输出却很统一（<code>AIMessage</code>）。这种“入口宽、出口窄”的设计意图是？</div>
-  <ol class="opts">
-    <li>故意不一致</li>
-    <li>为了少写代码</li>
-    <li>入口宽 = 怎么顺手怎么传；出口统一 = 下游永远拿到同一种结构，可稳定衔接解析器/工具/Agent</li>
-    <li>没什么意图</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。“宽进严出”——容忍多样输入降低门槛，收敛统一输出保证可组合性。两头的设计各有目的。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。bind_tools 改变的是模型可见的工具说明和 provider 请求格式；真实执行仍由 Agent、图节点或你的业务代码完成。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>“把复杂度收进框架、只给用户一行”是好抽象，但有时你需要某厂商的独特参数。当统一接口“漏掉”了你要的特性，框架一般留了什么后门？这种“通用 vs 专有”的张力你怎么平衡？</li>
-    <li>缓存能省钱、但可能返回过时结果；重试能抗抖动、但可能放大重复请求。给“省钱”和“稳定”各举一个<strong>会反噬</strong>的场景。</li>
+    <li>设计一次从 OpenAI 切到 Anthropic 的改动：哪些代码应该只改模型构造或配置，哪些业务链、parser、工具执行代码不应该跟着改？</li>
+    <li>检查一个模型配置对象：列出通用参数、provider-specific 参数、RunnableConfig 中的 tags/metadata/callbacks，并说明各自应该在哪一层使用。</li>
   </ul>
 </div>
 </div>

@@ -414,62 +414,49 @@ prompt = ChatPromptTemplate.from_messages([
 <div class="card version"><div class="tag">📌 版本锚点</div>本课以 langchain_core.prompts 的 ChatPromptTemplate、MessagesPlaceholder、ChatPromptValue 和 Runnable 组合为锚点。模板语法会扩展，但“声明变量 → 校验输入 → 格式化消息 → 交给模型”的路径是长期稳定的。</div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. ChatPromptTemplate 把“提示的结构”和“具体内容”分离（模板 + 变量）。这种分离图什么？</div>
+  <div class="qn">1. 为什么说 prompt template 也是一个 <code>Runnable</code>？</div>
   <ol class="opts">
-    <li>让提示更短</li>
-    <li>看起来工整</li>
-    <li>省 token</li>
-    <li>结构固定、内容可变：同一个提示骨架能复用于不同输入，避免到处拼字符串、易维护易测试</li>
+    <li>它会自动保存所有聊天历史</li>
+    <li>它能接收输入并产出 PromptValue / 消息，再和 model、parser 组成同一条管道</li>
+    <li>它只能返回普通字符串，不能进入链</li>
+    <li>它会直接调用 provider SDK</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。“把会变的（内容）和不变的（结构）分开”是模板的通用价值——和第 8 课“代码自描述”、第 3 课“中间表示”一样，都是隔离变化点。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。Runnable 化让提示渲染成为链的一步：prompt | model | parser 可以共享 invoke、stream、config 等组合方式。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. MessagesPlaceholder 专门为“一整串历史消息”留一个插槽。为什么不直接把历史拼成一段文本塞进去？</div>
+  <div class="qn">2. <code>MessagesPlaceholder</code> 相比把 history 拼成字符串，关键优势是什么？</div>
   <ol class="opts">
-    <li>占位符更快</li>
-    <li>没区别</li>
-    <li>文本太长</li>
-    <li>历史是结构化消息（带角色/工具调用），用占位符保留其结构，模型才能正确理解多轮对话，而非一团文本</li>
+    <li>把所有历史都改成 SystemMessage</li>
+    <li>让模型无法看到用户输入</li>
+    <li>保留每条历史消息的角色、工具调用和元数据结构</li>
+    <li>让历史永远不会超出上下文窗口</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。呼应第 6 课——消息的结构化是有意义的。MessagesPlaceholder 保住了这份结构，而不是把它压扁成字符串。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。消息列表是结构化上下文。压平成字符串会丢失角色和 tool_call_id，影响多轮、工具回合和裁剪策略。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 提示模板也是 Runnable，能直接 <code>prompt | model | parser</code>。把模板纳入 Runnable 体系，好处是？</div>
+  <div class="qn">3. partial variables 最适合解决什么问题？</div>
   <ol class="opts">
-    <li>凑数</li>
-    <li>减少代码</li>
-    <li>模板更准</li>
-    <li>提示渲染成了管道的第一节，和模型/解析无缝串联，整条链统一可组合</li>
+    <li>把稳定但重复的变量预先绑定到 prompt，调用时只传剩余动态输入</li>
+    <li>替代所有 runtime config</li>
+    <li>把模型输出提前写死</li>
+    <li>让用户输入绕过模板校验</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。又是闭包性的回报——连“填提示”这步都是 Runnable，整条“提示→模型→解析”就是一条同质的链。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. few-shot（在提示里给几个范例）被称为“稳定输出格式的利器”。从设计角度，它本质上在做什么？</div>
-  <ol class="opts">
-    <li>训练模型</li>
-    <li>让提示更长</li>
-    <li>用“示范”替代“说教”：给模型看几个‘输入→期望输出’的例子，比纯文字描述更能稳定它的行为</li>
-    <li>增加 token 浪费</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。few-shot 是“用例子定义期望”。它不改模型权重，只在上下文里用范例引导——一种轻量、即时的“行为塑造”。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。partial 把固定上下文或格式说明预先填入模板，减少调用端重复，同时保留剩余变量的显式输入边界。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>“结构与内容分离”让提示可复用，但提示工程里“一字之差结果大不同”。当模板化遇上“提示很敏感”，你会怎么管理和测试不同版本的提示？</li>
-    <li>few-shot 用范例稳定格式，但范例占 token、也可能让模型过拟合到例子。你会怎么权衡“给几个例子”和“成本/泛化”？</li>
+    <li>比较两种历史传入方式：一段 history 字符串 vs <code>MessagesPlaceholder</code> 消息列表。分别说明它们在角色保留、工具回合和裁剪上的后果。</li>
+    <li>说明 prompt injection 的边界：系统提示、开发者模板、用户变量和检索内容各自应如何隔离，哪些内容不能被用户输入覆盖？</li>
   </ul>
 </div>
 </div>

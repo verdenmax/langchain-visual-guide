@@ -16,8 +16,8 @@ r"""
 <p>学习消息系统时，不要先背所有子类，而要先抓住一条主线：输入会被规范化为消息对象；provider adapter 会把消息对象翻译为厂商 payload；模型响应会再被归一化为 <span class="mono">AIMessage</span>；如果它包含 <span class="mono">tool_calls</span>，程序执行工具并追加 <span class="mono">ToolMessage</span>；随后 Runnable、Agent 或图节点继续读取同一份消息状态。</p>
 """,
 shell.lesson_map("消息系统的五个检查点", [
-    ("原始输入", "字符串、二元组、dict、BaseMessage 列表都可能出现在用户层", "before"),
-    ("规范化", "convert_to_messages 把松散输入变成明确消息对象", "now"),
+    ("原始输入", "字符串、PromptValue、BaseMessage 序列都可能出现在用户层", "before"),
+    ("规范化", "BaseChatModel._convert_input 先分流；序列元素再由 convert_to_messages 规范化", "now"),
     ("适配器", "provider wrapper 读取 role/content/tool_calls 并生成厂商请求", "source"),
     ("工具回合", "AIMessage.tool_calls 表达意图，ToolMessage 表达执行观察", "now"),
     ("下游状态", "Runnable、Agent、LangGraph 节点共享同一种消息列表", "after"),
@@ -31,37 +31,49 @@ shell.source_map([
     {"file": "libs/core/langchain_core/messages/human.py", "symbol": "HumanMessage", "role": "表示用户或外部人类发出的内容，是最常见的输入消息。", "direction": "由输入转换层创建，传入聊天模型。"},
     {"file": "libs/core/langchain_core/messages/ai.py", "symbol": "AIMessage", "role": "表示模型回复，承载 content、tool_calls、invalid_tool_calls、usage_metadata。", "direction": "由模型包装器返回，下游循环继续消费。"},
     {"file": "libs/core/langchain_core/messages/tool.py", "symbol": "ToolMessage", "role": "表示工具执行结果，并用 tool_call_id 对齐某个 AIMessage 工具请求。", "direction": "由工具执行层追加，再回灌给模型。"},
-    {"file": "libs/core/langchain_core/messages/utils.py", "symbol": "convert_to_messages", "role": "把字符串、元组、dict、PromptValue 或消息对象列表转换为标准消息列表。", "direction": "模型调用前的输入边界。"},
+    {"file": "libs/core/langchain_core/messages/utils.py", "symbol": "convert_to_messages / _convert_to_message", "role": "把 PromptValue 或消息表示序列转换为标准消息列表；序列里的单个 str、二元组、dict、BaseMessage 由 _convert_to_message 处理。", "direction": "BaseChatModel._convert_input 处理序列分支时调用它。"},
+    {"file": "libs/core/langchain_core/language_models/chat_models.py", "symbol": "BaseChatModel._convert_input", "role": "把裸字符串先变成 StringPromptValue，把消息序列变成 ChatPromptValue；不是直接把裸 str 交给 convert_to_messages。", "direction": "聊天模型 invoke/stream 前的真实输入分流点。"},
 ]),
 r"""
 <h2>主流程：字符串 / 列表 / 字典如何进入工具回合</h2>
-<p>消息规范化不是装饰步骤，而是系统边界。字符串在调用便利层里通常会变成 <span class="mono">HumanMessage</span>；<span class="mono">[(\"system\", \"...\"), (\"human\", \"...\")]</span> 会变成对应消息；已经是 <span class="mono">BaseMessage</span> 的对象则尽量保留。规范化之后，provider adapter 才能做确定翻译：role 映射到厂商字段，content 映射到文本或多模态块，tool_calls 映射到函数调用格式，metadata 映射到追踪信息。</p>
+<p>消息规范化不是装饰步骤，而是系统边界。真实聊天模型入口会先经过 <span class="mono">BaseChatModel._convert_input</span>：裸字符串变成 <span class="mono">StringPromptValue</span>；<span class="mono">PromptValue</span> 原样保留；消息序列才交给 <span class="mono">convert_to_messages</span>。在序列内部，<span class="mono">(\"system\", \"...\")</span>、dict 或已经构造好的 <span class="mono">BaseMessage</span> 元素再由 <span class="mono">_convert_to_message</span> 逐个转成明确消息对象。规范化之后，provider adapter 才能做确定翻译：role 映射到厂商字段，content 映射到文本或多模态块，tool_calls 映射到函数调用格式，metadata 映射到追踪信息。</p>
 """,
 shell.call_graph([
-    ("string / list / dict 输入", "用户层为了方便允许多种表示", True),
-    ("message objects", "convert_to_messages 统一成 BaseMessage 子类", True),
+    ("str / PromptValue / sequence 输入", "BaseChatModel._convert_input 先按顶层类型分流", True),
+    ("StringPromptValue / ChatPromptValue", "裸字符串不直接进 convert_to_messages；序列才会继续转换", True),
+    ("sequence items", "convert_to_messages 逐个调用 _convert_to_message", True),
+    ("message objects", "序列里的 BaseMessage 元素会被保留，tuple/dict/str 元素被转成消息", True),
     ("provider adapter", "翻译 role、content、tool schema 和额外字段", False),
     ("AIMessage/tool_calls", "模型返回内容或请求工具执行", True),
     ("Runnable / Agent", "下游读取同一消息列表继续编排", True),
 ]),
 r"""
 <h2>代码走读：简化版消息规范化</h2>
-<p>真实 <span class="mono">convert_to_messages</span> 需要处理更多输入类型和错误分支。下面的伪代码保留 C 级阅读时最重要的判断顺序：如果已经是消息对象就保留；如果是字符串就当作人类输入；如果是二元组或字典，就根据 role/type 选择子类；如果无法识别，应尽早报错，而不是把不明结构悄悄塞进模型。</p>
+<p>真实源码里要分清两层：聊天模型的 <span class="mono">_convert_input</span> 负责顶层输入分流，消息工具里的 <span class="mono">convert_to_messages</span> 负责把“消息表示的序列”逐项转换。也就是说，裸 <span class="mono">str</span> 会先成为 <span class="mono">StringPromptValue</span>；单个裸 <span class="mono">BaseMessage</span> 不是 <span class="mono">convert_to_messages</span> 的常规入口；序列中的单个元素才会委托给 <span class="mono">_convert_to_message</span>。下面的伪代码保留这条来源准确的阅读路径。</p>
 """,
 shell.code_walkthrough(
-    "libs/core/langchain_core/messages/utils.py",
-    "convert_to_messages",
-    '''def convert_to_messages(value):
-    if isinstance(value, BaseMessage):
-        return [value]
-    if isinstance(value, str):
-        return [HumanMessage(content=value)]
-    if isinstance(value, list):
-        return [convert_one(item) for item in value]
+    "libs/core/langchain_core/language_models/chat_models.py + messages/utils.py",
+    "BaseChatModel._convert_input / convert_to_messages",
+    '''class BaseChatModel:
+    def _convert_input(self, input):
+        if isinstance(input, PromptValue):
+            return input
+        if isinstance(input, str):
+            return StringPromptValue(text=input)
+        if isinstance(input, Sequence):
+            return ChatPromptValue(messages=convert_to_messages(input))
+        raise ValueError("Invalid input type")
 
-def convert_one(item):
+def convert_to_messages(messages):
+    if isinstance(messages, PromptValue):
+        return messages.to_messages()
+    return [_convert_to_message(item) for item in messages]
+
+def _convert_to_message(item):
     if isinstance(item, BaseMessage):
         return item
+    if isinstance(item, str):
+        return HumanMessage(content=item)
     if isinstance(item, tuple):
         role, content = item
         return message_from_role(role, content)
@@ -69,14 +81,14 @@ def convert_one(item):
         role = item.get("role") or item.get("type")
         return message_from_role(role, item.get("content"), item)
     raise ValueError("unsupported message representation")''',
-    "这是教学伪代码：真实实现还会处理 PromptValue、content blocks、message chunk 和更细的校验。",
+    "这是教学伪代码：真实实现还会处理 content blocks、message chunk 和更细的校验；重点是顶层 str 由 _convert_input 包成 StringPromptValue，序列元素才走 _convert_to_message。",
 ),
 r"""
 <h2>例子追踪：“查订单 123”的一轮工具调用</h2>
 <p>下面的 trace 故意把每个中间对象写出来。关键点是：<span class="mono">AIMessage.tool_calls</span> 只是模型提出的意图，不是工具已经执行；真正的执行结果必须成为 <span class="mono">ToolMessage</span>，并且它的 <span class="mono">tool_call_id</span> 要和原始调用 id 对上。没有这个 id，下一轮模型就不知道哪条观察对应哪次请求。</p>
 """,
 shell.trace_table([
-    {"step": "1 用户输入", "input": "查订单 123", "action": "输入边界把字符串包装成 HumanMessage。", "output": "HumanMessage(content='查订单 123')"},
+    {"step": "1 用户输入", "input": "查订单 123", "action": "BaseChatModel._convert_input 先把裸字符串包装成 StringPromptValue，生成时再展开成 HumanMessage。", "output": "StringPromptValue(text='查订单 123') → HumanMessage(content='查订单 123')"},
     {"step": "2 模型判断", "input": "HumanMessage + order_lookup schema", "action": "模型决定调用工具，返回带 tool_calls 列表的 AIMessage。", "output": "AIMessage(tool_calls=[{'id':'call_1','name':'lookup_order','args':{'id':'123'}}])"},
     {"step": "3 程序执行", "input": "call_1 / lookup_order / id=123", "action": "你的代码调用真实订单系统，获得状态。", "output": "订单 123 已发往上海"},
     {"step": "4 工具观察", "input": "执行结果 + call_1", "action": "把结果包装为 ToolMessage，绑定 tool_call_id。", "output": "ToolMessage(content='已发往上海', tool_call_id='call_1')"},
@@ -201,13 +213,13 @@ shell.state_flow([
     ("模型字符串", "例如 openai:gpt-5.1 或 anthropic:claude-sonnet-4-5，前缀决定 provider，后半段决定模型名。", "provider:model"),
     ("provider 包查找", "init_chat_model 解析前缀，检查可选依赖，找到 ChatOpenAI 或 ChatAnthropic。", "init_chat_model(...)"),
     ("wrapper 初始化", "统一参数和 provider-specific kwargs 被保存到模型对象。", "BaseChatModel subclass"),
-    ("消息转换", "invoke 前把字符串、PromptValue 或消息列表规范化为 BaseMessage 列表。", "convert input"),
+    ("消息转换", "invoke 前用 _convert_input 得到 PromptValue；消息序列分支才规范化为 BaseMessage 列表。", "convert input"),
     ("provider 请求", "wrapper 翻译 role/content/tools/config，调用厂商 SDK。", "SDK request"),
     ("AIMessage", "响应被解析为 content、tool_calls、response_metadata、usage_metadata。", "AIMessage"),
 ]),
 r"""
 <h2>代码走读：简化版 init_chat_model + invoke</h2>
-<p>真实代码会处理更多 provider、可选依赖、声明式配置、回调和缓存。这里保留两条关键路径：构造时把 provider 字符串映射到 wrapper；调用时把输入转成消息，合并 config，交给 provider 实现，最后返回标准 <span class="mono">AIMessage</span>。</p>
+<p>真实代码会处理更多 provider、可选依赖、声明式配置、回调和缓存。这里保留两条关键路径：构造时把 provider 字符串映射到 wrapper；调用时先把输入转成 <span class="mono">PromptValue</span>，再从 <span class="mono">RunnableConfig</span> 中取 callbacks、tags、metadata、run_name、run_id 传给 <span class="mono">generate_prompt</span>，最后返回标准 <span class="mono">AIMessage</span>。</p>
 """,
 shell.code_walkthrough(
     "libs/langchain_v1/langchain/chat_models/base.py",
@@ -222,11 +234,19 @@ shell.code_walkthrough(
 
 class BaseChatModel:
     def invoke(self, input, config=None, **kwargs):
-        messages = self._convert_input(input).to_messages()
-        run_config = ensure_config(config)
-        result = self.generate_prompt([messages], run_config, **kwargs)
+        prompt_value = self._convert_input(input)
+        config = ensure_config(config)
+        result = self.generate_prompt(
+            [prompt_value],
+            callbacks=config.get("callbacks"),
+            tags=config.get("tags"),
+            metadata=config.get("metadata"),
+            run_name=config.get("run_name"),
+            run_id=config.get("run_id"),
+            **kwargs,
+        )
         return result.generations[0][0].message''',
-    "这是教学伪代码：真实 BaseChatModel 会经过 callback manager、缓存、批量生成、stream 适配和错误处理。",
+    "这是教学伪代码：真实 BaseChatModel 还会经过 callback manager、缓存、批量生成、stream 适配和错误处理；这里强调 invoke 传给 generate_prompt 的是 PromptValue 列表和展开后的运行配置。",
 ),
 r"""
 <h2>切换 provider 的追踪：业务消息不变</h2>
