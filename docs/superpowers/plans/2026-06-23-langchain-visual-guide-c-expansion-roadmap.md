@@ -14,7 +14,7 @@
 | M6 | Part 6 Agent internals | Not started | Plan pending after M5 review |
 | M7 | Part 7 RAG and memory | Not started | Plan pending after M6 review |
 | M8 | Part 8 engineering, testing, debugging, contribution, migration | Not started | Plan pending after M7 review |
-| M9 | Part 9 ecosystem comparison, glossary, print/PDF/README final polish | Not started | Plan pending after M8 review |
+| M9 | Part 9 ecosystem comparison, glossary, print/PDF/README final polish, including PDF/current-state 27-lesson references | Not started | Plan pending after M8 review |
 
 ## Per-milestone rule
 
