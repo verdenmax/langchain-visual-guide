@@ -40,6 +40,11 @@ SEMANTIC_VISUAL_CLASSES = {
 }
 
 GENERIC_VISUAL_WRAPPER_CLASSES = {
+    # Legacy/current lessons count these generic layout helpers as standalone
+    # visual blocks. C-level authors should not wrap semantic C-level
+    # components (lesson-map, source-map, etc.) inside counted generic wrappers;
+    # use non-counted markup or a dedicated semantic component when layout is
+    # needed around semantic visuals.
     "flow",
     "vflow",
     "cols",
@@ -66,6 +71,14 @@ VOID_TAGS = {
 
 
 class _DensityHTMLParser(HTMLParser):
+    """Count top-level visual blocks in generated lesson HTML.
+
+    Any element with a counted visual class, including generic wrappers
+    ``flow``, ``vflow``, and ``cols``, counts as one standalone visual block in
+    legacy/current components. Once a visual block is counted, descendants are
+    suppressed to avoid double counting nested semantic components or tables.
+    """
+
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.class_counts = Counter()
