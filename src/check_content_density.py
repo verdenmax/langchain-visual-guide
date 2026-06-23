@@ -8,6 +8,8 @@ ignored until their Part is rewritten.
 import os
 import re
 import sys
+from collections import Counter
+from html.parser import HTMLParser
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
@@ -25,13 +27,101 @@ RE_SCRIPT_STYLE = re.compile(r"<(script|style)\b.*?</\1>", re.I | re.S)
 RE_PRE = re.compile(r"<pre\b.*?</pre>", re.I | re.S)
 RE_TAG = re.compile(r"<[^>]+>")
 
+SEMANTIC_VISUAL_CLASSES = {
+    "lesson-map",
+    "source-map",
+    "call-graph",
+    "state-flow",
+    "trace-table",
+    "svg-diagram",
+    "code-walkthrough",
+    "pitfall-grid",
+    "lab",
+}
+
+TABLE_VISUAL_CLASSES = {"source-map", "trace-table"}
+VOID_TAGS = {
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "param",
+    "source",
+    "track",
+    "wbr",
+}
+
+
+class _DensityHTMLParser(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.class_counts = Counter()
+        self.visual_blocks = 0
+        self._open_tags = []
+        self._semantic_depth = 0
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        classes = _classes_from_attrs(attrs)
+        self.class_counts.update(classes)
+
+        is_semantic_visual = bool(classes & SEMANTIC_VISUAL_CLASSES)
+        if is_semantic_visual:
+            self.visual_blocks += 1
+            if tag not in VOID_TAGS:
+                self._semantic_depth += 1
+        elif (
+            tag == "table"
+            and not classes & TABLE_VISUAL_CLASSES
+            and self._semantic_depth == 0
+        ):
+            self.visual_blocks += 1
+
+        if tag not in VOID_TAGS:
+            self._open_tags.append((tag, is_semantic_visual))
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        matching_index = next(
+            (
+                index
+                for index in range(len(self._open_tags) - 1, -1, -1)
+                if self._open_tags[index][0] == tag
+            ),
+            None,
+        )
+        if matching_index is None:
+            return
+
+        while len(self._open_tags) > matching_index:
+            open_tag, was_semantic_visual = self._open_tags.pop()
+            if was_semantic_visual:
+                self._semantic_depth -= 1
+
+
+def _classes_from_attrs(attrs):
+    classes = set()
+    for name, value in attrs:
+        if name.lower() == "class" and value:
+            classes.update(value.split())
+    return classes
+
+
+def _parse_density(html):
+    parser = _DensityHTMLParser()
+    parser.feed(html)
+    parser.close()
+    return parser
+
 
 def _class_count(html, class_name):
-    count = 0
-    for value in re.findall(r'class="([^"]*)"', html, re.I):
-        if class_name in value.split():
-            count += 1
-    return count
+    return _parse_density(html).class_counts[class_name]
 
 
 def cjk_count(html):
@@ -42,23 +132,7 @@ def cjk_count(html):
 
 
 def visual_count(html):
-    classes = [
-        "lesson-map",
-        "source-map",
-        "call-graph",
-        "state-flow",
-        "trace-table",
-        "svg-diagram",
-        "flow",
-        "vflow",
-        "cols",
-        "code-walkthrough",
-        "pitfall-grid",
-        "lab",
-    ]
-    return sum(_class_count(html, cls) for cls in classes) + len(
-        re.findall(r"<table\b", html, re.I)
-    )
+    return _parse_density(html).visual_blocks
 
 
 def check_page(fname, rules):
