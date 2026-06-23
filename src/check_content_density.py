@@ -45,6 +45,8 @@ GENERIC_VISUAL_WRAPPER_CLASSES = {
     "cols",
 }
 
+COUNTED_VISUAL_CLASSES = SEMANTIC_VISUAL_CLASSES | GENERIC_VISUAL_WRAPPER_CLASSES
+
 VOID_TAGS = {
     "area",
     "base",
@@ -69,43 +71,27 @@ class _DensityHTMLParser(HTMLParser):
         self.class_counts = Counter()
         self.visual_blocks = 0
         self._open_tags = []
-        self._semantic_depth = 0
+        self._visual_depth = 0
 
     def handle_starttag(self, tag, attrs):
         tag = tag.lower()
         classes = _classes_from_attrs(attrs)
         self.class_counts.update(classes)
 
-        is_semantic_visual = bool(classes & SEMANTIC_VISUAL_CLASSES)
-        is_generic_visual_wrapper = (
-            bool(classes & GENERIC_VISUAL_WRAPPER_CLASSES)
-            and self._semantic_depth == 0
-        )
-        # Count independent visual blocks: semantic components count directly;
-        # generic flow/vflow/cols wrappers count only if they do not wrap a
-        # nested semantic component; plain tables count only outside counted
-        # semantics.
-        if is_semantic_visual:
-            for open_tag in self._open_tags:
-                if open_tag["is_generic_visual_wrapper"]:
-                    open_tag["has_nested_semantic_visual"] = True
-            self.visual_blocks += 1
-            if tag not in VOID_TAGS:
-                self._semantic_depth += 1
-        elif (
-            tag == "table"
-            and not classes & SEMANTIC_VISUAL_CLASSES
-            and self._semantic_depth == 0
-        ):
+        has_counted_class = bool(classes & COUNTED_VISUAL_CLASSES)
+        is_plain_table = tag == "table" and not has_counted_class
+        is_counted_visual = has_counted_class or is_plain_table
+
+        if is_counted_visual and self._visual_depth == 0:
             self.visual_blocks += 1
 
         if tag not in VOID_TAGS:
+            if is_counted_visual:
+                self._visual_depth += 1
             self._open_tags.append(
                 {
                     "tag": tag,
-                    "is_semantic_visual": is_semantic_visual,
-                    "is_generic_visual_wrapper": is_generic_visual_wrapper,
-                    "has_nested_semantic_visual": False,
+                    "is_counted_visual": is_counted_visual,
                 }
             )
 
@@ -124,15 +110,8 @@ class _DensityHTMLParser(HTMLParser):
 
         while len(self._open_tags) > matching_index:
             open_tag = self._open_tags.pop()
-            if open_tag["is_semantic_visual"]:
-                self._semantic_depth -= 1
-            # Generic layout wrappers only represent an independent visual block
-            # when they are not merely wrapping a nested semantic visual component.
-            if (
-                open_tag["is_generic_visual_wrapper"]
-                and not open_tag["has_nested_semantic_visual"]
-            ):
-                self.visual_blocks += 1
+            if open_tag["is_counted_visual"]:
+                self._visual_depth -= 1
 
 
 def _classes_from_attrs(attrs):
