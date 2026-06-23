@@ -57,6 +57,12 @@ def check_balance(name, html, tag):
         add("ERR", name, f"<{tag}> unbalanced: {o} open / {c} close")
 
 
+def check_stale(name, html):
+    for bad in STALE:
+        if bad in html:
+            add("ERR", name, f"stale text: {bad!r}")
+
+
 def check_lesson(fname, html):
     for tag in ("div", "details", "table", "pre", "summary"):
         check_balance(fname, html, tag)
@@ -77,9 +83,7 @@ def check_lesson(fname, html):
         if "card analogy" not in html:
             add("WARN", fname, "no analogy card")
 
-    for bad in STALE:
-        if bad in html:
-            add("ERR", fname, f"stale text: {bad!r}")
+    check_stale(fname, html)
 
     # unescaped '<' inside <pre>
     for pre in re.findall(r"<pre[^>]*>(.*?)</pre>", html, re.S):
@@ -115,6 +119,7 @@ def main():
 
     index_path = os.path.join(ROOT, shell.INDEX_FILE)
     idx = open(index_path, encoding="utf-8").read()
+    check_stale("index.html", idx)
     for fname, title, _part in PAGES:
         if fname not in idx:
             add("ERR", "index.html", f"TOC missing entry {fname}")
