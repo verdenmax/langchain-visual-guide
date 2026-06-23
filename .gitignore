@@ -16,3 +16,4 @@ Thumbs.db
 print.html
 *.pdf
 _site/
+.superpowers/
