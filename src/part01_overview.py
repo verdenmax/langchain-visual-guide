@@ -192,7 +192,7 @@ shell.source_map([
     {"file": "libs/core/langchain_core/", "symbol": "package root", "role": "核心协议、消息、Runnable、工具抽象、配置、回调。", "direction": "被 langchain、langgraph、partners 依赖；不应依赖具体厂商。"},
     {"file": "libs/langchain_v1/langchain/", "symbol": "package root", "role": "高层用户 API 与默认组合，例如 chat_models、agents。", "direction": "向下依赖 core、partners、langgraph。"},
     {"file": "langchain-ai/langgraph/libs/langgraph/langgraph/", "symbol": "package root", "role": "状态图、Pregel、checkpoint、中断、控制流。", "direction": "依赖 core 协议，对外提供可执行图。"},
-    {"file": "langchain-community/langchain_community/", "symbol": "package root", "role": "社区和长尾集成，范围广、变化快。", "direction": "依赖 core；稳定性弱于 core。"},
+    {"file": "langchain-ai/langchain-community/libs/community/langchain_community/", "symbol": "package root", "role": "社区和长尾集成，范围广、变化快。", "direction": "依赖 core；稳定性弱于 core。"},
     {"file": "libs/partners/openai/langchain_openai/", "symbol": "package root", "role": "OpenAI SDK 适配，参数与响应格式翻译。", "direction": "依赖 core；不应让 core 反向知道它。"},
     {"file": "libs/partners/anthropic/langchain_anthropic/", "symbol": "package root", "role": "Anthropic SDK 适配，处理该厂商的消息和工具调用差异。", "direction": "与其他 partner 平级隔离。"},
 ]),
@@ -523,7 +523,7 @@ shell.source_map([
     {"file": "libs/core/langchain_core/tools/convert.py", "symbol": "tool", "role": "把普通函数转换成 StructuredTool/BaseTool，生成 schema 与描述。", "direction": "Decorator -> tool object"},
     {"file": "libs/langchain_v1/langchain/agents/factory.py", "symbol": "create_agent", "role": "高层 Agent 工厂，组装模型、工具、中间件并产出图。", "direction": "Public API -> LangGraph"},
     {"file": "langchain-ai/langgraph/libs/langgraph/langgraph/graph/state.py", "symbol": "StateGraph", "role": "状态图构建器，定义 schema、节点、边、reducer，并 compile。", "direction": "Graph builder -> compiled graph"},
-    {"file": "langchain-ai/langgraph/libs/langgraph/langgraph/pregel/__init__.py", "symbol": "Pregel", "role": "执行引擎基类，负责按 superstep 调度节点、channel 更新和流式事件。", "direction": "Runtime engine -> node execution"},
+    {"file": "langchain-ai/langgraph/libs/langgraph/langgraph/pregel/main.py", "symbol": "Pregel", "role": "执行引擎基类，负责按 superstep 调度节点、channel 更新和流式事件。", "direction": "Runtime engine -> node execution"},
 ]),
 r"""
 <h2>算法：带问题读源码，而不是漫游</h2>
