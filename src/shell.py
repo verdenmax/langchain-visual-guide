@@ -251,7 +251,7 @@ PAGES = [
     ("24-langgraph-mental-model.html", "深入 LangGraph：图 / 状态 / 节点 / 边", "第七部分 · 深入 LangGraph"),
     ("25-langgraph-pregel-engine.html", "执行引擎：Pregel 与超步", "第七部分 · 深入 LangGraph"),
     ("26-langgraph-persistence-control.html", "持久化 · 中断 · 控制流", "第七部分 · 深入 LangGraph"),
-    ("27-glossary.html", "术语表 · 概念索引", "第八部分 · 速查"),
+    ("27-glossary.html", "术语表 · 概念索引", "附录 · 术语速查"),
 ]
 
 SUBTITLES = {

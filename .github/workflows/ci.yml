@@ -36,3 +36,7 @@ jobs:
       - name: Check HTML structure & consistency
         working-directory: src
         run: python check_html.py
+
+      - name: Check C-level content density
+        working-directory: src
+        run: python check_content_density.py

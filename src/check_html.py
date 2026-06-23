@@ -32,8 +32,9 @@ TOTAL = len(PAGES)
 
 # Substrings that must never appear in any generated HTML (stale counts/wording).
 STALE = [
-    "全 20 课", "全 23 课", "共 20 课", "5 部分 20 课",
-    "六个钩子", "第六部分 · 横向对比",
+    "全 20 课", "全 23 课", "全 27 课", "共 20 课", "5 部分 20 课",
+    "8 部分 · 27 课", "六个钩子", "第六部分 · 横向对比",
+    "第八部分 · 速查",
 ]
 
 # Inline tags allowed (unescaped) inside <pre> code blocks.
