@@ -32,7 +32,8 @@ html, body { height: auto !important; overflow: visible !important; background: 
 .accordion[open] > summary { border-bottom: 1px solid var(--line); }
 /* keep blocks from splitting awkwardly across pages */
 .card, .codefile, pre.code, table.t, .flow, .vflow .step, .layer,
-.accordion, .qa, .cols, .mockup { break-inside: avoid; }
+.accordion, .qa, .cols, .mockup, .lesson-map, .map-node, .svg-diagram,
+.pitfall, .trace-table, .source-map { break-inside: avoid; }
 h2, h3, h4 { break-after: avoid; }
 
 .print-cover { break-after: page; min-height: 90vh; display: flex; flex-direction: column;

@@ -252,6 +252,38 @@ PAGES = [
     ("27-glossary.html", "术语表 · 概念索引", "第八部分 · 速查"),
 ]
 
+SUBTITLES = {
+    "01-what-is-langchain.html": "LangChain / LangGraph / 生态边界 · 全书路线",
+    "02-monorepo.html": "langchain-core / langchain / langgraph / partners",
+    "03-lifecycle.html": "从用户代码到 provider API 的完整调用链",
+    "04-source-reading-map.html": "读源码先看哪些文件、类、函数和调用方向",
+    "05-learning-path.html": "如何按主线学习、调试、做实验和复习",
+    "04-messages.html": "Human / AI / Tool / System 消息",
+    "05-chat-models.html": "init_chat_model · invoke / stream / batch",
+    "06-tools.html": "@tool 装饰器 · 工具调用",
+    "07-agents-intro.html": "create_agent · Agent 循环",
+    "08-runnable.html": "invoke/stream/batch · LCEL 管道 |",
+    "09-runnable-compose.html": "Sequence / Parallel / Branch 组合",
+    "10-output-parsers.html": "StrOutputParser · JsonOutputParser · 闭环",
+    "11-chat-internals.html": "BaseChatModel 调用链",
+    "12-tool-internals.html": "函数 → JSON Schema → tool_calls",
+    "13-agent-internals.html": "LangGraph 状态图 · Send/Command · add_messages reducer",
+    "14-streaming-callbacks.html": "流式输出与回调追踪",
+    "15-contributing.html": "uv · 测试 · 调试 · 贡献",
+    "16-prompts.html": "ChatPromptTemplate · MessagesPlaceholder · few-shot",
+    "17-rag.html": "Document → 切块 → Embeddings → VectorStore → Retriever",
+    "18-custom-middleware.html": "AgentMiddleware 钩子 · before/after/wrap",
+    "19-runtime-context.html": "context_schema · with_fallbacks · stream_mode",
+    "20-capstone.html": "把所有零件拼成一个完整可跑的 Agent",
+    "21-langchain-vs-autogen.html": "两种范式对照：图/管道 vs 多 Agent 对话",
+    "22-ai-stack.html": "Agent 编排 5 流派 · AI 全栈 7 层 · 你在哪",
+    "23-learning-map.html": "vLLM/llama.cpp/Ollama · hnswlib/pgvector/Qdrant",
+    "24-langgraph-mental-model.html": "为什么 LCEL 不够 · State/Node/Edge/compile",
+    "25-langgraph-pregel-engine.html": "Pregel/BSP 超步 · Plan→Execution→Update · channels",
+    "26-langgraph-persistence-control.html": "Checkpoint/StateSnapshot · interrupt · Send/Command",
+    "27-glossary.html": "全书术语一句话查 + 点链接跳到对应课",
+}
+
 INDEX_FILE = "index.html"
 
 CSS = r"""
@@ -641,39 +673,10 @@ def index_page(standalone=False, lesson_prefix=""):
         parts[part].append((i + 1, fname, title))
 
     blocks = []
-    subtitles = {
-        "01-what-is-langchain.html": "解决什么问题 · 核心心智模型",
-        "02-monorepo.html": "core / langchain / partners 三层",
-        "03-lifecycle.html": "从你的代码到 LLM 的完整数据流",
-        "04-messages.html": "Human / AI / Tool / System 消息",
-        "05-chat-models.html": "init_chat_model · invoke / stream / batch",
-        "06-tools.html": "@tool 装饰器 · 工具调用",
-        "07-agents-intro.html": "create_agent · Agent 循环",
-        "08-runnable.html": "invoke/stream/batch · LCEL 管道 |",
-        "09-runnable-compose.html": "Sequence / Parallel / Branch 组合",
-        "10-output-parsers.html": "StrOutputParser · JsonOutputParser · 闭环",
-        "11-chat-internals.html": "BaseChatModel 调用链",
-        "12-tool-internals.html": "函数 → JSON Schema → tool_calls",
-        "13-agent-internals.html": "LangGraph 状态图 · Send/Command · add_messages reducer",
-        "14-streaming-callbacks.html": "流式输出与回调追踪",
-        "15-contributing.html": "uv · 测试 · 调试 · 贡献",
-        "16-prompts.html": "ChatPromptTemplate · MessagesPlaceholder · few-shot",
-        "17-rag.html": "Document → 切块 → Embeddings → VectorStore → Retriever",
-        "18-custom-middleware.html": "AgentMiddleware 钩子 · before/after/wrap",
-        "19-runtime-context.html": "context_schema · with_fallbacks · stream_mode",
-        "20-capstone.html": "把所有零件拼成一个完整可跑的 Agent",
-        "21-langchain-vs-autogen.html": "两种范式对照：图/管道 vs 多 Agent 对话",
-        "22-ai-stack.html": "Agent 编排 5 流派 · AI 全栈 7 层 · 你在哪",
-        "23-learning-map.html": "vLLM/llama.cpp/Ollama · hnswlib/pgvector/Qdrant",
-        "24-langgraph-mental-model.html": "为什么 LCEL 不够 · State/Node/Edge/compile",
-        "25-langgraph-pregel-engine.html": "Pregel/BSP 超步 · Plan→Execution→Update · channels",
-        "26-langgraph-persistence-control.html": "Checkpoint/StateSnapshot · interrupt · Send/Command",
-        "27-glossary.html": "全书术语一句话查 + 点链接跳到对应课",
-    }
     for part in order:
         blocks.append(f'<div class="toc-part">{part}</div>')
         for num, fname, title in parts[part]:
-            sub = subtitles.get(fname, "")
+            sub = SUBTITLES.get(fname, "")
             blocks.append(
                 f'<a data-nav="{lesson_prefix}{fname}"><span class="n">{num:02d}</span>'
                 f'<span class="tt">{title}</span>'
