@@ -107,6 +107,7 @@ langchain-visual-guide/
 ├── lessons/                ← 29 课图解页面（C 级扩充中，旧版目录保留为迁移参考）
 │   ├── 01-what-is-langchain.html
 │   ├── 02-monorepo.html
+│   ├── 03-lifecycle.html
 │   ├── 04-source-reading-map.html
 │   ├── 05-learning-path.html
 │   ├── …
@@ -120,6 +121,7 @@ langchain-visual-guide/
 │   ├── build_print.py      PDF 构建（→ print.html，折叠全展开）
 │   └── check_content_density.py  内容密度质量检查
 ├── .github/workflows/
+│   ├── ci.yml              CI：构建 / 链接防回归检查
 │   └── deploy.yml          CI：自动部署 Pages + 生成 PDF
 ├── README.md
 └── LICENSE
