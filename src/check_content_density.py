@@ -52,6 +52,9 @@ def visual_count(html):
         "flow",
         "vflow",
         "cols",
+        "code-walkthrough",
+        "pitfall-grid",
+        "lab",
     ]
     return sum(_class_count(html, cls) for cls in classes) + len(
         re.findall(r"<table\b", html, re.I)
