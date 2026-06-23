@@ -104,12 +104,15 @@ python -m http.server 8000
 ```
 langchain-visual-guide/
 ├── index.html              ← 入口（目录页），从这里开始
-├── lessons/                ← 29 课图解页面（C 级扩充中，旧版目录保留为迁移参考）
+├── print.html              ← 生成的单页打印 / PDF 源（可由 build_print.py 重建）
+├── lessons/                ← 29 课图解页面（C 级扩充中，新版 04/05 与旧版 04/05 暂时并存）
 │   ├── 01-what-is-langchain.html
 │   ├── 02-monorepo.html
 │   ├── 03-lifecycle.html
-│   ├── 04-source-reading-map.html
-│   ├── 05-learning-path.html
+│   ├── 04-source-reading-map.html   新版 C 级：源码阅读地图
+│   ├── 04-messages.html             旧版：消息系统（迁移中）
+│   ├── 05-learning-path.html        新版 C 级：学习路径
+│   ├── 05-chat-models.html          旧版：聊天模型（迁移中）
 │   ├── …
 │   └── 27-glossary.html
 ├── src/                    ← 无依赖的 Python 生成器（可重建全部 HTML / PDF）
@@ -119,9 +122,11 @@ langchain-visual-guide/
 │   ├── registry.py         课程 → 内容 的统一映射
 │   ├── build.py            站点构建（→ index.html + lessons/）
 │   ├── build_print.py      PDF 构建（→ print.html，折叠全展开）
+│   ├── check_links.py      内部链接检查
+│   ├── check_html.py       HTML 结构与一致性检查
 │   └── check_content_density.py  内容密度质量检查
 ├── .github/workflows/
-│   ├── ci.yml              CI：构建 / 链接防回归检查
+│   ├── ci.yml              CI：构建 / 链接 / HTML 结构 / 内容密度防回归检查
 │   └── deploy.yml          CI：自动部署 Pages + 生成 PDF
 ├── README.md
 └── LICENSE
@@ -157,7 +162,7 @@ chromium --headless=new --no-pdf-header-footer \
 3. 把 `index.html`、`lessons/`、`langchain-visual-guide.pdf` 部署到 **GitHub Pages**；
 4. PDF 同时作为构建产物上传；打 `v*` **标签**时还会自动发布 Release 并附带 PDF。
 
-另有 `.github/workflows/ci.yml`（每次 push / PR 触发）做**防回归**：① 重新运行 `build.py` 并校验提交的 HTML 与 `src/` **没有漂移**；② 运行 `check_links.py` 确保**内部链接无死链**。
+另有 `.github/workflows/ci.yml`（每次 push / PR 触发）做**防回归**：① 重新运行 `build.py` 并校验提交的 HTML 与 `src/` **没有漂移**；② 运行 `check_links.py` 确保**内部链接无死链**；③ 运行 `check_html.py` 与 `check_content_density.py` 检查 **HTML 结构 / 一致性** 和 **C 级内容密度**。
 
 **首次启用（一次性）：**
 1. 在 GitHub 新建仓库并推送：
