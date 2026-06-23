@@ -6,11 +6,13 @@
 > 🌐 **在线阅读**：<https://verdenmax.github.io/langchain-visual-guide/>　·　📄 **下载 PDF（全 27 课）**：[langchain-visual-guide.pdf](https://github.com/verdenmax/langchain-visual-guide/releases/latest/download/langchain-visual-guide.pdf)
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
-![Lessons](https://img.shields.io/badge/lessons-27-blue.svg)
+![Lessons](https://img.shields.io/badge/lessons-expanding_to_45--55-blue.svg)
 ![Parts](https://img.shields.io/badge/parts-8-9cf.svg)
 ![Built with](https://img.shields.io/badge/built%20with-Python%203-3776AB.svg?logo=python&logoColor=white)
 ![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 ![Language](https://img.shields.io/badge/docs-%E4%B8%AD%E6%96%87-orange.svg)
+
+> 🚧 **C 级扩充中**：本教程正在从旧版 27 课扩展为约 45-55 课的中文成书级深挖版本。新版本强调更多图、worked-example trace、真实源码入口、简化伪代码和自测练习。第一部分“全局地图”是新标准模板批次，后续部分会按 Part 分批迁移。
 
 一套面向**完全新手**的可视化（HTML 图解）教程，带你从零开始理解
 [LangChain](https://github.com/langchain-ai/langchain) 这个项目——既有**宏观全景**，也有**细节源码**，
