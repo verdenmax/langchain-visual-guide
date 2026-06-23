@@ -104,16 +104,21 @@ python -m http.server 8000
 ```
 langchain-visual-guide/
 ├── index.html              ← 入口（目录页），从这里开始
-├── lessons/                ← 29 课图解页面
+├── lessons/                ← 29 课图解页面（C 级扩充中，旧版目录保留为迁移参考）
 │   ├── 01-what-is-langchain.html
 │   ├── 02-monorepo.html
-│   └── …  26-langgraph-persistence-control.html
+│   ├── 04-source-reading-map.html
+│   ├── 05-learning-path.html
+│   ├── …
+│   └── 27-glossary.html
 ├── src/                    ← 无依赖的 Python 生成器（可重建全部 HTML / PDF）
 │   ├── shell.py            共享外壳：CSS 设计系统、导航、index 页
-│   ├── part1.py … part6.py 各部分课程内容
+│   ├── part01_overview.py  新版 Part 1（M0/M1 全局地图）
+│   ├── part1.py … part7.py 旧版 / 迁移中课程内容
 │   ├── registry.py         课程 → 内容 的统一映射
 │   ├── build.py            站点构建（→ index.html + lessons/）
-│   └── build_print.py      PDF 构建（→ print.html，折叠全展开）
+│   ├── build_print.py      PDF 构建（→ print.html，折叠全展开）
+│   └── check_content_density.py  内容密度质量检查
 ├── .github/workflows/
 │   └── deploy.yml          CI：自动部署 Pages + 生成 PDF
 ├── README.md
