@@ -3,7 +3,7 @@
 [![📖 在线阅读](https://img.shields.io/badge/%F0%9F%93%96%20%E5%9C%A8%E7%BA%BF%E9%98%85%E8%AF%BB-Read%20Online-1a7f64?style=for-the-badge)](https://verdenmax.github.io/langchain-visual-guide/)
 [![📄 下载 PDF](https://img.shields.io/badge/%F0%9F%93%84%20%E4%B8%8B%E8%BD%BD%20PDF-Download-b4690e?style=for-the-badge)](https://github.com/verdenmax/langchain-visual-guide/releases/latest/download/langchain-visual-guide.pdf)
 
-> 🌐 **在线阅读**：<https://verdenmax.github.io/langchain-visual-guide/>　·　📄 **下载 PDF（全 27 课）**：[langchain-visual-guide.pdf](https://github.com/verdenmax/langchain-visual-guide/releases/latest/download/langchain-visual-guide.pdf)
+> 🌐 **在线阅读**：<https://verdenmax.github.io/langchain-visual-guide/>　·　📄 **下载 PDF（全 29 课）**：[langchain-visual-guide.pdf](https://github.com/verdenmax/langchain-visual-guide/releases/latest/download/langchain-visual-guide.pdf)
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Lessons](https://img.shields.io/badge/lessons-expanding_to_45--55-blue.svg)
@@ -104,7 +104,7 @@ python -m http.server 8000
 ```
 langchain-visual-guide/
 ├── index.html              ← 入口（目录页），从这里开始
-├── lessons/                ← 27 课图解页面
+├── lessons/                ← 29 课图解页面
 │   ├── 01-what-is-langchain.html
 │   ├── 02-monorepo.html
 │   └── …  26-langgraph-persistence-control.html
@@ -134,7 +134,7 @@ python build_print.py    # 生成 print.html（用于打 PDF，折叠全部展�
 
 ### 本地导出 PDF
 
-`print.html` 把全部 27 课合成单页文档（折叠卡片全部展开、自动分页）。用任意无头浏览器打 PDF，例如：
+`print.html` 把全部 29 课合成单页文档（折叠卡片全部展开、自动分页）。用任意无头浏览器打 PDF，例如：
 
 ```bash
 chromium --headless=new --no-pdf-header-footer \
