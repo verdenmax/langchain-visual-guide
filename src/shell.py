@@ -2,6 +2,7 @@
 
 import base64
 import html as _html
+import re
 
 # ---- favicon (inline SVG, base64) ----
 _FAVICON_SVG = (
@@ -15,13 +16,14 @@ FAVICON = "data:image/svg+xml;base64," + base64.b64encode(_FAVICON_SVG.encode())
 
 def head_meta(title, description, og_type="website"):
     """SEO / social meta tags + favicon for a page <head>."""
-    t = title.replace('"', "&quot;")
-    d = description.replace('"', "&quot;")
+    t = esc(title)
+    d = esc(description)
+    typ = esc(og_type)
     return (
         f'<meta name="description" content="{d}">\n'
         f'<meta name="theme-color" content="#1a7f64">\n'
         f'<link rel="icon" type="image/svg+xml" href="{FAVICON}">\n'
-        f'<meta property="og:type" content="{og_type}">\n'
+        f'<meta property="og:type" content="{typ}">\n'
         f'<meta property="og:site_name" content="LangChain 图解教程">\n'
         f'<meta property="og:title" content="{t}">\n'
         f'<meta property="og:description" content="{d}">\n'
@@ -36,13 +38,39 @@ def esc(s):
     return _html.escape(str(s), quote=True)
 
 
+_ATTR_NAME_RE = re.compile(r"^[a-z][a-z0-9-]*$")
+_BLOCKED_ATTR_NAMES = {
+    "style",
+    "href",
+    "src",
+    "srcset",
+    "action",
+    "formaction",
+    "xlink-href",
+}
+_LESSON_MAP_KINDS = {"now", "before", "after", "source"}
+_UNSAFE_SVG_TOKENS = ("<script", "</script", "javascript:", "<foreignobject")
+_UNSAFE_SVG_EVENT_ATTR_RE = re.compile(r"(?:^|[\s<])on[a-z0-9_-]+\s*=", re.I)
+
+
+def _validate_attr_name(key):
+    name = str(key).rstrip("_").replace("_", "-").lower()
+    if (
+        not _ATTR_NAME_RE.fullmatch(name)
+        or name.startswith("on")
+        or name in _BLOCKED_ATTR_NAMES
+    ):
+        raise ValueError(f"Unsafe HTML attribute name: {key!r}")
+    return name
+
+
 def _attrs(**kwargs):
-    """Build a safe HTML attribute string from keyword arguments."""
+    """Build attributes with escaped values for code-controlled safe names."""
     parts = []
     for key, value in kwargs.items():
         if value is None or value is False:
             continue
-        name = key.rstrip("_").replace("_", "-")
+        name = _validate_attr_name(key)
         if value is True:
             parts.append(name)
         else:
@@ -53,8 +81,11 @@ def _attrs(**kwargs):
 def lesson_map(title, nodes):
     items = []
     for label, desc, kind in nodes:
+        kind_name = str(kind)
+        if kind_name not in _LESSON_MAP_KINDS:
+            kind_name = "source"
         items.append(
-            f'<div class="map-node {esc(kind)}">'
+            f'<div class="map-node {kind_name}">'
             f'<div class="mn-label">{esc(label)}</div>'
             f'<div class="mn-desc">{esc(desc)}</div>'
             f'</div>'
@@ -175,10 +206,17 @@ def version_note(text):
 
 
 def svg_diagram(title, svg_body):
+    """Render a repo-authored SVG body after lightweight unsafe-token checks."""
+    body = str(svg_body)
+    lowered = body.lower()
+    if any(token in lowered for token in _UNSAFE_SVG_TOKENS):
+        raise ValueError("Unsafe SVG body token")
+    if _UNSAFE_SVG_EVENT_ATTR_RE.search(body):
+        raise ValueError("Unsafe SVG event-handler attribute")
     return (
         '<figure class="svg-diagram">'
         f'<figcaption>{esc(title)}</figcaption>'
-        f'{svg_body}'
+        f'{body}'
         '</figure>'
     )
 
