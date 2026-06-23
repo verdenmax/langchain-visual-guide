@@ -2,16 +2,16 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>26 · 持久化 · 中断 · 控制流 — LangChain 图解教程</title>
+<title>28 · 持久化 · 中断 · 控制流 — LangChain 图解教程</title>
 <meta name="description" content="第七部分 · 深入 LangGraph｜持久化 · 中断 · 控制流：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="26 · 持久化 · 中断 · 控制流 — LangChain 图解教程">
+<meta property="og:title" content="28 · 持久化 · 中断 · 控制流 — LangChain 图解教程">
 <meta property="og:description" content="第七部分 · 深入 LangGraph｜持久化 · 中断 · 控制流：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="26 · 持久化 · 中断 · 控制流 — LangChain 图解教程">
+<meta name="twitter:title" content="28 · 持久化 · 中断 · 控制流 — LangChain 图解教程">
 <meta name="twitter:description" content="第七部分 · 深入 LangGraph｜持久化 · 中断 · 控制流：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -289,7 +289,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第七部分 · 深入 LangGraph</span>
-    <span class="pill">26 / 27</span>
+    <span class="pill">28 / 29</span>
   </div>
   <div class="progress"><span style="width:96%"></span></div>
 </div>
@@ -321,7 +321,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   </ul>
 </div>
 <div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">你的代码</span><span class="ln">checkpointer + thread_id（承接第 13 课，这里看实现）</span></div>
+  <div class="cf-head"><span class="dot"></span><span class="path">你的代码</span><span class="ln">checkpointer + thread_id（承接第 15 课，这里看实现）</span></div>
 <pre><span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> InMemorySaver
 
 app = g.compile(checkpointer=InMemorySaver())
@@ -353,11 +353,11 @@ snap = app.get_state(cfg)              <span class="cm"># StateSnapshot：看当
 <div class="card warn">
   <div class="tag">⚠️ 真实的坑：恢复是"从节点头重跑"</div>
   因为恢复会<strong>重新执行整个节点</strong>，所以 <span class="mono">interrupt()</span> <strong>之前</strong>的副作用（比如"已经发了邮件""已经扣了款"）会<strong>再执行一遍</strong>。
-  原则：<strong>把副作用放在 <span class="mono">interrupt()</span> 之后</strong>，或做幂等。第 7 课的 <span class="mono">HumanInTheLoopMiddleware</span> 正是基于这套机制。
+  原则：<strong>把副作用放在 <span class="mono">interrupt()</span> 之后</strong>，或做幂等。第 9 课的 <span class="mono">HumanInTheLoopMiddleware</span> 正是基于这套机制。
 </div>
 
 <h2>控制流原语：Send 与 Command（实现细节）</h2>
-<p>第 13 课点过名，这里看它们在 <span class="mono">types.py</span> 里到底是什么、能干什么。</p>
+<p>第 15 课点过名，这里看它们在 <span class="mono">types.py</span> 里到底是什么、能干什么。</p>
 <div class="cols">
   <div class="col">
     <h4><span class="mono">Send</span>：动态扇出（map-reduce）</h4>
@@ -382,7 +382,7 @@ snap = app.get_state(cfg)              <span class="cm"># StateSnapshot：看当
 </div>
 <div class="card detail">
   <div class="tag">🔬 这就是"多 Agent handoff"</div>
-  第 21 课对照 AutoGen 时提到的"<strong>交接（handoff）</strong>"，落到 LangGraph 就是 <span class="mono">Command(goto="另一个 agent", update=...)</span>：
+  第 23 课对照 AutoGen 时提到的"<strong>交接（handoff）</strong>"，落到 LangGraph 就是 <span class="mono">Command(goto="另一个 agent", update=...)</span>：
   一个 Agent <strong>改完共享状态、把控制权交棒</strong>给另一个。<span class="mono">Command</span> 还实现了 <span class="mono">ToolOutputMixin</span>——意味着<strong>工具直接返回 Command</strong> 也能驱动跳转。
   <table class="t" style="margin-top:.6rem">
     <tr><th>原语</th><th>位置</th></tr>

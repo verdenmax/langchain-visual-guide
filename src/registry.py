@@ -3,7 +3,7 @@
 Both the site build (build.py) and the print/PDF build (build_print.py) import
 this so the lesson set stays in sync.
 """
-import part1
+import part01_overview
 import part2
 import part3
 import part4
@@ -14,9 +14,11 @@ import glossary
 
 # Ordered to match shell.PAGES. Filename -> content HTML string.
 CONTENT = {
-    "01-what-is-langchain.html": part1.LESSON_01,
-    "02-monorepo.html": part1.LESSON_02,
-    "03-lifecycle.html": part1.LESSON_03,
+    "01-what-is-langchain.html": part01_overview.LESSON_01,
+    "02-monorepo.html": part01_overview.LESSON_02,
+    "03-lifecycle.html": part01_overview.LESSON_03,
+    "04-source-reading-map.html": part01_overview.LESSON_04,
+    "05-learning-path.html": part01_overview.LESSON_05,
     "04-messages.html": part2.LESSON_04,
     "05-chat-models.html": part2.LESSON_05,
     "06-tools.html": part2.LESSON_06,

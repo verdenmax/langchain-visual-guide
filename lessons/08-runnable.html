@@ -2,16 +2,16 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>08 · Runnable 万物之基 — LangChain 图解教程</title>
+<title>10 · Runnable 万物之基 — LangChain 图解教程</title>
 <meta name="description" content="第三部分 · 内部源码｜Runnable 万物之基：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="08 · Runnable 万物之基 — LangChain 图解教程">
+<meta property="og:title" content="10 · Runnable 万物之基 — LangChain 图解教程">
 <meta property="og:description" content="第三部分 · 内部源码｜Runnable 万物之基：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="08 · Runnable 万物之基 — LangChain 图解教程">
+<meta name="twitter:title" content="10 · Runnable 万物之基 — LangChain 图解教程">
 <meta name="twitter:description" content="第三部分 · 内部源码｜Runnable 万物之基：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -289,9 +289,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第三部分 · 内部源码</span>
-    <span class="pill">08 / 27</span>
+    <span class="pill">10 / 29</span>
   </div>
-  <div class="progress"><span style="width:29%"></span></div>
+  <div class="progress"><span style="width:34%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
@@ -312,7 +312,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 </div>
 
 <h2>统一接口：每个 Runnable 都有这几招</h2>
-<p>不管底层是什么，只要是 Runnable，就一定具备这套方法。你在第 5 课用过的 invoke/stream/batch，
+<p>不管底层是什么，只要是 Runnable，就一定具备这套方法。你在第 7 课用过的 invoke/stream/batch，
 其实就来自这里：</p>
 
 <table class="t">
@@ -426,7 +426,7 @@ result = chain.invoke({<span class="st">"city"</span>: <span class="st">"北京"
 <pre class="code">chain = prompt | model | parser
 <span class="cm"># 等价于：</span>
 chain = prompt.pipe(model).pipe(parser)
-<span class="cm"># 两者都得到一个 RunnableSequence（第 9 课详解）</span>
+<span class="cm"># 两者都得到一个 RunnableSequence（第 11 课详解）</span>
 <span class="kw">type</span>(chain)   <span class="cm"># RunnableSequence</span></pre>
       </div>
     </div>
@@ -449,7 +449,7 @@ chain = prompt.pipe(model).pipe(parser)
       <div class="q">🧪 RunnableConfig 携带什么</div>
       <div class="a">
 <pre class="code">chain.invoke(x, config={
-    <span class="st">"callbacks"</span>: [...],       <span class="cm"># 回调/追踪（第 14 课）</span>
+    <span class="st">"callbacks"</span>: [...],       <span class="cm"># 回调/追踪（第 16 课）</span>
     <span class="st">"tags"</span>: [<span class="st">"prod"</span>],         <span class="cm"># 给这次运行打标签</span>
     <span class="st">"metadata"</span>: {<span class="st">"uid"</span>: 1},   <span class="cm"># 自定义元数据</span>
     <span class="st">"max_concurrency"</span>: 5,    <span class="cm"># 并发上限</span>

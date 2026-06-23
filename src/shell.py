@@ -223,9 +223,11 @@ def svg_diagram(title, svg_body):
 
 # Ordered list of all pages: (filename, short title, part label)
 PAGES = [
-    ("01-what-is-langchain.html", "LangChain 是什么", "第一部分 · 宏观全景"),
-    ("02-monorepo.html", "Monorepo 全景", "第一部分 · 宏观全景"),
-    ("03-lifecycle.html", "一次调用的生命周期", "第一部分 · 宏观全景"),
+    ("01-what-is-langchain.html", "LangChain 是什么", "第一部分 · 全局地图"),
+    ("02-monorepo.html", "项目与包结构", "第一部分 · 全局地图"),
+    ("03-lifecycle.html", "一次调用的全链路", "第一部分 · 全局地图"),
+    ("04-source-reading-map.html", "源码阅读地图", "第一部分 · 全局地图"),
+    ("05-learning-path.html", "学习路径与实验方法", "第一部分 · 全局地图"),
     ("04-messages.html", "消息系统", "第二部分 · 用户视角"),
     ("05-chat-models.html", "聊天模型", "第二部分 · 用户视角"),
     ("06-tools.html", "工具 Tools", "第二部分 · 用户视角"),

@@ -2,16 +2,16 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>10 · 输出解析器 Output Parsers — LangChain 图解教程</title>
+<title>12 · 输出解析器 Output Parsers — LangChain 图解教程</title>
 <meta name="description" content="第三部分 · 内部源码｜输出解析器 Output Parsers：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="10 · 输出解析器 Output Parsers — LangChain 图解教程">
+<meta property="og:title" content="12 · 输出解析器 Output Parsers — LangChain 图解教程">
 <meta property="og:description" content="第三部分 · 内部源码｜输出解析器 Output Parsers：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="10 · 输出解析器 Output Parsers — LangChain 图解教程">
+<meta name="twitter:title" content="12 · 输出解析器 Output Parsers — LangChain 图解教程">
 <meta name="twitter:description" content="第三部分 · 内部源码｜输出解析器 Output Parsers：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -289,9 +289,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第三部分 · 内部源码</span>
-    <span class="pill">10 / 27</span>
+    <span class="pill">12 / 29</span>
   </div>
-  <div class="progress"><span style="width:37%"></span></div>
+  <div class="progress"><span style="width:41%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
@@ -300,7 +300,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   </div>
   
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-第 8、9 课你反复见到 <span class="inline">prompt | model | parser</span> 这条链，但 <strong>parser（输出解析器）</strong>一直没讲。
+第 10、11 课你反复见到 <span class="inline">prompt | model | parser</span> 这条链，但 <strong>parser（输出解析器）</strong>一直没讲。
 它负责把模型吐出的"一段文本"变成<strong>程序能直接用的结构化数据</strong>——这是 LCEL 链里缺失的第三块拼图。
 </p>
 
@@ -338,7 +338,7 @@ text: str = chain.invoke({<span class="st">"q"</span>: <span class="st">"你好"
 
 <div class="card key">
   <div class="tag">🔑 核心认知</div>
-  <strong>解析器也是 Runnable</strong>（第 8 课）。所以它能用 <span class="inline">|</span> 接在 model 后面，
+  <strong>解析器也是 Runnable</strong>（第 10 课）。所以它能用 <span class="inline">|</span> 接在 model 后面，
   成为链的最后一环——这就是 <span class="inline">prompt | model | parser</span> 三段式的由来。
 </div>
 
@@ -396,7 +396,7 @@ chain = prompt | model | parser   <span class="cm"># 模型按要求输出 → p
     <div class="qa">
       <div class="q">🧪 两条路线</div>
       <div class="a"><strong>解析器路线</strong>：模型<strong>自由输出文本</strong> → 事后用 parser 解析（靠提示 + 解析，<strong>任何模型都能用</strong>）。
-        <strong>with_structured_output 路线</strong>（第 5 课）：用工具调用 / JSON 模式<strong>强约束</strong>模型输出（更可靠，但需模型支持）。</div>
+        <strong>with_structured_output 路线</strong>（第 7 课）：用工具调用 / JSON 模式<strong>强约束</strong>模型输出（更可靠，但需模型支持）。</div>
     </div>
     <div class="qa">
       <div class="q">❓ 各自适合</div>
@@ -406,7 +406,7 @@ chain = prompt | model | parser   <span class="cm"># 模型按要求输出 → p
     </div>
     <div class="qa">
       <div class="q">✅ 关系</div>
-      <div class="a">其实 <span class="mono">with_structured_output</span> 内部也用到 tool/JSON 解析器（第 11 课）。解析器是更底层、更通用的一层。</div>
+      <div class="a">其实 <span class="mono">with_structured_output</span> 内部也用到 tool/JSON 解析器（第 13 课）。解析器是更底层、更通用的一层。</div>
     </div>
   </div>
 </details>
@@ -421,7 +421,7 @@ chain = prompt | model | parser   <span class="cm"># 模型按要求输出 → p
     </div>
     <div class="qa">
       <div class="q">✅ 还有一个好处</div>
-      <div class="a"><span class="mono">StrOutputParser</span> 对<strong>流式</strong>友好：逐 token 产出纯文本块，正好做打字机效果（第 14 课）。</div>
+      <div class="a"><span class="mono">StrOutputParser</span> 对<strong>流式</strong>友好：逐 token 产出纯文本块，正好做打字机效果（第 16 课）。</div>
     </div>
   </div>
 </details>

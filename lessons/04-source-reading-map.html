@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>04 · 源码阅读地图 — LangChain 图解教程</title>
+<meta name="description" content="第一部分 · 全局地图｜源码阅读地图：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="theme-color" content="#1a7f64">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="LangChain 图解教程">
+<meta property="og:title" content="04 · 源码阅读地图 — LangChain 图解教程">
+<meta property="og:description" content="第一部分 · 全局地图｜源码阅读地图：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="04 · 源码阅读地图 — LangChain 图解教程">
+<meta name="twitter:description" content="第一部分 · 全局地图｜源码阅读地图：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f0f2f5; --ink: #1d2129;
+  --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
+  --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
+  --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116; --panel: #161b22; --panel-2: #1c232c; --ink: #e6edf3;
+    --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
+    --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
+    --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+    "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg); color: var(--ink); line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
+
+/* ---- top progress bar ---- */
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: var(--panel);
+  border-bottom: 1px solid var(--line); backdrop-filter: blur(8px);
+}
+.topbar-inner {
+  max-width: 960px; margin: 0 auto; padding: .7rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.topbar .home { font-size: .82rem; color: var(--muted); font-weight: 600; display:flex; gap:.5rem; align-items:center; }
+.topbar .home b { color: var(--accent); }
+.topbar .pill { font-size: .72rem; color: var(--muted); background: var(--panel-2);
+  padding: .2rem .6rem; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.progress { height: 3px; background: var(--panel-2); }
+.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue)); }
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 2.4rem 1.25rem 5rem; }
+
+/* ---- hero ---- */
+.hero { margin-bottom: 2rem; }
+.hero .part { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin-bottom: .55rem; }
+.hero h1 { font-size: 2.05rem; line-height: 1.2; letter-spacing: -.01em; font-weight: 750; }
+.hero .lead { margin-top: .9rem; font-size: 1.06rem; color: var(--muted); }
+
+h2 { font-size: 1.32rem; margin: 2.4rem 0 .9rem; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: .55rem; }
+h2::before { content: ""; width: 4px; height: 1.05em; background: var(--accent); border-radius: 3px; display: inline-block; }
+h3 { font-size: 1.05rem; margin: 1.4rem 0 .5rem; }
+p { margin: .7rem 0; }
+ul, ol { margin: .6rem 0 .6rem 1.3rem; }
+li { margin: .3rem 0; }
+strong { color: var(--ink); font-weight: 680; }
+.inline { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: .08em .4em; font-size: .9em; color: var(--accent-ink); }
+
+/* ---- callout cards ---- */
+.card { border-radius: var(--radius); padding: 1.05rem 1.2rem; margin: 1.2rem 0;
+  border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+.card .tag { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+.card.macro { border-left: 4px solid var(--blue); }
+.card.macro .tag { color: var(--blue); }
+.card.detail { border-left: 4px solid var(--purple); }
+.card.detail .tag { color: var(--purple); }
+.card.analogy { border-left: 4px solid var(--amber); background: var(--amber-soft); }
+.card.analogy .tag { color: var(--amber); }
+.card.key { border-left: 4px solid var(--accent); background: var(--accent-soft); }
+.card.key .tag { color: var(--accent-ink); }
+.card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
+.card.warn .tag { color: var(--red); }
+.card.spark { border-left: 4px solid #e0a000;
+  background: linear-gradient(100deg, rgba(224,160,0,.12), transparent 70%); }
+.card.spark .tag { color: #c98a00; }
+@media (prefers-color-scheme: dark) { .card.spark .tag { color: #f0c050; } }
+
+/* ---- code file callout ---- */
+.codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
+  box-shadow: var(--shadow); }
+.codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
+  background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
+.codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; }
+.codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
+.codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
+  overflow-x: auto; font-size: .82rem; line-height: 1.6; }
+.codefile pre .cm { color: #7d8aa3; }
+.codefile pre .kw { color: #c792ea; }
+.codefile pre .fn { color: #82aaff; }
+.codefile pre .st { color: #c3e88d; }
+.codefile pre .nb { color: #f78c6c; }
+
+pre.code { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem; border-radius: 12px;
+  overflow-x: auto; font-size: .83rem; line-height: 1.6; margin: 1.1rem 0; box-shadow: var(--shadow); }
+pre.code .cm { color: #7d8aa3; } pre.code .kw { color: #c792ea; }
+pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb { color: #f78c6c; }
+
+/* ---- collapsible accordion (details/summary) ---- */
+.accordion { border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+  margin: .7rem 0; box-shadow: var(--shadow); overflow: hidden; }
+.accordion > summary { cursor: pointer; padding: .85rem 1.1rem; font-weight: 650; font-size: .96rem;
+  list-style: none; display: flex; align-items: center; gap: .6rem; user-select: none; }
+.accordion > summary::-webkit-details-marker { display: none; }
+.accordion > summary::after { content: "▶"; font-size: .68rem; color: var(--accent);
+  margin-left: auto; transition: transform .15s ease; }
+.accordion[open] > summary::after { transform: rotate(90deg); }
+.accordion > summary:hover { background: var(--panel-2); }
+.accordion[open] > summary { border-bottom: 1px solid var(--line); }
+.accordion .badge-num { background: var(--accent-soft); color: var(--accent-ink);
+  width: 1.6rem; height: 1.6rem; border-radius: 7px; display: inline-flex; align-items: center;
+  justify-content: center; font-size: .82rem; font-weight: 700; flex-shrink: 0; }
+.accordion .hint { font-size: .72rem; color: var(--faint); font-weight: 400; }
+.acc-body { padding: .9rem 1.1rem 1.1rem; }
+.acc-intro { color: var(--muted); font-size: .9rem; margin: .2rem 0 .4rem; }
+.qa { margin: 1rem 0; }
+.qa:first-child { margin-top: .3rem; }
+.qa .q { font-weight: 680; font-size: .9rem; display: flex; gap: .45rem; align-items: center; margin-bottom: .3rem; }
+.qa .a { color: var(--muted); font-size: .9rem; }
+.qa .a strong { color: var(--ink); }
+.qa pre.code { margin: .5rem 0 0; font-size: .78rem; }
+
+/* ---- flow diagram ---- */
+.flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 1.3rem 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1.2rem 1rem; box-shadow: var(--shadow); }
+.flow .node { flex: 1 1 0; min-width: 110px; text-align: center; padding: .7rem .5rem;
+  border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.flow .node .nt { font-weight: 700; font-size: .92rem; }
+.flow .node .nd { font-size: .76rem; color: var(--muted); margin-top: .2rem; }
+.flow .node.hl { background: var(--accent-soft); border-color: var(--accent); }
+.flow .arrow { align-self: center; color: var(--faint); font-size: 1.3rem; padding: 0 .35rem; }
+
+/* vertical flow */
+.vflow { margin: 1.3rem 0; }
+.vflow .step { display: flex; gap: .9rem; position: relative; padding-bottom: 1.1rem; }
+.vflow .step:not(:last-child)::before { content:""; position:absolute; left: 15px; top: 34px; bottom: -2px;
+  width: 2px; background: var(--line); }
+.vflow .num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; z-index:1; }
+.vflow .sc h4 { margin: .25rem 0 .2rem; font-size: 1rem; }
+.vflow .sc p { margin: .15rem 0; font-size: .92rem; color: var(--muted); }
+.vflow .sc .mono { font-size: .8rem; color: var(--accent-ink); }
+
+/* layered architecture */
+.layers { margin: 1.3rem 0; display: flex; flex-direction: column; gap: .55rem; }
+.layer { border-radius: 12px; padding: .85rem 1.1rem; border: 1px solid var(--line); background: var(--panel);
+  box-shadow: var(--shadow); }
+.layer .lh { display: flex; align-items: center; gap: .6rem; }
+.layer .lh .badge { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; }
+.layer .lh .name { font-weight: 700; font-family: ui-monospace, monospace; }
+.layer .ld { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.layer.l-core { border-left: 4px solid var(--accent); } .layer.l-core .badge { background: var(--accent-soft); color: var(--accent-ink); }
+.layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
+.layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
+.layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+
+/* two-column compare */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
+.col h4 { margin: 0 0 .4rem; font-size: .95rem; }
+
+table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
+  background: var(--panel); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+table.t th, table.t td { padding: .6rem .8rem; text-align: left; border-bottom: 1px solid var(--line); }
+table.t th { background: var(--panel-2); font-size: .8rem; letter-spacing: .02em; }
+table.t tr:last-child td { border-bottom: none; }
+table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-size: .82rem; color: var(--accent-ink); }
+@media (max-width: 640px) {
+  /* Wide multi-column tables: scroll within their own box instead of
+     forcing page-level horizontal overflow (which clipped right columns). */
+  table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.t th, table.t td { padding: .5rem .6rem; }
+}
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
+
+/* footer nav */
+.footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
+  padding-top: 1.4rem; border-top: 1px solid var(--line); }
+.footnav a { flex: 1; padding: .85rem 1.1rem; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--panel); box-shadow: var(--shadow); transition: .15s; }
+.footnav a:hover { border-color: var(--accent); transform: translateY(-1px); }
+.footnav a.next { text-align: right; }
+.footnav .dir { font-size: .72rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.footnav .ttl { font-weight: 700; color: var(--ink); margin-top: .15rem; }
+.footnav a.disabled { opacity: .35; pointer-events: none; }
+
+/* index page */
+.toc { display: grid; gap: .7rem; margin-top: 1.6rem; }
+.toc-part { font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--accent); margin: 1.4rem 0 .2rem; }
+.toc a { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.05rem; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); transition: .15s; }
+.toc a:hover { border-color: var(--accent); transform: translateX(3px); }
+.toc .n { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
+.toc .tt { font-weight: 650; color: var(--ink); }
+.toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.toc-search { position: relative; margin: 1.6rem 0 -.4rem; }
+.toc-search input { width: 100%; box-sizing: border-box; padding: .75rem 2.8rem .75rem 1rem;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font-size: .98rem; box-shadow: var(--shadow); }
+.toc-search input:focus { outline: none; border-color: var(--accent); }
+.toc-search .qcount { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+  color: var(--faint); font-size: .8rem; pointer-events: none; }
+.toc a.hide, .toc .toc-part.hide { display: none; }
+.toc-empty { display: none; color: var(--muted); padding: 1rem; text-align: center; }
+.toc-empty.show { display: block; }
+.hero.index h1 { font-size: 2.3rem; }
+.legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
+.legend span { display:flex; align-items:center; gap:.4rem; }
+.legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }
+.pdf-btn { display:inline-flex; align-items:center; gap:.4rem; padding:.55rem 1.1rem;
+  background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
+  box-shadow:var(--shadow); transition:.15s; }
+.pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
+</style>
+</head><body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第一部分 · 全局地图</span>
+    <span class="pill">04 / 29</span>
+  </div>
+  <div class="progress"><span style="width:13%"></span></div>
+</div>
+<div class="wrap">
+  <div class="hero">
+    <div class="part">第一部分 · 全局地图</div>
+    <h1>源码阅读地图</h1>
+  </div>
+  
+<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
+读 LangChain 源码不要从全仓搜索开始，也不要随机点进最深的 provider 实现。正确路线是四步：先找公共 API，确认用户从哪里进入；再找协议或基类，理解稳定契约；然后找一个具体实现，看变化点如何落地；最后读测试和示例，确认真实用法与边界条件。本课给你一张源码阅读地图，让你能带着“文件 + 符号名”的证据解释每个结论。
+</p>
+
+<div class="card analogy">
+  <div class="tag">🕵️ 生活类比 · 查案卷宗</div>
+  源码阅读像查案。公共 API 是报警电话，告诉你案件从哪里进入；基类和协议是法律条文，说明什么行为被允许；具体实现是现场记录，展示某个厂商如何执行；测试和示例是判例，告诉你维护者认为哪些情况必须成立。只看现场会迷路，只看法律会空泛，只看博客又缺证据。合格的源码结论必须能回到案卷：哪个文件、哪个符号、哪条测试支撑了它。
+</div>
+<div class="lesson-map"><div class="lm-title">🗺️ 源码阅读四站法</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">Public API</div><div class="mn-desc">从 init_chat_model、tool、create_agent 这种用户入口开始</div></div><div class="map-node now"><div class="mn-label">Protocol/Base</div><div class="mn-desc">找 Runnable、BaseChatModel、BaseTool、StateGraph 等稳定契约</div></div><div class="map-node source"><div class="mn-label">Concrete</div><div class="mn-desc">选一个 provider 或 graph 实现，看差异如何接入契约</div></div><div class="map-node after"><div class="mn-label">Tests/Examples</div><div class="mn-desc">用测试确认边界、异常、兼容用法，而不是只相信直觉</div></div><div class="map-node after"><div class="mn-label">Citation</div><div class="mn-desc">每个结论写成文件 + 符号名，方便复查和迁移</div></div></div></div>
+<h2>源码入口地图</h2>
+<p>下面这张表是第一轮阅读最常用的导航。它覆盖高层入口、协议基类、工具装饰器、Agent 工厂、图构建器和执行引擎。不要把表当成死记硬背；把它当成“问路牌”：当你想知道某个功能为什么这样设计，就从对应符号进入，再顺着调用方向走。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/langchain/langchain/chat_models/base.py</td><td class="mono">init_chat_model</td><td>聊天模型便捷工厂，解析 provider:model 并延迟/直接实例化模型。</td><td>Public API -&gt; partner implementation</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">Runnable</td><td>统一可运行协议，规定 invoke、stream、batch、with_config、pipe 等组合行为。</td><td>Protocol -&gt; every runnable component</td></tr><tr><td class="mono">libs/core/langchain_core/tools/convert.py</td><td class="mono">tool</td><td>把普通函数转换成 StructuredTool/BaseTool，生成 schema 与描述。</td><td>Decorator -&gt; tool object</td></tr><tr><td class="mono">libs/langchain/langchain/agents/factory.py</td><td class="mono">create_agent</td><td>高层 Agent 工厂，组装模型、工具、中间件并产出图。</td><td>Public API -&gt; LangGraph</td></tr><tr><td class="mono">libs/langgraph/langgraph/graph/state.py</td><td class="mono">StateGraph</td><td>状态图构建器，定义 schema、节点、边、reducer，并 compile。</td><td>Graph builder -&gt; compiled graph</td></tr><tr><td class="mono">libs/langgraph/langgraph/pregel/__init__.py</td><td class="mono">Pregel</td><td>执行引擎基类，负责按 superstep 调度节点、channel 更新和流式事件。</td><td>Runtime engine -&gt; node execution</td></tr></table>
+<h2>算法：带问题读源码，而不是漫游</h2>
+<p>源码仓库很大，漫游式阅读会让你在 import 和类型分支里耗尽耐心。每次阅读都要先写一个问题，例如“@tool 如何从函数签名生成 schema？”或“create_agent 为什么返回 Runnable？”然后按固定算法收集证据。</p>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">reading_algorithm.md :: source_reading_route</span><span class="ln">简化版</span></div><pre>question = &quot;@tool 如何从函数签名生成 schema？&quot;
+
+entry = find_public_api(question)          # langchain_core.tools.tool
+contract = find_protocol_or_base(entry)    # BaseTool / StructuredTool / Runnable
+implementation = choose_concrete_path()    # from_function / pydantic schema creation
+tests = search_tests_by_symbol(&quot;tool&quot;)    # tests show supported signatures and errors
+
+notes = cite([
+    (&quot;libs/core/langchain_core/tools/convert.py&quot;, &quot;tool&quot;),
+    (&quot;libs/core/langchain_core/tools/structured.py&quot;, &quot;StructuredTool.from_function&quot;),
+    (&quot;libs/core/tests/unit_tests/test_tools.py&quot;, &quot;test_*&quot;),
+])
+
+answer = explain_with_boundaries(notes)</pre><div class="cw-note">关键是先提出问题，再收集入口、契约、实现、测试四类证据；否则读到哪里都像重点。</div></div>
+<div class="card detail">
+  <div class="tag">🔬 文件 + 符号名的引用习惯</div>
+  <p>不要写“源码里好像是这么做的”。写成“<span class="mono">libs/core/langchain_core/tools/convert.py :: tool</span> 负责装饰器入口；<span class="mono">StructuredTool.from_function</span> 负责从函数生成工具对象”。这种引用不需要行号也能复查，因为符号名比行号更稳定。只有在做代码审查或补丁时，才需要精确到行。</p>
+</div>
+
+<h2>@tool 走读：从函数到工具对象</h2>
+<p>下面追踪一个最常见的路径。用户写普通函数，装饰器读取函数名、docstring、类型注解，生成 schema，最后得到一个可被模型看到、也可被程序执行的工具对象。这个例子体现了“公共 API → 协议对象 → 具体实现 → 测试边界”的完整路线。</p>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1 用户函数</td><td>def get_weather(city: str) -&gt; str</td><td>函数名、签名、docstring 成为单一事实来源。</td><td>Python callable</td></tr><tr><td>2 装饰器入口</td><td>@tool</td><td>tool 判断是否直接装饰、是否传入 name/args_schema/infer_schema。</td><td>转换流程参数</td></tr><tr><td>3 schema 推断</td><td>类型注解与 docstring</td><td>从函数签名构建 pydantic/JSON Schema，供模型理解参数。</td><td>args_schema / JSON schema</td></tr><tr><td>4 工具对象</td><td>callable + schema + description</td><td>StructuredTool.from_function 封装执行入口与元数据。</td><td>BaseTool/StructuredTool</td></tr><tr><td>5 Agent 使用</td><td>tools=[get_weather]</td><td>create_agent/model binding 把 schema 暴露给模型，并在 tool_calls 出现时执行。</td><td>可调用工具链路</td></tr></table>
+<h2>@tool 简化代码</h2>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">langchain_core/tools/convert.py :: tool</span><span class="ln">简化版</span></div><pre>def tool(name_or_callable=None, *, args_schema=None, infer_schema=True, ...):
+    def _create_tool_factory(tool_name):
+        def _tool_factory(dec_func):
+            if infer_schema or args_schema is not None:
+                return StructuredTool.from_function(
+                    dec_func,
+                    name=tool_name,
+                    args_schema=args_schema,
+                    infer_schema=infer_schema,
+                    parse_docstring=parse_docstring,
+                )
+            return Tool(name=tool_name, func=dec_func, description=description)
+        return _tool_factory
+
+    if callable(name_or_callable):
+        return _create_tool_factory(name_or_callable.__name__)(name_or_callable)
+    return _create_tool_factory(name_or_callable)</pre><div class="cw-note">这是压缩版路径：真实实现处理 async、response_format、错误提示等分支；阅读时先抓主干，再补边界。</div></div>
+<h2>测试和示例为什么重要</h2>
+<p>基类告诉你“应该怎样”，实现告诉你“某条路径怎样”，测试告诉你“维护者承诺哪些情况不能坏”。例如 <span class="mono">@tool</span> 的测试会覆盖无 docstring、显式 args_schema、解析 Google 风格 docstring、错误参数等情况。读这些测试比读随机博客可靠，因为它们随仓库一起演进，失败就会阻止合并。</p>
+<p>示例则告诉你公共 API 希望怎样被使用。有时源码支持一个内部参数，并不代表它是推荐用法；示例和文档出现频繁的路径才是 happy path。读源码时要区分“技术上可行”和“维护者希望你这样用”。</p>
+
+<h2>Provider 差异怎么定位</h2>
+<p>当两个厂商行为不同，不要在业务代码里猜。先确认公共协议是否相同：都继承/实现同一类模型接口吗？然后比较 partner wrapper 的同名方法，例如 <span class="mono">_generate</span>、<span class="mono">_stream</span>、bind_tools 相关方法。最后找各自测试，尤其是 tool calling、stream usage、multimodal content 这些厂商差异高发点。这样你能把问题定位为“协议设计差异”“某个 provider adapter 缺功能”还是“业务使用了厂商专属字段”。</p>
+
+<h2>公共 API 不是实现边界</h2>
+<p>很多 public API 的目标是降低使用门槛，所以它会隐藏很多分支。<span class="mono">init_chat_model</span> 看起来只是解析一个字符串，背后却涉及 provider 推断、可选依赖、延迟初始化、具体模型类选择；<span class="mono">create_agent</span> 看起来只是接收 model 和 tools，背后会构造状态、节点、边、中间件和工具执行路径。读 public API 时要问：它为了用户体验隐藏了哪些复杂度？这些复杂度分别交给哪些下层符号？</p>
+<p>因此，公共入口只回答“用户从哪里进来”，不能单独回答“系统如何工作”。下一步必须找协议或基类。协议告诉你哪些行为是所有实现必须满足的，例如 Runnable 必须能 invoke，BaseTool 必须有 name、description、args_schema 和执行入口，StateGraph 的节点要读写状态。协议层是判断实现是否合规的尺子。</p>
+
+<h2>具体实现要选代表路径</h2>
+<p>大型项目里同一协议可能有几十个实现。阅读时不要平均用力，而要选一条代表路径。学聊天模型，可以先选 OpenAI 或 fake model；学工具，可以先选 <span class="mono">StructuredTool.from_function</span>；学图执行，可以先选一个最小 StateGraph 编译到 Pregel 的路径。代表路径读通后，再比较第二个实现，差异会非常清楚。</p>
+<p>比较实现时，最好使用同一问题。比如都问“它如何处理流式输出”，就分别看两个 provider 的 stream 分支；都问“它如何生成工具 schema”，就比较显式 args_schema 和类型推断路径。问题一致，差异才有意义。随机在两个文件之间跳，只会得到一堆不成体系的细节。</p>
+
+<h2>测试能帮你发现隐藏边界</h2>
+<p>源码里的 if 分支不一定都容易理解，但测试往往会告诉你为什么存在。一个错误提示测试说明维护者在乎用户如何失败；一个兼容旧输入格式的测试说明历史 API 仍需支持；一个 provider-specific 测试说明该厂商有独特行为。读测试时要特别关注名称、输入、断言和失败信息，它们合起来就是行为边界。</p>
+<p>示例和集成测试还会展示组合方式。某个类也许有很多参数，但官方示例只使用其中少数几个，这通常暗示 happy path。教学和生产代码应优先沿 happy path 写，除非你明确需要扩展点。偏离 happy path 时，更要给自己的封装加测试，因为你已经走进维护者较少覆盖的区域。</p>
+
+<h2>如何整理源码笔记</h2>
+<p>建议每张源码笔记固定五栏：问题、公共入口、协议/基类、代表实现、测试/示例。每栏只写文件 + 符号名和一句职责，不要复制大段源码。复制源码会让笔记很快过期，职责说明和符号引用更容易迁移。遇到版本升级时，只要重新确认符号是否存在、职责是否变化即可。</p>
+<p>最后给结论加边界词：通常、当前版本、对这个 provider、在这个测试覆盖下。边界词不是让结论变弱，而是让结论诚实。源码阅读的专业性不在于说得绝对，而在于知道证据支持到哪里。</p>
+
+<h2>不要忽略反向阅读</h2>
+<p>正向路线从 public API 往下走，反向路线从错误或测试往上走。遇到报错信息时，先搜索报错文本，找到抛出异常的符号，再向上看谁调用它；遇到一个测试失败，先读测试断言，再读被测函数，再回到 public API。反向阅读能帮助你定位边界条件，因为错误路径往往不会出现在 happy path 示例里。</p>
+<p>例如工具 docstring 解析失败时，报错文本可能直接指向 schema 推断函数。此时没必要从 create_agent 重新读一遍，而应从异常源头向上追：谁要求 parse_docstring，谁传入函数签名，谁把错误展示给用户。正向和反向结合，源码阅读才完整。</p>
+
+<h2>源码阅读中的版本意识</h2>
+<p>LangChain 生态经历过多次 API 迁移，网上文章常常混杂旧路径。看到 <span class="mono">AgentExecutor</span>、旧 Chain 或旧 import 时，不要立即照抄，要先问当前版本推荐入口是什么。源码里的 deprecation message、迁移文档和新测试比旧博客更可信。用文件 + 符号名记录当前版本，能避免把历史实现误当成现在设计。</p>
+<p>版本意识还包括分支意识。main 分支可能领先已发布版本，你本地安装的包可能落后。读源码解释本地行为时，最好确认包版本和源码版本是否一致。教学中引用符号名而非行号，也是为了在版本变化中保留可迁移的坐标。</p>
+
+<h2>从文档跳到源码</h2>
+<p>官方文档适合建立意图，源码适合确认机制。读文档时可以把每个关键名词圈出来：Runnable、tool、create_agent、StateGraph、checkpointer。然后在源码中搜索这些符号，确认它们是函数、类、协议还是配置项。这样文档和源码互相校验：文档告诉你为什么这样用，源码告诉你实际怎样执行。</p>
+<p>如果文档和源码看起来不一致，先不要下结论。可能是版本不同，可能是文档省略了分支，也可能是你读到了内部 helper。用测试和示例做第三方证据：维护者真正保证的行为，一般会出现在测试中。三方证据一致时，结论才稳。</p>
+
+<h2>给团队讲源码的方式</h2>
+<p>向别人解释源码时，不要直播滚动文件。先画四站路线，再展示最少的符号。比如讲 <span class="mono">@tool</span>：入口是 convert.py :: tool，协议对象是 BaseTool/StructuredTool，实现关键是 from_function，测试覆盖签名和 docstring。每个符号只讲职责和调用方向。听众先获得地图，再决定是否下钻细节。</p>
+<p>这种讲法也能提升代码审查质量。审查一个修改时，问它是否改变 public API、是否破坏协议、是否只影响某个实现、是否有测试覆盖边界。源码地图不只是学习工具，也是评估变更风险的工具。</p>
+<p>源码阅读还要避免“把实现细节变成公共承诺”。某个内部 helper 当前这样写，不代表你应该依赖它；某个未文档化参数存在，不代表未来不会变化。判断一个符号的稳定性，要看它是否在 public API 中出现，是否被测试覆盖，是否在文档或示例中推荐，是否属于 core 协议。越靠内部、越少测试、越少文档，越应该把它当作实现细节而非契约。</p>
+<p>反过来，真正的公共契约需要更严肃地阅读。Runnable、BaseMessage、BaseTool、StateGraph 这类符号影响范围广，它们的参数、返回值和错误语义值得细读。读这些符号时，不仅看代码，还要看注释、类型、测试和迁移说明。公共契约是框架给生态的承诺，理解承诺比记住某个 private 函数更重要。</p>
+<p>当你能区分公共承诺和内部细节，就能更安全地扩展框架。需要定制时，优先使用公开扩展点，例如自定义 Runnable、自定义 BaseTool、Graph 节点、middleware、callbacks；不要复制内部函数再改。复制内部源码看似快，版本升级时最痛苦。沿公开扩展点写代码，才是源码阅读转化为工程能力的标志。</p>
+<h2>源码阅读的最小交付物</h2>
+<p>一次合格的源码阅读，最小交付物不是“我看完了”，而是一张小卡片。卡片包含问题、入口符号、协议符号、实现符号、测试符号、结论和限制。比如研究工具 schema，结论可以写“普通函数通过 tool 装饰器进入，StructuredTool.from_function 生成结构化工具，测试覆盖 docstring 和 args_schema；本结论不讨论 provider 如何展示 schema”。这种卡片短小但可复查。</p>
+<p>长期积累后，这些卡片会形成你自己的源码索引。以后遇到新问题，可以先查卡片，再决定是否重新读源码。没有卡片，阅读成果会停留在短期记忆里；有卡片，知识才能在版本变化和项目迁移中复用。</p>
+
+<h2>阅读复盘</h2>
+<p>源码阅读最怕“细节淹没问题”。先写问题，再找入口，再找契约，再看实现，再用测试校验，这个顺序能把注意力锁在证据链上。你读到的每个符号都要回答一个问题：它是入口、协议、实现、测试，还是内部辅助？角色不同，稳定性和引用方式也不同。</p>
+<p>如果一个结论无法写出文件和符号名，就暂时把它当成猜测；如果能写出符号却找不到测试，就给结论加上边界；如果测试和实现冲突，优先重新确认版本。这样的谨慎会让源码笔记更可靠。</p>
+<p>再补一个检查：读源码时如果连续打开五个内部 helper 仍然说不出原始问题是什么，就应该停下来回到路线图。源码不是越深越好，而是证据越贴近问题越好。能用 public API 和测试解释的问题，不必强行钻到最底层。</p><p>最后确认：源码笔记要能服务未来维护。它不仅告诉你今天在哪里看，还要告诉你版本升级、测试失败、provider 差异出现时应该沿哪条证据链复查。这样的笔记才是真正的工程资产，而不是一次性阅读痕迹。</p><p>补充一句：如果阅读结果无法指导代码修改、测试补充或问题定位，就说明证据链还没有闭合，需要重新回到入口和测试。</p>
+
+<h2>常见误解</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：读源码就是从 main 分支随机打开文件。</div><div class="pf-correct">正确：先提出具体问题，再按 API、协议、实现、测试路线走。</div></div><div class="pitfall"><div class="pf-wrong">误解：只要看 public API 就够了。</div><div class="pf-correct">正确：API 只能说明入口；真正边界要看基类契约和测试。</div></div><div class="pitfall"><div class="pf-wrong">误解：行号是最好的引用。</div><div class="pf-correct">正确：教学和笔记优先用文件 + 符号名，行号会随版本漂移。</div></div><div class="pitfall"><div class="pf-wrong">误解：测试只是验证，不适合学习。</div><div class="pf-correct">正确：测试是维护者写下的行为契约，尤其适合学习边界条件。</div></div><div class="pitfall"><div class="pf-wrong">误解：某个 provider 行为不同，说明 LangChain 整体坏了。</div><div class="pf-correct">正确：先比较 partner wrapper 和测试，很多差异来自厂商能力或 SDK 限制。</div></div></div>
+<h2>小实验：为一个符号建立源码卡片</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 从 create_agent 建一张 source map</div><ol><li>选择 create_agent，记录 public API 文件和符号名。</li><li>找它调用 LangGraph 的位置，记录 StateGraph 或 compiled graph 相关符号。</li><li>搜索 tests/examples 中 create_agent 的 happy path，摘出最小用法。</li><li>写三句话：它接收什么、返回什么、哪些差异交给 LangGraph 或 provider。</li></ol></div>
+<div class="card key">
+  <div class="tag">✅ 本课要点</div>
+  <ul>
+    <li>源码阅读路线：Public API → Protocol/Base class → Concrete implementation → Tests/Examples。</li>
+    <li>结论要用“文件 + 符号名”引用，避免只凭印象讲源码。</li>
+    <li><span class="mono">@tool</span> 的主线是函数签名和 docstring → schema → StructuredTool → Agent 使用。</li>
+    <li>定位 provider 差异时，比较同一协议下的不同 wrapper 和对应测试。</li>
+  </ul>
+</div>
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. 读一个新功能源码时，最稳的 happy-path 顺序是什么？</div>
+  <ol class="opts">
+    <li>随机搜索关键词，打开最长的文件</li>
+    <li>Public API → protocol/base class → concrete implementation → tests/examples</li>
+    <li>只读 README，不看测试</li>
+    <li>直接从 provider SDK 源码开始</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。先找入口，再看契约，再看实现差异，最后用测试确认边界，这样不容易迷路。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. 为什么教程要求源码结论使用“文件 + 符号名”引用？</div>
+  <ol class="opts">
+    <li>因为符号名能让结论可复查、可迁移，比只说“源码里好像”可靠，也比行号更抗版本漂移</li>
+    <li>因为所有文件都没有行号</li>
+    <li>为了避免写中文解释</li>
+    <li>为了跳过具体实现</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。文件 + 符号名是可验证证据。教学笔记中它比易漂移的行号更稳定。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 为什么 tests/examples 适合作为源码阅读材料？</div>
+  <ol class="opts">
+    <li>它们只展示无关样式</li>
+    <li>测试记录维护者承诺的行为边界，示例展示推荐 happy path</li>
+    <li>它们可以替代所有源码</li>
+    <li>它们永远不会随版本更新</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。测试和示例随仓库演进，能帮助判断哪些用法被支持、哪些边界不能破坏。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>选择 <code>@tool</code> 或 <code>create_agent</code>，建立一张 source map：public API、base/protocol、concrete implementation、tests/examples 各写一个文件 + 符号名。</li>
+    <li>如果 OpenAI 与 Anthropic 的 tool calling 行为不同，你会如何定位差异？请写出先比较哪些 wrapper 方法，再找哪些测试。</li>
+  </ul>
+</div>
+</div>
+  <div class="footnav"><a class="prev" href="03-lifecycle.html"><div class="dir">← 上一课</div><div class="ttl">一次调用的全链路</div></a><a class="next" href="05-learning-path.html"><div class="dir">下一课 →</div><div class="ttl">学习路径与实验方法</div></a></div>
+</div>
+
+</body></html>

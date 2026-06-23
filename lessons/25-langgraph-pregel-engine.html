@@ -2,16 +2,16 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>25 · 执行引擎：Pregel 与超步 — LangChain 图解教程</title>
+<title>27 · 执行引擎：Pregel 与超步 — LangChain 图解教程</title>
 <meta name="description" content="第七部分 · 深入 LangGraph｜执行引擎：Pregel 与超步：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="25 · 执行引擎：Pregel 与超步 — LangChain 图解教程">
+<meta property="og:title" content="27 · 执行引擎：Pregel 与超步 — LangChain 图解教程">
 <meta property="og:description" content="第七部分 · 深入 LangGraph｜执行引擎：Pregel 与超步：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="25 · 执行引擎：Pregel 与超步 — LangChain 图解教程">
+<meta name="twitter:title" content="27 · 执行引擎：Pregel 与超步 — LangChain 图解教程">
 <meta name="twitter:description" content="第七部分 · 深入 LangGraph｜执行引擎：Pregel 与超步：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -289,9 +289,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第七部分 · 深入 LangGraph</span>
-    <span class="pill">25 / 27</span>
+    <span class="pill">27 / 29</span>
   </div>
-  <div class="progress"><span style="width:92%"></span></div>
+  <div class="progress"><span style="width:93%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
@@ -347,7 +347,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   于是同样输入 → 同样结果，可复现、可持久化。</p>
   <ul>
     <li>超步循环：<span class="mono">pregel/_loop.py · PregelLoop.tick()</span>——里面先 <span class="mono">prepare_next_tasks(...)</span>（Plan），执行后 <span class="mono">apply_writes(...)</span>（Update）。</li>
-    <li>步数上限：<span class="mono">tick()</span> 开头检查 <span class="mono">step &gt; stop</span> → 置 <span class="mono">out_of_steps</span>。这就是第 7 课 <span class="mono">recursion_limit</span> 的<strong>兜底实现</strong>。</li>
+    <li>步数上限：<span class="mono">tick()</span> 开头检查 <span class="mono">step &gt; stop</span> → 置 <span class="mono">out_of_steps</span>。这就是第 9 课 <span class="mono">recursion_limit</span> 的<strong>兜底实现</strong>。</li>
   </ul>
 </div>
 
@@ -364,7 +364,7 @@ LangGraph 内置了几种（来自 Pregel 文档）：</p>
 
 <div class="card detail">
   <div class="tag">🔬 reducer 的真身 = channel 的更新函数</div>
-  <p>第 13 课你见过 <span class="mono">messages: Annotated[list[AnyMessage], add_messages]</span>。现在能说清它的实现了：
+  <p>第 15 课你见过 <span class="mono">messages: Annotated[list[AnyMessage], add_messages]</span>。现在能说清它的实现了：
   <strong>编译时，这个标注让 "messages" 键变成一个『以 <span class="mono">add_messages</span> 为更新函数』的 channel</strong>。
   节点写 <span class="mono">{"messages": [ai]}</span> 时，channel 用 <span class="mono">add_messages</span> 把新值<strong>归并</strong>进旧值——这就是"追加而非覆盖"。</p>
   <ul>
@@ -374,7 +374,7 @@ LangGraph 内置了几种（来自 Pregel 文档）：</p>
 </div>
 
 <h2>回到 Agent：model / tools 两节点怎么在超步里转</h2>
-<p>把上面这套套回第 13 课那张图，"Agent 循环"就清清楚楚是<strong>一串超步</strong>：</p>
+<p>把上面这套套回第 15 课那张图，"Agent 循环"就清清楚楚是<strong>一串超步</strong>：</p>
 <div class="vflow">
   <div class="step"><div class="num">1</div><div class="sc"><h4>超步 A</h4><p><span class="mono">model</span> 节点执行 → 往 <span class="mono">messages</span> channel 写一条 <span class="mono">AIMessage</span>。</p></div></div>
   <div class="step"><div class="num">2</div><div class="sc"><h4>超步 B</h4><p><span class="mono">model</span> 的<strong>条件边</strong>据 <span class="mono">tool_calls</span> 选定下一站为 <span class="mono">tools</span> → 这一步执行 <span class="mono">tools</span> 节点 → 写回 <span class="mono">ToolMessage</span>。</p></div></div>
@@ -383,7 +383,7 @@ LangGraph 内置了几种（来自 Pregel 文档）：</p>
 <div class="card detail">
   <div class="tag">🔬 多个工具如何"同一超步并行"</div>
   当一条 AIMessage 里有<strong>多个 <span class="mono">tool_calls</span></strong>，路由会用 <span class="mono">Send</span> 把它们<strong>同时</strong>扇给 <span class="mono">tools</span> 节点，
-  于是它们在<strong>同一个超步内并发执行</strong>、再一起结算。<span class="mono">Send</span> 的细节留到第 26 课。
+  于是它们在<strong>同一个超步内并发执行</strong>、再一起结算。<span class="mono">Send</span> 的细节留到第 28 课。
 </div>
 
 <h2>🔍 深入理解</h2>
@@ -425,7 +425,7 @@ LangGraph 内置了几种（来自 Pregel 文档）：</p>
     <div class="qa">
       <div class="q">🧪 对应关系</div>
       <div class="a"><span class="mono">stream_mode="updates"</span>：每个超步吐出<strong>被更新节点的输出</strong>；
-        <span class="mono">"values"</span>：每步吐出<strong>整份状态</strong>；<span class="mono">"messages"</span>：逐 token。呼应第 14、19 课。</div>
+        <span class="mono">"values"</span>：每步吐出<strong>整份状态</strong>；<span class="mono">"messages"</span>：逐 token。呼应第 16、21 课。</div>
     </div>
     <div class="qa">
       <div class="q">❓ 为什么能逐步流</div>

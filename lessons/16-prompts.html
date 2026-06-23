@@ -2,16 +2,16 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>16 · 提示词 Prompts — LangChain 图解教程</title>
+<title>18 · 提示词 Prompts — LangChain 图解教程</title>
 <meta name="description" content="第五部分 · 自己动手做 Agent｜提示词 Prompts：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="16 · 提示词 Prompts — LangChain 图解教程">
+<meta property="og:title" content="18 · 提示词 Prompts — LangChain 图解教程">
 <meta property="og:description" content="第五部分 · 自己动手做 Agent｜提示词 Prompts：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="16 · 提示词 Prompts — LangChain 图解教程">
+<meta name="twitter:title" content="18 · 提示词 Prompts — LangChain 图解教程">
 <meta name="twitter:description" content="第五部分 · 自己动手做 Agent｜提示词 Prompts：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -289,9 +289,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第五部分 · 自己动手做 Agent</span>
-    <span class="pill">16 / 27</span>
+    <span class="pill">18 / 29</span>
   </div>
-  <div class="progress"><span style="width:59%"></span></div>
+  <div class="progress"><span style="width:62%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
@@ -333,7 +333,7 @@ messages = prompt.invoke({
 
 <div class="card key">
   <div class="tag">🔑 核心认知</div>
-  <strong>提示词模板本身也是 Runnable</strong>（第 8 课）。所以它能用 <span class="inline">|</span> 直接接到模型后面，
+  <strong>提示词模板本身也是 Runnable</strong>（第 10 课）。所以它能用 <span class="inline">|</span> 直接接到模型后面，
   组成最经典的链：<span class="inline">prompt | model | parser</span>。
 </div>
 
@@ -396,7 +396,7 @@ tpl.invoke({<span class="st">"style"</span>: <span class="st">"幽默"</span>, <
     <div class="qa">
       <div class="q">❓ 为什么必要</div>
       <div class="a">多轮对话要把"历史消息"原样塞进提示词的中间位置。占位符让你能<strong>动态注入任意长度的历史</strong>，
-        正好衔接第 4 课的"上下文管理"——你裁剪/摘要后的历史，就从这里放进去。</div>
+        正好衔接第 6 课的"上下文管理"——你裁剪/摘要后的历史，就从这里放进去。</div>
     </div>
     <div class="qa">
       <div class="q">✅ 优点</div>
@@ -465,9 +465,9 @@ prompt = ChatPromptTemplate.from_messages([
 <div class="card spark">
   <div class="tag">💡 设计亮点</div>
   <ul>
-    <li><strong>提示词是 Runnable</strong>：所以能直接 <span class="mono">prompt | model</span> 拼链——又一次复用第 8 课的统一抽象，无需任何"胶水"。</li>
+    <li><strong>提示词是 Runnable</strong>：所以能直接 <span class="mono">prompt | model</span> 拼链——又一次复用第 10 课的统一抽象，无需任何"胶水"。</li>
     <li><strong>PromptValue 作中间层</strong>：同一份模板既能 <span class="mono">.to_messages()</span>（喂聊天模型）又能 <span class="mono">.to_string()</span>（喂纯文本 LLM），<strong>一套模板适配两类模型</strong>。</li>
-    <li><strong>占位符是一等公民</strong>：<span class="mono">MessagesPlaceholder</span> 让"插入任意长度历史"成为模板语法的一部分，把第 4 课的上下文管理与提示词结构干净地解耦。</li>
+    <li><strong>占位符是一等公民</strong>：<span class="mono">MessagesPlaceholder</span> 让"插入任意长度历史"成为模板语法的一部分，把第 6 课的上下文管理与提示词结构干净地解耦。</li>
   </ul>
 </div>
 
@@ -493,7 +493,7 @@ prompt = ChatPromptTemplate.from_messages([
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。“把会变的（内容）和不变的（结构）分开”是模板的通用价值——和第 6 课“代码自描述”、第 3 课“中间表示”一样，都是隔离变化点。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。“把会变的（内容）和不变的（结构）分开”是模板的通用价值——和第 8 课“代码自描述”、第 3 课“中间表示”一样，都是隔离变化点。</div></div></div>
   </details>
 </div>
 <div class="quiz">
@@ -506,7 +506,7 @@ prompt = ChatPromptTemplate.from_messages([
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。呼应第 4 课——消息的结构化是有意义的。MessagesPlaceholder 保住了这份结构，而不是把它压扁成字符串。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。呼应第 6 课——消息的结构化是有意义的。MessagesPlaceholder 保住了这份结构，而不是把它压扁成字符串。</div></div></div>
   </details>
 </div>
 <div class="quiz">

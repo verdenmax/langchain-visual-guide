@@ -2,16 +2,16 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>18 · 写自己的中间件 — LangChain 图解教程</title>
+<title>20 · 写自己的中间件 — LangChain 图解教程</title>
 <meta name="description" content="第五部分 · 自己动手做 Agent｜写自己的中间件：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="18 · 写自己的中间件 — LangChain 图解教程">
+<meta property="og:title" content="20 · 写自己的中间件 — LangChain 图解教程">
 <meta property="og:description" content="第五部分 · 自己动手做 Agent｜写自己的中间件：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="18 · 写自己的中间件 — LangChain 图解教程">
+<meta name="twitter:title" content="20 · 写自己的中间件 — LangChain 图解教程">
 <meta name="twitter:description" content="第五部分 · 自己动手做 Agent｜写自己的中间件：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -289,9 +289,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第五部分 · 自己动手做 Agent</span>
-    <span class="pill">18 / 27</span>
+    <span class="pill">20 / 29</span>
   </div>
-  <div class="progress"><span style="width:66%"></span></div>
+  <div class="progress"><span style="width:68%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
@@ -300,7 +300,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   </div>
   
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-第 7、13 课我们<strong>用</strong>过内置中间件（限流、人审、重试…）。当它们不够用时，
+第 9、15 课我们<strong>用</strong>过内置中间件（限流、人审、重试…）。当它们不够用时，
 定制自己 Agent 的<strong>核心钥匙</strong>就是——<strong>写你自己的中间件</strong>。这是 Agent 最强大的扩展点。
 </p>
 
@@ -409,7 +409,7 @@ after_agent                 <span class="cm"># 仅一次</span></pre>
     </div>
     <div class="qa">
       <div class="q">❓ 它为什么这么关键</div>
-      <div class="a">内置的 <span class="mono">ModelRetryMiddleware</span> / <span class="mono">ModelFallbackMiddleware</span>（第 7 课）
+      <div class="a">内置的 <span class="mono">ModelRetryMiddleware</span> / <span class="mono">ModelFallbackMiddleware</span>（第 9 课）
         正是基于 <span class="mono">wrap_model_call</span> 实现的——失败就换个 <span class="mono">request</span> 再调一次 <span class="mono">handler</span>。
         你也能用它做"动态换模型、按内容改提示、缓存"等任意定制。</div>
     </div>

@@ -2,16 +2,16 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>07 · Agent 入门 — LangChain 图解教程</title>
+<title>09 · Agent 入门 — LangChain 图解教程</title>
 <meta name="description" content="第二部分 · 用户视角｜Agent 入门：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="07 · Agent 入门 — LangChain 图解教程">
+<meta property="og:title" content="09 · Agent 入门 — LangChain 图解教程">
 <meta property="og:description" content="第二部分 · 用户视角｜Agent 入门：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="07 · Agent 入门 — LangChain 图解教程">
+<meta name="twitter:title" content="09 · Agent 入门 — LangChain 图解教程">
 <meta name="twitter:description" content="第二部分 · 用户视角｜Agent 入门：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -289,9 +289,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第二部分 · 用户视角</span>
-    <span class="pill">07 / 27</span>
+    <span class="pill">09 / 29</span>
   </div>
-  <div class="progress"><span style="width:25%"></span></div>
+  <div class="progress"><span style="width:31%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
@@ -338,7 +338,7 @@ print(result[<span class="st">"messages"</span>][-1].content)   <span class="cm"
     tools=None,
     *,
     system_prompt=None,
-    middleware=(),         <span class="cm"># 可插拔的中间件（第 13 课）</span>
+    middleware=(),         <span class="cm"># 可插拔的中间件（第 15 课）</span>
     response_format=None,  <span class="cm"># 结构化输出</span>
     ...
 )</pre></li>
@@ -346,7 +346,7 @@ print(result[<span class="st">"messages"</span>][-1].content)   <span class="cm"
 </div>
 
 <h2>Agent 循环：它到底在转什么？</h2>
-<p>这张图是 Agent 的灵魂。注意它<strong>就是第 6 课那个工具往返，只是自动重复</strong>，
+<p>这张图是 Agent 的灵魂。注意它<strong>就是第 8 课那个工具往返，只是自动重复</strong>，
 直到模型不再请求工具为止：</p>
 
 <div class="flow" style="flex-direction:column;gap:.7rem;align-items:center">
@@ -364,7 +364,7 @@ print(result[<span class="st">"messages"</span>][-1].content)   <span class="cm"
     <li>Agent = <strong>模型 + 工具 + 一个自动循环</strong>。循环的"判断条件"很简单：
       <strong>模型回复里还有没有 <span class="mono">tool_calls</span></strong>？有就执行并继续，没有就结束。</li>
     <li>你只管<strong>声明</strong>"用哪个模型、给哪些工具、什么系统设定"，循环的编排交给框架。</li>
-    <li>底层其实是一张 <strong>LangGraph 状态图</strong>（节点："model" 与 "tools"）——这是第 13 课的内容，现在只需理解它在转一个循环。</li>
+    <li>底层其实是一张 <strong>LangGraph 状态图</strong>（节点："model" 与 "tools"）——这是第 15 课的内容，现在只需理解它在转一个循环。</li>
   </ul>
 </div>
 
@@ -412,7 +412,7 @@ agent = create_agent(model, tools=[get_weather], response_format=Answer)
     </div>
     <div class="qa">
       <div class="q">❓ 与 with_structured_output 的区别</div>
-      <div class="a">第 5 课的 <span class="mono">with_structured_output</span> 约束<strong>单次模型调用</strong>的输出；
+      <div class="a">第 7 课的 <span class="mono">with_structured_output</span> 约束<strong>单次模型调用</strong>的输出；
         这里的 <span class="mono">response_format</span> 约束<strong>整个 Agent 循环跑完后</strong>的最终结果——适合"先用工具查、最后给结构化答案"的场景。</div>
     </div>
     <div class="qa">
@@ -423,7 +423,7 @@ agent = create_agent(model, tools=[get_weather], response_format=Answer)
 </details>
 
 <details class="accordion">
-  <summary><span class="badge-num">3</span> middleware：在循环里插钩子（预告第 13 课） <span class="hint">点击展开详解</span></summary>
+  <summary><span class="badge-num">3</span> middleware：在循环里插钩子（预告第 15 课） <span class="hint">点击展开详解</span></summary>
   <div class="acc-body">
     <div class="qa">
       <div class="q">🧪 用途举例</div>
@@ -436,8 +436,8 @@ agent = create_agent(model, tools=[get_weather], response_format=Answer)
     </div>
     <div class="qa">
       <div class="q">✅ 优点 & 🔀 其他方案</div>
-      <div class="a">优点：行为可插拔，核心循环保持稳定（第 13 课看它如何映射到 LangGraph 节点）。
-        其他方案：用回调（callbacks，第 14 课）做观测，但 middleware 能真正<strong>改变</strong>流程，回调主要用于<strong>观察</strong>。</div>
+      <div class="a">优点：行为可插拔，核心循环保持稳定（第 15 课看它如何映射到 LangGraph 节点）。
+        其他方案：用回调（callbacks，第 16 课）做观测，但 middleware 能真正<strong>改变</strong>流程，回调主要用于<strong>观察</strong>。</div>
     </div>
   </div>
 </details>
@@ -511,7 +511,7 @@ agent = create_agent(model, tools=[delete_database], middleware=[
     <div class="qa">
       <div class="q">❓ 为什么必要</div>
       <div class="a">有些工具是<strong>不可逆的高风险操作</strong>（删数据、转账、发邮件）。让 Agent 在执行前<strong>暂停等人点头</strong>，
-        是生产环境的安全底线。它依赖图的"中断/恢复"能力（第 13 课）。</div>
+        是生产环境的安全底线。它依赖图的"中断/恢复"能力（第 15 课）。</div>
     </div>
     <div class="qa">
       <div class="q">✅ 优点</div>
@@ -543,7 +543,7 @@ agent = create_agent(primary_model, tools, middleware=[
     <div class="qa">
       <div class="q">✅ 优点 & 🔀 其他方案</div>
       <div class="a">优点：健壮性以"装中间件"的方式声明式获得，核心逻辑不变。
-        其他方案：在单次模型调用层用 <span class="mono">model.with_retry()</span>（第 5 课），但 Agent 级中间件覆盖整个循环更全面。</div>
+        其他方案：在单次模型调用层用 <span class="mono">model.with_retry()</span>（第 7 课），但 Agent 级中间件覆盖整个循环更全面。</div>
     </div>
   </div>
 </details>
@@ -601,7 +601,7 @@ agent = create_agent(primary_model, tools, middleware=[
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。把横切的护栏与核心循环解耦，你能像配置一样增减能力（第 18 课看机制）。核心不变、外围灵活，又是分离思想。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。把横切的护栏与核心循环解耦，你能像配置一样增减能力（第 20 课看机制）。核心不变、外围灵活，又是分离思想。</div></div></div>
   </details>
 </div>
 <div class="quiz">

@@ -2,16 +2,16 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>19 · 运行时上下文与健壮性 — LangChain 图解教程</title>
+<title>21 · 运行时上下文与健壮性 — LangChain 图解教程</title>
 <meta name="description" content="第五部分 · 自己动手做 Agent｜运行时上下文与健壮性：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="19 · 运行时上下文与健壮性 — LangChain 图解教程">
+<meta property="og:title" content="21 · 运行时上下文与健壮性 — LangChain 图解教程">
 <meta property="og:description" content="第五部分 · 自己动手做 Agent｜运行时上下文与健壮性：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="19 · 运行时上下文与健壮性 — LangChain 图解教程">
+<meta name="twitter:title" content="21 · 运行时上下文与健壮性 — LangChain 图解教程">
 <meta name="twitter:description" content="第五部分 · 自己动手做 Agent｜运行时上下文与健壮性：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -289,9 +289,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第五部分 · 自己动手做 Agent</span>
-    <span class="pill">19 / 27</span>
+    <span class="pill">21 / 29</span>
   </div>
-  <div class="progress"><span style="width:70%"></span></div>
+  <div class="progress"><span style="width:72%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
@@ -364,7 +364,7 @@ agent.invoke({<span class="st">"messages"</span>: [...]}, context={<span class="
     <div class="qa">
       <div class="q">✅ 代码对应</div>
       <div class="a"><span class="mono">context_schema</span> 是 <span class="mono">create_agent</span> 参数；<span class="mono">ToolRuntime</span> 从 <span class="mono">langchain.tools</span> 导出
-        （底层 <span class="mono">langgraph.prebuilt</span>）。对比第 6 课的 <span class="mono">InjectedState</span>（读对话状态）——context 读的是"运行时配置"。</div>
+        （底层 <span class="mono">langgraph.prebuilt</span>）。对比第 8 课的 <span class="mono">InjectedState</span>（读对话状态）——context 读的是"运行时配置"。</div>
     </div>
   </div>
 </details>
@@ -382,7 +382,7 @@ model = strong.with_fallbacks([cheap])
     </div>
     <div class="qa">
       <div class="q">❓ 与 with_retry 的区别</div>
-      <div class="a"><span class="mono">with_retry</span>（第 5 课）是"<strong>同一个</strong>选项重试几次"；
+      <div class="a"><span class="mono">with_retry</span>（第 7 课）是"<strong>同一个</strong>选项重试几次"；
         <span class="mono">with_fallbacks</span> 是"主选项不行就<strong>换别的</strong>选项"。常组合使用：先重试，仍失败再降级。</div>
     </div>
     <div class="qa">
@@ -411,7 +411,7 @@ model = strong.with_fallbacks([cheap])
     </div>
     <div class="qa">
       <div class="q">✅ 关联</div>
-      <div class="a">这建立在第 14 课的流式与 <span class="mono">astream_events</span> 之上——Agent 是 Runnable，所以天然支持流式，只是多了"按节点"的粒度。</div>
+      <div class="a">这建立在第 16 课的流式与 <span class="mono">astream_events</span> 之上——Agent 是 Runnable，所以天然支持流式，只是多了"按节点"的粒度。</div>
     </div>
   </div>
 </details>

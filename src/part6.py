@@ -461,7 +461,7 @@ LESSON_LEARN = r"""
 </div>
 
 <h2>L6 · 检索 / 记忆：RAG 的底座</h2>
-<p>你在<strong>第 17 课</strong>已经用过 <span class="mono">VectorStore / Retriever</span>——这层就是它们的<strong>"引擎室"</strong>。
+<p>你在<strong>第 19 课</strong>已经用过 <span class="mono">VectorStore / Retriever</span>——这层就是它们的<strong>"引擎室"</strong>。
 核心关键词：<span class="mono">向量(embedding)</span>、<span class="mono">相似度</span>、
 <span class="mono">ANN 近邻索引(HNSW / IVF)</span>。它分三小块：①向量索引/库　②嵌入模型　③长期记忆。</p>
 
@@ -472,7 +472,7 @@ LESSON_LEARN = r"""
   <tr><td class="mono">FAISS</td><td>C++/Python</td><td>中高</td><td>工业级<strong>索引大全</strong>（IVF / PQ / HNSW），Meta 出品</td></tr>
   <tr><td class="mono">pgvector</td><td>C</td><td>中</td><td>在 <strong>Postgres 里做向量检索</strong>——最贴近真实业务落地</td></tr>
   <tr><td class="mono">Qdrant</td><td>Rust</td><td>中</td><td>生产级向量数据库的<strong>完整工程</strong>（过滤 + payload + 分布式）</td></tr>
-  <tr><td class="mono">Chroma</td><td>Python</td><td>低</td><td>最易上手，<strong>本地 RAG 原型</strong>首选（第 17 课就是它这类）</td></tr>
+  <tr><td class="mono">Chroma</td><td>Python</td><td>低</td><td>最易上手，<strong>本地 RAG 原型</strong>首选（第 19 课就是它这类）</td></tr>
   <tr><td class="mono">Milvus · Weaviate</td><td>Go</td><td>高</td><td>大规模<strong>分布式</strong>向量库，海量数据再看</td></tr>
 </table>
 
@@ -487,7 +487,7 @@ LESSON_LEARN = r"""
 <div class="card key">
   <div class="tag">✅ L6 推荐主线</div>
   <strong>① 读 hnswlib</strong>（2~3 个核心文件就能看懂 HNSW，从此"向量检索"不再是黑盒）→
-  <strong>② 用 pgvector 或 Chroma 落地一个 RAG</strong>（把第 17 课的玩具升级成能用的东西）→
+  <strong>② 用 pgvector 或 Chroma 落地一个 RAG</strong>（把第 19 课的玩具升级成能用的东西）→
   <strong>③ 要工程深度再看 Qdrant / FAISS</strong>。嵌入选 <strong>BGE</strong>，要记忆看 <strong>Mem0 / Zep</strong>。
 </div>
 

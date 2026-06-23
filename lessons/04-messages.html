@@ -2,16 +2,16 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>04 · 消息系统 — LangChain 图解教程</title>
+<title>06 · 消息系统 — LangChain 图解教程</title>
 <meta name="description" content="第二部分 · 用户视角｜消息系统：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="04 · 消息系统 — LangChain 图解教程">
+<meta property="og:title" content="06 · 消息系统 — LangChain 图解教程">
 <meta property="og:description" content="第二部分 · 用户视角｜消息系统：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="04 · 消息系统 — LangChain 图解教程">
+<meta name="twitter:title" content="06 · 消息系统 — LangChain 图解教程">
 <meta name="twitter:description" content="第二部分 · 用户视角｜消息系统：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -289,9 +289,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第二部分 · 用户视角</span>
-    <span class="pill">04 / 27</span>
+    <span class="pill">06 / 29</span>
   </div>
-  <div class="progress"><span style="width:14%"></span></div>
+  <div class="progress"><span style="width:20%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
@@ -372,7 +372,7 @@ AIMessage(
     <li><strong>消息是"通用货币"</strong>：模型的输入是 <span class="mono">list[BaseMessage]</span>，输出是一条 <span class="mono">AIMessage</span>。
       无论 OpenAI 还是 Anthropic，进出都是这套统一格式。</li>
     <li><strong>tool_calls 是 Agent 的引擎</strong>：模型不直接执行工具，而是在 AIMessage 里"请求"调用，
-      由你的程序去执行，再把结果包成 ToolMessage 喂回去。这就是 Agent 循环的本质（第 7、13 课）。</li>
+      由你的程序去执行，再把结果包成 ToolMessage 喂回去。这就是 Agent 循环的本质（第 9、15 课）。</li>
     <li><strong>content 可以是多模态</strong>：除了文本，还能放图片等内容块（定义在 <span class="mono">messages/content.py</span>）。</li>
   </ul>
 </div>
@@ -394,7 +394,7 @@ conversation = [
   <div class="col">
     <h4>① 流式块 Message Chunk</h4>
     <p>流式输出时，模型不是一次给完整 <span class="inline">AIMessage</span>，而是一串
-      <span class="inline">AIMessageChunk</span>。它们能用 <span class="inline">+</span> 累加成完整消息（第 14 课详解）。</p>
+      <span class="inline">AIMessageChunk</span>。它们能用 <span class="inline">+</span> 累加成完整消息（第 16 课详解）。</p>
     <p class="mono" style="font-size:.8rem;color:var(--muted)">messages/ai.py · AIMessageChunk</p>
   </div>
   <div class="col">
@@ -669,7 +669,7 @@ agent = create_agent(model, tools, middleware=[SummarizationMiddleware(model)])<
       <div class="q">✅ 代码对应</div>
       <div class="a"><span class="mono">SummarizationMiddleware</span> → <span class="mono">agents/middleware/summarization.py</span>；
         <span class="mono">ContextEditingMiddleware</span> → <span class="mono">agents/middleware/context_editing.py</span>；
-        <span class="mono">checkpointer</span> 是 <span class="mono">create_agent</span> 的参数（持久化由 LangGraph 提供，第 13 课）。</div>
+        <span class="mono">checkpointer</span> 是 <span class="mono">create_agent</span> 的参数（持久化由 LangGraph 提供，第 15 课）。</div>
     </div>
   </div>
 </details>
@@ -790,7 +790,7 @@ chat = RunnableWithMessageHistory(
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="03-lifecycle.html"><div class="dir">← 上一课</div><div class="ttl">一次调用的生命周期</div></a><a class="next" href="05-chat-models.html"><div class="dir">下一课 →</div><div class="ttl">聊天模型</div></a></div>
+  <div class="footnav"><a class="prev" href="05-learning-path.html"><div class="dir">← 上一课</div><div class="ttl">学习路径与实验方法</div></a><a class="next" href="05-chat-models.html"><div class="dir">下一课 →</div><div class="ttl">聊天模型</div></a></div>
 </div>
 
 </body></html>

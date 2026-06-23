@@ -2,16 +2,16 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>20 · 端到端实战：拼一个客服 Agent — LangChain 图解教程</title>
+<title>22 · 端到端实战：拼一个客服 Agent — LangChain 图解教程</title>
 <meta name="description" content="第五部分 · 自己动手做 Agent｜端到端实战：拼一个客服 Agent：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="20 · 端到端实战：拼一个客服 Agent — LangChain 图解教程">
+<meta property="og:title" content="22 · 端到端实战：拼一个客服 Agent — LangChain 图解教程">
 <meta property="og:description" content="第五部分 · 自己动手做 Agent｜端到端实战：拼一个客服 Agent：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="20 · 端到端实战：拼一个客服 Agent — LangChain 图解教程">
+<meta name="twitter:title" content="22 · 端到端实战：拼一个客服 Agent — LangChain 图解教程">
 <meta name="twitter:description" content="第五部分 · 自己动手做 Agent｜端到端实战：拼一个客服 Agent：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -289,9 +289,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第五部分 · 自己动手做 Agent</span>
-    <span class="pill">20 / 27</span>
+    <span class="pill">22 / 29</span>
   </div>
-  <div class="progress"><span style="width:74%"></span></div>
+  <div class="progress"><span style="width:75%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
@@ -316,14 +316,14 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <p>这个 Agent 用到的每一块，都能追溯到前面的某一课：</p>
 <table class="t">
   <tr><th>零件</th><th>作用</th><th>来自</th></tr>
-  <tr><td class="mono">init_chat_model</td><td>聊天模型</td><td>第 5 课</td></tr>
-  <tr><td class="mono">@tool（查订单）</td><td>调用外部系统</td><td>第 6 课</td></tr>
-  <tr><td class="mono">create_retriever_tool</td><td>RAG 知识库工具</td><td>第 17 课</td></tr>
-  <tr><td class="mono">system_prompt</td><td>人设与规则</td><td>第 16 课</td></tr>
-  <tr><td class="mono">AgentMiddleware</td><td>审计 / 护栏</td><td>第 18 课</td></tr>
-  <tr><td class="mono">context_schema</td><td>注入 user_id</td><td>第 19 课</td></tr>
-  <tr><td class="mono">response_format</td><td>结构化答复</td><td>第 5 课</td></tr>
-  <tr><td class="mono">create_agent</td><td>把以上接成循环</td><td>第 7 / 13 课</td></tr>
+  <tr><td class="mono">init_chat_model</td><td>聊天模型</td><td>第 7 课</td></tr>
+  <tr><td class="mono">@tool（查订单）</td><td>调用外部系统</td><td>第 8 课</td></tr>
+  <tr><td class="mono">create_retriever_tool</td><td>RAG 知识库工具</td><td>第 19 课</td></tr>
+  <tr><td class="mono">system_prompt</td><td>人设与规则</td><td>第 18 课</td></tr>
+  <tr><td class="mono">AgentMiddleware</td><td>审计 / 护栏</td><td>第 20 课</td></tr>
+  <tr><td class="mono">context_schema</td><td>注入 user_id</td><td>第 21 课</td></tr>
+  <tr><td class="mono">response_format</td><td>结构化答复</td><td>第 7 课</td></tr>
+  <tr><td class="mono">create_agent</td><td>把以上接成循环</td><td>第 9 / 15 课</td></tr>
 </table>
 
 <h2>完整代码：拼起来其实就这么短</h2>
@@ -335,39 +335,39 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <span class="kw">from</span> langchain_core.tools <span class="kw">import</span> tool, create_retriever_tool
 <span class="kw">from</span> langchain.tools <span class="kw">import</span> ToolRuntime
 
-<span class="cm"># ① 运行时上下文（第 19 课）：每次请求带 user_id，不进消息</span>
+<span class="cm"># ① 运行时上下文（第 21 课）：每次请求带 user_id，不进消息</span>
 <span class="nb">@dataclass</span>
 <span class="kw">class</span> <span class="fn">Ctx</span>:
     user_id: str
 
-<span class="cm"># ② 工具（第 6 课）：查订单，用 runtime 读当前用户</span>
+<span class="cm"># ② 工具（第 8 课）：查订单，用 runtime 读当前用户</span>
 <span class="nb">@tool</span>
 <span class="kw">def</span> <span class="fn">get_order_status</span>(order_id: str, runtime: ToolRuntime) -> str:
     <span class="st">&quot;&quot;&quot;查询订单状态。&quot;&quot;&quot;</span>
     <span class="kw">return</span> orders_db.status(runtime.context.user_id, order_id)
 
-<span class="cm"># ③ RAG（第 17 课）：把知识库检索器变成一个工具</span>
+<span class="cm"># ③ RAG（第 19 课）：把知识库检索器变成一个工具</span>
 kb_tool = create_retriever_tool(retriever, <span class="st">"search_kb"</span>, <span class="st">"检索退换货等政策"</span>)
 
-<span class="cm"># ④ 自定义中间件（第 18 课）：每轮审计 + 护栏</span>
+<span class="cm"># ④ 自定义中间件（第 20 课）：每轮审计 + 护栏</span>
 <span class="kw">class</span> <span class="fn">AuditMiddleware</span>(AgentMiddleware):
     <span class="kw">def</span> <span class="fn">before_model</span>(self, state, runtime):
         log.info(<span class="st">"user=%s turns=%d"</span>, runtime.context.user_id, len(state[<span class="st">"messages"</span>]))
         <span class="kw">return</span> None
 
-<span class="cm"># ⑤ 结构化答复（第 5 课）</span>
+<span class="cm"># ⑤ 结构化答复（第 7 课）</span>
 <span class="kw">class</span> <span class="fn">Reply</span>(BaseModel):
     answer: str
     resolved: bool
 
-<span class="cm"># ⑥ 组装（第 7、13 课）：一个 create_agent 把以上全部接起来</span>
+<span class="cm"># ⑥ 组装（第 9、15 课）：一个 create_agent 把以上全部接起来</span>
 agent = create_agent(
-    model=init_chat_model(<span class="st">"openai:gpt-5.1"</span>),                <span class="cm"># 第 5 课</span>
-    tools=[get_order_status, kb_tool],                       <span class="cm"># 第 6、17 课</span>
-    system_prompt=<span class="st">"你是友好的客服，先查资料再回答，不要编造。"</span>,   <span class="cm"># 第 16 课</span>
-    middleware=[AuditMiddleware()],                          <span class="cm"># 第 18 课</span>
-    context_schema=Ctx,                                      <span class="cm"># 第 19 课</span>
-    response_format=Reply,                                   <span class="cm"># 第 5 课</span>
+    model=init_chat_model(<span class="st">"openai:gpt-5.1"</span>),                <span class="cm"># 第 7 课</span>
+    tools=[get_order_status, kb_tool],                       <span class="cm"># 第 8、19 课</span>
+    system_prompt=<span class="st">"你是友好的客服，先查资料再回答，不要编造。"</span>,   <span class="cm"># 第 18 课</span>
+    middleware=[AuditMiddleware()],                          <span class="cm"># 第 20 课</span>
+    context_schema=Ctx,                                      <span class="cm"># 第 21 课</span>
+    response_format=Reply,                                   <span class="cm"># 第 7 课</span>
 )
 
 <span class="cm"># ⑦ 跑起来：context 带身份，输出是结构化的 Reply</span>
@@ -413,11 +413,11 @@ print(result[<span class="st">"structured_response"</span>])   <span class="cm">
 <pre class="code"><span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> InMemorySaver
 agent = create_agent(..., checkpointer=InMemorySaver())
 agent.invoke(inp, config={<span class="st">"configurable"</span>: {<span class="st">"thread_id"</span>: <span class="st">"u_42"</span>}})  <span class="cm"># 同 thread 记住上下文</span></pre>
-        （第 13 课）按 <span class="mono">thread_id</span> 区分会话，自动存取历史。</div>
+        （第 15 课）按 <span class="mono">thread_id</span> 区分会话，自动存取历史。</div>
     </div>
     <div class="qa">
       <div class="q">✅ 配合上下文管理</div>
-      <div class="a">历史变长时，叠加 <span class="mono">SummarizationMiddleware</span>（第 4 课）自动摘要，控制 token。</div>
+      <div class="a">历史变长时，叠加 <span class="mono">SummarizationMiddleware</span>（第 6 课）自动摘要，控制 token。</div>
     </div>
   </div>
 </details>
@@ -430,7 +430,7 @@ agent.invoke(inp, config={<span class="st">"configurable"</span>: {<span class="
       <div class="a">
 <pre class="code"><span class="kw">for</span> ev <span class="kw">in</span> agent.stream(inp, context=ctx, stream_mode=<span class="st">"updates"</span>):
     ...  <span class="cm"># 每个节点的增量：模型/工具步骤，驱动进度提示</span></pre>
-        要逐字打字机用 <span class="mono">"messages"</span>；要细到每一步事件用 <span class="mono">astream_events</span>（第 14 课）。</div>
+        要逐字打字机用 <span class="mono">"messages"</span>；要细到每一步事件用 <span class="mono">astream_events</span>（第 16 课）。</div>
     </div>
   </div>
 </details>
@@ -444,7 +444,7 @@ agent.invoke(inp, config={<span class="st">"configurable"</span>: {<span class="
 <pre class="code"><span class="kw">from</span> langchain_core.language_models.fake_chat_models <span class="kw">import</span> GenericFakeChatModel
 test_agent = create_agent(model=GenericFakeChatModel(messages=iter([...])), tools=[...])
 <span class="cm"># 断言它在该调工具时调了工具、最终结构化字段正确</span></pre>
-        （第 15 课）单测禁网、用假模型，快速稳定地验证 Agent 的<strong>编排逻辑</strong>。</div>
+        （第 17 课）单测禁网、用假模型，快速稳定地验证 Agent 的<strong>编排逻辑</strong>。</div>
     </div>
     <div class="qa">
       <div class="q">✅ 分层测</div>

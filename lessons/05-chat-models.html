@@ -2,16 +2,16 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>05 · 聊天模型 — LangChain 图解教程</title>
+<title>07 · 聊天模型 — LangChain 图解教程</title>
 <meta name="description" content="第二部分 · 用户视角｜聊天模型：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="05 · 聊天模型 — LangChain 图解教程">
+<meta property="og:title" content="07 · 聊天模型 — LangChain 图解教程">
 <meta property="og:description" content="第二部分 · 用户视角｜聊天模型：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="05 · 聊天模型 — LangChain 图解教程">
+<meta name="twitter:title" content="07 · 聊天模型 — LangChain 图解教程">
 <meta name="twitter:description" content="第二部分 · 用户视角｜聊天模型：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -289,9 +289,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第二部分 · 用户视角</span>
-    <span class="pill">05 / 27</span>
+    <span class="pill">07 / 29</span>
   </div>
-  <div class="progress"><span style="width:18%"></span></div>
+  <div class="progress"><span style="width:24%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
@@ -338,7 +338,7 @@ model = init_chat_model(<span class="st">"openai:gpt-5.1"</span>)        <span c
 </div>
 
 <h2>三种调用方式：invoke / stream / batch</h2>
-<p>拿到模型后，有三种跑法。它们其实来自更底层的 <strong>Runnable 接口</strong>（第 8 课会揭晓）：</p>
+<p>拿到模型后，有三种跑法。它们其实来自更底层的 <strong>Runnable 接口</strong>（第 10 课会揭晓）：</p>
 
 <div class="cols">
   <div class="col">
@@ -427,7 +427,7 @@ a*      → 上面三个的异步版（FastAPI 等异步框架里用）</pre>
     </div>
     <div class="qa">
       <div class="q">✅ 优点</div>
-      <div class="a">它们其实都来自底层 <strong>Runnable</strong> 接口（第 8 课），所以<strong>任何</strong> LangChain 组件
+      <div class="a">它们其实都来自底层 <strong>Runnable</strong> 接口（第 10 课），所以<strong>任何</strong> LangChain 组件
         （链、Agent）都自带这四类跑法，学一次处处通用。</div>
     </div>
   </div>
@@ -539,7 +539,7 @@ robust = model.with_retry(stop_after_attempt=3)</pre>
     </div>
     <div class="qa">
       <div class="q">❓ 它们解决什么</div>
-      <div class="a">缓存命中时<strong>根本不发请求</strong>（呼应第 11 课的 <span class="mono">_generate_with_cache</span>），重复问答零成本；
+      <div class="a">缓存命中时<strong>根本不发请求</strong>（呼应第 13 课的 <span class="mono">_generate_with_cache</span>），重复问答零成本；
         <span class="mono">with_retry</span> 是 Runnable 通用能力，用指数退避吸收瞬时故障。</div>
     </div>
     <div class="qa">
@@ -593,7 +593,7 @@ structured.invoke(<span class="st">"北京 25 度"</span>)
     </div>
     <div class="qa">
       <div class="q">✅ 在 Agent 里：三种策略</div>
-      <div class="a"><span class="mono">response_format</span>（第 7 课）底层用
+      <div class="a"><span class="mono">response_format</span>（第 9 课）底层用
         <span class="mono">ToolStrategy</span>（structured_output.py）/ <span class="mono">ProviderStrategy</span>（:261）/
         <span class="mono">AutoStrategy</span>（:447，自动选）。核心签名在 <span class="mono">chat_models.py</span>。</div>
     </div>
@@ -643,7 +643,7 @@ structured.invoke(<span class="st">"北京 25 度"</span>)
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。一套接口、多种执行语义，是 Runnable 抽象的红利（第 8 课）——换场景只换方法名，不换世界观。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。一套接口、多种执行语义，是 Runnable 抽象的红利（第 10 课）——换场景只换方法名，不换世界观。</div></div></div>
   </details>
 </div>
 <div class="quiz">

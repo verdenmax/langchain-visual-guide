@@ -2,16 +2,16 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>11 · 聊天模型内部 — LangChain 图解教程</title>
+<title>13 · 聊天模型内部 — LangChain 图解教程</title>
 <meta name="description" content="第三部分 · 内部源码｜聊天模型内部：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="11 · 聊天模型内部 — LangChain 图解教程">
+<meta property="og:title" content="13 · 聊天模型内部 — LangChain 图解教程">
 <meta property="og:description" content="第三部分 · 内部源码｜聊天模型内部：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="11 · 聊天模型内部 — LangChain 图解教程">
+<meta name="twitter:title" content="13 · 聊天模型内部 — LangChain 图解教程">
 <meta name="twitter:description" content="第三部分 · 内部源码｜聊天模型内部：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -289,9 +289,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第三部分 · 内部源码</span>
-    <span class="pill">11 / 27</span>
+    <span class="pill">13 / 29</span>
   </div>
-  <div class="progress"><span style="width:40%"></span></div>
+  <div class="progress"><span style="width:44%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
@@ -364,7 +364,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   这是经典的<strong>"模板方法"设计模式</strong>：地基层把<strong>不变的流程</strong>
   （缓存、回调、重试、批处理）写死成模板，把<strong>会变的那一步</strong>（怎么和具体厂商对话）
   留成抽象方法 <span class="mono">_generate</span> 交给子类。<br>
-  这正是<strong>第 2 课"三层架构"在方法级别的体现</strong>：要支持新厂商，只需在集成层实现一个 <span class="mono">_generate</span>。
+  这正是<strong>第 2 课“项目与包结构”在方法级别的体现</strong>：要支持新厂商，只需在 partner 适配层实现一个 <span class="mono">_generate</span>。
 </div>
 
 <h2>🔍 深入理解</h2>
@@ -415,7 +415,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="qa">
       <div class="q">❓ 为什么由模板层统一触发</div>
       <div class="a">这样无论哪个厂商、无论命中缓存与否，<strong>事件序列都一致</strong>，
-        LangSmith 等追踪工具才能可靠地记录每一次模型调用（第 14 课）。</div>
+        LangSmith 等追踪工具才能可靠地记录每一次模型调用（第 16 课）。</div>
     </div>
     <div class="qa">
       <div class="q">✅ 优点</div>
@@ -428,7 +428,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="tag">💡 设计亮点</div>
   <ul>
     <li><strong>模板方法模式</strong>：通用流程（缓存/回调/重试）写一次、所有厂商共享，只留 <span class="mono">_generate</span> 抽象。</li>
-    <li>这正是三层架构在<strong>方法级</strong>的落点——加新厂商只需实现一个方法。</li>
+    <li>这正是包边界在<strong>方法级</strong>的落点——加新厂商只需实现一个方法。</li>
   </ul>
 </div>
 
@@ -437,7 +437,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <ul>
     <li>调用链：<span class="mono">invoke → generate_prompt → generate → _generate_with_cache → _generate</span>。</li>
     <li>前几步是<strong>所有厂商共享</strong>的模板（缓存/回调/重试）；只有 <span class="mono">_generate</span> 由厂商各自实现。</li>
-    <li>这是"模板方法模式"，也是三层架构在代码里的落点。</li>
+    <li>这是"模板方法模式"，也是包边界在代码里的落点。</li>
     <li>下一课：工具调用在内部如何完成"函数 → schema → tool_calls → 执行"。</li>
   </ul>
 </div>
@@ -483,7 +483,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">4. 顺着调用链读源码，能体会到“三层架构”在代码里的样子。这说明好的架构有什么特征？</div>
+  <div class="qn">4. 顺着调用链读源码，能体会到“包边界与分层”在代码里的样子。这说明好的架构有什么特征？</div>
   <ol class="opts">
     <li>宏观的分层思想能在微观的调用链里被一眼认出——结构是自洽、可追溯的</li>
     <li>代码很长</li>
@@ -492,7 +492,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。当“宏观设计”和“微观实现”对得上（分层 ↔ 调用链 ↔ 模板方法），系统就是可理解的。读一条链就能验证整套架构。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。当“宏观设计”和“微观实现”对得上（包边界 ↔ 调用链 ↔ 模板方法），系统就是可理解的。读一条链就能验证整套架构。</div></div></div>
   </details>
 </div>
 <div class="card spark">

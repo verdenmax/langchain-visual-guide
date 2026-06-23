@@ -3,16 +3,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>01 · LangChain 是什么 — LangChain 图解教程</title>
-<meta name="description" content="第一部分 · 宏观全景｜LangChain 是什么：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="description" content="第一部分 · 全局地图｜LangChain 是什么：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
 <meta property="og:title" content="01 · LangChain 是什么 — LangChain 图解教程">
-<meta property="og:description" content="第一部分 · 宏观全景｜LangChain 是什么：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:description" content="第一部分 · 全局地图｜LangChain 是什么：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="01 · LangChain 是什么 — LangChain 图解教程">
-<meta name="twitter:description" content="第一部分 · 宏观全景｜LangChain 是什么：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:description" content="第一部分 · 全局地图｜LangChain 是什么：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -288,360 +288,152 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第一部分 · 宏观全景</span>
-    <span class="pill">01 / 27</span>
+    <span class="pill">第一部分 · 全局地图</span>
+    <span class="pill">01 / 29</span>
   </div>
   <div class="progress"><span style="width:3%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第一部分 · 宏观全景</div>
+    <div class="part">第一部分 · 全局地图</div>
     <h1>LangChain 是什么</h1>
   </div>
   
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-LangChain 是一个用 Python（和 JS）写的<strong>开源框架</strong>，帮你把"大语言模型（LLM）"
-接进真实的应用里。它不替你训练模型，而是负责模型<strong>周边的所有管道</strong>。
+LangChain 是什么？一句话：它是把大语言模型接进应用的<strong>编排层</strong>。它帮你统一消息、模型、工具、回调、Agent 循环和图执行，但它不是模型本身，不负责训练，不负责底层推理，也不是向量数据库。第一课先把边界画清楚：知道它做什么，也知道它不做什么，后面读源码才不会把每一层的责任混在一起。
 </p>
 
 <div class="card analogy">
-  <div class="tag">🔌 生活类比</div>
-  把大语言模型（如 GPT、Claude）想成一台<strong>很强但很孤立的发动机</strong>。它能输出文字，
-  但不知道你的数据库、不会自己调用工具、不同品牌发动机接口还都不一样。
-  LangChain 就是那套<strong>标准化的"传动系统 + 仪表盘 + 配件接口"</strong>：
-  让你用同一套代码驱动任何品牌的发动机，并把它接到油箱、轮子和导航上。
+  <div class="tag">🧭 生活类比 · 机场调度塔</div>
+  把模型想成飞机，向量库想成仓库，工具想成地勤车辆，业务系统想成城市交通。LangChain 像机场调度塔和标准跑道：它不制造飞机，也不替飞机发动机燃烧燃料；它规定无线电格式、排队规则、降落流程和地勤交接方式，让不同航空公司、不同机型、不同地勤系统能在同一套秩序下协作。调度塔强大，但它的权力边界也清楚：跑道上怎么编排归它，飞机怎么训练飞行员、发动机如何推力、仓库如何索引货物，则属于别的层。
 </div>
 
-<h2>它到底解决什么问题？</h2>
-<p>直接调用某个厂商的 API（比如 OpenAI 的 SDK）当然能用，但真实应用里你很快会遇到四类麻烦，
-这正是 LangChain 要替你抹平的：</p>
-
-<table class="t">
-  <tr><th>痛点</th><th>没有框架时</th><th>LangChain 的做法</th></tr>
-  <tr><td><strong>厂商锁定</strong></td><td>换模型要重写一大片调用代码</td><td>统一接口 <span class="mono">invoke()</span>，换模型只改一行</td></tr>
-  <tr><td><strong>对话拼装</strong></td><td>手动拼 role/content 的字典</td><td>结构化<strong>消息对象</strong>（Human/AI/Tool）</td></tr>
-  <tr><td><strong>调用工具</strong></td><td>自己解析模型要调哪个函数、传什么参</td><td><strong>工具(Tool)</strong> + 自动生成 schema + 解析</td></tr>
-  <tr><td><strong>多步推理</strong></td><td>手写"想—做—再想"的循环</td><td><strong>Agent</strong> 帮你编排循环</td></tr>
-</table>
-
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">
-👇 想深入理解每一类麻烦？点开下面的折叠卡片，每张都给你：<strong>① 示例代码 · ② 为什么必要 · ③ LangChain 的做法与优点 · ④ 还有什么其他方案</strong>。
-</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 厂商锁定 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">直接用各家 SDK，方法名、参数、返回结构都不一样：
-<pre class="code"><span class="cm"># OpenAI SDK</span>
-<span class="kw">from</span> openai <span class="kw">import</span> OpenAI
-text = OpenAI().chat.completions.create(
-    model=<span class="st">"gpt-5.1"</span>, messages=[...]
-).choices[0].message.content
-
-<span class="cm"># Anthropic SDK —— 形状完全不同</span>
-<span class="kw">from</span> anthropic <span class="kw">import</span> Anthropic
-text = Anthropic().messages.create(
-    model=<span class="st">"claude-sonnet-4-5"</span>, max_tokens=1024, messages=[...]
-).content[0].text
-
-<span class="cm"># LangChain —— 换厂商只改字符串</span>
-text = init_chat_model(<span class="st">"openai:gpt-5.1"</span>).invoke(<span class="st">"..."</span>).content</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么这件事必要</div>
-      <div class="a">真实项目常需在厂商间切换：A/B 对比效果、主力模型故障时降级到备用、按成本或延迟选型。
-        一旦调用代码与某家 SDK 深度耦合，每次切换都要重写一大片——这就是"厂商锁定"。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ LangChain 的做法与优点</div>
-      <div class="a">用统一的 <strong>BaseChatModel</strong> 接口包裹所有厂商，一律 <span class="inline">invoke/stream/batch</span>；
-        换模型只改 <span class="inline">"openai:..."</span> → <span class="inline">"anthropic:..."</span> 一个字符串，
-        还顺带统一了<strong>重试、缓存、回调追踪</strong>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">🔀 还有什么其他方案</div>
-      <div class="a"><strong>自己写一层适配器</strong>（灵活但要自己维护、自己跟进各厂商更新）；
-        <strong>LiteLLM</strong>（专注"统一调用 API"这一件事，更轻量）；
-        <strong>直接绑定单一厂商</strong>（最省事，但放弃了可移植性）。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> 对话拼装（role / content） <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">手拼字典 vs 结构化消息对象：
-<pre class="code"><span class="cm"># 手动拼 dict：key 和 role 容易拼错、字段容易漏</span>
-messages = [
-    {<span class="st">"role"</span>: <span class="st">"system"</span>, <span class="st">"content"</span>: <span class="st">"你是助手"</span>},
-    {<span class="st">"role"</span>: <span class="st">"user"</span>,   <span class="st">"content"</span>: <span class="st">"你好"</span>},
-]
-
-<span class="cm"># LangChain 消息对象：类型安全、可补全、可携带 tool_calls 等</span>
-<span class="kw">from</span> langchain_core.messages <span class="kw">import</span> SystemMessage, HumanMessage
-messages = [SystemMessage(<span class="st">"你是助手"</span>), HumanMessage(<span class="st">"你好"</span>)]</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么 role / content 必须存在</div>
-      <div class="a">聊天类 LLM 是按<strong>多轮对话格式</strong>训练的：模型靠 <span class="inline">role</span> 区分"谁在说话"——
-        <strong>system</strong>（最高优先级的设定）、<strong>user</strong>（你的输入）、<strong>assistant</strong>（模型的历史回复）；
-        靠 <span class="inline">content</span> 承载具体内容。缺了 role，模型就无法分辨"系统指令"和"用户提问"，
-        语义会错乱；这是 Chat Completions API 的<strong>硬性契约</strong>，漏字段会直接报错。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ LangChain 的做法与优点</div>
-      <div class="a">用<strong>消息类</strong>代替裸字典：防拼写错误、IDE 自动补全、可承载结构化字段
-        （<span class="inline">tool_calls</span>、<span class="inline">usage_metadata</span>、多模态内容块），
-        并能在不同厂商间<strong>自动翻译</strong>成各自要求的 role/content 格式。</div>
-    </div>
-    <div class="qa">
-      <div class="q">🔀 还有什么其他方案</div>
-      <div class="a"><strong>继续手拼 dict</strong>（最简单，但易错、无补全）；
-        <strong>自定义 TypedDict / pydantic 模型</strong>（类型安全，但要自己实现序列化与厂商适配）；
-        <strong>用厂商 SDK 自带的消息类型</strong>（又回到厂商锁定）。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> 调用工具 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">手写 JSON Schema + 手动解析 vs 一个装饰器：
-<pre class="code"><span class="cm"># 手动：自己写 schema，还要手动解析模型返回的调用请求</span>
-tools = [{
-    <span class="st">"type"</span>: <span class="st">"function"</span>,
-    <span class="st">"function"</span>: {
-        <span class="st">"name"</span>: <span class="st">"get_weather"</span>,
-        <span class="st">"description"</span>: <span class="st">"查询天气"</span>,
-        <span class="st">"parameters"</span>: {<span class="st">"type"</span>: <span class="st">"object"</span>,
-            <span class="st">"properties"</span>: {<span class="st">"city"</span>: {<span class="st">"type"</span>: <span class="st">"string"</span>}},
-            <span class="st">"required"</span>: [<span class="st">"city"</span>]}}}]
-<span class="cm"># 模型返回后，还要自己 json.loads(arguments) → 调函数 → 拼回去</span>
-
-<span class="cm"># LangChain：一个装饰器，schema 自动从签名生成</span>
-<span class="nb">@tool</span>
-<span class="kw">def</span> <span class="fn">get_weather</span>(city: str) -> str:
-    <span class="st">&quot;&quot;&quot;查询天气&quot;&quot;&quot;</span>
-    ...</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么这件事必要</div>
-      <div class="a">模型本身<strong>不会执行代码</strong>，它只能输出一个"我想调用某函数、参数是这些"的结构化请求。
-        要真正用上工具，必须：① 用 JSON Schema 把工具<strong>描述</strong>给模型；② <strong>解析</strong>模型返回的调用请求；
-        ③ <strong>执行</strong>并把结果回传。手写这三步繁琐且易错（参数校验、JSON 解析尤甚）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ LangChain 的做法与优点</div>
-      <div class="a"><span class="inline">@tool</span> 从<strong>函数签名 + 类型注解 + docstring</strong> 自动生成 schema；
-        自动把模型返回解析成结构化的 <span class="inline">tool_calls</span>；用 pydantic 校验参数。你只写一个普通函数。</div>
-    </div>
-    <div class="qa">
-      <div class="q">🔀 还有什么其他方案</div>
-      <div class="a"><strong>手写 JSON Schema + 手动解析</strong>（完全可控，但样板代码多）；
-        <strong>用厂商 SDK 的 function calling 原语</strong>（仍要自己写 schema）；
-        <strong>自己用 pydantic 生成 schema</strong> 再喂给厂商（接近 LangChain 的思路，但要自己拼装）。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">4</span> 多步推理（Agent 循环） <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">手写"想—做—再想"循环 vs 一行 create_agent：
-<pre class="code"><span class="cm"># 手写循环：调模型 → 看有无 tool_calls → 执行 → 回灌 → 再调…</span>
-<span class="kw">while</span> True:
-    ai = model_with_tools.invoke(messages)
-    messages.append(ai)
-    <span class="kw">if</span> <span class="kw">not</span> ai.tool_calls:
-        <span class="kw">break</span>
-    <span class="kw">for</span> call <span class="kw">in</span> ai.tool_calls:
-        result = run_tool(call)
-        messages.append(ToolMessage(result, tool_call_id=call[<span class="st">"id"</span>]))
-
-<span class="cm"># LangChain：一行</span>
-agent = create_agent(model, tools)
-agent.invoke({<span class="st">"messages"</span>: [...]})</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么这件事必要</div>
-      <div class="a">复杂任务要让模型<strong>边想边做</strong>：查一次不够还要再查、根据中间结果调整方向。
-        这需要一个循环——调用→判断→执行工具→把结果回灌→再调用。手写时还要处理
-        <strong>终止条件、错误重试、并行工具调用、消息累积、状态管理</strong>，很快就会失控。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ LangChain 的做法与优点</div>
-      <div class="a"><span class="inline">create_agent</span> 用 <strong>LangGraph</strong> 把这个循环编译成一张状态图，
-        自带终止判断、并行工具、流式输出、持久化 / 中断、以及 <strong>middleware</strong> 扩展点——
-        无需你手搓循环（细节见第 7、13 课）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">🔀 还有什么其他方案</div>
-      <div class="a"><strong>手写 while 循环</strong>（小场景够用，复杂场景易失控）；
-        <strong>其他 Agent 框架</strong>（如 LlamaIndex、AutoGen、CrewAI，各有侧重）；
-        <strong>直接用 LangGraph 自己搭图</strong>（最大灵活度，但要自己定义节点和边）。</div>
-    </div>
-  </div>
-</details>
-
-<h2>核心心智模型：四个名词</h2>
-<p>整个框架你只要先记住<strong>四个概念</strong>，后面所有内容都是它们的展开。下面这张图是你之后
-反复会用到的"骨架图"：</p>
-
-<div class="flow">
-  <div class="node hl"><div class="nt">Messages</div><div class="nd">对话的"原子"<br>谁说了什么</div></div>
-  <div class="arrow">→</div>
-  <div class="node hl"><div class="nt">Chat Model</div><div class="nd">包裹 LLM<br>输入/输出都是消息</div></div>
-  <div class="arrow">→</div>
-  <div class="node hl"><div class="nt">Tools</div><div class="nd">模型能调用的<br>外部能力</div></div>
-  <div class="arrow">→</div>
-  <div class="node hl"><div class="nt">Agent</div><div class="nd">把上面三者<br>编成自动循环</div></div>
+<h2>先定边界：它是编排，不是底层能力</h2>
+<p>学习框架最容易犯的错，是把所有“看起来和 AI 有关”的东西都塞到一个名字下面。LangChain 的定位要拆成两句话：第一，它提供<strong>统一接口</strong>，让你用相同的调用方式使用不同模型、工具和运行时；第二，它提供<strong>组合与编排</strong>，把一次模型调用扩展成可以追踪、可以重试、可以调用工具、可以形成 Agent 循环的应用流程。它不训练参数，不部署推理内核，不实现 HNSW 或 IVF 索引，也不替数据库做持久化查询优化。</p>
+<p>这条边界非常重要。调试时如果模型回答差，可能是 prompt、检索材料、模型能力或温度参数的问题，不要第一反应怪 LangChain；如果接口换厂商后字段不一致，才更可能落在 provider adapter；如果 Agent 循环无法暂停恢复，就要看 LangGraph 的状态图与 checkpointer。边界越清楚，排错越快。</p>
+<div class="lesson-map"><div class="lm-title">🗺️ 第一部分的学习路线</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">框架边界</div><div class="mn-desc">确认 LangChain 只做应用编排与集成，不替代模型、训练、推理和数据库</div></div><div class="map-node source"><div class="mn-label">核心协议</div><div class="mn-desc">用 Runnable、BaseMessage、ChatModel、Tool 这些协议统一上层心智</div></div><div class="map-node after"><div class="mn-label">调用链</div><div class="mn-desc">把一次 invoke 拆成消息标准化、配置合并、回调、provider payload、AIMessage</div></div><div class="map-node after"><div class="mn-label">Agent 与图</div><div class="mn-desc">理解 create_agent 为什么交给 LangGraph 执行循环、分支、持久化</div></div><div class="map-node after"><div class="mn-label">实验方法</div><div class="mn-desc">用 fake model 和可观测 trace 训练稳定的源码阅读习惯</div></div></div></div>
+<h2>一张调用图：从业务请求到模型、工具和图</h2>
+<p>下面的图不是完整源码调用栈，而是你以后读所有章节时都要套用的宏观骨架。用户输入先变成标准消息，模型被统一成 Runnable，工具以 schema 暴露给模型，Agent 循环则由 LangGraph 的状态图管理。每一层都只拥有自己的职责，越界就会导致设计混乱。</p>
+<div class="flow call-graph"><div class="node hl"><div class="nt">你的业务代码</div><div class="nd">描述任务、选择模型、绑定工具</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">LangChain 接口</div><div class="nd">Runnable / BaseMessage / init_chat_model</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">Provider 适配器</div><div class="nd">把标准消息翻译成厂商 payload</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">模型服务</div><div class="nd">生成文本或 tool_calls</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">LangGraph 循环</div><div class="nd">有工具请求就执行并回灌，再次调用模型</div></div></div>
+<div class="card detail">
+  <div class="tag">🔬 源码入口 · 文件 + 符号名</div>
+  读源码时不要从搜索“LangChain 是什么”开始，而要从稳定协议进入：谁定义统一形状，谁负责便捷构造，谁负责编排循环。下表给出第一课需要记住的最小入口。
 </div>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">Runnable</td><td>所有可调用组件的统一协议，规定 invoke、stream、batch、config 等行为。</td><td>上层链、模型、图都依赖它。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/base.py</td><td class="mono">BaseMessage</td><td>所有 System/Human/AI/Tool 消息的公共基类，承载 content、metadata、id。</td><td>模型输入输出围绕它标准化。</td></tr><tr><td class="mono">libs/langchain/langchain/chat_models/base.py</td><td class="mono">init_chat_model</td><td>便捷工厂，根据 provider:model 字符串实例化聊天模型。</td><td>用户入口向 partner 包分发。</td></tr><tr><td class="mono">libs/langchain/langchain/agents/factory.py</td><td class="mono">create_agent</td><td>把模型、工具、中间件组装成 Agent 图。</td><td>高层 API 调用 LangGraph。</td></tr><tr><td class="mono">libs/langgraph/langgraph/graph/state.py</td><td class="mono">StateGraph</td><td>定义共享状态、节点、边并 compile 成可执行图。</td><td>Agent 循环的执行底座。</td></tr></table>
+<h2>代码走读：手写模型 + 工具循环</h2>
+<p>为了理解 LangChain 在自动化什么，先看一个极简手写循环。它和真实源码不逐行相同，但职责顺序一致：模型先看消息，若返回 tool_calls，程序执行工具，把结果追加为 ToolMessage，再让模型继续。LangChain 的价值不是“发明循环”，而是把循环里的类型转换、schema、回调、错误处理、并行工具、持久化都标准化。</p>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">conceptual_agent_loop.py :: model_tool_loop</span><span class="ln">简化版</span></div><pre>messages = [HumanMessage(&quot;订单 A100 现在到哪了？&quot;)]
+model = init_chat_model(&quot;openai:gpt-5.1&quot;).bind_tools([get_order_status])
+
+while True:
+    ai = model.invoke(messages)          # 标准消息进入统一模型接口
+    messages.append(ai)                  # AIMessage 可能包含 tool_calls
+    if not ai.tool_calls:
+        return ai.content                # 没有工具请求，循环结束
+
+    for call in ai.tool_calls:
+        result = run_tool(call[&quot;name&quot;], call[&quot;args&quot;])
+        messages.append(ToolMessage(result, tool_call_id=call[&quot;id&quot;]))</pre><div class="cw-note">真实 create_agent 会把这段 while 循环编译成 LangGraph 状态图；这里保留骨架，帮助你看清职责边界。</div></div>
+<h2>例子追踪：查询订单状态</h2>
+<p>假设用户问“订单 A100 现在到哪了”。这个例子小，但包含完整边界：语言理解交给模型，真实订单状态交给业务工具，循环调度交给框架，最终话术仍由模型组织。只看最终输出会误以为模型“知道订单”；看 trace 才知道它只是请求了工具。</p>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1 用户输入</td><td>订单 A100 现在到哪了？</td><td>框架把字符串包装成 HumanMessage，并放入 messages 状态。</td><td>[HumanMessage]</td></tr><tr><td>2 第一次模型调用</td><td>messages + tool schema</td><td>模型判断需要查业务系统，返回带 get_order_status 的 AIMessage.tool_calls。</td><td>AIMessage(tool_calls=[...])</td></tr><tr><td>3 工具执行</td><td>order_id=A100</td><td>程序而不是模型调用订单 API，拿到“已到上海分拨中心”。</td><td>ToolMessage</td></tr><tr><td>4 回灌观察</td><td>原消息 + AIMessage + ToolMessage</td><td>循环把工具结果加入上下文，再次调用模型。</td><td>更新后的 messages</td></tr><tr><td>5 最终回复</td><td>模型看到工具结果</td><td>模型组织自然语言回答，并且不再请求工具。</td><td>AIMessage(content=...)</td></tr></table>
+<h2>三个边界判断</h2>
+<p><strong>第一，模型能力边界。</strong>模型负责语言生成、意图判断和工具选择，但它不能凭空访问你的订单库。凡是涉及真实世界状态、账户余额、库存、文件系统，都必须通过工具或检索系统显式接入。框架提供接口，不提供事实本身。</p>
+<p><strong>第二，训练/推理边界。</strong>训练数据、权重更新、GPU kernel、KV cache、量化、张量并行属于模型服务或推理框架。LangChain 最多把请求发过去、把响应拿回来，并在外围做重试、缓存、回调和结构化。</p>
+<p><strong>第三，存储/检索边界。</strong>向量数据库负责向量索引、过滤、召回和持久化；LangChain 可以包装 retriever、把文档塞进 prompt、把结果变成上下文，但不等于它本身就是数据库。</p>
 
 <div class="card macro">
-  <div class="tag">🌍 宏观理解</div>
-  <ul>
-    <li><strong>Messages（消息）</strong>：对话由一条条消息组成。你说的是 <span class="inline">HumanMessage</span>，
-      模型回的是 <span class="inline">AIMessage</span>，工具返回的是 <span class="inline">ToolMessage</span>。</li>
-    <li><strong>Chat Model（聊天模型）</strong>：对 LLM 的<strong>统一封装</strong>。喂给它一串消息，它吐回一条 AI 消息。
-      无论底层是 OpenAI 还是 Anthropic，用法完全一样。</li>
-    <li><strong>Tools（工具）</strong>：你写的普通 Python 函数，包装后模型就能"请求调用"它（查天气、查数据库……）。</li>
-    <li><strong>Agent（智能体）</strong>：让模型在"思考 → 调用工具 → 看结果 → 再思考"之间自动循环，直到完成任务。</li>
-  </ul>
+  <div class="tag">🧱 抽象的收益与代价</div>
+  收益是统一、可替换、可组合和可观测：同一套 Runnable 接口能串模型、解析器、图和工具；同一套消息协议让 provider 差异被隔离。代价是多了一层间接：报错栈更长，默认行为更多，版本变化需要查文档和源码。因此本教程的策略不是“相信抽象”，而是“使用抽象，同时知道抽象背后每一层归谁负责”。
 </div>
 
-<h2>最小可运行例子</h2>
-<p>先不用懂细节，感受一下"四个名词"在代码里长什么样。这段代码就是后面所有课的浓缩：</p>
+<h2>从 C 级视角看“框架边界”</h2>
+<p>所谓 C-level，不是堆更多 API 名字，而是要求你能把一个问题放回系统边界里解释。比如“订单状态回答错了”这件事，C 级分析不会只说“模型幻觉”，而会先问：订单状态是否来自工具？工具参数是否正确？工具返回是否进入了消息列表？模型是否看到了 ToolMessage？最终回答是否只是对工具结果的语言包装？这些问题把一个模糊输出拆成可定位的层。LangChain 在这里承担的是把层连接起来并留下可观察痕迹，而不是保证底层事实正确。</p>
+<p>再比如“换成另一个模型后工具调用格式变了”。如果你知道 LangChain 的边界，就会去查 provider wrapper 如何把标准 tool schema 翻译成厂商格式，而不是修改业务工具本身；如果你知道 LangGraph 的边界，就会区分“模型没有提出工具请求”和“图路由没有执行工具节点”。这种判断力就是本教程后面反复训练的能力：先分层，再追踪，再读源码。</p>
+<p>LangChain 的抽象并不意味着你可以不理解底层。恰恰相反，抽象越强，越需要知道它在哪些地方收口，哪些地方故意开放。<span class="mono">Runnable</span> 收口的是调用形状，但不收口业务语义；<span class="mono">BaseMessage</span> 收口的是对话数据结构，但不保证内容真实；<span class="mono">create_agent</span> 收口的是循环编排，但不替你设计安全工具；<span class="mono">StateGraph</span> 收口的是状态更新和节点调度，但不替你决定状态 schema 是否合理。</p>
 
-<pre class="code"><span class="kw">from</span> langchain.chat_models <span class="kw">import</span> init_chat_model
-<span class="kw">from</span> langchain.agents <span class="kw">import</span> create_agent
+<h2>什么时候不要先上 LangChain</h2>
+<p>边界清楚也意味着知道什么时候不用。一次性脚本只调用一个固定 provider、没有工具、没有 trace、没有模型切换需求时，直接用厂商 SDK 可能更简单。LangChain 适合的是复杂度已经出现或即将出现的地方：多模型切换、消息结构化、工具 schema、回调追踪、流式输出、批量调用、Agent 循环、LangGraph 持久化。不要为了“用了框架”而购买抽象；要在重复胶水代码、可替换性和可观测性开始变得重要时使用它。</p>
+<p>反过来，一旦应用进入生产，完全手写胶水也会变贵。你要维护重试、超时、日志、token 统计、工具参数校验、错误转消息、流式 chunk 合并、不同 provider 的 payload 差异。这些代码看起来都不难，但每个都有边界条件，叠在一起就是框架存在的理由。学习 LangChain 的价值不是崇拜框架，而是把这些工程问题系统化。</p>
 
-<span class="cm"># 1) 一个工具：就是普通函数</span>
-<span class="kw">def</span> <span class="fn">get_weather</span>(city: str) -> str:
-    <span class="st">&quot;&quot;&quot;查询某城市的天气。&quot;&quot;&quot;</span>
-    <span class="kw">return</span> <span class="st">f"{city} 今天晴，25°C"</span>
+<h2>本课的阅读姿势</h2>
+<p>读后续课程时，请把每个概念都问三遍：它统一了什么？它不负责什么？出了问题应该向上查使用方式，还是向下查实现细节？例如 <span class="mono">init_chat_model</span> 统一的是构造入口，不负责 provider 服务可用性；<span class="mono">@tool</span> 统一的是函数到 schema 的转换，不负责真实副作用安全；callback 统一的是事件观察，不应该承载核心业务决策。能回答这三问，说明你已经从“会用 API”进入“会读系统”。</p>
 
-<span class="cm"># 2) 一个聊天模型：换厂商只改这一行字符串</span>
-model = init_chat_model(<span class="st">"openai:gpt-5.1"</span>)
+<h2>边界排错清单</h2>
+<p>当一个 LangChain 应用表现异常时，可以按固定清单排查。先看输入边界：用户输入有没有被转换成正确消息，系统消息有没有被误当成人类消息，工具结果有没有以工具消息形式回到上下文。再看模型边界：模型是否真的支持你绑定的工具、结构化输出或多模态块，温度和停止词是否让输出提前结束。然后看工具边界：工具描述是否清楚，参数 schema 是否能表达必填字段，真实执行是否被权限、网络或数据质量影响。最后看图边界：状态是否被 reducer 正确合并，条件边是否把流程送到预期节点，checkpoint 是否使用了正确 thread id。</p>
+<p>这份清单的价值在于避免“把所有问题都归因于模型”。模型当然可能回答差，但框架应用更多失败来自边界错配：工具返回了字符串却没有作为 ToolMessage 回灌，retriever 找到了无关文档，config 没把回调传下去，provider wrapper 不支持某个参数，或者业务代码把状态覆盖了。边界排错让每个猜测都能落到一个可验证位置。</p>
+<p>从学习角度看，第一课并不是要求你马上读懂所有源码，而是给后面二十八课提供坐标。遇到消息，想 BaseMessage；遇到模型，想 BaseChatModel 和 provider wrapper；遇到组合，想 Runnable；遇到循环，想 StateGraph；遇到可观测性，想 callbacks 和 config。坐标越稳，新 API 越不容易让你迷路。</p>
+<p>最终你要形成一种工程直觉：LangChain 最擅长管理“连接处”。模型与业务工具的连接、统一消息与厂商格式的连接、同步调用与流式事件的连接、一次调用与多步状态图的连接。连接处最容易出错，也最值得框架标准化。把连接处看清楚，你就能判断什么时候应该相信框架默认，什么时候应该下探源码，什么时候应该在自己的业务层再加一道边界。</p>
+<p>还有一个很实用的判断：凡是需要长期维护、多人协作、跨环境运行的代码，都应该优先选择清晰边界；凡是一次性、单人、可丢弃的脚本，则可以接受更直接的写法。LangChain 的抽象在前一种场景里价值更大，因为它让不同开发者围绕同一套消息、工具、配置和追踪语言交流。团队里有人负责工具安全，有人负责模型选择，有人负责图状态，有人负责业务体验，如果没有共同协议，每个人都会发明自己的中间格式，系统很快分裂。框架的作用之一，就是给团队提供共同词汇和共同接口。</p>
+<p>因此，本课的核心不是让你记住所有名词，而是建立“谁拥有哪一层”的判断。模型拥有生成能力，工具拥有真实动作，业务代码拥有目标和约束，LangChain 拥有编排和标准化，LangGraph 拥有状态图执行。每当你想修改一段代码，先问它属于哪一层；每当你想解释一个 bug，先问证据停在哪一层。这个习惯会贯穿整本教程。</p>
+<h2>边界语言训练</h2>
+<p>你可以用一句模板训练自己：“某对象负责某种连接，不负责某种底层能力。”例如 LangChain 负责把模型、工具和状态连接起来，不负责训练权重；Runnable 负责统一调用形状，不负责业务正确性；BaseMessage 负责统一对话结构，不负责内容真实性；StateGraph 负责状态流转，不负责节点函数本身是否安全。把这类句子写熟，以后遇到新概念就能快速定位。</p>
+<p>这套语言还能减少团队沟通成本。讨论问题时，如果大家都能说清“这是 provider 翻译问题”“这是工具副作用问题”“这是图状态合并问题”，会议就不会停留在“AI 不稳定”。框架学习的成熟标志，是能把模糊抱怨改写成层次明确的工程问题。</p>
 
-<span class="cm"># 3) 一个 Agent：把模型 + 工具编成自动循环</span>
-agent = create_agent(model, tools=[get_weather])
 
-<span class="cm"># 4) 跑起来：底层就是一串 Messages 在流动</span>
-result = agent.invoke({<span class="st">"messages"</span>: [{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"北京天气怎么样？"</span>}]})
-</pre>
-
-<div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应</div>
-  这三个入口函数你会在后面反复见到，记住它们来自哪里：
-  <table class="t" style="margin-top:.6rem">
-    <tr><th>函数</th><th>来源包</th><th>文件</th></tr>
-    <tr><td class="mono">init_chat_model</td><td>langchain</td><td class="mono">chat_models/base.py</td></tr>
-    <tr><td class="mono">create_agent</td><td>langchain</td><td class="mono">agents/factory.py</td></tr>
-    <tr><td class="mono">@tool / 普通函数</td><td>langchain-core</td><td class="mono">tools/convert.py</td></tr>
-  </table>
-</div>
-
-<h2>LangChain 不是什么</h2>
-<div class="card warn">
-  <div class="tag">⚠️ 常见误解</div>
-  <ul>
-    <li>它<strong>不训练、不托管模型</strong>——模型仍跑在 OpenAI / Anthropic 等厂商那里，LangChain 只是客户端。</li>
-    <li>它<strong>不是只能做聊天机器人</strong>——它是通用的"LLM 应用编排层"，可做 RAG、数据抽取、工作流等。</li>
-    <li>它<strong>不强制你用全部功能</strong>——可以只用聊天模型封装，也可以一路用到复杂 Agent。</li>
-  </ul>
-</div>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li>四件套<strong>层层复用、层层站在下层肩上</strong>：工具用消息表达调用、Agent 用循环编排工具——越往上越自动。</li>
-    <li>"换模型一行、调工具零胶水、循环不手搓"三大解放，全部源于一个<strong>统一抽象</strong>。</li>
-  </ul>
-</div>
-
+<h2>常见误解</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：LangChain 是一个模型，所以换它就能提升智商。</div><div class="pf-correct">正确：它是编排框架；模型能力来自底层 provider，框架只能改善接入、组合和控制。</div></div><div class="pitfall"><div class="pf-wrong">误解：用了 Agent，模型就可以直接执行任何函数。</div><div class="pf-correct">正确：模型只提出 tool_calls；真实执行由你的程序控制，这是安全边界。</div></div><div class="pitfall"><div class="pf-wrong">误解：Runnable 只是链式语法糖。</div><div class="pf-correct">正确：Runnable 是统一协议，覆盖同步、异步、流式、批量、配置和回调传播。</div></div><div class="pitfall"><div class="pf-wrong">误解：LangGraph 是 LangChain 的另一个名字。</div><div class="pf-correct">正确：LangGraph 是图执行与状态管理层；LangChain 的 create_agent 会使用它，但两者职责不同。</div></div><div class="pitfall"><div class="pf-wrong">误解：抽象越多越高级，越少越落后。</div><div class="pf-correct">正确：抽象要按复杂度购买；一次简单 API 调用未必需要完整 Agent。</div></div></div>
+<h2>小实验：亲手分层一个最小客服 Agent</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 订单状态问答的层归属</div><ol><li>写出用户问题、模型、订单查询函数、最终回复四个元素。</li><li>标注哪一项由模型负责，哪一项由业务系统负责，哪一项由 LangChain 编排。</li><li>把工具返回改成“订单不存在”，观察应该由工具、循环还是模型负责处理错误。</li><li>尝试不用 Agent 手写 while 循环，再对比 create_agent 帮你省下哪些边界代码。</li></ol></div>
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li>LangChain = LLM 的<strong>标准化管道与编排层</strong>，让你"换模型只改一行、调工具不写胶水、多步推理不手搓循环"。</li>
-    <li>记住四个名词的<strong>流向</strong>：Messages → Chat Model → Tools → Agent。这是整套教程的骨架。</li>
-    <li>下一课我们拉远镜头，看看这些概念在<strong>代码仓库的哪一层</strong>。</li>
+    <li>LangChain 的核心定位是<strong>应用编排与集成</strong>，不是模型、训练框架、推理服务或向量数据库。</li>
+    <li><span class="mono">Runnable</span> 和 <span class="mono">BaseMessage</span> 是统一协议；<span class="mono">init_chat_model</span> 是便捷入口；<span class="mono">create_agent</span> 把循环交给 <span class="mono">StateGraph</span>。</li>
+    <li>模型只提出工具请求，真实执行和副作用控制属于你的程序。</li>
+    <li>读源码时先找“文件 + 符号名”，再沿调用方向向下追，不要把所有层混成一团。</li>
   </ul>
 </div>
-<div class="selftest">
+<div class="card version"><div class="tag">📌 版本锚点</div>本教程按 LangChain 1.x 时代的包结构和 LangGraph Agent 运行时讲解。0.x 时代的 Chain、AgentExecutor、旧 import 路径仍可能在历史文章中出现；遇到差异时，以当前源码的 Runnable、create_agent、StateGraph 路线为准。</div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. LangChain 的核心价值是给 LLM 应用提供“标准化的管道与编排层”。这种“多加一层抽象”的设计，最主要换来了什么？</div>
+  <div class="qn">1. 从框架边界看，LangChain 最准确的定位是什么？</div>
   <ol class="opts">
-    <li>更大的上下文窗口</li>
-    <li>更便宜的 API 价格</li>
-    <li>可替换性：换模型只改一行、换工具不重写胶水、多步循环不手搓</li>
-    <li>更快的推理速度</li>
+    <li>替代所有 provider SDK 的推理引擎</li>
+    <li>专门存储向量并执行相似度检索的数据库</li>
+    <li>把模型、消息、工具、回调和 Agent 循环接成应用的编排层</li>
+    <li>训练和部署大语言模型的底层系统</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。抽象的代价是多一层，换来的是“对接口编程而非对厂商编程”——底层换 GPT/Claude/本地模型，上层代码几乎不动。这是它存在的根本理由。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。LangChain 的边界是应用编排与集成：统一接口、组织流程、连接工具和图运行时；模型训练、推理内核、向量索引属于其他层。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. 教程主线定为 Messages → Chat Model → Tools → Agent，把“消息”放在最前面作为一切起点。这个设计意图是？</div>
+  <div class="qn">2. 为什么说 <code>Runnable</code> 更像协议，而不是某个具体功能？</div>
   <ol class="opts">
-    <li>消息是唯一不变的东西</li>
-    <li>消息最容易上手</li>
-    <li>因为厂商都用消息</li>
-    <li>消息是贯穿全程的统一数据契约：模型读它、工具结果写回它、Agent 循环也在它上面跑</li>
+    <li>因为它只能同步执行</li>
+    <li>因为它只用于 prompt 模板</li>
+    <li>因为它绕过了所有回调</li>
+    <li>因为它规定 <code>invoke/stream/batch/config</code> 等统一行为，模型、链、解析器、图都能按这个契约组合</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。先把“对话”统一成结构化消息列表，后面的模型调用、工具往返、Agent 状态全都围绕这一份契约展开——先立契约，再谈流转。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。Runnable 定义的是可运行组件的共同形状。具体实现可以是聊天模型、parser、LCEL 链或 LangGraph 编译图。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. LangChain 自己不训练模型、也不做底层推理。从分层角度看，它的这个“定位选择”说明了什么取舍？</div>
+  <div class="qn">3. LangGraph 与 LangChain 在 Agent 场景中的关系，更准确的说法是？</div>
   <ol class="opts">
-    <li>它要替代模型本身</li>
-    <li>它本质是个数据库</li>
-    <li>它定位在上层的编排/集成层（L7）：专注把模型变成能干活的应用，把训练/推理交给下面的层</li>
-    <li>它在最底层，所以最重要</li>
+    <li>二者只是同一个包的两个名字</li>
+    <li>LangGraph 只能画图，不能执行</li>
+    <li>LangChain 的 <code>create_agent</code> 提供高层入口，LangGraph 负责状态图、循环、分支、持久化等运行时能力</li>
+    <li>LangGraph 负责训练模型，LangChain 负责推理</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。选择“只做编排不做底层”，意味着放弃造模型、转而最大化集成与可组合性——这正是它生态庞大的原因，也是它的边界。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. “调工具不写胶水、多步推理不手搓循环”——这类承诺背后共同的设计哲学是什么？</div>
-  <ol class="opts">
-    <li>把复杂、重复、易错的“管道工作”标准化并自动化，让你只表达业务意图</li>
-    <li>强制所有人用同一种写法</li>
-    <li>用更多代码换更少 bug</li>
-    <li>隐藏所有细节，让你无法定制</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。它反复出现的主题是“把样板和易错环节收进框架”（循环、重试、schema、消息累积…），你只声明“用什么”。便利的代价是多一层魔法，所以后面几部分要带你掀开盖子。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。LangGraph 是图执行与状态管理层；LangChain 可以把高层 Agent API 编译/组装到 LangGraph 上运行。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>如果完全不用 LangChain，让你自己接 3 个不同厂商的模型、再加工具调用和多步循环，你预计哪些“胶水代码”会被反复重写？反过来，这层抽象在哪些场景里<strong>反而是负担</strong>？</li>
-    <li>“加一层标准化抽象”几乎是所有框架的套路（ORM 之于数据库、虚拟机之于硬件）。结合你熟悉的领域，说说这种抽象通常<strong>用什么代价换什么收益</strong>。</li>
+    <li>抽象会带来可替换性，也会带来隐藏细节的代价。结合 <code>Runnable</code> 或 <code>init_chat_model</code>，说明你愿意为了什么收益接受这层间接。</li>
+    <li>把一次订单查询 Agent 分成模型、LangChain 编排、业务工具、存储/检索四层。每层分别拥有什么责任？哪一层不该越界？</li>
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="../index.html"><div class="dir">← 返回</div><div class="ttl">目录</div></a><a class="next" href="02-monorepo.html"><div class="dir">下一课 →</div><div class="ttl">Monorepo 全景</div></a></div>
+  <div class="footnav"><a class="prev" href="../index.html"><div class="dir">← 返回</div><div class="ttl">目录</div></a><a class="next" href="02-monorepo.html"><div class="dir">下一课 →</div><div class="ttl">项目与包结构</div></a></div>
 </div>
 
 </body></html>

@@ -2,16 +2,16 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>23 · 隔壁层学习地图：L5 推理 · L6 向量检索 — LangChain 图解教程</title>
+<title>25 · 隔壁层学习地图：L5 推理 · L6 向量检索 — LangChain 图解教程</title>
 <meta name="description" content="第六部分 · 番外篇｜隔壁层学习地图：L5 推理 · L6 向量检索：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="23 · 隔壁层学习地图：L5 推理 · L6 向量检索 — LangChain 图解教程">
+<meta property="og:title" content="25 · 隔壁层学习地图：L5 推理 · L6 向量检索 — LangChain 图解教程">
 <meta property="og:description" content="第六部分 · 番外篇｜隔壁层学习地图：L5 推理 · L6 向量检索：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="23 · 隔壁层学习地图：L5 推理 · L6 向量检索 — LangChain 图解教程">
+<meta name="twitter:title" content="25 · 隔壁层学习地图：L5 推理 · L6 向量检索 — LangChain 图解教程">
 <meta name="twitter:description" content="第六部分 · 番外篇｜隔壁层学习地图：L5 推理 · L6 向量检索：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -289,9 +289,9 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第六部分 · 番外篇</span>
-    <span class="pill">23 / 27</span>
+    <span class="pill">25 / 29</span>
   </div>
-  <div class="progress"><span style="width:85%"></span></div>
+  <div class="progress"><span style="width:86%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
@@ -349,7 +349,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 </div>
 
 <h2>L6 · 检索 / 记忆：RAG 的底座</h2>
-<p>你在<strong>第 17 课</strong>已经用过 <span class="mono">VectorStore / Retriever</span>——这层就是它们的<strong>"引擎室"</strong>。
+<p>你在<strong>第 19 课</strong>已经用过 <span class="mono">VectorStore / Retriever</span>——这层就是它们的<strong>"引擎室"</strong>。
 核心关键词：<span class="mono">向量(embedding)</span>、<span class="mono">相似度</span>、
 <span class="mono">ANN 近邻索引(HNSW / IVF)</span>。它分三小块：①向量索引/库　②嵌入模型　③长期记忆。</p>
 
@@ -360,7 +360,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <tr><td class="mono">FAISS</td><td>C++/Python</td><td>中高</td><td>工业级<strong>索引大全</strong>（IVF / PQ / HNSW），Meta 出品</td></tr>
   <tr><td class="mono">pgvector</td><td>C</td><td>中</td><td>在 <strong>Postgres 里做向量检索</strong>——最贴近真实业务落地</td></tr>
   <tr><td class="mono">Qdrant</td><td>Rust</td><td>中</td><td>生产级向量数据库的<strong>完整工程</strong>（过滤 + payload + 分布式）</td></tr>
-  <tr><td class="mono">Chroma</td><td>Python</td><td>低</td><td>最易上手，<strong>本地 RAG 原型</strong>首选（第 17 课就是它这类）</td></tr>
+  <tr><td class="mono">Chroma</td><td>Python</td><td>低</td><td>最易上手，<strong>本地 RAG 原型</strong>首选（第 19 课就是它这类）</td></tr>
   <tr><td class="mono">Milvus · Weaviate</td><td>Go</td><td>高</td><td>大规模<strong>分布式</strong>向量库，海量数据再看</td></tr>
 </table>
 
@@ -375,7 +375,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="card key">
   <div class="tag">✅ L6 推荐主线</div>
   <strong>① 读 hnswlib</strong>（2~3 个核心文件就能看懂 HNSW，从此"向量检索"不再是黑盒）→
-  <strong>② 用 pgvector 或 Chroma 落地一个 RAG</strong>（把第 17 课的玩具升级成能用的东西）→
+  <strong>② 用 pgvector 或 Chroma 落地一个 RAG</strong>（把第 19 课的玩具升级成能用的东西）→
   <strong>③ 要工程深度再看 Qdrant / FAISS</strong>。嵌入选 <strong>BGE</strong>，要记忆看 <strong>Mem0 / Zep</strong>。
 </div>
 
