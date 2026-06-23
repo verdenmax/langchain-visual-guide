@@ -237,7 +237,7 @@ PAGES = [
     ("16-prompts.html", "提示词 Prompts", "第二部分 · 用户 API 基础"),
     ("10-output-parsers.html", "输出解析器 Output Parsers", "第二部分 · 用户 API 基础"),
     ("14-streaming-callbacks.html", "Streaming 与 Callbacks", "第二部分 · 用户 API 基础"),
-    ("07-agents-intro.html", "Agent 入门", "第二部分 · 用户视角"),
+    ("07-agents-intro.html", "Agent 入门", "迁移中 · Agent 旧版"),
     ("08-runnable.html", "Runnable 万物之基", "第三部分 · 内部源码"),
     ("09-runnable-compose.html", "Runnable 如何组合", "第三部分 · 内部源码"),
     ("11-chat-internals.html", "聊天模型内部", "第三部分 · 内部源码"),
