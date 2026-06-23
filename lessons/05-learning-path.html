@@ -315,7 +315,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="tag">🔬 源码入口 · 文件 + 符号名</div>
   本课关注“怎么做实验”。真实模型输出不稳定、网络和计费也会干扰学习，所以我们优先使用 fake model、内存 checkpointer、RunnableConfig 和 tracer，让实验可重复、可观察、低成本。
 </div>
-<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/language_models/fake_chat_models.py</td><td class="mono">GenericFakeChatModel</td><td>用预设消息或生成器模拟聊天模型，避免真实 API 的随机性和费用。</td><td>实验替身 -&gt; BaseChatModel 协议</td></tr><tr><td class="mono">libs/checkpoint/langgraph/checkpoint/memory/__init__.py</td><td class="mono">InMemorySaver</td><td>内存 checkpoint，用于本地验证 LangGraph 状态保存和恢复。</td><td>Graph runtime -&gt; checkpoint storage</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/config.py</td><td class="mono">RunnableConfig</td><td>传递 tags、metadata、callbacks、configurable 等运行时配置。</td><td>调用者 -&gt; Runnable 链路</td></tr><tr><td class="mono">libs/core/langchain_core/tracers/</td><td class="mono">tracers</td><td>收集 run、事件、输入输出和错误，支撑可观测调试。</td><td>Callbacks -&gt; trace records</td></tr><tr><td class="mono">libs/core/langchain_core/callbacks/manager.py</td><td class="mono">CallbackManager</td><td>把回调事件分发给 tracer、日志器或自定义 handler。</td><td>Runnable execution -&gt; observers</td></tr></table>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/language_models/fake_chat_models.py</td><td class="mono">GenericFakeChatModel</td><td>用预设消息或生成器模拟聊天模型，避免真实 API 的随机性和费用。</td><td>实验替身 -&gt; BaseChatModel 协议</td></tr><tr><td class="mono">langchain-ai/langgraph/libs/checkpoint/langgraph/checkpoint/memory/__init__.py</td><td class="mono">InMemorySaver</td><td>内存 checkpoint，用于本地验证 LangGraph 状态保存和恢复。</td><td>Graph runtime -&gt; checkpoint storage</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/config.py</td><td class="mono">RunnableConfig</td><td>传递 tags、metadata、callbacks、configurable 等运行时配置。</td><td>调用者 -&gt; Runnable 链路</td></tr><tr><td class="mono">libs/core/langchain_core/tracers/</td><td class="mono">tracers</td><td>收集 run、事件、输入输出和错误，支撑可观测调试。</td><td>Callbacks -&gt; trace records</td></tr><tr><td class="mono">libs/core/langchain_core/callbacks/manager.py</td><td class="mono">CallbackManager</td><td>把回调事件分发给 tracer、日志器或自定义 handler。</td><td>Runnable execution -&gt; observers</td></tr></table>
 <h2>确定性 fake-model 实验</h2>
 <p>学习早期尽量不要依赖真实模型判断框架行为。真实模型会受 temperature、上下文、服务端版本和网络重试影响，同一个 prompt 可能得到不同结果。框架行为实验需要可重复，因此应该用 fake model 固定输出，再观察消息、工具、状态和回调是否按预期变化。</p>
 <div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">experiments/fake_agent_trace.py :: deterministic_fake_model</span><span class="ln">简化版</span></div><pre>from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
@@ -376,6 +376,14 @@ assert result.content == &quot;欢迎来到课程！&quot;</pre><div class="cw-n
 <h2>把术语变成行动</h2>
 <p>术语只有能指导行动才有价值。知道 Runnable，就应该能决定一个组件是否能被 pipe、batch、stream；知道 Callback，就应该能设计观察点；知道 Checkpoint，就应该能解释恢复为什么需要 thread id；知道 FakeModel，就应该能设计无网络实验。每个词都连接一个动作，学习才不会停在背诵。</p>
 <p>复习时可以用“术语到行动”的方式自测：随机抽一个词，写出它能帮助你做的一个调试动作、一个源码入口、一个实验。写不出来，就说明这个词仍然只是名词，没有进入工程直觉。</p>
+
+<h2>把实验写成可重复配方</h2>
+<p>好的学习实验应该像配方，而不是像回忆。配方要写清环境、输入、固定输出、变量、观察点和预期结果。比如验证 checkpoint 恢复，不要只写“试了一下能恢复”，而要写 thread_id 是什么、初始状态是什么、第一次运行停在哪个节点、恢复时传入什么 config、期望状态中哪些字段保持不变。这样别人才能复现，你未来升级版本时也能重跑。</p>
+<p>配方还要明确哪些东西故意不测试。一个 fake model 实验不评价模型质量，一个内存 checkpointer 实验不评价数据库可靠性，一个单工具 Agent 实验不覆盖真实权限系统。写出“不测试什么”能防止读者把实验结论外推到生产。学习中的小实验是为了隔离机制，生产验证则需要在机制清楚后逐层增加真实依赖。</p>
+<p>当实验失败时，先不要扩大变量。最常见的错误是同时换真实模型、加检索、改 prompt、开 streaming，最后不知道哪个变化导致结果不同。闭环学习要求你一次只移动一个旋钮；如果必须引入多个变化，就把它拆成几轮实验，每轮都保留上一轮的可运行检查。</p>
+<p>最终，这些配方可以成为团队的入门手册。新人先跑确定性实验，理解消息、配置、工具和图状态，再接触真实模型和真实数据。这样训练出的不是“会复制 demo 的人”，而是能用证据解释系统行为的人。</p>
+<p>当团队共用同一批配方，讨论也会更具体：大家可以指向同一个输入、同一个 trace、同一个源码符号，而不是各自描述一次不可复现的体验。</p>
+<p>把配方保留下来还有一个好处：它会自然形成升级前检查清单。每次依赖升级后先跑这些小实验，若某一步失败，就按配方里的观察点回到对应源码，而不是在完整业务项目里寻找噪声。</p>
 
 <h2>方法复盘</h2>
 <p>概念、trace、source、experiment、glossary 不是五个独立动作，而是一条闭环。概念给方向，trace 给事实，source 给证据，experiment 给验证，glossary 给复用。任何一步缺失，学习都会偏：没有概念会乱，没有 trace 会黑盒，没有 source 会虚，没有 experiment 会不牢，没有 glossary 会遗忘。</p>

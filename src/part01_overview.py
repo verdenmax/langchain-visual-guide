@@ -45,9 +45,9 @@ r"""
 shell.source_map([
     {"file": "libs/core/langchain_core/runnables/base.py", "symbol": "Runnable", "role": "所有可调用组件的统一协议，规定 invoke、stream、batch、config 等行为。", "direction": "上层链、模型、图都依赖它。"},
     {"file": "libs/core/langchain_core/messages/base.py", "symbol": "BaseMessage", "role": "所有 System/Human/AI/Tool 消息的公共基类，承载 content、metadata、id。", "direction": "模型输入输出围绕它标准化。"},
-    {"file": "libs/langchain/langchain/chat_models/base.py", "symbol": "init_chat_model", "role": "便捷工厂，根据 provider:model 字符串实例化聊天模型。", "direction": "用户入口向 partner 包分发。"},
-    {"file": "libs/langchain/langchain/agents/factory.py", "symbol": "create_agent", "role": "把模型、工具、中间件组装成 Agent 图。", "direction": "高层 API 调用 LangGraph。"},
-    {"file": "libs/langgraph/langgraph/graph/state.py", "symbol": "StateGraph", "role": "定义共享状态、节点、边并 compile 成可执行图。", "direction": "Agent 循环的执行底座。"},
+    {"file": "libs/langchain_v1/langchain/chat_models/base.py", "symbol": "init_chat_model", "role": "便捷工厂，根据 provider:model 字符串实例化聊天模型。", "direction": "用户入口向 partner 包分发。"},
+    {"file": "libs/langchain_v1/langchain/agents/factory.py", "symbol": "create_agent", "role": "把模型、工具、中间件组装成 Agent 图。", "direction": "高层 API 调用 LangGraph。"},
+    {"file": "langchain-ai/langgraph/libs/langgraph/langgraph/graph/state.py", "symbol": "StateGraph", "role": "定义共享状态、节点、边并 compile 成可执行图。", "direction": "Agent 循环的执行底座。"},
 ]),
 r"""
 <h2>代码走读：手写模型 + 工具循环</h2>
@@ -114,6 +114,13 @@ r"""
 <h2>边界语言训练</h2>
 <p>你可以用一句模板训练自己：“某对象负责某种连接，不负责某种底层能力。”例如 LangChain 负责把模型、工具和状态连接起来，不负责训练权重；Runnable 负责统一调用形状，不负责业务正确性；BaseMessage 负责统一对话结构，不负责内容真实性；StateGraph 负责状态流转，不负责节点函数本身是否安全。把这类句子写熟，以后遇到新概念就能快速定位。</p>
 <p>这套语言还能减少团队沟通成本。讨论问题时，如果大家都能说清“这是 provider 翻译问题”“这是工具副作用问题”“这是图状态合并问题”，会议就不会停留在“AI 不稳定”。框架学习的成熟标志，是能把模糊抱怨改写成层次明确的工程问题。</p>
+
+<h2>边界不是推卸责任，而是定位责任</h2>
+<p>强调 LangChain 不负责训练、推理和数据库，并不是说框架出了问题可以一概外推。相反，边界语言要求你更精确地承担责任：如果 provider payload 被翻译错，责任就在适配层；如果 ToolMessage 没有进入下一轮消息，责任就在编排或业务 glue；如果工具本身返回过期库存，责任在业务数据源；如果模型看到正确工具结果却仍然总结错误，才回到模型生成能力和 prompt 约束。这样的归因比“框架不行”或“模型不行”都更有行动价值。</p>
+<p>实际项目中可以把一次故障复盘写成边界表：现象是什么，证据停在哪一层，上一层传入了什么，下一层产出了什么，哪个符号或工具能证明。比如客服 Agent 回复旧订单状态，先看 trace 里是否存在 get_order_status 的 tool call；再看工具参数是不是 A100；再看 ToolMessage 内容是不是旧值；最后才判断模型是否误读工具结果。每一步都有证据，修复也会更小。</p>
+<p>这个习惯还能帮助设计安全策略。凡是会产生副作用的动作，例如退款、发邮件、写数据库，都不应只靠模型文字决定。模型可以提出请求，LangChain 可以把请求标准化，业务层仍要做权限、幂等、审计和人工确认。把“建议”和“执行”分成不同边界，是 Agent 系统从 demo 走向生产的关键。</p>
+<p>判断是否该引入框架时，也可以用边界数量衡量：只有一个输入和一个输出，直接调用 SDK 往往足够；一旦出现多种消息类型、多种模型、工具副作用、回调审计和状态恢复，边界数量上升，框架提供的统一协议就开始抵消间接层成本。</p>
+<p>如果边界数量已经上升，却仍然把所有逻辑写在一个函数里，后续排错会变成猜谜：不知道参数何时被改写，不知道工具是否真的执行，也不知道最终文本来自事实还是补全。先把连接处命名，再决定是否用框架，是比先选技术栈更稳的设计顺序。</p>
 
 
 <h2>常见误解</h2>
@@ -183,9 +190,9 @@ r"""
 """,
 shell.source_map([
     {"file": "libs/core/langchain_core/", "symbol": "package root", "role": "核心协议、消息、Runnable、工具抽象、配置、回调。", "direction": "被 langchain、langgraph、partners 依赖；不应依赖具体厂商。"},
-    {"file": "libs/langchain/langchain/", "symbol": "package root", "role": "高层用户 API 与默认组合，例如 chat_models、agents。", "direction": "向下依赖 core、partners、langgraph。"},
-    {"file": "libs/langgraph/langgraph/", "symbol": "package root", "role": "状态图、Pregel、checkpoint、中断、控制流。", "direction": "依赖 core 协议，对外提供可执行图。"},
-    {"file": "libs/community/langchain_community/", "symbol": "package root", "role": "社区和长尾集成，范围广、变化快。", "direction": "依赖 core；稳定性弱于 core。"},
+    {"file": "libs/langchain_v1/langchain/", "symbol": "package root", "role": "高层用户 API 与默认组合，例如 chat_models、agents。", "direction": "向下依赖 core、partners、langgraph。"},
+    {"file": "langchain-ai/langgraph/libs/langgraph/langgraph/", "symbol": "package root", "role": "状态图、Pregel、checkpoint、中断、控制流。", "direction": "依赖 core 协议，对外提供可执行图。"},
+    {"file": "langchain-community/langchain_community/", "symbol": "package root", "role": "社区和长尾集成，范围广、变化快。", "direction": "依赖 core；稳定性弱于 core。"},
     {"file": "libs/partners/openai/langchain_openai/", "symbol": "package root", "role": "OpenAI SDK 适配，参数与响应格式翻译。", "direction": "依赖 core；不应让 core 反向知道它。"},
     {"file": "libs/partners/anthropic/langchain_anthropic/", "symbol": "package root", "role": "Anthropic SDK 适配，处理该厂商的消息和工具调用差异。", "direction": "与其他 partner 平级隔离。"},
 ]),
@@ -266,6 +273,14 @@ r"""
 <h2>包结构是一种沟通协议</h2>
 <p>仓库维护者用包名向使用者传递预期：core 表示这里应当可靠且通用；partner 表示这里贴近某个厂商；community 表示这里覆盖广但需要使用者判断成熟度；langgraph 表示这里处理图状态和执行。读者尊重这些预期，代码就会更稳。反过来，如果把 partner 的原始响应到处传递，等于绕过了包边界，未来升级时自然痛苦。</p>
 <p>学习时也可以把每个 import 标颜色：绿色是稳定协议，蓝色是高层便利，紫色是图运行时，橙色是边缘集成，红色是直接厂商 SDK。颜色越靠边缘，越需要封装和版本固定。这个简单练习能很快暴露项目中不必要的耦合。</p>
+
+<h2>源码路径也要区分仓库与发行包</h2>
+<p>读第一部分的 source map 时，要注意“包名”和“源码所在仓库”不是同一个维度。<span class="mono">langchain-core</span>、<span class="mono">langchain</span> 和 partner 包可能在同一主仓中以不同目录存在；<span class="mono">langchain-community</span> 可以作为独立社区来源理解；LangGraph 也有自己的源码路径和发布节奏。引用路径时写清仓库或包来源，是为了避免把一个包里的符号误当成另一个包的内部文件。</p>
+<p>这种区分在排查版本问题时特别重要。你本地安装的是 wheel，源码阅读可能看的是 main 分支，文档链接又可能指向某个 tag；三者只要版本不一致，路径和行为就可能出现细微差异。稳妥做法是先记录发行包版本，再找到对应源码 tag，最后用文件 + 符号名描述职责。教学里使用路径是为了建立地图，不是鼓励照抄某个分支的内部实现。</p>
+<p>对 community 集成还要多问一个问题：这个集成是核心维护路径，还是长尾贡献路径？如果它只是把第三方服务包装成 loader 或 tool，生产中最好再套一层自己的 adapter。这样未来 community 路径迁移、依赖升级或维护状态变化时，业务代码仍然面对稳定接口。包结构给你的是风险信号，项目结构要把这个信号转化为隔离措施。</p>
+<p>团队维护依赖清单时，可以按包层级设置不同升级策略：core 升级前跑协议回归，partner 升级前跑对应 provider 的 payload 和解析测试，community 升级前检查第三方依赖树，LangGraph 升级前跑状态图和 checkpoint 用例。分层不是目录知识，而是升级流程。</p>
+<p>如果升级计划无法说明影响哪一层，通常说明边界还没有读清楚，应先补 source map 和最小回归再动版本。</p>
+<p>这也解释了为什么课程要写清 source qualifier：同样叫“集成”，来自主仓、community 仓库、partner 包或 LangGraph 仓库，维护节奏和风险完全不同。路径越明确，升级讨论越不容易把多个来源混在一起。</p>
 
 <h2>边界复盘</h2>
 <p>本课看似讲仓库目录，实际讲的是变化管理。稳定协议要少变，易变适配要隔离，可选集成要按需安装，图运行时要独立演进。只要记住“谁变化快，谁就不该住在地基里”，很多包结构决策都会变得自然。</p>
@@ -437,6 +452,13 @@ r"""
 <p>生产系统里的每次模型调用都应该能回答几个审计问题：谁发起了调用，输入消息是什么，使用了哪个模型和参数，携带哪些标签，是否调用了工具，花费多少 token，失败时错误是什么。LangChain 的消息、config、callbacks 和 AIMessage 字段正是为了让这些问题有位置可放。忽略这些结构，只保存最终文本，会让审计、计费和复盘都变困难。</p>
 <p>因此，写模型封装时不要过早隐藏底层信息。可以给业务层提供简洁函数，但内部仍应保留完整消息、metadata、usage 和 trace id。简洁 API 与完整可观测性并不矛盾，关键是把展示层的简洁和运行层的结构化分开。</p>
 
+<h2>读 trace 时先分正常证据和缺失证据</h2>
+<p>一次 invoke 的 trace 不只是按时间排序的日志，它还是证据清单。正常证据说明链路经过了某一层，例如出现 on_chat_model_start 说明回调启动了，AIMessage 里有 usage_metadata 说明响应解析至少收到了用量信息；缺失证据同样重要，例如没有 provider payload 记录、没有 error 事件、没有 tool_calls 字段，都在提示某个观察点没有覆盖或某个分支没有执行。调试时要同时看“出现了什么”和“应该出现却没出现什么”。</p>
+<p>缺失证据不能立即等同于 bug，也可能只是你没有打开对应 tracer、provider 不返回该字段、或当前路径不是 streaming。比较稳的步骤是先确认观察方式，再确认协议是否承诺该字段，最后才读具体实现。比如某个模型没有 usage，不一定是 LangChain 丢失；可能是 provider 响应本来没有，或 wrapper 只在非流式路径填充。把“没有看到”拆成“没产生、没传递、没记录”三种可能，定位会更准确。</p>
+<p>在团队里复盘调用链时，建议把 trace 表和源码入口放在一起。trace 告诉你事实顺序，源码告诉你责任位置。只有 trace 没有源码，容易停留在现象；只有源码没有 trace，容易证明了一条没有实际发生的路径。两者配合，才知道当前请求到底走过哪条分支。</p>
+<p>还有一个边界技巧：先记录框架标准对象，再记录厂商对象。前者回答 LangChain 看到了什么，后者回答 provider 收到了什么。两者不一致，问题在翻译层；两者一致但输出异常，才继续查模型服务或业务约束。</p>
+<p>记录 trace 时也要避免只保存成功摘要。把失败输入、异常类型、回调事件和最后一个已知状态一起留下，下一次复现时才能比较差异。没有失败证据的“偶发问题”，通常会退化成重复试 prompt。</p>
+
 <h2>链路复盘</h2>
 <p>一次调用的每个环节都在保护一种工程能力：消息标准化保护可替换性，配置合并保护组合性，回调保护可观测性，provider 翻译保护生态适配，AIMessage 保护下游结构化处理。少看任何一环，都会低估 invoke 的设计含义。</p>
 <p>再补一个检查：如果你无法说清某个字段是在输入标准化、配置传播、回调事件、provider payload 还是响应解析中产生的，就不要急着修。先把字段放回链路位置，再看它由谁创建、谁读取、谁应该保持稳定。链路定位先于代码修改。</p><p>最后确认：一次调用必须能解释输入、配置、事件、请求、响应五类证据，缺一类就补观察点。</p>
@@ -496,12 +518,12 @@ r"""
 <p>下面这张表是第一轮阅读最常用的导航。它覆盖高层入口、协议基类、工具装饰器、Agent 工厂、图构建器和执行引擎。不要把表当成死记硬背；把它当成“问路牌”：当你想知道某个功能为什么这样设计，就从对应符号进入，再顺着调用方向走。</p>
 """,
 shell.source_map([
-    {"file": "libs/langchain/langchain/chat_models/base.py", "symbol": "init_chat_model", "role": "聊天模型便捷工厂，解析 provider:model 并延迟/直接实例化模型。", "direction": "Public API -> partner implementation"},
+    {"file": "libs/langchain_v1/langchain/chat_models/base.py", "symbol": "init_chat_model", "role": "聊天模型便捷工厂，解析 provider:model 并延迟/直接实例化模型。", "direction": "Public API -> partner implementation"},
     {"file": "libs/core/langchain_core/runnables/base.py", "symbol": "Runnable", "role": "统一可运行协议，规定 invoke、stream、batch、with_config、pipe 等组合行为。", "direction": "Protocol -> every runnable component"},
     {"file": "libs/core/langchain_core/tools/convert.py", "symbol": "tool", "role": "把普通函数转换成 StructuredTool/BaseTool，生成 schema 与描述。", "direction": "Decorator -> tool object"},
-    {"file": "libs/langchain/langchain/agents/factory.py", "symbol": "create_agent", "role": "高层 Agent 工厂，组装模型、工具、中间件并产出图。", "direction": "Public API -> LangGraph"},
-    {"file": "libs/langgraph/langgraph/graph/state.py", "symbol": "StateGraph", "role": "状态图构建器，定义 schema、节点、边、reducer，并 compile。", "direction": "Graph builder -> compiled graph"},
-    {"file": "libs/langgraph/langgraph/pregel/__init__.py", "symbol": "Pregel", "role": "执行引擎基类，负责按 superstep 调度节点、channel 更新和流式事件。", "direction": "Runtime engine -> node execution"},
+    {"file": "libs/langchain_v1/langchain/agents/factory.py", "symbol": "create_agent", "role": "高层 Agent 工厂，组装模型、工具、中间件并产出图。", "direction": "Public API -> LangGraph"},
+    {"file": "langchain-ai/langgraph/libs/langgraph/langgraph/graph/state.py", "symbol": "StateGraph", "role": "状态图构建器，定义 schema、节点、边、reducer，并 compile。", "direction": "Graph builder -> compiled graph"},
+    {"file": "langchain-ai/langgraph/libs/langgraph/langgraph/pregel/__init__.py", "symbol": "Pregel", "role": "执行引擎基类，负责按 superstep 调度节点、channel 更新和流式事件。", "direction": "Runtime engine -> node execution"},
 ]),
 r"""
 <h2>算法：带问题读源码，而不是漫游</h2>
@@ -618,6 +640,14 @@ r"""
 <p>如果一个结论无法写出文件和符号名，就暂时把它当成猜测；如果能写出符号却找不到测试，就给结论加上边界；如果测试和实现冲突，优先重新确认版本。这样的谨慎会让源码笔记更可靠。</p>
 <p>再补一个检查：读源码时如果连续打开五个内部 helper 仍然说不出原始问题是什么，就应该停下来回到路线图。源码不是越深越好，而是证据越贴近问题越好。能用 public API 和测试解释的问题，不必强行钻到最底层。</p><p>最后确认：源码笔记要能服务未来维护。它不仅告诉你今天在哪里看，还要告诉你版本升级、测试失败、provider 差异出现时应该沿哪条证据链复查。这样的笔记才是真正的工程资产，而不是一次性阅读痕迹。</p><p>补充一句：如果阅读结果无法指导代码修改、测试补充或问题定位，就说明证据链还没有闭合，需要重新回到入口和测试。</p>
 
+<h2>引用源码时保留不确定性</h2>
+<p>源码阅读最容易过度自信：看到一个 helper 当前这样实现，就写成“LangChain 一定会这样”。更专业的表达是带上范围：“当前版本的某路径中，某符号负责某职责；这个结论由某测试或示例覆盖”。范围不是废话，它告诉未来的你什么时候需要复查。只要换了版本、换了 provider、换了执行模式，原结论就可能只剩一部分成立。</p>
+<p>例如研究 <span class="mono">create_agent</span> 时，不要只引用工厂函数本身，还要说明它把循环交给 LangGraph 图执行；研究 <span class="mono">@tool</span> 时，不要只引用装饰器入口，还要说明 schema 推断的边界和测试覆盖。一个结论至少要有入口、契约、代表实现和边界条件，才适合写进团队文档。否则它更像临时笔记，不适合作为设计依据。</p>
+<p>如果源码路径和文档路径不一致，也不要急着改代码。先确认是否是仓库重组、版本标签不同、包拆分或文档锚点更新。很多“路径不存在”的问题并不代表符号消失，而是来源仓库或目录名变化。用符号名和包名交叉确认，比只靠路径字符串更稳。</p>
+<p>写给同事的源码结论最好包含一个复查动作，例如“升级后重新搜索这个符号并跑相关测试”。这样引用不会变成静态权威，而会变成可维护的索引。源码会变，复查动作让知识能跟着变。</p>
+<p>做课程笔记时也一样：把路径、符号、职责、版本和限制放在同一行，未来看到测试失败就能从这一行开始复查，而不是重新在仓库里漫游。</p>
+<p>当你引用 LangGraph 或 community 这类独立来源时，更要写出包或仓库名。否则读者可能在主包目录里搜索不到路径，误以为教程错误；明确来源能把“找不到文件”变成“去正确仓库复查”。</p>
+
 <h2>常见误解</h2>
 """,
 shell.pitfall_grid([
@@ -687,7 +717,7 @@ r"""
 """,
 shell.source_map([
     {"file": "libs/core/langchain_core/language_models/fake_chat_models.py", "symbol": "GenericFakeChatModel", "role": "用预设消息或生成器模拟聊天模型，避免真实 API 的随机性和费用。", "direction": "实验替身 -> BaseChatModel 协议"},
-    {"file": "libs/checkpoint/langgraph/checkpoint/memory/__init__.py", "symbol": "InMemorySaver", "role": "内存 checkpoint，用于本地验证 LangGraph 状态保存和恢复。", "direction": "Graph runtime -> checkpoint storage"},
+    {"file": "langchain-ai/langgraph/libs/checkpoint/langgraph/checkpoint/memory/__init__.py", "symbol": "InMemorySaver", "role": "内存 checkpoint，用于本地验证 LangGraph 状态保存和恢复。", "direction": "Graph runtime -> checkpoint storage"},
     {"file": "libs/core/langchain_core/runnables/config.py", "symbol": "RunnableConfig", "role": "传递 tags、metadata、callbacks、configurable 等运行时配置。", "direction": "调用者 -> Runnable 链路"},
     {"file": "libs/core/langchain_core/tracers/", "symbol": "tracers", "role": "收集 run、事件、输入输出和错误，支撑可观测调试。", "direction": "Callbacks -> trace records"},
     {"file": "libs/core/langchain_core/callbacks/manager.py", "symbol": "CallbackManager", "role": "把回调事件分发给 tracer、日志器或自定义 handler。", "direction": "Runnable execution -> observers"},
@@ -768,6 +798,14 @@ r"""
 <h2>把术语变成行动</h2>
 <p>术语只有能指导行动才有价值。知道 Runnable，就应该能决定一个组件是否能被 pipe、batch、stream；知道 Callback，就应该能设计观察点；知道 Checkpoint，就应该能解释恢复为什么需要 thread id；知道 FakeModel，就应该能设计无网络实验。每个词都连接一个动作，学习才不会停在背诵。</p>
 <p>复习时可以用“术语到行动”的方式自测：随机抽一个词，写出它能帮助你做的一个调试动作、一个源码入口、一个实验。写不出来，就说明这个词仍然只是名词，没有进入工程直觉。</p>
+
+<h2>把实验写成可重复配方</h2>
+<p>好的学习实验应该像配方，而不是像回忆。配方要写清环境、输入、固定输出、变量、观察点和预期结果。比如验证 checkpoint 恢复，不要只写“试了一下能恢复”，而要写 thread_id 是什么、初始状态是什么、第一次运行停在哪个节点、恢复时传入什么 config、期望状态中哪些字段保持不变。这样别人才能复现，你未来升级版本时也能重跑。</p>
+<p>配方还要明确哪些东西故意不测试。一个 fake model 实验不评价模型质量，一个内存 checkpointer 实验不评价数据库可靠性，一个单工具 Agent 实验不覆盖真实权限系统。写出“不测试什么”能防止读者把实验结论外推到生产。学习中的小实验是为了隔离机制，生产验证则需要在机制清楚后逐层增加真实依赖。</p>
+<p>当实验失败时，先不要扩大变量。最常见的错误是同时换真实模型、加检索、改 prompt、开 streaming，最后不知道哪个变化导致结果不同。闭环学习要求你一次只移动一个旋钮；如果必须引入多个变化，就把它拆成几轮实验，每轮都保留上一轮的可运行检查。</p>
+<p>最终，这些配方可以成为团队的入门手册。新人先跑确定性实验，理解消息、配置、工具和图状态，再接触真实模型和真实数据。这样训练出的不是“会复制 demo 的人”，而是能用证据解释系统行为的人。</p>
+<p>当团队共用同一批配方，讨论也会更具体：大家可以指向同一个输入、同一个 trace、同一个源码符号，而不是各自描述一次不可复现的体验。</p>
+<p>把配方保留下来还有一个好处：它会自然形成升级前检查清单。每次依赖升级后先跑这些小实验，若某一步失败，就按配方里的观察点回到对应源码，而不是在完整业务项目里寻找噪声。</p>
 
 <h2>方法复盘</h2>
 <p>概念、trace、source、experiment、glossary 不是五个独立动作，而是一条闭环。概念给方向，trace 给事实，source 给证据，experiment 给验证，glossary 给复用。任何一步缺失，学习都会偏：没有概念会乱，没有 trace 会黑盒，没有 source 会虚，没有 experiment 会不牢，没有 glossary 会遗忘。</p>

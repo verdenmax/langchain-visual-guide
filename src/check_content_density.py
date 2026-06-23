@@ -15,6 +15,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
 LESSONS = os.path.join(ROOT, "lessons")
 
+from registry import CONTENT
+
 C_LEVEL_PAGES = {
     "01-what-is-langchain.html": {"min_cjk": 4500, "min_visual": 5},
     "02-monorepo.html": {"min_cjk": 4500, "min_visual": 5},
@@ -71,7 +73,7 @@ VOID_TAGS = {
 
 
 class _DensityHTMLParser(HTMLParser):
-    """Count top-level visual blocks in generated lesson HTML.
+    """Count top-level visual blocks in raw lesson body HTML.
 
     Any element with a counted visual class, including generic wrappers
     ``flow``, ``vflow``, and ``cols``, counts as one standalone visual block in
@@ -162,7 +164,10 @@ def check_page(fname, rules):
     if not os.path.exists(path):
         return [f"{fname}: missing generated lesson file; run python build.py"]
 
-    html = open(path, encoding="utf-8").read()
+    html = CONTENT.get(fname)
+    if html is None:
+        return [f"{fname}: missing raw lesson body in registry.CONTENT"]
+
     errors = []
 
     cjk = cjk_count(html)

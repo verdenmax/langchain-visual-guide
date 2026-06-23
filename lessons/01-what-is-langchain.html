@@ -319,7 +319,7 @@ LangChain 是什么？一句话：它是把大语言模型接进应用的<strong
   <div class="tag">🔬 源码入口 · 文件 + 符号名</div>
   读源码时不要从搜索“LangChain 是什么”开始，而要从稳定协议进入：谁定义统一形状，谁负责便捷构造，谁负责编排循环。下表给出第一课需要记住的最小入口。
 </div>
-<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">Runnable</td><td>所有可调用组件的统一协议，规定 invoke、stream、batch、config 等行为。</td><td>上层链、模型、图都依赖它。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/base.py</td><td class="mono">BaseMessage</td><td>所有 System/Human/AI/Tool 消息的公共基类，承载 content、metadata、id。</td><td>模型输入输出围绕它标准化。</td></tr><tr><td class="mono">libs/langchain/langchain/chat_models/base.py</td><td class="mono">init_chat_model</td><td>便捷工厂，根据 provider:model 字符串实例化聊天模型。</td><td>用户入口向 partner 包分发。</td></tr><tr><td class="mono">libs/langchain/langchain/agents/factory.py</td><td class="mono">create_agent</td><td>把模型、工具、中间件组装成 Agent 图。</td><td>高层 API 调用 LangGraph。</td></tr><tr><td class="mono">libs/langgraph/langgraph/graph/state.py</td><td class="mono">StateGraph</td><td>定义共享状态、节点、边并 compile 成可执行图。</td><td>Agent 循环的执行底座。</td></tr></table>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">Runnable</td><td>所有可调用组件的统一协议，规定 invoke、stream、batch、config 等行为。</td><td>上层链、模型、图都依赖它。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/base.py</td><td class="mono">BaseMessage</td><td>所有 System/Human/AI/Tool 消息的公共基类，承载 content、metadata、id。</td><td>模型输入输出围绕它标准化。</td></tr><tr><td class="mono">libs/langchain_v1/langchain/chat_models/base.py</td><td class="mono">init_chat_model</td><td>便捷工厂，根据 provider:model 字符串实例化聊天模型。</td><td>用户入口向 partner 包分发。</td></tr><tr><td class="mono">libs/langchain_v1/langchain/agents/factory.py</td><td class="mono">create_agent</td><td>把模型、工具、中间件组装成 Agent 图。</td><td>高层 API 调用 LangGraph。</td></tr><tr><td class="mono">langchain-ai/langgraph/libs/langgraph/langgraph/graph/state.py</td><td class="mono">StateGraph</td><td>定义共享状态、节点、边并 compile 成可执行图。</td><td>Agent 循环的执行底座。</td></tr></table>
 <h2>代码走读：手写模型 + 工具循环</h2>
 <p>为了理解 LangChain 在自动化什么，先看一个极简手写循环。它和真实源码不逐行相同，但职责顺序一致：模型先看消息，若返回 tool_calls，程序执行工具，把结果追加为 ToolMessage，再让模型继续。LangChain 的价值不是“发明循环”，而是把循环里的类型转换、schema、回调、错误处理、并行工具、持久化都标准化。</p>
 <div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">conceptual_agent_loop.py :: model_tool_loop</span><span class="ln">简化版</span></div><pre>messages = [HumanMessage(&quot;订单 A100 现在到哪了？&quot;)]
@@ -369,6 +369,13 @@ while True:
 <h2>边界语言训练</h2>
 <p>你可以用一句模板训练自己：“某对象负责某种连接，不负责某种底层能力。”例如 LangChain 负责把模型、工具和状态连接起来，不负责训练权重；Runnable 负责统一调用形状，不负责业务正确性；BaseMessage 负责统一对话结构，不负责内容真实性；StateGraph 负责状态流转，不负责节点函数本身是否安全。把这类句子写熟，以后遇到新概念就能快速定位。</p>
 <p>这套语言还能减少团队沟通成本。讨论问题时，如果大家都能说清“这是 provider 翻译问题”“这是工具副作用问题”“这是图状态合并问题”，会议就不会停留在“AI 不稳定”。框架学习的成熟标志，是能把模糊抱怨改写成层次明确的工程问题。</p>
+
+<h2>边界不是推卸责任，而是定位责任</h2>
+<p>强调 LangChain 不负责训练、推理和数据库，并不是说框架出了问题可以一概外推。相反，边界语言要求你更精确地承担责任：如果 provider payload 被翻译错，责任就在适配层；如果 ToolMessage 没有进入下一轮消息，责任就在编排或业务 glue；如果工具本身返回过期库存，责任在业务数据源；如果模型看到正确工具结果却仍然总结错误，才回到模型生成能力和 prompt 约束。这样的归因比“框架不行”或“模型不行”都更有行动价值。</p>
+<p>实际项目中可以把一次故障复盘写成边界表：现象是什么，证据停在哪一层，上一层传入了什么，下一层产出了什么，哪个符号或工具能证明。比如客服 Agent 回复旧订单状态，先看 trace 里是否存在 get_order_status 的 tool call；再看工具参数是不是 A100；再看 ToolMessage 内容是不是旧值；最后才判断模型是否误读工具结果。每一步都有证据，修复也会更小。</p>
+<p>这个习惯还能帮助设计安全策略。凡是会产生副作用的动作，例如退款、发邮件、写数据库，都不应只靠模型文字决定。模型可以提出请求，LangChain 可以把请求标准化，业务层仍要做权限、幂等、审计和人工确认。把“建议”和“执行”分成不同边界，是 Agent 系统从 demo 走向生产的关键。</p>
+<p>判断是否该引入框架时，也可以用边界数量衡量：只有一个输入和一个输出，直接调用 SDK 往往足够；一旦出现多种消息类型、多种模型、工具副作用、回调审计和状态恢复，边界数量上升，框架提供的统一协议就开始抵消间接层成本。</p>
+<p>如果边界数量已经上升，却仍然把所有逻辑写在一个函数里，后续排错会变成猜谜：不知道参数何时被改写，不知道工具是否真的执行，也不知道最终文本来自事实还是补全。先把连接处命名，再决定是否用框架，是比先选技术栈更稳的设计顺序。</p>
 
 
 <h2>常见误解</h2>
