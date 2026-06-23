@@ -20,6 +20,10 @@ jobs:
         working-directory: src
         run: python build.py
 
+      - name: Build print HTML
+        working-directory: src
+        run: python build_print.py
+
       - name: Fail if committed HTML is stale vs src
         run: |
           if ! git diff --quiet -- index.html lessons/; then

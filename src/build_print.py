@@ -1,4 +1,4 @@
-"""Build a single print-ready HTML (all 20 lessons, accordions expanded).
+"""Build a single print-ready HTML (all lessons, accordions expanded).
 
 Output: ``print.html`` at the project root. Render it to PDF with headless
 Chromium, e.g.:

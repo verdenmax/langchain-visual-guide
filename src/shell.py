@@ -83,7 +83,10 @@ def lesson_map(title, nodes):
     for label, desc, kind in nodes:
         kind_name = str(kind)
         if kind_name not in _LESSON_MAP_KINDS:
-            kind_name = "source"
+            allowed = ", ".join(sorted(_LESSON_MAP_KINDS))
+            raise ValueError(
+                f"Invalid lesson_map node kind {kind_name!r}; allowed kinds: {allowed}"
+            )
         items.append(
             f'<div class="map-node {kind_name}">'
             f'<div class="mn-label">{esc(label)}</div>'
@@ -206,7 +209,7 @@ def version_note(text):
 
 
 def svg_diagram(title, svg_body):
-    """Render a repo-authored SVG body after lightweight unsafe-token checks."""
+    """Render repo-authored SVG only; do not pass untrusted/user-provided SVG."""
     body = str(svg_body)
     lowered = body.lower()
     if any(token in lowered for token in _UNSAFE_SVG_TOKENS):
