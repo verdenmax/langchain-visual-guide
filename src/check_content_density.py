@@ -27,13 +27,11 @@ RE_TAG = re.compile(r"<[^>]+>")
 
 
 def _class_count(html, class_name):
-    return len(
-        re.findall(
-            rf'class="[^"]*(?:^|\s){re.escape(class_name)}(?:\s|$)[^"]*"',
-            html,
-            re.I,
-        )
-    )
+    count = 0
+    for value in re.findall(r'class="([^"]*)"', html, re.I):
+        if class_name in value.split():
+            count += 1
+    return count
 
 
 def cjk_count(html):
