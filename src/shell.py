@@ -1,6 +1,7 @@
 """Shared HTML shell (CSS design system + navigation) for the LangChain tutorial."""
 
 import base64
+import html as _html
 
 # ---- favicon (inline SVG, base64) ----
 _FAVICON_SVG = (
@@ -27,6 +28,158 @@ def head_meta(title, description, og_type="website"):
         f'<meta name="twitter:card" content="summary">\n'
         f'<meta name="twitter:title" content="{t}">\n'
         f'<meta name="twitter:description" content="{d}">'
+    )
+
+
+def esc(s):
+    """Escape plain text for HTML text/attribute contexts."""
+    return _html.escape(str(s), quote=True)
+
+
+def _attrs(**kwargs):
+    """Build a safe HTML attribute string from keyword arguments."""
+    parts = []
+    for key, value in kwargs.items():
+        if value is None or value is False:
+            continue
+        name = key.rstrip("_").replace("_", "-")
+        if value is True:
+            parts.append(name)
+        else:
+            parts.append(f'{name}="{esc(value)}"')
+    return (" " + " ".join(parts)) if parts else ""
+
+
+def lesson_map(title, nodes):
+    items = []
+    for label, desc, kind in nodes:
+        items.append(
+            f'<div class="map-node {esc(kind)}">'
+            f'<div class="mn-label">{esc(label)}</div>'
+            f'<div class="mn-desc">{esc(desc)}</div>'
+            f'</div>'
+        )
+    return (
+        '<div class="lesson-map">'
+        f'<div class="lm-title">🗺️ {esc(title)}</div>'
+        f'<div class="lm-grid">{"".join(items)}</div>'
+        '</div>'
+    )
+
+
+def source_map(rows):
+    body = []
+    for row in rows:
+        body.append(
+            '<tr>'
+            f'<td class="mono">{esc(row["file"])}</td>'
+            f'<td class="mono">{esc(row["symbol"])}</td>'
+            f'<td>{esc(row["role"])}</td>'
+            f'<td>{esc(row["direction"])}</td>'
+            '</tr>'
+        )
+    return (
+        '<table class="t source-map">'
+        '<tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr>'
+        f'{"".join(body)}'
+        '</table>'
+    )
+
+
+def call_graph(steps):
+    parts = []
+    for i, (title, detail, highlight) in enumerate(steps):
+        cls = "node hl" if highlight else "node"
+        parts.append(
+            f'<div class="{cls}"><div class="nt">{esc(title)}</div>'
+            f'<div class="nd">{esc(detail)}</div></div>'
+        )
+        if i + 1 < len(steps):
+            parts.append('<div class="arrow">-&gt;</div>')
+    return f'<div class="flow call-graph">{"".join(parts)}</div>'
+
+
+def state_flow(steps):
+    parts = []
+    for idx, (title, detail, code_label) in enumerate(steps, 1):
+        code = f'<div class="mono">{esc(code_label)}</div>' if code_label else ""
+        parts.append(
+            '<div class="step">'
+            f'<div class="num">{idx}</div>'
+            f'<div class="sc"><h4>{esc(title)}</h4><p>{esc(detail)}</p>{code}</div>'
+            '</div>'
+        )
+    return f'<div class="vflow state-flow">{"".join(parts)}</div>'
+
+
+def trace_table(rows):
+    body = []
+    for row in rows:
+        body.append(
+            '<tr>'
+            f'<td>{esc(row["step"])}</td>'
+            f'<td>{esc(row["input"])}</td>'
+            f'<td>{esc(row["action"])}</td>'
+            f'<td>{esc(row["output"])}</td>'
+            '</tr>'
+        )
+    return (
+        '<table class="t trace-table">'
+        '<tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr>'
+        f'{"".join(body)}'
+        '</table>'
+    )
+
+
+def code_walkthrough(path, symbol, code, note):
+    return (
+        '<div class="codefile code-walkthrough">'
+        '<div class="cf-head"><span class="dot"></span>'
+        f'<span class="path">{esc(path)} :: {esc(symbol)}</span>'
+        '<span class="ln">简化版</span></div>'
+        f'<pre>{esc(code)}</pre>'
+        f'<div class="cw-note">{esc(note)}</div>'
+        '</div>'
+    )
+
+
+def pitfall_grid(items):
+    cards = []
+    for wrong, correct in items:
+        cards.append(
+            '<div class="pitfall">'
+            f'<div class="pf-wrong">误解：{esc(wrong)}</div>'
+            f'<div class="pf-correct">正确：{esc(correct)}</div>'
+            '</div>'
+        )
+    return f'<div class="pitfall-grid">{"".join(cards)}</div>'
+
+
+def lab_card(title, steps):
+    lis = "".join(f'<li>{esc(step)}</li>' for step in steps)
+    return (
+        '<div class="card lab">'
+        f'<div class="tag">🧪 小实验 · {esc(title)}</div>'
+        f'<ol>{lis}</ol>'
+        '</div>'
+    )
+
+
+def version_note(text):
+    return (
+        '<div class="card version">'
+        '<div class="tag">📌 版本锚点</div>'
+        f'{esc(text)}'
+        '</div>'
+    )
+
+
+def svg_diagram(title, svg_body):
+    return (
+        '<figure class="svg-diagram">'
+        f'<figcaption>{esc(title)}</figcaption>'
+        f'{svg_body}'
+        '</figure>'
     )
 
 
@@ -301,6 +454,38 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
 """
 
 SEARCH_JS = """
