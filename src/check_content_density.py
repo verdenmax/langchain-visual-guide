@@ -37,6 +37,9 @@ SEMANTIC_VISUAL_CLASSES = {
     "code-walkthrough",
     "pitfall-grid",
     "lab",
+    "flow",
+    "vflow",
+    "cols",
 }
 
 TABLE_VISUAL_CLASSES = {"source-map", "trace-table"}
