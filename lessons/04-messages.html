@@ -299,8 +299,106 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <h1>消息系统</h1>
   </div>
   
-<p class="lead">M2 临时页面：Task 2 会把这里替换为完整 C-level lesson。</p>
-<div class="selftest">
+<p class="lead">消息是 LangChain 把“人说的话、模型说的话、工具观察到的结果”统一起来的对话与数据契约。你可以从字符串、字典、二元组或已经构造好的消息对象开始，但进入模型、工具循环和下游 Runnable 之后，稳定的形状应该是 <span class="mono">BaseMessage</span> 家族：<span class="mono">HumanMessage</span> 表达用户输入，<span class="mono">AIMessage</span> 表达模型输出和工具意图，<span class="mono">ToolMessage</span> 表达某次工具调用的执行结果。</p>
+
+<div class="card analogy">
+  <div class="tag">📨 生活类比 · 物流面单</div>
+  消息像物流面单。包裹里装的东西是 content，寄件人和收件岗位是 role，额外条码是 additional_kwargs，费用和重量记录像 usage_metadata，工具调用编号像面单号。仓库可以临时听懂“帮我寄杯子”这句话，但一旦进入分拣线，就必须贴上标准面单；否则下一站不知道它是用户请求、模型回复，还是某个工具的回执。
+</div>
+
+<h2>本课地图：从输入形状到可追踪对话状态</h2>
+<p>学习消息系统时，不要先背所有子类，而要先抓住一条主线：输入会被规范化为消息对象；provider adapter 会把消息对象翻译为厂商 payload；模型响应会再被归一化为 <span class="mono">AIMessage</span>；如果它包含 <span class="mono">tool_calls</span>，程序执行工具并追加 <span class="mono">ToolMessage</span>；随后 Runnable、Agent 或图节点继续读取同一份消息状态。</p>
+<div class="lesson-map"><div class="lm-title">🗺️ 消息系统的五个检查点</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">原始输入</div><div class="mn-desc">字符串、二元组、dict、BaseMessage 列表都可能出现在用户层</div></div><div class="map-node now"><div class="mn-label">规范化</div><div class="mn-desc">convert_to_messages 把松散输入变成明确消息对象</div></div><div class="map-node source"><div class="mn-label">适配器</div><div class="mn-desc">provider wrapper 读取 role/content/tool_calls 并生成厂商请求</div></div><div class="map-node now"><div class="mn-label">工具回合</div><div class="mn-desc">AIMessage.tool_calls 表达意图，ToolMessage 表达执行观察</div></div><div class="map-node after"><div class="mn-label">下游状态</div><div class="mn-desc">Runnable、Agent、LangGraph 节点共享同一种消息列表</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>下面的表只写文件和符号，不写行号。行号会随版本漂移，符号职责更稳定。读源码时先从基类看公共字段，再看具体消息如何补充语义，最后看工具函数如何把各种输入变成这些对象。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/messages/base.py</td><td class="mono">BaseMessage</td><td>定义 content、additional_kwargs、response_metadata、id、name、type 等公共消息字段。</td><td>所有具体消息继承它，模型接口围绕它传递数据。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/human.py</td><td class="mono">HumanMessage</td><td>表示用户或外部人类发出的内容，是最常见的输入消息。</td><td>由输入转换层创建，传入聊天模型。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/ai.py</td><td class="mono">AIMessage</td><td>表示模型回复，承载 content、tool_calls、invalid_tool_calls、usage_metadata。</td><td>由模型包装器返回，下游循环继续消费。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/tool.py</td><td class="mono">ToolMessage</td><td>表示工具执行结果，并用 tool_call_id 对齐某个 AIMessage 工具请求。</td><td>由工具执行层追加，再回灌给模型。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/utils.py</td><td class="mono">convert_to_messages</td><td>把字符串、元组、dict、PromptValue 或消息对象列表转换为标准消息列表。</td><td>模型调用前的输入边界。</td></tr></table>
+<h2>主流程：字符串 / 列表 / 字典如何进入工具回合</h2>
+<p>消息规范化不是装饰步骤，而是系统边界。字符串在调用便利层里通常会变成 <span class="mono">HumanMessage</span>；<span class="mono">[(\"system\", \"...\"), (\"human\", \"...\")]</span> 会变成对应消息；已经是 <span class="mono">BaseMessage</span> 的对象则尽量保留。规范化之后，provider adapter 才能做确定翻译：role 映射到厂商字段，content 映射到文本或多模态块，tool_calls 映射到函数调用格式，metadata 映射到追踪信息。</p>
+<div class="flow call-graph"><div class="node hl"><div class="nt">string / list / dict 输入</div><div class="nd">用户层为了方便允许多种表示</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">message objects</div><div class="nd">convert_to_messages 统一成 BaseMessage 子类</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">provider adapter</div><div class="nd">翻译 role、content、tool schema 和额外字段</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">AIMessage/tool_calls</div><div class="nd">模型返回内容或请求工具执行</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">Runnable / Agent</div><div class="nd">下游读取同一消息列表继续编排</div></div></div>
+<h2>代码走读：简化版消息规范化</h2>
+<p>真实 <span class="mono">convert_to_messages</span> 需要处理更多输入类型和错误分支。下面的伪代码保留 C 级阅读时最重要的判断顺序：如果已经是消息对象就保留；如果是字符串就当作人类输入；如果是二元组或字典，就根据 role/type 选择子类；如果无法识别，应尽早报错，而不是把不明结构悄悄塞进模型。</p>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/core/langchain_core/messages/utils.py :: convert_to_messages</span><span class="ln">简化版</span></div><pre>def convert_to_messages(value):
+    if isinstance(value, BaseMessage):
+        return [value]
+    if isinstance(value, str):
+        return [HumanMessage(content=value)]
+    if isinstance(value, list):
+        return [convert_one(item) for item in value]
+
+def convert_one(item):
+    if isinstance(item, BaseMessage):
+        return item
+    if isinstance(item, tuple):
+        role, content = item
+        return message_from_role(role, content)
+    if isinstance(item, dict):
+        role = item.get(&quot;role&quot;) or item.get(&quot;type&quot;)
+        return message_from_role(role, item.get(&quot;content&quot;), item)
+    raise ValueError(&quot;unsupported message representation&quot;)</pre><div class="cw-note">这是教学伪代码：真实实现还会处理 PromptValue、content blocks、message chunk 和更细的校验。</div></div>
+<h2>例子追踪：“查订单 123”的一轮工具调用</h2>
+<p>下面的 trace 故意把每个中间对象写出来。关键点是：<span class="mono">AIMessage.tool_calls</span> 只是模型提出的意图，不是工具已经执行；真正的执行结果必须成为 <span class="mono">ToolMessage</span>，并且它的 <span class="mono">tool_call_id</span> 要和原始调用 id 对上。没有这个 id，下一轮模型就不知道哪条观察对应哪次请求。</p>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1 用户输入</td><td>查订单 123</td><td>输入边界把字符串包装成 HumanMessage。</td><td>HumanMessage(content=&#x27;查订单 123&#x27;)</td></tr><tr><td>2 模型判断</td><td>HumanMessage + order_lookup schema</td><td>模型决定调用工具，返回带 tool_calls 列表的 AIMessage。</td><td>AIMessage(tool_calls=[{&#x27;id&#x27;:&#x27;call_1&#x27;,&#x27;name&#x27;:&#x27;lookup_order&#x27;,&#x27;args&#x27;:{&#x27;id&#x27;:&#x27;123&#x27;}}])</td></tr><tr><td>3 程序执行</td><td>call_1 / lookup_order / id=123</td><td>你的代码调用真实订单系统，获得状态。</td><td>订单 123 已发往上海</td></tr><tr><td>4 工具观察</td><td>执行结果 + call_1</td><td>把结果包装为 ToolMessage，绑定 tool_call_id。</td><td>ToolMessage(content=&#x27;已发往上海&#x27;, tool_call_id=&#x27;call_1&#x27;)</td></tr><tr><td>5 最终回复</td><td>HumanMessage + AIMessage + ToolMessage</td><td>模型看到工具观察，生成不再含 tool_calls 的最终回答。</td><td>AIMessage(content=&#x27;订单 123 已发往上海。&#x27;)</td></tr></table>
+<h2>字段拆解：role、content 与 metadata 不是一回事</h2>
+<p><strong>role / type</strong> 是消息在对话里的身份。它告诉模型和适配器这段内容应被当作系统指令、人类输入、AI 回复还是工具观察。很多 provider 的字段名不同，但 LangChain 在上层保留统一语义。不要把 role 当作业务权限，也不要把系统消息当作绝对安全边界；它只是模型上下文里的优先级提示和结构提示。</p>
+<p><strong>content</strong> 是消息主要承载的信息。它可以是普通字符串，也可以是更结构化的内容块，例如文本、图片描述或 provider 支持的多模态片段。C 级排错时要看 content 是否在转换中被拼成了错误字符串，是否把历史消息压成一段难以区分说话人的文本，是否把工具结果误放进 AIMessage.content 而不是 ToolMessage。</p>
+<p><strong>additional_kwargs</strong> 是给 provider 差异留出的扩展袋。某些厂商返回的原始字段、函数调用片段或特殊参数可能暂时放在这里。它有用，但不应成为业务主状态。业务代码如果长期依赖某个 provider 特有 additional_kwargs，就等于绕过了统一消息契约，未来切换模型时会出现隐性耦合。</p>
+<p><strong>tool_calls</strong> 是 <span class="mono">AIMessage</span> 上最容易误读的字段。它表示“模型请求执行某些工具”，不是“工具结果”。每个 tool call 通常包含 name、args、id 等信息。程序读取它、验证它、执行它、生成 ToolMessage。安全边界在这里：模型提出动作，应用决定是否允许执行。</p>
+<p><strong>usage_metadata</strong> 记录 token 数、输入输出用量等观测信息。它适合追踪成本、延迟分析和调试，不适合作为业务状态。例如“本轮用了 1000 token”可以写入日志，但不应该决定订单是否已付款。把观测指标混进领域状态，会让回放、重试和审计变得混乱。</p>
+<p><strong>message id</strong> 有助于追踪和去重，但不等于工具调用 id。消息 id 标识一条消息，tool_call_id 标识一次工具请求与一次工具观察之间的对应关系。多工具并行时尤其重要：两个工具都返回“成功”，如果没有 id，模型和 trace 都无法可靠判断哪个成功对应哪个请求。</p>
+
+<h2>为什么 ToolMessage.tool_call_id 是硬边界</h2>
+<p>工具回合看似只是把结果追加进历史，实际是一个小型事务：模型发出 call id，执行器按该 id 执行对应工具，观察结果带着同一 id 回来。这个 id 让系统可以处理并行、失败、重试和部分结果。如果漏掉 id，简单 demo 可能仍能工作，因为只有一个工具；生产中一旦模型同时请求天气、库存和价格，结果顺序、错误重试和审计记录都会失去锚点。</p>
+<p>另一个常见问题是把工具执行结果直接拼进下一条 HumanMessage，例如“工具返回：……”。这样模型也许能读懂，但框架、tracer 和 provider adapter 都看不到结构化的工具观察。正确做法是保留 ToolMessage，让数据契约告诉系统“这不是用户又说了一句话，而是某个工具调用的结果”。结构一旦丢失，下游就只能靠猜。</p>
+
+<h2>消息列表是对话状态，不是聊天记录文本</h2>
+<p>很多应用一开始把 history 存成一段长字符串：“用户：…… AI：……”。这种做法在演示中方便，但会损失角色、工具 id、usage、metadata、内容块类型和消息级追踪。LangChain 的消息列表让历史保持结构化：每一项都有身份、内容和可选元数据。模型适配器可以据此生成最接近 provider 要求的 payload，Agent 循环也能可靠寻找最近一次工具请求。</p>
+<p>结构化消息还有利于裁剪上下文。你可以按消息边界删除最老的人机回合，可以保留系统消息和最后一条 ToolMessage，可以对图片块做单独处理。如果历史只是一段字符串，裁剪就容易切断语义，甚至把工具结果和用户输入混成不可区分的文本。</p>
+
+<h2>从源码阅读到业务设计</h2>
+<p>读 <span class="mono">BaseMessage</span> 时，重点不是继承语法，而是字段边界：哪些字段是跨 provider 的稳定契约，哪些字段是追踪或扩展，哪些字段只在工具循环中有意义。读 <span class="mono">HumanMessage</span> 和 <span class="mono">AIMessage</span> 时，重点是方向：前者通常进入模型，后者通常从模型出来。读 <span class="mono">ToolMessage</span> 时，重点是它不代表“工具定义”，而代表“工具执行后的观察”。</p>
+<p>业务层可以借鉴这套边界。你的领域对象不应该直接等同于消息对象；订单、用户、权限属于业务模型，消息只是把某次对话中的信息送进或送出模型。把业务状态放在数据库或图状态里，把对话证据放在消息列表里，把观测指标放在 metadata / trace 里，三者分清，系统才容易复盘。</p>
+<p>调试时建议打印“消息摘要”而不是完整敏感内容：类型、前几十个字符、tool_call_id、tool_calls 名称、usage。这样既能看到结构，又能降低泄露风险。消息是可观测边界，但不是秘密保险箱；真实用户输入、工具结果和系统提示都可能包含敏感信息，日志策略必须谨慎。</p>
+
+
+<h2>C 级排错清单：消息层先问什么</h2>
+<p>当一个对话应用表现异常时，先不要急着改 prompt，也不要马上换模型。第一步应检查消息列表本身：第一条是不是系统消息，用户输入是不是 HumanMessage，模型上一轮回复是不是 AIMessage，工具观察是不是 ToolMessage，顺序是否符合真实发生顺序。很多问题看起来像“模型不听话”，实际是消息身份错了，模型把工具结果当成用户追问，或把用户文本拼进了系统规则。</p>
+<p>第二步检查工具调用关系。打印每个 AIMessage 的 tool_calls，列出 id、name、args，再打印每个 ToolMessage 的 tool_call_id。每个工具观察都应该能找到对应请求；每个需要执行的请求都应该有执行记录或明确错误。若同一个 id 出现两次，要判断是重试、重复追加还是状态恢复 bug。若 ToolMessage 没有 id，说明执行层和消息层之间的事务边界已经断开。</p>
+<p>第三步检查 metadata 的用途。response_metadata 和 usage_metadata 很适合帮助你知道 provider 返回了什么、token 用了多少、finish_reason 是什么，但它们不是业务事实。不要因为 metadata 里有某个 provider 原始字段，就在业务层长期依赖它；更不要把 token 数、模型名或 run id 当作用户状态。追踪信息应该进入日志、指标和 trace，业务状态应该进入数据库、图状态或领域对象。</p>
+<p>第四步检查消息裁剪。上下文过长时，很多应用会删除历史。如果裁剪算法只按字符切字符串，就可能留下半个工具结果或删掉 tool_call 对应的 AIMessage。结构化消息裁剪应按回合处理：系统消息通常保留；成对的 AIMessage tool_calls 与 ToolMessage 尽量一起保留或一起删除；最后一轮用户问题必须保留。否则模型会看到没有来由的工具观察，回答自然混乱。</p>
+<p>第五步检查序列化。消息常被存进数据库或队列，再恢复给下一次调用。恢复时要保留 type、content、additional_kwargs、tool_calls、tool_call_id、id 和必要 metadata。若只保存 content，恢复后所有消息都变成普通文本，Agent 轨迹和工具回合就丢了。生产系统应为消息序列化写小测试，确保存取前后消息类型和关键字段一致。</p>
+<h2>设计建议：把消息当作边界对象</h2>
+<p>在应用架构里，消息对象应位于模型交互边界，而不是到处替代业务对象。订单状态不要长期存成 AIMessage，用户权限不要藏在 HumanMessage，支付结果不要只存在 ToolMessage。消息记录“模型在这次运行中看到了什么和说了什么”，领域对象记录“系统真实状态是什么”。这两层可以互相引用，但不能互相替代。</p>
+<p>如果团队多人协作，可以约定消息调试格式：每条消息打印序号、类型、简短内容、tool_calls 名称、tool_call_id、usage 摘要，敏感内容做脱敏。这样产品、后端和模型工程师讨论同一个问题时，不会只盯最终回答，而能看到标准化对话状态。C 级工程能力很大一部分就是把“模型怎么又乱了”改写成“第 4 条 ToolMessage 的 id 没有匹配第 3 条 AIMessage 的请求”。</p>
+<p>消息层也影响测试策略。你可以不用真实 provider，直接构造 HumanMessage、AIMessage 和 ToolMessage，测试自己的工具执行器、裁剪器、序列化器和 Agent 路由。只要消息契约稳定，这些测试就不依赖网络和模型随机性。等消息边界测试可靠后，再用少量集成测试验证 provider adapter 是否把真实响应映射到同样结构。</p>
+<p>最后记住一个判断：凡是需要模型理解的内容，应以正确消息身份进入上下文；凡是需要程序确定执行的事实，应以结构化字段进入业务状态；凡是需要人排查的证据，应进入 trace。三类数据都可能出现在一次运行里，但责任不同。分清责任，消息系统才不会变成万能垃圾桶。</p>
+
+
+<h2>课堂复盘：用消息语言描述一次运行</h2>
+<p>学完本课后，可以尝试不用“模型回复了”“工具查了”这种模糊说法，而改用消息语言复盘：第 1 条 HumanMessage 承载用户问题；第 2 条 AIMessage 没有最终答案，而是包含一个带 id 的 tool call；执行器读取这个请求并调用业务函数；第 3 条 ToolMessage 用同一 id 记录观察；第 4 条 AIMessage 才是最终自然语言回复。这样的描述把一次运行拆成证据链，任何人都能继续检查。</p>
+<p>消息语言还帮助你做代码审查。看到函数接收 <span class="mono">list[dict]</span> 时，问它什么时候转成 BaseMessage；看到函数返回字符串时，问下游是否需要 AIMessage metadata；看到工具结果被拼进 prompt 时，问为什么不是 ToolMessage；看到 usage 被写入业务表时，问它是不是只应进追踪系统。小问题在 demo 中不明显，在多模型、多工具、多轮对话中会迅速放大。</p>
+<p>因此，本课不是让你背字段，而是训练一套工程表达：消息是模型上下文的结构化证据，工具 id 是工具事务的连接点，metadata 是观测材料，content 是模型可读主体。只要这几个名词用准，后续学习 prompt、tools、Agent 和 streaming 都会更顺。</p>
+
+<h2>延伸练习：消息契约的最小验收标准</h2>
+<p>给消息层写验收标准时，可以要求任何进入模型的输入都先通过一个检查函数：列表不能为空；每项都有明确类型；工具观察必须匹配已有工具请求；系统消息不能由用户文本直接生成；序列化再反序列化后关键字段不丢失。这个检查函数不需要理解业务，只保护消息形状。它像类型系统的补充，让模型调用前的错误更早暴露。</p>
+<p>在团队协作中，还可以约定“禁止在业务层拼接历史字符串”。如果确实需要展示聊天记录，可以从消息列表渲染字符串；但存储和调用仍保留结构。渲染是视图，消息是数据。把视图反过来当数据源，是很多多轮对话系统后期难以维护的根源。</p>
+
+<h2>最后检查：把概念落到一次真实调用</h2>
+<p>完成本课后，请把概念重新放回一次真实调用中验证：输入从哪里来，经过哪个对象标准化，运行时配置如何传播，输出由谁解释，错误在哪里被看见，哪些信息进入 trace，哪些信息进入业务状态。只要能沿着这条线讲清楚，说明你掌握的不是 API 片段，而是可维护的系统边界。</p>
+<p>这也是 C 级课程反复强调的学习方法：每个抽象都要回答“它统一什么、它不负责什么、它失败时看什么证据”。抽象不是为了隐藏一切，而是为了让变化集中、证据清楚、责任可定位。后续课程继续读源码时，请始终用这三个问题检查自己的理解。</p>
+<h2>常见误解</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：dict 和 BaseMessage 对象完全等价，随便混用。</div><div class="pf-correct">正确：dict 是输入便利格式；进入模型前应规范化为明确消息对象，避免 role/type/content 缺失或拼错。</div></div><div class="pitfall"><div class="pf-wrong">误解：AIMessage.tool_calls 就是工具执行结果。</div><div class="pf-correct">正确：tool_calls 只是模型意图；执行结果必须由你的程序产生并写入 ToolMessage。</div></div><div class="pitfall"><div class="pf-wrong">误解：ToolMessage 不写 tool_call_id 也没关系。</div><div class="pf-correct">正确：只有一个工具的 demo 可能侥幸工作；多工具、并行、重试和审计都依赖匹配 id。</div></div><div class="pitfall"><div class="pf-wrong">误解：usage_metadata 可以当业务状态用。</div><div class="pf-correct">正确：token 用量是追踪和计费信息，不应决定订单、权限或用户流程。</div></div><div class="pitfall"><div class="pf-wrong">误解：把历史拼成一个字符串更简单也一样。</div><div class="pf-correct">正确：字符串历史会丢失角色、工具关系、内容块和消息级追踪，长期维护成本更高。</div></div></div>
+<h2>小实验：检查一次假工具回合前后的消息列表</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 手动构造一轮消息状态</div><ol><li>创建 messages = [HumanMessage(content=&#x27;查订单 123&#x27;)]，打印每条消息的 type 和 content。</li><li>手写一个 AIMessage，令 tool_calls 包含 id=&#x27;call_1&#x27;、name=&#x27;lookup_order&#x27;、args={&#x27;id&#x27;:&#x27;123&#x27;}。</li><li>模拟工具返回，把结果包装为 ToolMessage(content=&#x27;已发往上海&#x27;, tool_call_id=&#x27;call_1&#x27;)。</li><li>再次打印消息列表，确认 AIMessage.tool_calls 和 ToolMessage.tool_call_id 是两条不同消息上的字段。</li><li>把 tool_call_id 改错，观察你的检查函数如何发现“工具观察无法匹配请求”。</li></ol></div>
+<div class="card key">
+  <div class="tag">✅ 本课要点</div>
+  <ul>
+    <li>消息是 LangChain 的标准对话数据契约，连接用户输入、模型输出、工具观察和下游 Runnable。</li>
+    <li><span class="mono">role/content</span> 表达对话身份和主体内容；<span class="mono">additional_kwargs</span> 与 <span class="mono">usage_metadata</span> 更偏扩展和观测。</li>
+    <li><span class="mono">AIMessage.tool_calls</span> 是模型请求，<span class="mono">ToolMessage</span> 是程序执行后的观察，二者通过 <span class="mono">tool_call_id</span> 对齐。</li>
+    <li>结构化消息列表比聊天记录字符串更适合裁剪、追踪、工具循环和 provider 切换。</li>
+  </ul>
+</div>
+<div class="card version"><div class="tag">📌 版本锚点</div>本课以 LangChain v1 时代的 core 消息契约为锚点：字段名和 provider 细节会演进，但文件 + 符号名所表达的边界——BaseMessage 家族、convert_to_messages、AIMessage.tool_calls 与 ToolMessage.tool_call_id——是阅读新版源码时最稳定的地图。</div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
   <div class="qn">1. 对话被建模成“一串结构化消息（System/Human/AI/Tool）”而不是一团纯文本。这种“结构化”最大的设计收益是？</div>
