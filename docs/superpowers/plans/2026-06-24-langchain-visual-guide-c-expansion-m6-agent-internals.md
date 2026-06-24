@@ -142,7 +142,7 @@ Cover `context_schema`, Runtime, response_format/structured response. Source row
 - `libs/core/langchain_core/language_models/chat_models.py :: with_structured_output`
 - `libs/langgraph/langgraph/graph/state.py :: StateGraph`
 
-Trace `context={"user_id": ...}` into prompt/tool node and structured final response.
+Trace `context={"user_id": "u_123", "tenant": "acme"}` into prompt/tool node and structured final response.
 
 - [ ] **Step 5: Write `LESSON_31_CONTROL_ERRORS`**
 
