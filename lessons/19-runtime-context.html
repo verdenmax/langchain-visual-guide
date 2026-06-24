@@ -298,65 +298,81 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第六部分 · Agent 内部</div>
     <h1>Runtime Context 与结构化响应</h1>
   </div>
-<p class="lead">M6 临时页面：Task 2 会替换为完整 C-level lesson。</p><div class="selftest">
+
+<p class="lead">Runtime Context 解决的是一个很具体的问题：Agent 运行时需要知道当前用户、租户、权限、连接、请求 id、地区等信息，但这些信息不一定应该进入对话消息，也不应该让模型随意看到。LangChain v1 的 <span class="mono">context_schema</span>、LangGraph 的 <span class="mono">Runtime</span>、工具侧的 <span class="mono">ToolRuntime</span>，把“给代码用的运行时上下文”和“给模型看的消息状态”分开；<span class="mono">response_format</span> 与 <span class="mono">with_structured_output</span> 则把最终回答收束为结构化结果。本课追踪 <span class="mono">context={'user_id':'u_123','tenant':'acme'}</span> 如何进入 prompt、工具和结构化响应。</p>
+<div class="card analogy"><div class="tag">🧩 生活类比</div>把 Runtime Context 想成餐厅后厨的订单小票背面信息。顾客菜单上写的是“少辣牛肉面”，这是给厨师理解需求的内容；收银系统还知道会员号、门店、优惠券、过敏记录和支付渠道，这些不是都要念给顾客听，也不该贴在菜名里。服务员需要这些信息来查会员价，后厨需要过敏信息来避免花生，经理需要订单号做追踪。context_schema 就是规定小票背面有哪些字段、谁能读、字段类型是什么。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：context、state 与 structured response 的边界</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">context_schema</div><div class="mn-desc">声明运行时上下文字段，例如 user_id、tenant、role、request_id</div></div><div class="map-node source"><div class="mn-label">Runtime</div><div class="mn-desc">图运行时携带 context、store、stream_writer、config 等执行环境</div></div><div class="map-node now"><div class="mn-label">ToolRuntime</div><div class="mn-desc">工具函数通过运行时对象读取上下文，而不是让模型把秘密填进参数</div></div><div class="map-node now"><div class="mn-label">prompt 注入</div><div class="mn-desc">只有确实需要模型知道的非敏感摘要才进入系统提示或 messages</div></div><div class="map-node after"><div class="mn-label">response_format</div><div class="mn-desc">最终回答可通过 with_structured_output 变成可校验结构</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>运行时上下文要同时看 LangChain Agent 工厂、LangGraph runtime 和工具 runtime。读源码时重点问：context 从 invoke 入口保存在哪里，模型节点怎么拿到它，工具调用怎么拿到它，结构化响应最终写到哪个 state key。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/langchain_v1/langchain/agents/factory.py</td><td class="mono">create_agent</td><td>接收 context_schema 和 response_format，把它们纳入 Agent 图与模型调用策略</td><td>用户声明上下文类型与最终输出类型</td></tr><tr><td class="mono">libs/langgraph/langgraph/runtime.py</td><td class="mono">Runtime</td><td>图执行期间的运行时对象，携带 context、store、stream_writer、config 等环境</td><td>节点和中间件可读取当前调用上下文</td></tr><tr><td class="mono">libs/core/langchain_core/tools/base.py</td><td class="mono">ToolRuntime</td><td>工具侧运行时注入对象，让工具安全读取 context、config 或 store</td><td>工具执行时避免让模型传入敏感运行时字段</td></tr><tr><td class="mono">libs/core/langchain_core/language_models/chat_models.py</td><td class="mono">with_structured_output</td><td>把聊天模型包装成按 schema 返回结构化对象的 runnable</td><td>response_format 需要结构化最终结果时使用</td></tr><tr><td class="mono">libs/langgraph/langgraph/graph/state.py</td><td class="mono">StateGraph</td><td>承载 messages、structured_response 等 state，并把 runtime context 传入节点</td><td>Agent 图把上下文与状态分开管理</td></tr></table>
+<h2>状态流：context 如何进入 prompt、工具和结果</h2>
+<div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>调用入口带 context</h4><p>应用调用 agent.invoke({&#x27;messages&#x27;:[... ]}, context={&#x27;user_id&#x27;:&#x27;u_123&#x27;,&#x27;tenant&#x27;:&#x27;acme&#x27;})。context 不等于 messages。</p><div class="mono">Runtime.context={&#x27;user_id&#x27;:&#x27;u_123&#x27;,&#x27;tenant&#x27;:&#x27;acme&#x27;}</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>before_model 读取上下文</h4><p>中间件或 prompt builder 读取 tenant，决定注入“你正在服务 acme 租户”这类非敏感提示；user_id 不直接展示给模型。</p><div class="mono">system_prompt += tenant label</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>模型提出业务工具请求</h4><p>模型只请求 get_orders(status=&#x27;open&#x27;)，不需要自己填 user_id 或 tenant，因为这些由工具 runtime 补齐。</p><div class="mono">AIMessage.tool_calls</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>工具通过 ToolRuntime 查上下文</h4><p>工具函数读取 runtime.context.user_id 和 tenant，按租户隔离查询数据库。模型从未看到连接串或内部权限。</p><div class="mono">query tenant=&#x27;acme&#x27;, user_id=&#x27;u_123&#x27;</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>结构化最终响应</h4><p>response_format 要求最终输出 {answer, order_count, next_action}；模型通过 with_structured_output 或对应策略写回 structured_response。</p><div class="mono">state.structured_response=Answer(...)</div></div></div></div>
+<h2>Trace：u_123/acme 的一次调用</h2>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. invoke</td><td>messages=用户问‘我还有哪些未处理订单？’，context={&#x27;user_id&#x27;:&#x27;u_123&#x27;,&#x27;tenant&#x27;:&#x27;acme&#x27;}</td><td>Runtime 保存 context，StateGraph 保存 messages</td><td>上下文和对话分轨</td></tr><tr><td>2. prompt</td><td>Runtime.context.tenant=&#x27;acme&#x27;</td><td>before_model 只注入租户展示名和回答风格，不注入内部 token</td><td>模型知道服务 acme，但不知道数据库凭证</td></tr><tr><td>3. tool call</td><td>模型看到 get_orders(status) 工具</td><td>AIMessage.tool_calls=[get_orders({&#x27;status&#x27;:&#x27;open&#x27;})]</td><td>工具参数不含 user_id/tenant</td></tr><tr><td>4. tool runtime</td><td>ToolRuntime.context + args.status</td><td>工具用 tenant 和 user_id 做权限过滤，再查询订单</td><td>ToolMessage: 3 个未处理订单</td></tr><tr><td>5. structured final</td><td>ToolMessage + response_format=OrderSummary</td><td>模型返回可校验结构化响应</td><td>structured_response.answer/order_count/next_action</td></tr></table>
+<h2>简化源码走读：context 不进 messages</h2>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/langchain_v1/langchain/agents/factory.py :: context_schema / response_format</span><span class="ln">简化版</span></div><pre>class RequestContext(TypedDict):
+    user_id: str
+    tenant: str
+
+agent = create_agent(
+    model=model,
+    tools=[get_orders],
+    context_schema=RequestContext,
+    response_format=OrderSummary,
+)
+
+result = agent.invoke(
+    {&quot;messages&quot;: [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;我有哪些未处理订单？&quot;}]},
+    context={&quot;user_id&quot;: &quot;u_123&quot;, &quot;tenant&quot;: &quot;acme&quot;},
+)
+
+# tool(runtime: ToolRuntime) reads runtime.context[&quot;tenant&quot;]
+# final result may include result[&quot;structured_response&quot;]
+</pre><div class="cw-note">教学版强调边界：messages 是模型要读的对话状态；context 是你的代码、工具和中间件读取的运行时环境；structured_response 是最终可校验业务结果。不要把三者混成一个大字典。</div></div><h2>context 与 state 的边界</h2><p>state 是图内部会被节点读写、被 reducer 合并、被 checkpoint 保存的业务状态。messages、structured_response、当前步骤标记、工具观察，都属于 state。context 则是调用这一次图时由外部注入的环境信息，通常不由节点随意修改，也不应该作为对话历史的一部分。把两者分开，可以让同一张图服务不同用户、租户和请求，而不污染可恢复的业务状态。</p><p>安全是这个边界的第一理由。user_id、tenant、role 有时可以被模型知道一个脱敏摘要，但数据库连接、内部权限、访问 token、真实邮箱等敏感字段不应进入消息。只要进入 messages，它就可能被模型引用、被日志记录、被下游工具当成自然语言处理。context 让你的代码能用这些字段，同时默认不把它们暴露给模型。</p><p>第二个理由是可测试。测试工具权限时，你可以固定 messages，只改变 context，观察工具查询范围是否正确；测试 prompt 时，你可以固定 context，只改变消息。若所有东西都塞进 messages，每个测试都要解析长 prompt，很难判断失败是模型没理解，还是上下文注入错。</p><h2>结构化响应为什么属于最终契约</h2><p>response_format 不是简单美化输出，而是把 Agent 最终结果变成应用可以依赖的契约。客服页面可能需要 answer 文本、confidence、next_action、ticket_id；后端需要明确字段，而不是从一段自然语言里再用正则提取。with_structured_output 或等价策略把“模型应该按 schema 回答”放进模型调用路径，并把结果写回 structured_response。</p><p>结构化响应也能减少工具循环后的歧义。模型读完 ToolMessage 后，如果只写一段话，应用很难知道是否需要展示按钮、是否需要升级人工、是否应该写数据库。schema 让这些决策字段显式化。当然，schema 不会自动保证事实正确；它保证的是形状可校验，事实仍要靠工具结果和业务验证。</p><p>要注意 response_format 和 ToolMessage 的职责不同。ToolMessage 是循环中间的工具观察，可能有很多条；structured_response 是循环结束后的最终产物，通常只有一个。前者帮助模型继续推理，后者帮助应用消费结果。混淆二者会导致工具结果被当成最终 API 响应，或者最终响应又被错误追加进工具观察。</p><h2>常见误解与边界情况</h2><p>误解一是“模型需要知道用户是谁，所以把全部 user profile 塞进 prompt”。更好的做法是分类：模型完成任务确实需要的偏好可以用脱敏摘要进入 prompt；权限、连接、审计 id、内部标签留在 context；工具查询时由 ToolRuntime 使用。这样既满足模型理解，又控制泄漏面。</p><p>误解二是“context 不进消息，所以工具也拿不到”。工具拿上下文的正确方式不是让模型把 user_id 当参数填出来，而是通过 ToolRuntime 或运行时注入读取。让模型填安全字段会制造伪造风险：用户可以提示模型改成另一个 user_id；runtime context 则由应用层可信注入。</p><h2>工程复盘：为上下文画数据分级表</h2><p>设计 Runtime Context 前，先做数据分级。第一类是模型必须知道的任务语义，例如用户选择的语言、公开的公司名称、当前页面主题；第二类是工具和中间件需要但模型不该知道的安全字段，例如 user_id、tenant、role、auth_scope；第三类是绝不应进入普通日志的秘密，例如访问 token、数据库连接、内部风控标签。分级表比口头说“注意安全”有效得多。</p><p>context_schema 的字段应尽量稳定而小。不要把整份用户画像、完整权限对象或任意 settings 字典塞进去。字段越大，越容易被误传进 prompt 或日志，也越难测试。更好的做法是传稳定标识和必要范围，由工具在可信后端查询详细信息，并在返回给模型前做脱敏和摘要。</p><p>有些上下文确实需要让模型知道，但要以摘要形式进入消息。比如模型可以知道“当前用户是企业管理员，偏好中文回答”，不需要知道真实 user_id、邮箱、内部权限列表。before_model 或 prompt builder 的职责就是做这种选择性投影：从 Runtime.context 取可信字段，生成最小必要的模型可见信息。</p><p>工具参数设计要避免让模型填安全边界字段。get_orders(status) 比 get_orders(user_id, tenant, status) 更安全，因为 user_id 和 tenant 来自 ToolRuntime。即使模型被用户提示“请把 tenant 改成 competitor”，工具也不会使用模型伪造的租户。安全字段从可信运行时进入工具，是多租户 Agent 的基本防线。</p><p>structured_response 应只包含下游需要消费的字段。不要为了调试把 context 原样放进最终响应，也不要把工具内部原始返回全塞进去。最终结构应该面向产品契约：answer、items、next_action、needs_human、confidence_reason。内部审计信息走日志或 trace，用户响应走 schema，二者不要混用。</p><p>日志策略要同时覆盖 messages、context 和 structured_response。messages 可能包含用户隐私，context 可能包含权限标识，structured_response 可能包含业务结果。生产系统至少要定义字段级脱敏、采样、保留周期和谁有权限查看。很多泄漏不是模型直接泄漏，而是调试日志把上下文和消息拼在一起。</p><p>测试上下文边界时，可以写两个同样的用户消息，分别用 tenant=acme 和 tenant=beta 调用，断言工具查询只返回对应租户数据。还可以故意在用户消息里写“我的 user_id 是别人”，断言工具仍使用 Runtime.context 的 user_id。这样的测试能证明模型文本不能越过运行时边界。</p><p>当 response_format 失败时，不要立刻把 schema 放宽。先看工具事实是否足够、模型是否看到了需要的字段、schema 是否过度嵌套、字段描述是否清楚。结构化输出失败往往暴露的是上游信息设计问题。把 schema 改成任意 dict 虽然能通过，但会失去应用契约。</p><div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：context 就是另一种 state</div><div class="pf-correct">正确：context 是每次调用的运行时环境；state 是图内可读写和可持久化的业务状态。</div></div><div class="pitfall"><div class="pf-wrong">误解：把 user_id 放进工具参数最简单</div><div class="pf-correct">正确：安全字段应由 ToolRuntime 从 context 读取，避免模型或用户伪造。</div></div><div class="pitfall"><div class="pf-wrong">误解：structured_response 能保证答案正确</div><div class="pf-correct">正确：它保证输出形状可校验；事实正确性仍依赖工具、校验和评测。</div></div><div class="pitfall"><div class="pf-wrong">误解：所有上下文都不能给模型看</div><div class="pf-correct">正确：非敏感、任务必要的摘要可以进入 prompt；秘密和权限留在 runtime context。</div></div></div><h2>源码阅读练习：追踪 context 的可见范围</h2><p>从 invoke 入口开始，写下同一次调用里的三份数据：input state、context、config。input state 进入图状态，context 进入 Runtime，config 影响回调、标签、recursion_limit 等运行设置。三者常同时出现，但职责不同。</p><p>接着检查模型可见内容。模型只能直接看到 messages、系统提示和工具 schema；它不会自动看到完整 context。若模型回答中出现了 user_id 或 tenant，说明某个 prompt builder 或 middleware 主动投影了这些字段，应该确认是否符合脱敏策略。</p><p>然后检查工具可见内容。工具如果声明接收 ToolRuntime 或等价运行时对象，就能读取 context。工具参数里不应重复出现安全字段；一旦出现，就要判断这是业务参数还是模型可伪造的权限字段。</p><p>再检查结构化响应。structured_response 应来自最终模型输出或结构化策略，不应把 context 原样复制进去。若下游确实需要 request_id 或 tenant 做追踪，也应由应用层在响应外包装，而不是让模型生成这些可信字段。</p><p>调试多租户问题时，构造相同 messages、不同 context 的两次调用最有效。如果结果串租户，问题多半在工具没有使用 Runtime.context 过滤，或者某个中间件把租户摘要写错进 prompt。用这种对照，比人工读长 prompt 更快。</p><p>最后检查日志和 trace。很多框架会记录 state，但 context 的记录策略要由应用谨慎决定。能记录字段名不代表能记录字段值。安全实践是默认脱敏 context，只在受控调试环境记录最小必要字段。</p><div class="card lab"><div class="tag">🧪 小实验 · 设计一个安全 context_schema</div><ol><li>列出应用需要的运行时字段：user_id、tenant、role、request_id、locale、auth_scope。</li><li>把字段分三类：模型可见摘要、工具可见权限、只用于审计且不进入模型。</li><li>为一个工具写参数列表，确认它不包含 user_id/tenant，而是从 ToolRuntime 读取。</li><li>定义 response_format 字段，例如 answer、items、next_action、needs_human，并说明每个字段给哪个下游使用。</li><li>检查日志策略：messages、context、structured_response 哪些能记录，哪些必须脱敏。</li></ol></div><h2>课堂检查清单：确认你真的理解 Runtime Context</h2><p>能一句话区分 context、state 和 config：context 是可信运行时环境，state 是图内业务状态，config 是执行配置和追踪信息。</p><p>能把 user_id、tenant、role、request_id 放进 context，而不是让模型从用户消息或工具参数里伪造。</p><p>能判断哪些上下文摘要可以给模型看，哪些只能给工具和中间件看，哪些连普通日志都不该出现。</p><p>能设计工具参数时排除安全字段，让工具通过 ToolRuntime 读取租户和身份，模型只填写业务查询条件。</p><p>能说明 context_schema 的价值是类型化和边界清晰，而不是随便传一个无限扩张的裸字典。</p><p>能解释 Runtime.context 不等于 messages，因此不会自动成为模型上下文，必须由代码选择性投影。</p><p>能说明 structured_response 是最终应用契约，和中间 ToolMessage 的工具观察不是同一层东西。</p><p>能检查 response_format 字段是否有事实来源，避免 schema 要求模型输出工具从未提供的信息。</p><p>能为日志制定脱敏策略，分别处理 messages、context、tool args、ToolMessage 和 structured_response。</p><p>能用相同 messages、不同 tenant 的测试证明工具查询按 Runtime.context 隔离数据。</p><p>能用用户伪造身份的提示注入测试证明工具不会相信消息里的 user_id，而只相信 context。</p><p>能把多语言、地区、展示名等非敏感偏好以摘要注入 prompt，同时把令牌和权限留在 runtime。</p><p>能在结构化输出失败时先排查事实来源、字段描述和模型路径，而不是直接放宽 schema 到任意字典。</p><h2>复盘提问：运行时上下文课后自检</h2><p>Runtime Context 的核心价值是可信边界。用户消息是用户可控制的，模型输出是模型生成的，context 是应用注入的可信环境。权限、租户和身份必须站在可信环境一侧，否则提示注入就可能把安全边界变成一句可被改写的文本。</p><p>上下文不是越多越好。把大对象塞进 context 会诱惑后续代码随手投影到 prompt 或日志，也会让测试难以构造。小而稳定的字段更适合长期维护：标识、范围、角色、请求号、地区和必要偏好，详细资料让工具按需查询并脱敏返回。</p><p>模型可见信息应是最小必要摘要。模型需要知道回答语言、用户可见角色或业务场景时，可以从 context 投影一小段提示；模型不需要知道内部 id、令牌、连接、完整权限列表和风控标签。投影是主动选择，不是自动泄漏。</p><p>结构化响应让 Agent 成为应用组件，而不只是聊天机器人。下游界面、规则引擎和数据库写入都需要稳定字段。字段设计应围绕消费方，而不是围绕模型喜欢怎么说。只要下游要依赖某个字段，就应说明它来自哪条消息、哪个工具事实或哪条规则。</p><p>安全测试要故意攻击边界。让用户在消息里声称自己是管理员，要求模型切换租户，诱导工具使用别人的 user_id；正确系统应仍然使用 Runtime.context，并把越权尝试交给中间件或工具权限检查处理。</p><h2>最后一遍：把概念落到维护动作</h2><p>维护课程里的 Agent 页面时，不能只追求术语完整，还要让读者知道下一次出问题该打开哪个文件、看哪个符号、读哪条消息、改哪个边界。源码课的价值正在这里：把抽象概念变成可复查证据，把运行现象变成可解释路径，把设计取舍变成团队可以讨论和测试的维护动作。</p><p>学习者如果能在没有导师提示的情况下完成三件事，就说明本课达标：第一，画出运行时数据从入口到节点再到结果的路径；第二，指出哪个结构化字段决定下一步控制流；第三，为一个失败案例选择合理的日志、测试和修复位置。记住名词只是开始，能用名词定位问题才是 C 级源码课的目标。</p><h2>收束提醒</h2><p>读完本课后，请把源码符号、运行 trace、错误策略和测试样例连成一条线。只会说概念说明理解还停在表层；能用概念解释一次真实调用为什么进入这个节点、为什么写入这个消息、为什么选择这个错误边界，才算把 Agent 内部机制转化成工程能力。</p><h2>定位口诀</h2><p>先看入口，再看状态；先看结构化字段，再看自然语言；先看边界，再看实现。这个顺序能避免把构图问题误判成模型问题，把权限问题误判成提示问题，把可恢复错误误判成系统崩溃。</p><div class="card version"><div class="tag">📌 版本锚点</div>本课按 LangChain v1 Agent 的 context_schema/response_format 与 LangGraph Runtime 心智模型讲解。不同版本中 Runtime、ToolRuntime 的具体导入路径可能调整；但 context 与 state 分离、工具通过 runtime 读安全字段、最终响应用 schema 收束，是稳定设计原则。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>context_schema 描述给代码用的运行时环境，不应默认进入 messages。</li><li>Runtime/ToolRuntime 让节点、中间件和工具读取可信上下文，避免模型伪造安全字段。</li><li>response_format/with_structured_output 把最终结果变成应用可校验契约。</li><li>上下文、消息状态、工具观察、结构化响应各有职责，混在一起会带来泄漏和调试困难。</li></ul></div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. <code>context_schema</code> + <code>invoke(context=...)</code> 把 user_id 等运行时数据“注入工具/中间件，但不进消息”。为什么特意不让它进对话？</div>
+  <div class="qn">1. <code>context</code> 与 Agent <code>state</code> 的核心区别是什么？</div>
   <ol class="opts">
-    <li>模型读不懂</li>
-    <li>省 token</li>
-    <li>消息太长</li>
-    <li>关注点与安全隔离：运行时配置（身份/连接）不该污染“给模型看的对话”，也不该暴露给模型——它是给你的代码用的</li>
+    <li>context 会自动展示给模型，state 永远不会</li>
+    <li>context 是每次调用注入的运行时环境，state 是图内可读写、可合并和可持久化的业务状态</li>
+    <li>二者完全相同，只是两个名字</li>
+    <li>context 只能保存 AIMessage，state 只能保存字符串</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。把“对话内容”和“运行时上下文”分开，既保持消息干净，又避免把敏感的身份/连接喂给模型。隔离即安全。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。user_id、tenant、权限等适合放 context；messages、ToolMessage、structured_response 等属于图 state。分开才能安全和可测试。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. <code>with_fallbacks</code> 给“任意 Runnable”提供降级兜底。把“降级”做成对任意组件通用的能力，得益于什么？</div>
+  <div class="qn">2. <code>response_format</code> / <code>with_structured_output</code> 的主要价值是什么？</div>
   <ol class="opts">
-    <li>因为一切都是 Runnable，“失败就换备用”可以统一实现一次、对模型/链/Agent 都适用</li>
-    <li>降级很简单</li>
-    <li>运气</li>
-    <li>厂商支持</li>
+    <li>跳过所有工具调用</li>
+    <li>把 context 自动写入公开日志</li>
+    <li>让模型输出更长的自然语言段落</li>
+    <li>把最终回答收束成应用可校验的结构化字段，而不是让下游解析自由文本</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。又是统一抽象的红利——横切的健壮性能力（重试/降级）只要对 Runnable 实现一次，就处处可用。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。结构化响应是最终契约，方便 UI、后端和评测读取明确字段；它保证形状，不自动保证事实正确。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. <code>stream_mode</code> 提供 updates/messages/values 几种粒度让你选。为什么不只给一种“流式”？</div>
+  <div class="qn">3. 为什么工具应通过 <code>ToolRuntime</code> 读取 user_id/tenant，而不是让模型把这些字段作为工具参数填入？</div>
   <ol class="opts">
-    <li>选择困难</li>
-    <li>不同 UI 需求要不同粒度：要节点级进展用 updates、要逐 token 用 messages、要整份状态用 values——粒度匹配场景</li>
-    <li>凑数</li>
-    <li>更快</li>
+    <li>因为工具参数越多越慢</li>
+    <li>因为模型可能被用户诱导伪造安全字段；Runtime context 由应用可信注入，适合做权限和租户隔离</li>
+    <li>因为 structured_response 不能和工具同时使用</li>
+    <li>因为 ToolRuntime 会替代所有数据库查询</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“提供多种粒度、让调用方按需选”，是把“该看多细”的决定权交给最懂场景的你。粒度即表达力。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. 把“运行时数据注入”做成有类型的 <code>context_schema</code>，而不是随便传个字典。这和前面哪些设计一脉相承？</div>
-  <ol class="opts">
-    <li>和工具的 pydantic schema、消息的结构化一样——用“有类型的结构”换取可校验、可读、不易错</li>
-    <li>毫无关系</li>
-    <li>偶然</li>
-    <li>为了更慢</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。贯穿全书的偏好：能用“有类型的结构”就不用“裸字典”。结构带来校验和清晰，是 LangChain 一致的设计口味。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。安全上下文应来自可信运行时，而不是模型生成文本。模型只填业务参数，工具用 runtime 补齐身份与租户。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>“运行时上下文不进消息”在身份/连接这类数据上很对。但有时你确实想让模型知道“当前用户是谁”。这条边界你会怎么划？哪些进上下文、哪些进消息？</li>
-    <li><code>with_fallbacks</code> 能降级兜底，但“自动切备用”也可能掩盖真正的问题（主模型一直挂你却没发现）。你会怎么在“高可用”和“可观测/告警”之间平衡？</li>
+    <li>为一个多租户订单 Agent 设计 context_schema：列出字段、类型、谁能读取、哪些字段绝不进入 messages。</li>
+    <li>说明如何避免泄漏 secrets：哪些信息可以脱敏后放 prompt，哪些只能留在 Runtime/ToolRuntime，日志又该如何脱敏？</li>
   </ul>
 </div>
 </div>

@@ -298,7 +298,78 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第六部分 · Agent 内部</div>
     <h1>控制边界、递归限制与错误恢复</h1>
   </div>
-<p class="lead">M6 临时页面：Task 2 会替换为完整 C-level lesson。</p>
+
+<p class="lead">Agent 最危险的地方不是“它能调工具”，而是它可能一直调工具、重复调有副作用的工具、把工具错误吞掉、在模型失败时没有降级路径。LangGraph 用 <span class="mono">recursion_limit</span> 与 <span class="mono">GraphRecursionError</span> 给图执行加硬刹车，<span class="mono">Pregel.stream</span> 在步骤循环中推进并暴露错误边界；LangChain 的 <span class="mono">RunnableRetry</span>、<span class="mono">RunnableWithFallbacks</span> 提供调用级重试和降级；<span class="mono">ToolNode</span> 则决定工具异常是抛出、还是转换成带 tool_call_id 的 ToolMessage。本课把失控循环、工具错误、模型错误和安全副作用放到同一张控制图里。</p>
+<div class="card analogy"><div class="tag">🧩 生活类比</div>把 Agent 控制想成自动驾驶车。导航系统可以自己规划路线，但车必须有最高速度、刹车、碰撞传感器和人工接管。recursion_limit 是硬刹车：不管导航还想绕几圈，到步数上限必须停。retry 像短暂网络抖动后的重新请求，fallback 像主路封闭时改走备用路线。工具副作用则像真正踩油门或转账：不能因为上一脚没收到反馈就盲目再踩一次。安全系统不是让车更聪明，而是保证聪明系统失误时不会无限扩大损失。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：Agent 控制与错误边界</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">硬上限</div><div class="mn-desc">recursion_limit 限制图步骤，超过后抛 GraphRecursionError 防止无限循环</div></div><div class="map-node source"><div class="mn-label">图执行</div><div class="mn-desc">Pregel.stream 按超步推进，错误、interrupt、stream 事件都从执行循环暴露</div></div><div class="map-node now"><div class="mn-label">模型错误</div><div class="mn-desc">RunnableRetry 处理短暂失败，RunnableWithFallbacks 切备用模型或链</div></div><div class="map-node now"><div class="mn-label">工具错误</div><div class="mn-desc">ToolNode 可让异常浮出，也可按策略转成 ToolMessage 交给模型恢复</div></div><div class="map-node after"><div class="mn-label">副作用安全</div><div class="mn-desc">重试与 fallback 必须区分幂等工具和不可重复副作用</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>控制与错误要跨 LangGraph 执行引擎、LangChain Runnable 包装器和 ToolNode 三处阅读。source map 的问题不是“哪里抛异常”，而是“谁定义上限，谁推进步骤，谁决定重试，谁把工具错误变成消息”。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/langgraph/langgraph/errors.py</td><td class="mono">GraphRecursionError</td><td>图超过 recursion_limit 时抛出的硬错误，表示循环未按预期收敛</td><td>从执行引擎向调用方暴露</td></tr><tr><td class="mono">libs/langgraph/langgraph/pregel/main.py</td><td class="mono">Pregel.stream</td><td>编译图的流式执行入口，按步骤推进任务、检查限制、产出事件或错误</td><td>Agent 图 invoke/stream 最终进入的执行循环</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/retry.py</td><td class="mono">RunnableRetry</td><td>Runnable 级重试包装器，适合短暂网络、限流、可重试模型错误</td><td>包住模型、链或其他 Runnable 调用</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/fallbacks.py</td><td class="mono">RunnableWithFallbacks</td><td>Runnable 级 fallback 包装器，主组件失败时切换备用组件</td><td>为模型或子链提供降级路径</td></tr><tr><td class="mono">libs/langgraph/langgraph/prebuilt/tool_node.py</td><td class="mono">ToolNode</td><td>工具执行错误边界，可按策略抛错或生成错误 ToolMessage</td><td>位于工具调用阶段，决定模型能否看到错误观察</td></tr></table>
+<h2>状态流：失控工具循环如何被刹停</h2>
+<div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>模型请求工具</h4><p>用户问一个需要查询的问题，模型调用 search 工具。</p><div class="mono">step=1 model -&gt; tool_calls</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>工具返回不充分</h4><p>ToolNode 返回 ToolMessage，但内容模糊或模型误判，还想再查一次。</p><div class="mono">step=2 tools -&gt; ToolMessage</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>循环重复</h4><p>model 继续产生相同或相近 tool_calls，tools 再执行，messages 变长但没有最终答案。</p><div class="mono">model/tools/model/tools...</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>recursion_limit 命中</h4><p>Pregel.stream 推进到配置上限，认为图没有收敛，抛 GraphRecursionError。</p><div class="mono">raise GraphRecursionError</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>调用方处理</h4><p>应用记录 trace，给用户友好提示，必要时展示部分状态或转人工；不要静默吞掉。</p><div class="mono">fallback UI / human escalation</div></div></div></div>
+<h2>Trace：工具错误是抛出还是回填</h2>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. runaway loop</td><td>recursion_limit=6，模型反复调用 search_docs(query=&#x27;same&#x27;)</td><td>Pregel.stream 每步推进 model/tools，但最新 AIMessage 总有 tool_calls</td><td>第 6 步仍未 END</td></tr><tr><td>2. hard stop</td><td>下一步将超过上限</td><td>执行引擎抛 GraphRecursionError</td><td>调用方得到明确失败，而不是进程无限运行</td></tr><tr><td>3. tool raises</td><td>ToolNode 调用 refund_order，数据库超时</td><td>策略 A：让异常浮出，整次 Agent 失败</td><td>应用层捕获异常，可能触发 retry/fallback 或告警</td></tr><tr><td>4. tool message error</td><td>ToolNode 调用 search，外部 API 返回 404</td><td>策略 B：生成 ToolMessage(tool_call_id=..., content=&#x27;工具错误：未找到&#x27;)</td><td>模型下一轮可解释、改参或询问用户</td></tr><tr><td>5. side effect review</td><td>工具是 charge_card 或 send_email</td><td>不盲目 RunnableRetry；先检查幂等键、人审、事务状态</td><td>避免重复扣款或重复发送</td></tr></table>
+<h2>简化源码走读：三层防线</h2>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/langgraph/langgraph/pregel/main.py :: Pregel.stream / recursion_limit</span><span class="ln">简化版</span></div><pre>for step in range(config.recursion_limit):
+    tasks = prepare_next_tasks(state)
+    if not tasks:
+        return final_state
+
+    for task in tasks:
+        result = run_with_retry_or_fallback(task)
+        collect_writes(result)
+
+    apply_writes(state)
+
+raise GraphRecursionError(&quot;graph did not finish before recursion_limit&quot;)
+</pre><div class="cw-note">教学版把控制压成三层：图层用 recursion_limit 防无限步骤；Runnable 层用 retry/fallback 处理可恢复调用失败；工具层决定异常浮出还是包装成 ToolMessage。真实系统还要处理 stream、interrupt、checkpoint、并发任务和取消。</div></div><h2>recursion_limit 是保险丝，不是业务终止条件</h2><p>recursion_limit 常被误解成“让 Agent 最多思考 N 轮”的正常控制手段。更准确地说，它是图执行的保险丝：当业务终止条件没有让图结束时，硬上限保证系统不会无限消耗 token、工具费用和外部资源。正常终止仍应来自模型不再输出 tool_calls，或你的图状态满足明确完成条件。</p><p>保险丝触发时，不应该简单把上限调大。先看 trace：模型为什么一直调用同一个工具？工具结果是否缺少模型需要的信息？ToolMessage 是否丢了 tool_call_id？提示是否要求必须查到某个不存在的事实？中间件是否每轮都追加新消息导致模型误以为还没完成？把这些根因找出来，比盲目从 25 调到 100 更可靠。</p><p>当然，业务可以有软上限。ModelCallLimitMiddleware 这类中间件可以在模型调用次数接近预算时引导模型总结当前信息、请求用户补充或转人工。软上限负责用户体验，recursion_limit 负责绝对安全。两者分层，才不会把友好收尾和硬失败混成一件事。</p><h2>retry、fallback 与副作用的边界</h2><p>RunnableRetry 适合处理短暂、可重试、无副作用或幂等的失败，例如模型 API 429、网络超时、临时 5xx。它不适合盲目包住所有工具。查询天气失败重试一次通常没问题；退款接口超时后重试可能造成重复退款，除非工具使用幂等键、事务状态查询或业务补偿。重试是可靠性工具，不是魔法橡皮。</p><p>RunnableWithFallbacks 适合主模型不可用时切备用模型，或主解析链失败时切简化路径。fallback 的风险是掩盖主路径长期故障：用户看似还能用，实际上主模型一直失败。生产系统要把 fallback 事件打到指标和告警里，并在响应中保留必要的降级标记，避免维护者看不到问题。</p><p>模型调用和工具调用的错误策略也不同。模型错误通常没有外部副作用，retry/fallback 较安全；工具错误可能已经改变外部世界，也可能只是查询失败。为每个工具标注幂等性、是否有副作用、失败后是否可安全重试，是 Agent 上生产前必须做的清单。</p><h2>工具错误：抛出还是 ToolMessage</h2><p>ToolNode 面对异常时有两种常见策略。第一种是让异常浮出，让整次 Agent 调用失败。这适合权限错误、程序 bug、数据一致性错误、危险副作用失败等不应由模型自行处理的问题。浮出异常能触发应用层告警、事务回滚或人工介入。</p><p>第二种是把错误转成 ToolMessage，内容明确说明失败原因，并保留原 tool_call_id。这样模型下一轮能看到“工具执行失败”这个观察，可能改参数、换工具或向用户解释。适合用户输入错误、外部资源不存在、搜索无结果等可对话恢复的情况。关键是错误不能无声消失，否则模型会以为工具没有返回，继续空转或编造事实。</p><p>选择策略时问三个问题：错误是否暴露敏感信息？模型是否有能力安全修复？工具是否已经产生副作用？如果错误包含内部栈或 token，不能原样塞进 ToolMessage；如果模型无法修复数据库写入失败，就应抛出；如果只是“订单号不存在”，ToolMessage 反而能让模型请用户核对订单号。</p><h2>常见误解与边界情况</h2><p>误解一是把所有错误都交给模型解释。模型擅长对用户解释可恢复问题，但不该处理权限绕过、内部异常、支付状态不一致这类系统级错误。安全边界必须由代码和中间件守住。</p><p>误解二是认为 fallback 越多越稳。没有观测的 fallback 会让系统悄悄降级，成本、质量和合规风险都可能变化。每次 fallback 都应记录原错误、备用路径、用户影响和恢复指标。</p><h2>工程复盘：错误策略要按风险分层</h2><p>生产 Agent 的错误策略不能只写“失败就重试”。建议先按风险分层：模型调用失败、只读工具失败、可幂等写工具失败、不可幂等副作用失败、权限和合规失败。每一层的处理都不同。模型 429 可以 retry；搜索无结果可以 ToolMessage；退款超时要查事务状态；权限不足必须抛出或中断；合规风险可能需要人审。</p><p>GraphRecursionError 出现时，最糟糕的处理是捕获后返回“系统繁忙”但不保留 trace。它是宝贵信号，说明图没有收敛。你应该记录 recursion_limit、最后几条 AIMessage.tool_calls、对应 ToolMessage、模型调用次数和工具参数摘要。没有这些证据，下一次只能猜 prompt、工具或条件边哪里出了问题。</p><p>软上限和硬上限要配合。软上限可以由 middleware 在模型调用次数接近预算时插入提示，让模型总结已有事实或请求用户补充；硬上限由图运行时保证绝不无限跑。软上限追求体验，硬上限追求安全。只用硬上限，用户会突然失败；只用软上限，bug 仍可能绕过提示继续空转。</p><p>工具错误回填给模型时，文案要为模型设计，而不是为后端工程师设计。合适的 ToolMessage 可以写“未找到订单，请用户核对订单号”，不应写完整栈、SQL、内部服务名或 token。模型需要的是可行动观察：改参数、换工具、询问用户、停止并解释。错误消息越像内部日志，泄漏和误导风险越高。</p><p>副作用工具必须有调用记录。每次 charge_card、refund_order、send_email 都应生成业务幂等键或操作 id，并在 ToolMessage 或审计日志中保留状态。模型下一轮如果再次请求同一动作，中间件可以检测重复并阻止。没有操作 id，系统很难区分“第一次没成功所以重试”和“已经成功但模型没理解”。</p><p>fallback 不是静默降级。主模型失败切备用模型后，响应质量、成本、合规区域和工具调用风格都可能变化。指标应记录 fallback 次数、主错误类型、备用组件、是否最终成功。告警不应只看用户失败率，也要看 fallback 率；否则主路径坏了很久，团队却因为用户暂时还能用而没有发现。</p><p>对工具重试要区分传输失败和业务失败。网络超时可能可重试，参数非法不该重试，余额不足更不该换个工具继续尝试。ToolMessage 或异常类型应能表达错误分类，而不是所有失败都变成 Exception('failed')。错误分类越清楚，retry/fallback 策略越安全。</p><p>最后，错误策略也要写进评测。构造一个模型反复请求同一工具的假场景，断言 recursion_limit 会触发；构造查询工具 404，断言模型收到脱敏 ToolMessage；构造退款工具超时，断言不会自动重复扣款；构造主模型 429，断言 retry 次数有限且 fallback 被记录。没有这些测试，控制策略只是文档愿望。</p><div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：recursion_limit 是正常停止逻辑</div><div class="pf-correct">正确：它是硬保险丝；正常停止应来自无 tool_calls 或业务完成条件。</div></div><div class="pitfall"><div class="pf-wrong">误解：所有失败都应该 retry</div><div class="pf-correct">正确：只有可重试且幂等的失败才适合自动重试；副作用工具必须谨慎。</div></div><div class="pitfall"><div class="pf-wrong">误解：fallback 成功就不用管主错误</div><div class="pf-correct">正确：fallback 事件必须可观测，否则主路径长期损坏会被掩盖。</div></div><div class="pitfall"><div class="pf-wrong">误解：工具异常都转成 ToolMessage</div><div class="pf-correct">正确：权限、内部 bug、危险副作用失败通常应抛出；可对话恢复的问题才适合回填。</div></div></div><h2>源码阅读练习：为失败路径建立表格</h2><p>第一列写错误来源：模型、图执行、只读工具、写入工具、中间件、结构化输出。第二列写错误是否可恢复。第三列写是否有副作用。第四列写处理策略。这个表格能迫使你在写代码前区分 retry、fallback、ToolMessage 和抛异常。</p><p>模型错误通常适合有限 retry 或 fallback，但也要区分错误类型。429 和超时可以重试，认证失败不该重试，schema 不匹配可能需要修 prompt 或结构化策略。把所有模型异常都包进同一个 retry，会浪费预算并掩盖配置错误。</p><p>图执行错误如 GraphRecursionError 代表控制流问题。它不是让模型再试一次就能解决的普通异常。处理它需要保留运行轨迹、最后消息、步数和配置，并给用户一个安全收尾。自动重新运行同一个输入，往往只会再次消耗资源。</p><p>只读工具错误可以更灵活。搜索无结果、订单不存在、用户输入格式错误，适合变成 ToolMessage 让模型解释或追问。外部搜索服务短暂超时，可以有限重试。内部权限错误或服务配置错误，则不应让模型继续猜。</p><p>写入工具错误必须最保守。发邮件、扣款、退款、修改权限这类动作，在超时后无法仅凭异常判断是否已经执行。正确做法是用幂等键、操作状态查询和人工补偿，而不是简单 retry。Agent 系统的可靠性很大程度取决于这些副作用边界。</p><p>结构化输出错误也要分类。如果模型事实充足但格式错，可以重试结构化生成；如果工具事实缺失，重试只会让模型编造；如果 schema 过严，应该调整字段说明或拆分任务。错误策略应服务事实可靠性，而不是只追求通过解析。</p><div class="card lab"><div class="tag">🧪 小实验 · 为一个生产 Agent 写错误策略</div><ol><li>列出每个工具：查询类、写入类、支付类、通知类，并标注是否幂等。</li><li>为模型调用设置 retry 条件：只包含超时、429、临时 5xx，并限制最大次数。</li><li>为 fallback 设计指标：记录主错误、备用模型、是否影响结构化响应质量。</li><li>为工具错误分类：哪些抛出，哪些转 ToolMessage，ToolMessage 文案如何脱敏。</li><li>设置 recursion_limit 和软模型调用上限，并写出触发后的用户提示和人工升级路径。</li></ol></div><h2>课堂检查清单：确认你真的理解控制与错误</h2><p>能说明 recursion_limit 是图步骤硬上限，不是正常业务完成条件。它触发时应调查为什么图没有收敛。</p><p>能把模型错误、图错误、只读工具错误、写入工具错误、权限错误分开，而不是统一写成失败重试。</p><p>能判断哪些错误适合 RunnableRetry：短暂网络、限流、可重试且无危险副作用的调用。</p><p>能判断哪些错误适合 fallback：主模型或主链不可用时切备用，并且必须记录降级指标和原始错误。</p><p>能判断哪些工具错误适合 ToolMessage：用户可修正、模型可解释、内容已脱敏、没有危险副作用。</p><p>能判断哪些工具错误必须抛出：权限不足、内部 bug、支付状态不一致、可能泄漏敏感信息。</p><p>能为每个副作用工具设计幂等键、操作状态查询、审计记录和重复调用拦截。</p><p>能说明自动重试退款或发邮件为什么危险：超时不代表动作没有发生，重复执行可能造成真实损失。</p><p>能在 GraphRecursionError 日志中保留最后几轮 tool_calls、ToolMessage、步数、配置和工具参数摘要。</p><p>能区分软上限和硬上限：软上限引导模型收尾或转人工，硬上限保证系统不会无限消耗资源。</p><p>能设计 fallback 告警，不只看最终成功率，还要看备用路径使用率、质量变化和成本变化。</p><p>能用失败路径测试覆盖循环失控、模型 429、查询无结果、工具权限不足和副作用超时。</p><p>能把错误文案写成模型可行动观察，而不是把内部栈、服务名、SQL 或密钥暴露给模型。</p><h2>复盘提问：控制错误课后自检</h2><p>控制与错误处理的目标不是让 Agent 永远不失败，而是让失败有限、可见、可恢复且不扩大损失。无限循环要被硬上限截断，短暂错误要有限重试，主路径失败要可观测降级，危险副作用要宁可中断也不盲目重复。</p><p>每个错误策略都应写明适用条件。retry 需要可重试和幂等，fallback 需要备用路径和告警，ToolMessage 需要模型能安全处理，抛异常需要调用方能接住并给用户收尾。没有条件的统一策略，迟早会在边界场景出事故。</p><p>工具副作用是最高风险区域。模型可以多想几次，查询可以多试一次，但扣款、退款、发邮件、改权限都是真实世界动作。真实世界动作需要幂等键、事务、状态查询、人审和审计，而不是相信模型下一轮会自己小心。</p><p>GraphRecursionError 应被当成诊断入口。它告诉你图没有结束，却不告诉你根因。根因可能是工具结果不充分、模型提示要求继续、错误 ToolMessage 被误读、中间件每轮追加新任务，或者条件边设计错误。保留最后几轮 trace 是修复的前提。</p><p>错误消息也有产品设计。给用户的提示要诚实但不泄漏内部；给模型的 ToolMessage 要可行动但脱敏；给工程师的日志要包含足够上下文但受权限保护。三类读者不同，一段错误文本不应同时承担所有职责。</p><h2>最后一遍：把概念落到维护动作</h2><p>维护课程里的 Agent 页面时，不能只追求术语完整，还要让读者知道下一次出问题该打开哪个文件、看哪个符号、读哪条消息、改哪个边界。源码课的价值正在这里：把抽象概念变成可复查证据，把运行现象变成可解释路径，把设计取舍变成团队可以讨论和测试的维护动作。</p><p>学习者如果能在没有导师提示的情况下完成三件事，就说明本课达标：第一，画出运行时数据从入口到节点再到结果的路径；第二，指出哪个结构化字段决定下一步控制流；第三，为一个失败案例选择合理的日志、测试和修复位置。记住名词只是开始，能用名词定位问题才是 C 级源码课的目标。</p><h2>收束提醒</h2><p>读完本课后，请把源码符号、运行 trace、错误策略和测试样例连成一条线。只会说概念说明理解还停在表层；能用概念解释一次真实调用为什么进入这个节点、为什么写入这个消息、为什么选择这个错误边界，才算把 Agent 内部机制转化成工程能力。</p><h2>定位口诀</h2><p>先看入口，再看状态；先看结构化字段，再看自然语言；先看边界，再看实现。这个顺序能避免把构图问题误判成模型问题，把权限问题误判成提示问题，把可恢复错误误判成系统崩溃。</p><div class="card version"><div class="tag">📌 版本锚点</div>本课把 LangGraph 的 GraphRecursionError/Pregel.stream 与 LangChain Core 的 RunnableRetry/RunnableWithFallbacks、LangGraph prebuilt ToolNode 放在一起讲。不同版本的异常类路径和配置名可能微调；但硬上限、可恢复重试、可观测 fallback、工具错误策略和副作用幂等性，是生产 Agent 不变的控制原则。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>recursion_limit 是防失控的硬保险丝，触发 GraphRecursionError 后要查根因。</li><li>RunnableRetry 适合短暂且可安全重试的失败，RunnableWithFallbacks 适合可观测降级。</li><li>ToolNode 的错误策略要区分抛异常和转 ToolMessage，不能无声吞错。</li><li>有副作用工具必须设计幂等键、人审、事务状态和重复调用防线。</li></ul></div><div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. <code>recursion_limit</code> 在 Agent 图里的定位是什么？</div>
+  <ol class="opts">
+    <li>只影响 HTML 构建速度</li>
+    <li>让模型一定回答正确的质量评分</li>
+    <li>防止图无限推进的硬保险丝，超过后抛出 GraphRecursionError</li>
+    <li>工具参数 schema 的字段数量限制</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。recursion_limit 限制的是图执行步数。触发它说明循环没有正常收敛，应查看 trace 找出模型为何一直请求工具。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. <code>RunnableRetry</code> 与 <code>RunnableWithFallbacks</code> 的区别更准确的是？</div>
+  <ol class="opts">
+    <li>Retry 对同一路径做有限重试；Fallback 在主路径失败时切到备用 runnable，并且都需要可观测</li>
+    <li>二者都会自动保证副作用幂等</li>
+    <li>二者只能用于 ToolMessage，不能用于模型</li>
+    <li>Retry 把失败交给用户，Fallback 删除错误日志</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。retry 解决短暂可恢复失败；fallback 解决主组件不可用。二者都不能替代幂等设计和告警。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 工具执行失败时，什么时候更适合转成带 <code>tool_call_id</code> 的错误 <code>ToolMessage</code>？</div>
+  <ol class="opts">
+    <li>用户输入导致的可恢复问题，例如订单号不存在、搜索无结果，且错误文案已脱敏</li>
+    <li>任何有副作用工具超时时都自动重试并回填成功</li>
+    <li>所有权限错误和内部栈都原样发给模型</li>
+    <li>支付扣款状态不一致时，让模型自行决定是否重试</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。可对话恢复的问题适合回填给模型；权限、内部 bug、危险副作用失败通常应抛出并交给应用层处理。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>设计一个安全 Agent loop：写出软模型调用上限、recursion_limit、工具幂等策略和触发上限后的用户提示。</li>
+    <li>把五类错误分类：模型 429、模型 schema 失败、查询工具 404、退款工具超时、权限不足。分别说明 retry、fallback、ToolMessage 或抛异常的策略。</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="19-runtime-context.html"><div class="dir">← 上一课</div><div class="ttl">Runtime Context 与结构化响应</div></a><a class="next" href="11-chat-internals.html"><div class="dir">下一课 →</div><div class="ttl">聊天模型内部</div></a></div>
 </div>
 
