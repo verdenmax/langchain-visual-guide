@@ -298,7 +298,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第四部分 · LangGraph 心智模型</div>
     <h1>State 与 Schema</h1>
   </div>
-  
+
 <p class="lead">State schema 是 LangGraph 图的合同：它声明哪些 key 可以进入状态、每个 key 的类型是什么、哪个 key 需要 reducer、哪些数据属于运行时 context 而不是可变 state。本课把 schema 当成“多人协作写同一本账”的制度来看：节点只能按合同读写，返回 partial update；运行时根据 schema 建 channel；list 这类会累积的 key 必须声明合并规则，否则默认覆盖会让历史消失。</p>
 <div class="card analogy"><div class="tag">🧩 生活类比</div>把 State schema 想成共享病历的表格模板：姓名、过敏史、检查结果、医嘱、备注分别有固定栏位。医生不能把化验单塞进姓名栏，也不应该直接涂改整本病历；每次只提交自己新增的记录，由病历系统按规则追加或覆盖。context_schema 则像医院科室、值班医生、权限范围，是这次看诊的环境，不是病人病情本身。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：State schema 如何约束整张图</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">状态合同</div><div class="mn-desc">TypedDict/Pydantic/dataclass 都是在声明图运行时可以看到的 key</div></div><div class="map-node source"><div class="mn-label">通道生成</div><div class="mn-desc">_get_channels/_get_channel 把字段类型和 Annotated reducer 变成 channel</div></div><div class="map-node now"><div class="mn-label">上下文分离</div><div class="mn-desc">context_schema 放运行环境，state 放会随节点演化的数据</div></div><div class="map-node now"><div class="mn-label">部分更新</div><div class="mn-desc">节点返回 {&#x27;messages&#x27;: [...]}，reducer 决定和旧值怎样合并</div></div><div class="map-node after"><div class="mn-label">下一课</div><div class="mn-desc">节点和边会围绕这个状态合同工作</div></div></div></div>
 <h2>源码入口：文件 + 符号名</h2>

@@ -298,7 +298,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第四部分 · LangGraph 心智模型</div>
     <h1>为什么需要 LangGraph</h1>
   </div>
-  
+
 <p class="lead">如果说 LCEL 链把 prompt、model、parser 接成一条可组合的管道，那么 LangGraph 解决的是另一类问题：流程会分岔，会把中间结果写入共享状态，会因为工具结果重新回到模型，还必须知道什么时候停止。本课建立第一张 LangGraph 心智地图：图不是漂亮 UI，而是一种可执行的状态机；节点不是随便改全局变量，而是接收 state、返回 partial state；编译后的图仍然是 Runnable，可以像链一样 invoke、stream、batch，却比直线链多了循环、路由和持久运行的能力。</p>
 <div class="card analogy"><div class="tag">🧩 生活类比</div>把 LCEL 想成一条地铁线路：站点固定、方向明确、从起点到终点不回头。LangGraph 更像城市公交调度中心：乘客的当前位置、换乘记录、目的地和路况都在状态里，车辆可以按规则改道、回到中转站、等待工具车送来信息，再决定下一站。调度图不是墙上的路线图好看而已，它是实际发车、记录、转弯和停运的规则。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：为什么从链升级到状态图</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">链的边界</div><div class="mn-desc">LCEL 擅长直线和 DAG 组合，但循环、长期状态、动态路由会变得别扭</div></div><div class="map-node now"><div class="mn-label">图的承诺</div><div class="mn-desc">StateGraph 用节点、边、共享状态表达可执行流程</div></div><div class="map-node now"><div class="mn-label">Agent 循环</div><div class="mn-desc">messages 进入模型，按 tool_calls 条件分支到工具，再回到模型</div></div><div class="map-node source"><div class="mn-label">Runnable 兼容</div><div class="mn-desc">CompiledStateGraph 仍能被 LangChain 当作 Runnable 调用</div></div><div class="map-node after"><div class="mn-label">下一课</div><div class="mn-desc">把 State schema 当成整张图的契约来读</div></div></div></div>
 <h2>源码入口：文件 + 符号名</h2>

@@ -298,7 +298,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第二部分 · 用户 API 基础</div>
     <h1>聊天模型</h1>
   </div>
-  
+
 <p class="lead">聊天模型把不同厂商的对话式 API 包装在 <span class="mono">BaseChatModel</span> 后面，让上层用同一套 <span class="mono">invoke</span>、<span class="mono">stream</span>、<span class="mono">batch</span>、异步变体和工具绑定接口工作。你选择 <span class="mono">openai:gpt-5.1</span> 或 <span class="mono">anthropic:claude-sonnet-4-5</span> 时，业务消息和下游解析代码不应该跟着大改；变化应集中在模型构造和 provider wrapper。</p>
 
 <div class="card analogy">

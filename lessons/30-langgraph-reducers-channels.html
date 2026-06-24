@@ -298,7 +298,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第四部分 · LangGraph 心智模型</div>
     <h1>Reducer 与 Channel</h1>
   </div>
-  
+
 <p class="lead">Reducer 和 channel 是 LangGraph 状态系统的地下管道：上层看到的是 state key，底层真正决定“多个更新怎样合并”的是 channel。普通字段默认像 LastValue，新值覆盖旧值；消息列表常用 Annotated[list[AnyMessage], add_messages]，让新消息追加或按 id 替换；并行分支同时写同一 key 时，是否冲突、能否合并、顺序是否重要，都取决于 reducer。本课把 reducer 当成状态键的合并法律来读。</p>
 <div class="card analogy"><div class="tag">🧩 生活类比</div>把每个 state key 想成一条收件通道。LastValue 像白板，后来的人擦掉前面的字；Topic 像公告栏，可以收集多张便签；BinaryOperatorAggregate 像会计账本，每笔收入按加法汇总；add_messages 像聊天记录管理员，看到新 id 就追加，看到旧 id 就更新那条记录。你不能只说“我要写 messages”，还要说“这条通道收到多份更新时按什么规矩办”。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：state key 下面的合并语义</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">默认覆盖</div><div class="mn-desc">没有 reducer 的普通字段通常落到 LastValue，新值覆盖旧值</div></div><div class="map-node source"><div class="mn-label">显式 reducer</div><div class="mn-desc">Annotated[list[AnyMessage], add_messages] 把字段变成消息合并通道</div></div><div class="map-node now"><div class="mn-label">并行 fan-in</div><div class="mn-desc">两个节点同一轮写同一 key 时，channel 决定冲突还是合并</div></div><div class="map-node source"><div class="mn-label">通道类型</div><div class="mn-desc">LastValue、Topic、BinaryOperatorAggregate 分别代表不同更新语义</div></div><div class="map-node after"><div class="mn-label">下一课</div><div class="mn-desc">compile 会把 schema、channel、节点包装成可运行 Pregel 图</div></div></div></div>
 <h2>源码入口：文件 + 符号名</h2>

@@ -298,7 +298,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第二部分 · 用户 API 基础</div>
     <h1>消息系统</h1>
   </div>
-  
+
 <p class="lead">消息是 LangChain 把“人说的话、模型说的话、工具观察到的结果”统一起来的对话与数据契约。你可以从字符串、字典、二元组或已经构造好的消息对象开始，但进入模型、工具循环和下游 Runnable 之后，稳定的形状应该是 <span class="mono">BaseMessage</span> 家族：<span class="mono">HumanMessage</span> 表达用户输入，<span class="mono">AIMessage</span> 表达模型输出和工具意图，<span class="mono">ToolMessage</span> 表达某次工具调用的执行结果。</p>
 
 <div class="card analogy">

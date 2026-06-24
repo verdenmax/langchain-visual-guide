@@ -298,7 +298,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第二部分 · 用户 API 基础</div>
     <h1>工具 Tools</h1>
   </div>
-  
+
 <p class="lead">工具把模型的“我想做某件事”连接到真实代码执行。LangChain 的 Tool 抽象不会让模型直接拥有数据库、网络或文件系统权限；它只是把 Python 函数、参数 schema、名称和描述变成模型可读的能力说明，再把模型返回的 <span class="mono">AIMessage.tool_calls</span> 交给程序执行，最后用 <span class="mono">ToolMessage</span> 把观察结果回灌。</p>
 
 <div class="card analogy">

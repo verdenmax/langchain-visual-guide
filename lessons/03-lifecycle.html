@@ -298,7 +298,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第一部分 · 全局地图</div>
     <h1>一次调用的全链路</h1>
   </div>
-  
+
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
 本课只追一行代码：<span class="mono">model.invoke("写一句欢迎语")</span>。看似是一句同步调用，内部会经历输入标准化、消息转换、配置合并、回调生命周期、provider payload 组装、网络请求、响应解析，最后回到一条 <span class="mono">AIMessage</span>。理解这条链路，你以后遇到 streaming、batch、tool calling、Agent trace，都能判断当前卡在第几层。
 </p>

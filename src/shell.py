@@ -672,7 +672,7 @@ def page(filename, content, standalone=False, home_href=None):
     <div class="part">{part}</div>
     <h1>{title}</h1>
   </div>
-  {content}
+{content}
   <div class="footnav">{prev_link}{next_link}</div>
 </div>
 {script_tag}

@@ -298,7 +298,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第二部分 · 用户 API 基础</div>
     <h1>输出解析器 Output Parsers</h1>
   </div>
-  
+
 <p class="lead">输出解析器把模型生成的文本或消息变成应用能依赖的数据契约。模型擅长生成，但应用需要稳定类型：字符串、JSON dict、Pydantic 对象、列表或业务命令。<span class="mono">StrOutputParser</span>、<span class="mono">JsonOutputParser</span> 和 <span class="mono">BaseOutputParser</span> 让 <span class="mono">prompt | model | parser</span> 成为清晰链路；解析失败应被看见、验证、修复，而不是被吞掉。</p>
 
 <div class="card analogy">

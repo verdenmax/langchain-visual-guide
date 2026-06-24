@@ -298,7 +298,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第四部分 · LangGraph 心智模型</div>
     <h1>Node、Edge 与路由</h1>
   </div>
-  
+
 <p class="lead">节点和边是 LangGraph 最像“图”的部分，但它们真正表达的是两种责任：节点负责把当前 state 转成 partial state，边负责决定下一步去哪。普通边给出固定顺序，条件边把路由函数纳入图结构，START 和 END 则标出入口与终点。本课用工具循环拆解 add_node、add_edge、add_conditional_edges 的心智模型，重点不是记 API，而是知道业务逻辑、路由逻辑和副作用应该分别放在哪里。</p>
 <div class="card analogy"><div class="tag">🧩 生活类比</div>把节点想成工厂里的工位，工人拿到半成品和工单，只完成自己那一步并贴上一张新标签；边像传送带，决定半成品下一站送到哪里。普通传送带永远通向固定工位，分拣传送带会读标签后选择路线。START 是收货口，END 是出货口。最危险的工厂，是工人一边加工一边偷偷改传送带规则，最后谁也不知道货为什么绕圈。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：节点做事，边选路</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">节点契约</div><div class="mn-desc">add_node 注册 state -&gt; partial state 的可运行步骤</div></div><div class="map-node now"><div class="mn-label">普通边</div><div class="mn-desc">add_edge 表达固定后继关系，例如 START -&gt; model</div></div><div class="map-node source"><div class="mn-label">条件边</div><div class="mn-desc">add_conditional_edges 用路由函数把 state 映射到节点名或 END</div></div><div class="map-node now"><div class="mn-label">工具循环</div><div class="mn-desc">model -&gt; route_tools -&gt; tools 或 END；tools 再回 model</div></div><div class="map-node after"><div class="mn-label">下一课</div><div class="mn-desc">多个节点写同一 key 时要靠 reducer/channel 合并</div></div></div></div>
 <h2>源码入口：文件 + 符号名</h2>

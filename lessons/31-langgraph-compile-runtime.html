@@ -298,7 +298,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第四部分 · LangGraph 心智模型</div>
     <h1>compile 与 Runtime</h1>
   </div>
-  
+
 <p class="lead">StateGraph 在 add_node、add_edge 阶段还只是建造者；compile 才把图纸变成可运行的 Runnable runtime。编译会校验图结构，创建 channel，包装节点，接入 runtime context 和 checkpointer，并产出 CompiledStateGraph。之后 invoke、stream、batch 才真正执行 Pregel 风格的节点调度。本课把 compile 和 invoke 分清：compile 不跑模型，不调工具；它像把剧本、舞台、灯光和安全规则装配好，演出发生在运行阶段。</p>
 <div class="card analogy"><div class="tag">🧩 生活类比</div>把 StateGraph.compile 想成剧院彩排前的舞台装配：剧本检查有没有缺场，演员入口出口是否连通，道具柜按清单摆好，灯光控制台接线完成，录像系统准备记录。装配完成后，剧院还没有演出；只有观众入场并调用 invoke，演员才按场次上台。checkpointer 像录像机，runtime context 像当天演出单，CompiledStateGraph 像已经装配好的整座舞台。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：从 builder 到 Runnable runtime</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">建造阶段</div><div class="mn-desc">StateGraph 收集 schema、节点、边和配置，但不执行节点</div></div><div class="map-node now"><div class="mn-label">编译阶段</div><div class="mn-desc">compile 校验结构、创建 channel、包装节点、接入 checkpointer</div></div><div class="map-node now"><div class="mn-label">运行阶段</div><div class="mn-desc">invoke/stream/batch 进入 Pregel runtime，按步骤调度节点</div></div><div class="map-node source"><div class="mn-label">上下文</div><div class="mn-desc">Runtime 向节点提供 context、store、stream_writer 等环境能力</div></div><div class="map-node after"><div class="mn-label">持久化</div><div class="mn-desc">BaseCheckpointSaver 在运行时保存和恢复 state snapshot</div></div></div></div>
 <h2>源码入口：文件 + 符号名</h2>

@@ -298,7 +298,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第二部分 · 用户 API 基础</div>
     <h1>提示词 Prompts</h1>
   </div>
-  
+
 <p class="lead">Prompt 不是一段随手拼接的字符串，而是结构化消息工厂。<span class="mono">ChatPromptTemplate</span> 负责声明系统消息、人类消息、历史占位、少样本示例和变量；调用时校验变量、合并 partial、格式化内容，最后产出 <span class="mono">ChatPromptValue</span>，再转换为消息列表交给聊天模型。把 prompt 当 Runnable 看，才能把它稳定地接进链、解析器和 Agent。</p>
 
 <div class="card analogy">

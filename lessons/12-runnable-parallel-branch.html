@@ -298,7 +298,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第三部分 · Runnable 与 LCEL</div>
     <h1>并行、分支与映射</h1>
   </div>
-  
+
 <p class="lead">顺序链解决“先做 A 再做 B”，但真实应用常常需要“同一个输入同时走几条路，再汇合”，或“根据输入选择一条路”。RunnableParallel、RunnableBranch、RunnablePassthrough、RunnableMap / RunnableEach 共同负责这些形状。本课把它们放在 RAG 场景里理解：问题一边送去检索得到 context，一边原样保留为 question，二者合并成 prompt 需要的字典；如果问题类型不同，还可以用 Branch 路由到不同链。</p>
 
 <div class="card analogy">
