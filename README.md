@@ -12,7 +12,7 @@
 ![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 ![Language](https://img.shields.io/badge/docs-%E4%B8%AD%E6%96%87-orange.svg)
 
-> 🚧 **C 级扩充中**：本教程正在从旧版 27 课扩展为约 45-55 课的中文成书级深挖版本。新版本强调更多图、worked-example trace、真实源码入口、简化伪代码和自测练习。第一部分“全局地图”是新标准模板批次，后续部分会按 Part 分批迁移。
+> 🚧 **C 级扩充中**：本教程正在从旧版 27 课扩展为约 45-55 课的中文成书级深挖版本。新版本强调更多图、worked-example trace、真实源码入口、简化伪代码和自测练习。第一部分“全局地图”和第二部分“用户 API 基础”已按 C 级标准完成，后续部分会按 Part 分批迁移。
 
 一套面向**完全新手**的可视化（HTML 图解）教程，带你从零开始理解
 [LangChain](https://github.com/langchain-ai/langchain) 这个项目——既有**宏观全景**，也有**细节源码**，
@@ -43,52 +43,44 @@ python -m http.server 8000
 # 然后访问 http://localhost:8000/
 ```
 
-## 📚 教程结构（C 级扩充中 · 旧版 8 部分 27 课）
+## 📚 教程结构（C 级扩充中 · M1/M2 已完成 · 当前 29 课）
 
-> 下面旧版目录会保留为迁移参考；后续 Part 重写完成后再同步替换为新版结构。
+> 当前站点保留 29 个 HTML 页面与兼容旧链接的文件名，同时继续扩展到约 45-55 课。第一部分、第二部分是新版 C 级批次；其余页面仍按旧版/迁移中结构保留。
 
-### 第一部分 · 宏观全景
-1. **LangChain 是什么** — 解决什么问题 · 核心心智模型
-2. **Monorepo 全景** — `core` / `langchain` / `partners` 三层架构
-3. **一次调用的生命周期** — 从你的代码到 LLM 的完整数据流
+### 第一部分 · 全局地图（M1，新版 C 级）
+1. `01-what-is-langchain.html` **LangChain 是什么** — 解决什么问题 · 核心心智模型
+2. `02-monorepo.html` **项目与包结构** — `core` / `langchain` / `partners` 三层架构
+3. `03-lifecycle.html` **一次调用的全链路** — 从你的代码到 LLM 的完整数据流
+4. `04-source-reading-map.html` **源码阅读地图** — 新手读源码的入口与路线
+5. `05-learning-path.html` **学习路径与实验方法** — 如何边读边跑边验证
 
-### 第二部分 · 用户视角
-4. **消息系统** — Human / AI / Tool / System 消息
-5. **聊天模型** — `init_chat_model` · invoke / stream / batch
-6. **工具 Tools** — `@tool` 装饰器 · 工具调用
-7. **Agent 入门** — `create_agent` · Agent 循环
+### 第二部分 · 用户 API 基础（M2，新版 C 级）
+6. `04-messages.html` **消息系统** — Human / AI / Tool / System 消息
+7. `05-chat-models.html` **聊天模型** — `init_chat_model` · invoke / stream / batch
+8. `06-tools.html` **工具 Tools** — `@tool` 装饰器 · 工具调用
+9. `16-prompts.html` **提示词 Prompts** — `ChatPromptTemplate` · `MessagesPlaceholder`
+10. `10-output-parsers.html` **输出解析器 Output Parsers** — 文本到结构化数据
+11. `14-streaming-callbacks.html` **Streaming 与 Callbacks** — 流式输出与回调追踪
 
-### 第三部分 · 内部源码
-8. **Runnable 万物之基** — invoke/stream/batch · LCEL 管道 `|`
-9. **Runnable 如何组合** — Sequence / Parallel / Branch 组合
-10. **输出解析器 Output Parsers** — `StrOutputParser` · `JsonOutputParser` · 闭环
-11. **聊天模型内部** — `BaseChatModel` 调用链
-12. **工具调用内部** — 函数 → JSON Schema → `tool_calls`
-13. **Agent 内部** — LangGraph 状态图 + middleware
-14. **Streaming 与 Callbacks** — 流式输出与回调追踪
-
-### 第四部分 · 进阶实战
-15. **读源码 / 调试 / 测试 / 贡献** — `uv` · 测试 · 调试 · 贡献规范
-
-### 第五部分 · 自己动手做 Agent
-16. **提示词 Prompts** — `ChatPromptTemplate` · `MessagesPlaceholder` · few-shot
-17. **RAG 检索增强** — `Document` → 切块 → `Embeddings` → `VectorStore` → `Retriever`
-18. **写自己的中间件** — `AgentMiddleware` 钩子（before/after/wrap）· `dynamic_prompt`
-19. **运行时上下文与健壮性** — `context_schema` · `with_fallbacks` · `stream_mode`
-20. **端到端实战：拼一个客服 Agent** — prompts + RAG + 工具 + 中间件 + 上下文 全拼起来
-
-### 第六部分 · 番外篇
-21. **横向对比：LangChain vs AutoGen** — 两种范式对照：图/管道 vs 多 Agent 对话
-22. **全栈坐标系：从 LangChain 缩放到整个生态** — Agent 编排 5 流派 · AI 全栈 7 层 · 你在哪
-23. **隔壁层学习地图：L5 推理 · L6 向量检索** — vLLM/llama.cpp/Ollama · hnswlib/pgvector/Qdrant
-
-### 第七部分 · 深入 LangGraph
-24. **深入 LangGraph：图 / 状态 / 节点 / 边** — 为什么 LCEL 不够 · State/Node/Edge/compile · 和 LangChain 的关系
-25. **执行引擎：Pregel 与超步** — Pregel/BSP · Plan→Execution→Update · channels 与 reducer
-26. **持久化 · 中断 · 控制流** — Checkpoint/StateSnapshot · 时间旅行 · interrupt · Send/Command
-
-### 第八部分 · 速查
-27. **术语表 · 概念索引** — 全书术语一句话查 + 点链接跳到对应课
+### 旧版 / 迁移中页面
+12. `07-agents-intro.html` **Agent 入门** — `create_agent` · Agent 循环
+13. `08-runnable.html` **Runnable 万物之基** — invoke/stream/batch · LCEL 管道 `|`
+14. `09-runnable-compose.html` **Runnable 如何组合** — Sequence / Parallel / Branch 组合
+15. `11-chat-internals.html` **聊天模型内部** — `BaseChatModel` 调用链
+16. `12-tool-internals.html` **工具调用内部** — 函数 → JSON Schema → `tool_calls`
+17. `13-agent-internals.html` **Agent 内部** — LangGraph 状态图 + middleware
+18. `15-contributing.html` **读源码 / 调试 / 测试 / 贡献** — `uv` · 测试 · 调试 · 贡献规范
+19. `17-rag.html` **RAG 检索增强** — `Document` → 切块 → `Embeddings` → `VectorStore` → `Retriever`
+20. `18-custom-middleware.html` **写自己的中间件** — `AgentMiddleware` 钩子与 `dynamic_prompt`
+21. `19-runtime-context.html` **运行时上下文与健壮性** — `context_schema` · `with_fallbacks` · `stream_mode`
+22. `20-capstone.html` **端到端实战：拼一个客服 Agent** — prompts + RAG + 工具 + 中间件
+23. `21-langchain-vs-autogen.html` **LangChain vs AutoGen** — 图/管道 vs 多 Agent 对话
+24. `22-ai-stack.html` **AI 全栈坐标系** — Agent 编排 5 流派 · AI 全栈 7 层
+25. `23-learning-map.html` **隔壁层学习地图** — L5 推理 · L6 向量检索
+26. `24-langgraph-mental-model.html` **深入 LangGraph：图 / 状态 / 节点 / 边**
+27. `25-langgraph-pregel-engine.html` **执行引擎：Pregel 与超步**
+28. `26-langgraph-persistence-control.html` **持久化 · 中断 · 控制流**
+29. `27-glossary.html` **术语表 · 概念索引** — 全书术语一句话查
 
 ## 🎨 每页包含
 
@@ -105,20 +97,25 @@ python -m http.server 8000
 langchain-visual-guide/
 ├── index.html              ← 入口（目录页），从这里开始
 ├── print.html              ← 生成的单页打印 / PDF 源（可由 build_print.py 重建）
-├── lessons/                ← 29 课图解页面（C 级扩充中，新版 04/05 与旧版 04/05 暂时并存）
+├── lessons/                ← 29 课图解页面（C 级扩充中，M1/M2 已完成）
 │   ├── 01-what-is-langchain.html
 │   ├── 02-monorepo.html
 │   ├── 03-lifecycle.html
 │   ├── 04-source-reading-map.html   新版 C 级：源码阅读地图
-│   ├── 04-messages.html             旧版：消息系统（迁移中）
 │   ├── 05-learning-path.html        新版 C 级：学习路径
-│   ├── 05-chat-models.html          旧版：聊天模型（迁移中）
+│   ├── 04-messages.html             新版 C 级 M2：消息系统
+│   ├── 05-chat-models.html          新版 C 级 M2：聊天模型
+│   ├── 06-tools.html                新版 C 级 M2：工具 Tools
+│   ├── 16-prompts.html              新版 C 级 M2：提示词 Prompts
+│   ├── 10-output-parsers.html       新版 C 级 M2：输出解析器
+│   ├── 14-streaming-callbacks.html  新版 C 级 M2：Streaming / Callbacks
 │   ├── …
 │   └── 27-glossary.html
 ├── src/                    ← 无依赖的 Python 生成器（可重建全部 HTML / PDF）
 │   ├── shell.py            共享外壳：CSS 设计系统、导航、index 页
 │   ├── part01_overview.py  新版 Part 1（M0/M1 全局地图）
-│   ├── part1.py … part7.py 旧版 / 迁移中课程内容
+│   ├── part02_user_api.py  新版 Part 2（M2 用户 API 基础）
+│   ├── part2.py … part7.py 旧版 / 迁移中课程内容
 │   ├── registry.py         课程 → 内容 的统一映射
 │   ├── build.py            站点构建（→ index.html + lessons/）
 │   ├── build_print.py      PDF 构建（→ print.html，折叠全展开）
