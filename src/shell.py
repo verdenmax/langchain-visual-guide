@@ -287,9 +287,9 @@ SUBTITLES = {
     "08-runnable.html": "RunnableSerializable · invoke/ainvoke/stream/batch · 标准协议",
     "09-runnable-compose.html": "LCEL `|` · RunnableSequence · 输入输出契约",
     "10-output-parsers.html": "StrOutputParser · JsonOutputParser · structured output · repair loop",
-    "11-chat-internals.html": "BaseChatModel · provider adapter · _generate/_stream · metadata 回填",
+    "11-chat-internals.html": "BaseChatModel · provider adapter · payload/response normalization",
     "12-runnable-parallel-branch.html": "RunnableParallel · RunnableBranch · assign/map/passthrough",
-    "12-tool-internals.html": "BaseTool · args_schema · JSON Schema · invoke/ainvoke · ToolMessage",
+    "12-tool-internals.html": "BaseTool · args_schema · convert_to_openai_tool · ToolMessage",
     "13-runnable-config-callbacks.html": "RunnableConfig · ensure_config · callbacks/tags/metadata",
     "13-agent-internals.html": "create_agent · StateGraph · _make_model_to_tools_edge · ToolNode",
     "14-streaming-callbacks.html": "stream/astream_events · callback manager · run tree",
@@ -300,9 +300,9 @@ SUBTITLES = {
     "18-custom-middleware.html": "AgentMiddleware · before/after/wrap hooks · dynamic prompt",
     "19-runtime-context.html": "context_schema · Runtime · response_format · structured response",
     "20-capstone.html": "prompts + tools + RAG + middleware + context + tests",
-    "21-langchain-vs-autogen.html": "LangChain/LangGraph · AutoGen/CrewAI · workflow vs conversation · 选型",
-    "22-ai-stack.html": "应用层 · 编排层 · 模型服务 · MCP · A2A · 部署观测",
-    "23-learning-map.html": "源码阅读路线 · 官方文档 · 实验项目 · 面试复盘",
+    "21-langchain-vs-autogen.html": "LangGraph vs actor/pubsub frameworks · handoff · orchestration styles",
+    "22-ai-stack.html": "hardware→inference→retrieval→orchestration · MCP/A2A protocol boundaries",
+    "23-learning-map.html": "inference engines · vector databases · eval/observability · next repositories",
     "24-langgraph-mental-model.html": "为什么 LCEL 不够 · 有状态图 · Pregel 之前的心智模型",
     "28-langgraph-state-schema.html": "TypedDict/Pydantic state · context_schema · state keys",
     "29-langgraph-nodes-edges.html": "add_node · add_edge · conditional edges · START/END",
@@ -320,7 +320,7 @@ SUBTITLES = {
     "39-memory-conversation-state.html": "chat history · summary memory · LangGraph state · long-term memory",
     "40-testing-debugging.html": "fake models · deterministic tools · trace assertions · regression cases",
     "41-observability-ci.html": "callbacks · LangSmith/run tree · build checks · PDF/deploy workflow",
-    "27-glossary.html": "核心术语 · 源码符号 · 课程跳转 · 快速索引",
+    "27-glossary.html": "concept index · source anchors · where to read next",
 }
 
 INDEX_FILE = "index.html"
