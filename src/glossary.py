@@ -36,8 +36,10 @@ LESSON_GLOSSARY = r"""
   <tr><td class="mono">Output Parser</td><td>把模型的文本输出解析成结构化数据</td><td><a href="10-output-parsers.html">输出解析器 Output Parsers</a></td></tr>
   <tr><td>结构化输出（with_structured_output）</td><td>强制模型直接吐出符合 schema 的对象</td><td><a href="06-tools.html">工具 Tools</a></td></tr>
   <tr><td class="mono">ChatPromptTemplate / MessagesPlaceholder</td><td>提示词模板与"历史插槽"</td><td><a href="16-prompts.html">提示词 Prompts</a></td></tr>
-  <tr><td class="mono">RAG</td><td>检索增强生成：先查知识、再让模型作答</td><td><a href="17-rag.html">RAG 检索增强</a></td></tr>
-  <tr><td class="mono">Document / VectorStore / Retriever / Embeddings</td><td>RAG 的四个核心零件</td><td><a href="17-rag.html">RAG 检索增强</a></td></tr>
+  <tr><td class="mono">RAG</td><td>检索增强生成：先取证、再基于资料生成并引用</td><td><a href="17-rag.html">RAG 全链路</a></td></tr>
+  <tr><td class="mono">Document</td><td>RAG 证据单元：文本 + 来源、权限、版本等 metadata</td><td><a href="36-documents-splitters.html">Document、Loader 与 Splitter</a></td></tr>
+  <tr><td class="mono">VectorStore / Embeddings</td><td>把 chunk 变向量并保存检索索引</td><td><a href="37-embeddings-vectorstores.html">Embeddings 与 VectorStore</a></td></tr>
+  <tr><td class="mono">Retriever</td><td>输入 query，返回可引用 Document 候选</td><td><a href="38-retrievers-rerankers.html">Retriever、压缩与 Rerank</a></td></tr>
   <tr><td class="mono">Runtime / context_schema</td><td>运行时上下文：把 user_id / db 等注入节点</td><td><a href="19-runtime-context.html">运行时上下文与健壮性</a></td></tr>
   <tr><td class="mono">with_retry / with_fallbacks</td><td>调用级重试 / 主模型失败切备用</td><td><a href="19-runtime-context.html">运行时上下文与健壮性</a></td></tr>
   <tr><td class="mono">Callbacks / BaseCallbackHandler</td><td>在生命周期关键点挂钩子（追踪、日志）</td><td><a href="14-streaming-callbacks.html">Streaming 与 Callbacks</a></td></tr>
