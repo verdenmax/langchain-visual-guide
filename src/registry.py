@@ -5,6 +5,7 @@ this so the lesson set stays in sync.
 """
 import part01_overview
 import part02_user_api
+import part03_runnable_lcel
 import part2
 import part3
 import part4
@@ -26,9 +27,12 @@ CONTENT = {
     "16-prompts.html": part02_user_api.LESSON_09_PROMPTS,
     "10-output-parsers.html": part02_user_api.LESSON_10_OUTPUT_PARSERS,
     "14-streaming-callbacks.html": part02_user_api.LESSON_11_STREAMING,
+    "08-runnable.html": part03_runnable_lcel.LESSON_12_RUNNABLE_PROTOCOL,
+    "09-runnable-compose.html": part03_runnable_lcel.LESSON_13_LCEL_SEQUENCE,
+    "12-runnable-parallel-branch.html": part03_runnable_lcel.LESSON_14_PARALLEL_BRANCH,
+    "13-runnable-config-callbacks.html": part03_runnable_lcel.LESSON_15_CONFIG_CALLBACKS,
+    "15-runnable-retry-fallback.html": part03_runnable_lcel.LESSON_16_RETRY_FALLBACK,
     "07-agents-intro.html": part2.LESSON_07,
-    "08-runnable.html": part3.LESSON_08,
-    "09-runnable-compose.html": part3.LESSON_09,
     "11-chat-internals.html": part3.LESSON_10,
     "12-tool-internals.html": part3.LESSON_11,
     "13-agent-internals.html": part3.LESSON_12,

@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>14 · Runnable 如何组合 — LangChain 图解教程</title>
-<meta name="description" content="第三部分 · 内部源码｜Runnable 如何组合：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>13 · LCEL 管道与 Sequence — LangChain 图解教程</title>
+<meta name="description" content="第三部分 · Runnable 与 LCEL｜LCEL 管道与 Sequence：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="14 · Runnable 如何组合 — LangChain 图解教程">
-<meta property="og:description" content="第三部分 · 内部源码｜Runnable 如何组合：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="13 · LCEL 管道与 Sequence — LangChain 图解教程">
+<meta property="og:description" content="第三部分 · Runnable 与 LCEL｜LCEL 管道与 Sequence：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="14 · Runnable 如何组合 — LangChain 图解教程">
-<meta name="twitter:description" content="第三部分 · 内部源码｜Runnable 如何组合：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="13 · LCEL 管道与 Sequence — LangChain 图解教程">
+<meta name="twitter:description" content="第三部分 · Runnable 与 LCEL｜LCEL 管道与 Sequence：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -288,214 +288,17 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第三部分 · 内部源码</span>
-    <span class="pill">14 / 29</span>
+    <span class="pill">第三部分 · Runnable 与 LCEL</span>
+    <span class="pill">13 / 32</span>
   </div>
-  <div class="progress"><span style="width:48%"></span></div>
+  <div class="progress"><span style="width:40%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第三部分 · 内部源码</div>
-    <h1>Runnable 如何组合</h1>
+    <div class="part">第三部分 · Runnable 与 LCEL</div>
+    <h1>LCEL 管道与 Sequence</h1>
   </div>
-  
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-上一课我们用 <span class="inline">a | b | c</span> 拼了链。那么——<strong>拼出来的到底是什么？</strong>
-答案是一个 <span class="inline">RunnableSequence</span> 对象。这一课拆解"顺序"与"并行"两种核心组合，
-以及几个最常用的"胶水" Runnable。
-</p>
-
-<div class="card analogy">
-  <div class="tag">🏭 生活类比</div>
-  <strong>顺序组合</strong>像<strong>流水线</strong>：上一站的产出是下一站的原料，一站接一站。
-  <strong>并行组合</strong>像<strong>多个窗口同时办理</strong>：同一份输入分发给几条线<strong>同时</strong>处理，最后把各自结果汇总成一张表。
-</div>
-
-<h2>顺序组合：RunnableSequence</h2>
-<p>当你写 <span class="inline">a | b | c</span>，<span class="inline">__or__</span> 会把它们打包成一个
-<span class="inline">RunnableSequence</span>。它的 <span class="inline">invoke</span> 做的事极其朴素——<strong>依次调用、首尾相接</strong>：</p>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/runnables/base.py</span><span class="ln">class RunnableSequence</span></div>
-<pre><span class="kw">class</span> <span class="fn">RunnableSequence</span>(RunnableSerializable):
-    <span class="kw">def</span> <span class="fn">invoke</span>(self, input, config=None):
-        <span class="kw">for</span> step <span class="kw">in</span> self.steps:        <span class="cm"># 依次跑每一步</span>
-            input = step.invoke(input)   <span class="cm"># 上一步输出 = 下一步输入</span>
-        <span class="kw">return</span> input
-</pre>
-</div>
-
-<div class="flow">
-  <div class="node">input</div><div class="arrow">→</div>
-  <div class="node hl">step1</div><div class="arrow">→</div>
-  <div class="node hl">step2</div><div class="arrow">→</div>
-  <div class="node hl">step3</div><div class="arrow">→</div>
-  <div class="node">output</div>
-</div>
-
-<h2>并行组合：RunnableParallel</h2>
-<p>当你把<strong>一个字典</strong>放进链里（值都是 Runnable），就得到 <span class="inline">RunnableParallel</span>：
-同一份输入<strong>同时</strong>喂给每个分支，结果合并成一个字典。</p>
-
-<pre class="code"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnableParallel
-
-parallel = RunnableParallel(
-    weather=get_weather_chain,   <span class="cm"># 分支 1</span>
-    news=get_news_chain,         <span class="cm"># 分支 2</span>
-)
-parallel.invoke(<span class="st">"北京"</span>)
-<span class="cm"># → {"weather": ..., "news": ...}  两条分支并发执行</span>
-</pre>
-
-<div class="flow" style="flex-direction:column;gap:.6rem;align-items:center">
-  <div class="node hl" style="flex:0 0 auto">同一份 input</div>
-  <div class="arrow" style="transform:rotate(90deg)">→</div>
-  <div style="display:flex;gap:1rem">
-    <div class="node">分支 weather</div>
-    <div class="node">分支 news</div>
-  </div>
-  <div class="arrow" style="transform:rotate(90deg)">→</div>
-  <div class="node hl" style="flex:0 0 auto">合并成 {weather, news}</div>
-</div>
-
-<h2>两个最常用的"胶水"</h2>
-<div class="cols">
-  <div class="col">
-    <h4>RunnableLambda</h4>
-    <p>把<strong>任意普通函数</strong>变成 Runnable，好塞进链里。</p>
-    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnableLambda
-upper = RunnableLambda(<span class="kw">lambda</span> x: x.upper())
-chain = upper | model</pre>
-  </div>
-  <div class="col">
-    <h4>RunnablePassthrough</h4>
-    <p>原样透传输入，常用于"<strong>保留原值 + 旁加一个新字段</strong>"。</p>
-    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnablePassthrough
-RunnablePassthrough.assign(
-  weather=get_weather_chain)</pre>
-  </div>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应</div>
-  全部在 <span class="mono">core/langchain_core/runnables/</span> 下：
-  <table class="t" style="margin-top:.6rem">
-    <tr><th>类</th><th>文件</th><th>作用</th></tr>
-    <tr><td class="mono">RunnableSequence</td><td class="mono">base.py</td><td>顺序（<span class="mono">|</span> 的产物）</td></tr>
-    <tr><td class="mono">RunnableParallel</td><td class="mono">base.py</td><td>并行（别名 <span class="mono">RunnableMap</span>）</td></tr>
-    <tr><td class="mono">RunnableLambda</td><td class="mono">base.py</td><td>包装函数</td></tr>
-    <tr><td class="mono">RunnablePassthrough</td><td class="mono">passthrough.py</td><td>透传 / assign</td></tr>
-  </table>
-</div>
-
-<div class="card macro">
-  <div class="tag">🌍 宏观理解</div>
-  所有复杂的"链"，本质都是这几种基础 Runnable 的<strong>嵌套套娃</strong>：
-  顺序里套并行、并行的分支里又是顺序……因为<strong>组合的产物还是 Runnable</strong>，
-  所以可以无限拼下去，且整体永远支持 invoke/stream/batch。
-</div>
-
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入两个常见实战问题。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 一个 RAG 链如何用顺序 + 并行拼出来 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 经典 RAG 形状</div>
-      <div class="a">
-<pre class="code"><span class="cm"># 并行：同时"检索上下文"和"透传原问题"</span>
-setup = RunnableParallel(
-    context=retriever,                  <span class="cm"># 检索分支</span>
-    question=RunnablePassthrough(),     <span class="cm"># 原样透传问题</span>
-)
-<span class="cm"># 顺序：把上一步的 dict 灌进 prompt → model → parser</span>
-rag_chain = setup | prompt | model | parser</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么要并行那一步</div>
-      <div class="a">prompt 需要<strong>两样东西</strong>：检索到的上下文 + 用户原问题。
-        用 <span class="mono">RunnableParallel</span> 同时备齐这两者并打包成 dict，正好喂给下一步的 prompt。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">整条 RAG 用几个基础 Runnable 声明式拼出，无需手写胶水；检索与透传<strong>并发</strong>执行，更快。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> RunnableLambda vs RunnablePassthrough，别搞混 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 区别</div>
-      <div class="a">
-<pre class="code">RunnableLambda(f)            <span class="cm"># 把输入"变形"：output = f(input)</span>
-RunnablePassthrough()        <span class="cm"># 原样透传：output = input</span>
-RunnablePassthrough.assign(  <span class="cm"># 保留原 dict，再"旁加"一个新字段</span>
-    extra=some_runnable)</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 各自解决什么</div>
-      <div class="a"><span class="mono">Lambda</span> 用于"我要对数据做个小处理再往下传"；
-        <span class="mono">Passthrough</span> 用于"这一步我啥也不改，只是占位/保留"；
-        <span class="mono">assign</span> 用于"保留已有字段的同时再算一个新字段"（RAG 里常见）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 记忆法</div>
-      <div class="a">Lambda=变；Passthrough=不变；assign=加。三个胶水覆盖了链里 90% 的"数据搬运"需求。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> RunnableBranch：链里的 if / else 条件路由 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 按条件走不同分支</div>
-      <div class="a">前面的组合都是"固定流程"。要根据输入<strong>动态选路</strong>，用 <span class="mono">RunnableBranch</span>：
-<pre class="code"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnableBranch
-
-chain = RunnableBranch(
-    (<span class="kw">lambda</span> x: <span class="st">"代码"</span> <span class="kw">in</span> x[<span class="st">"q"</span>], code_chain),    <span class="cm"># 条件 → 分支</span>
-    (<span class="kw">lambda</span> x: <span class="st">"翻译"</span> <span class="kw">in</span> x[<span class="st">"q"</span>], translate_chain),
-    default_chain,                                  <span class="cm"># 都不满足 → 兜底</span>
-)</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 它解决什么</div>
-      <div class="a">同一个入口，按内容<strong>分流到不同子链</strong>（如"问代码走代码链、问翻译走翻译链"）。
-        每个 <span class="mono">(条件, 分支)</span> 依次判断，命中即走该分支；都不中走 <span class="mono">default</span>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">RunnableBranch</span> 在 <span class="mono">core/runnables/branch.py</span>，本身也是 Runnable——
-        所以条件路由也能无缝拼进更大的链。</div>
-    </div>
-  </div>
-</details>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li>再复杂的链都只是几种基础 Runnable 的<strong>套娃</strong>：顺序里套并行、并行里套顺序、再加条件路由。</li>
-    <li>因为产物仍是 Runnable，<strong>组合没有尽头</strong>，invoke/stream/batch 永远可用。</li>
-  </ul>
-</div>
-
-<div class="card key">
-  <div class="tag">✅ 本课要点</div>
-  <ul>
-    <li><span class="mono">a | b | c</span> 的产物是 <span class="mono">RunnableSequence</span>，invoke = 依次调用、首尾相接。</li>
-    <li>字典形式得到 <span class="mono">RunnableParallel</span>：同输入并发多分支，输出合并为字典。</li>
-    <li><span class="mono">RunnableLambda</span>（包函数）和 <span class="mono">RunnablePassthrough</span>（透传/assign）是最常用胶水；<span class="mono">RunnableBranch</span> 做条件路由。</li>
-    <li>下一课：补上 LCEL 的第三块拼图——<strong>输出解析器</strong>，把模型输出变成程序能用的数据。</li>
-  </ul>
-</div>
-<div class="selftest">
+  <p class="lead">M3 临时页面：Task 2 会替换为完整 C-level lesson。</p><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
   <div class="qn">1. <code>a | b | c</code> 得到 RunnableSequence，<code>{'x': a, 'y': b}</code> 得到 RunnableParallel。把“串行/并行”做成两种明确的组合原语，好处是？</div>
@@ -557,7 +360,7 @@ chain = RunnableBranch(
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="08-runnable.html"><div class="dir">← 上一课</div><div class="ttl">Runnable 万物之基</div></a><a class="next" href="11-chat-internals.html"><div class="dir">下一课 →</div><div class="ttl">聊天模型内部</div></a></div>
+  <div class="footnav"><a class="prev" href="08-runnable.html"><div class="dir">← 上一课</div><div class="ttl">Runnable 协议</div></a><a class="next" href="12-runnable-parallel-branch.html"><div class="dir">下一课 →</div><div class="ttl">并行、分支与映射</div></a></div>
 </div>
 
 </body></html>

@@ -29,6 +29,11 @@ C_LEVEL_PAGES = {
     "16-prompts.html": {"min_cjk": 4500, "min_visual": 5},
     "10-output-parsers.html": {"min_cjk": 4500, "min_visual": 5},
     "14-streaming-callbacks.html": {"min_cjk": 4500, "min_visual": 5},
+    "08-runnable.html": {"min_cjk": 4500, "min_visual": 5},
+    "09-runnable-compose.html": {"min_cjk": 4500, "min_visual": 5},
+    "12-runnable-parallel-branch.html": {"min_cjk": 4500, "min_visual": 5},
+    "13-runnable-config-callbacks.html": {"min_cjk": 4500, "min_visual": 5},
+    "15-runnable-retry-fallback.html": {"min_cjk": 4500, "min_visual": 5},
 }
 
 RE_SCRIPT_STYLE = re.compile(r"<(script|style)\b.*?</\1>", re.I | re.S)

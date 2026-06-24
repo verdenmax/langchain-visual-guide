@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>13 · Runnable 万物之基 — LangChain 图解教程</title>
-<meta name="description" content="第三部分 · 内部源码｜Runnable 万物之基：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>12 · Runnable 协议 — LangChain 图解教程</title>
+<meta name="description" content="第三部分 · Runnable 与 LCEL｜Runnable 协议：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="13 · Runnable 万物之基 — LangChain 图解教程">
-<meta property="og:description" content="第三部分 · 内部源码｜Runnable 万物之基：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="12 · Runnable 协议 — LangChain 图解教程">
+<meta property="og:description" content="第三部分 · Runnable 与 LCEL｜Runnable 协议：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="13 · Runnable 万物之基 — LangChain 图解教程">
-<meta name="twitter:description" content="第三部分 · 内部源码｜Runnable 万物之基：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="12 · Runnable 协议 — LangChain 图解教程">
+<meta name="twitter:description" content="第三部分 · Runnable 与 LCEL｜Runnable 协议：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -288,233 +288,17 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第三部分 · 内部源码</span>
-    <span class="pill">13 / 29</span>
+    <span class="pill">第三部分 · Runnable 与 LCEL</span>
+    <span class="pill">12 / 32</span>
   </div>
-  <div class="progress"><span style="width:44%"></span></div>
+  <div class="progress"><span style="width:37%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第三部分 · 内部源码</div>
-    <h1>Runnable 万物之基</h1>
+    <div class="part">第三部分 · Runnable 与 LCEL</div>
+    <h1>Runnable 协议</h1>
   </div>
-  
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-现在掀开盖子。LangChain 内部有一个统一的抽象——<strong>Runnable</strong>。
-模型、提示词、工具、解析器……几乎一切都是 Runnable。理解它，你就拿到了读懂整个源码的<strong>万能钥匙</strong>。
-</p>
-
-<div class="card analogy">
-  <div class="tag">🔋 生活类比</div>
-  Runnable 就像<strong>USB 标准接口</strong>：鼠标、键盘、硬盘内部天差地别，但都提供同一个 USB 插头。
-  于是你能把它们<strong>随意串联到一个集线器上</strong>。LangChain 里每个组件都"长着 Runnable 这个插头"，
-  所以才能用一个 <span class="mono">|</span> 把它们拼成链。
-</div>
-
-<h2>统一接口：每个 Runnable 都有这几招</h2>
-<p>不管底层是什么，只要是 Runnable，就一定具备这套方法。你在第 7 课用过的 invoke/stream/batch，
-其实就来自这里：</p>
-
-<table class="t">
-  <tr><th>方法</th><th>作用</th><th>异步版</th></tr>
-  <tr><td class="mono">invoke(input)</td><td>单个输入 → 单个输出</td><td class="mono">ainvoke</td></tr>
-  <tr><td class="mono">stream(input)</td><td>流式逐块产出</td><td class="mono">astream</td></tr>
-  <tr><td class="mono">batch(inputs)</td><td>批量并发处理</td><td class="mono">abatch</td></tr>
-</table>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/runnables/base.py</span><span class="ln">class Runnable</span></div>
-<pre><span class="kw">class</span> <span class="fn">Runnable</span>(ABC, Generic[Input, Output]):
-    <span class="cm"># 子类必须实现 invoke（抽象方法）</span>
-    <span class="kw">def</span> <span class="fn">invoke</span>(self, input: Input, config=None) -> Output: ...
-    <span class="kw">def</span> <span class="fn">stream</span>(self, input, config=None): ...
-    <span class="kw">def</span> <span class="fn">batch</span>(self, inputs, config=None): ...
-    <span class="cm"># ↓ 组合的关键：重载 | 运算符</span>
-    <span class="kw">def</span> <span class="fn">__or__</span>(self, other): ...   <span class="cm"># a | b</span>
-    <span class="kw">def</span> <span class="fn">pipe</span>(self, *others): ...     <span class="cm"># a.pipe(b)</span>
-</pre>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应</div>
-  在 <span class="mono">runnables/base.py</span> 里（行号会随版本变动，按方法名定位最稳）：
-  <ul>
-    <li><span class="mono">class Runnable(ABC, Generic[Input, Output])</span> —— 泛型基类，规定"输入类型→输出类型"。</li>
-    <li><span class="mono">invoke</span> 是<strong>抽象方法</strong>：每个具体组件必须自己实现"输入怎么变输出"。</li>
-    <li><span class="mono">__or__</span> 与 <span class="mono">pipe</span> 实现了 <span class="mono">|</span> 拼接（下一课详解）。</li>
-    <li><span class="mono">stream</span> / <span class="mono">batch</span> 有<strong>默认实现</strong>：即使组件只写了 <span class="mono">invoke</span>，也能"免费"获得批量与（退化的）流式能力。</li>
-  </ul>
-</div>
-
-<h2>LCEL：用 | 把组件拼成链</h2>
-<p>因为人人都是 Runnable，你可以像 Unix 管道一样用 <span class="inline">|</span> 把它们串起来。
-这套语法叫 <strong>LCEL（LangChain Expression Language）</strong>：</p>
-
-<pre class="code"><span class="cm"># 提示词 → 模型 → 输出解析器，全是 Runnable，用 | 串起来</span>
-chain = prompt | model | parser
-result = chain.invoke({<span class="st">"city"</span>: <span class="st">"北京"</span>})
-</pre>
-
-<div class="flow">
-  <div class="node">输入 dict</div>
-  <div class="arrow">→</div>
-  <div class="node hl">prompt</div>
-  <div class="arrow">→</div>
-  <div class="node hl">model</div>
-  <div class="arrow">→</div>
-  <div class="node hl">parser</div>
-  <div class="arrow">→</div>
-  <div class="node">输出 str</div>
-</div>
-
-<div class="card macro">
-  <div class="tag">🌍 宏观理解：为什么这个抽象如此强大？</div>
-  <ul>
-    <li><strong>统一</strong>：学一次 invoke/stream/batch，所有组件都会用。</li>
-    <li><strong>可组合</strong>：任意 Runnable 用 <span class="mono">|</span> 拼接，拼出来的链<strong>本身还是一个 Runnable</strong>（可继续拼）。</li>
-    <li><strong>能力免费继承</strong>：你拼出的链<strong>自动获得</strong>流式、批量、异步、回调追踪——不用一行额外代码。</li>
-  </ul>
-</div>
-
-<h2>谁是 Runnable？（几乎全员）</h2>
-<p>下面这些你已经用过的东西，<strong>本质都是 Runnable</strong>，所以都能 invoke、都能用 <span class="inline">|</span> 拼接：</p>
-<table class="t">
-  <tr><th>组件</th><th>输入 → 输出</th></tr>
-  <tr><td class="mono">ChatModel</td><td>消息列表 → AIMessage</td></tr>
-  <tr><td class="mono">PromptTemplate</td><td>变量 dict → 提示词 / 消息</td></tr>
-  <tr><td class="mono">OutputParser</td><td>AIMessage → 结构化数据</td></tr>
-  <tr><td class="mono">Tool</td><td>参数 dict → 工具结果</td></tr>
-  <tr><td class="mono">RunnableSequence / Parallel</td><td>组合本身也是 Runnable</td></tr>
-  <tr><td class="mono">create_agent 的产物</td><td>状态 → 状态（也是 Runnable！）</td></tr>
-</table>
-
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入三个关键设计。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 只实现 invoke，为什么就"免费"获得 stream / batch <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 默认实现的思路</div>
-      <div class="a">
-<pre class="code"><span class="cm"># 基类 Runnable 里（概念示意）：</span>
-<span class="kw">def</span> <span class="fn">batch</span>(self, inputs):
-    <span class="kw">return</span> [self.invoke(x) <span class="kw">for</span> x <span class="kw">in</span> inputs]   <span class="cm"># 用线程池并发</span>
-
-<span class="kw">def</span> <span class="fn">stream</span>(self, input):
-    <span class="kw">yield</span> self.invoke(input)   <span class="cm"># 退化：一次性产出一块</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么这样设计</div>
-      <div class="a">子类<strong>只需实现一个</strong> <span class="mono">invoke</span>，就立刻拥有可用的 batch / stream。
-        想要更好的体验（如真正逐 token 流式），子类可以<strong>重写</strong> <span class="mono">stream</span>（聊天模型就是这么做的）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">降低实现新组件的门槛（最少只写一个方法），又保留按需优化的空间——这是"默认实现 + 可重写"的经典模板设计。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> a | b 背后：__or__ 到底返回了什么 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 等价写法</div>
-      <div class="a">
-<pre class="code">chain = prompt | model | parser
-<span class="cm"># 等价于：</span>
-chain = prompt.pipe(model).pipe(parser)
-<span class="cm"># 两者都得到一个 RunnableSequence（第 11 课详解）</span>
-<span class="kw">type</span>(chain)   <span class="cm"># RunnableSequence</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么用运算符重载</div>
-      <div class="a">Python 的 <span class="mono">__or__</span> 让你能像 Unix 管道 <span class="mono">cmd1 | cmd2</span> 那样表达数据流，
-        读起来就是"从左流到右"，比嵌套函数调用直观得多。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">声明式、可读性强；而且产物仍是 Runnable，可继续 <span class="mono">|</span> 下去，无限组合。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> config 参数：贯穿整条链的"上下文信封" <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 RunnableConfig 携带什么</div>
-      <div class="a">
-<pre class="code">chain.invoke(x, config={
-    <span class="st">"callbacks"</span>: [...],       <span class="cm"># 回调/追踪（第 16 课）</span>
-    <span class="st">"tags"</span>: [<span class="st">"prod"</span>],         <span class="cm"># 给这次运行打标签</span>
-    <span class="st">"metadata"</span>: {<span class="st">"uid"</span>: 1},   <span class="cm"># 自定义元数据</span>
-    <span class="st">"max_concurrency"</span>: 5,    <span class="cm"># 并发上限</span>
-})</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">链里有很多步，你需要一种方式把"回调、标签、并发度"等<strong>一次性传到每一步</strong>，
-        而不是层层手动透传。<span class="mono">config</span> 就是这个自动随调用流动的信封。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">定义在 <span class="mono">runnables/config.py</span> 的 <span class="mono">RunnableConfig</span>，对所有 Runnable 通用；
-        追踪、限流、命名一处设置、全链生效。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">4</span> 运行时重配置：configurable_fields / configurable_alternatives <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 把参数/组件变成"调用时可换"</div>
-      <div class="a">
-<pre class="code"><span class="cm"># 把某个字段标成可在 config 里覆盖</span>
-model = ChatModel(...).configurable_fields(
-    temperature=ConfigurableField(id=<span class="st">"temp"</span>))
-model.invoke(x, config={<span class="st">"configurable"</span>: {<span class="st">"temp"</span>: 0.9}})   <span class="cm"># 本次调用临时改</span>
-
-<span class="cm"># 或整个组件提供备选，运行时切换</span>
-chain.configurable_alternatives(ConfigurableField(<span class="st">"llm"</span>), default_key=<span class="st">"gpt"</span>, claude=other)</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 它解决什么</div>
-      <div class="a">同一条链，<strong>不重建</strong>就能按 <span class="mono">config["configurable"]</span> 切换模型/温度/提示等——
-        多租户、A/B 实验、按请求选模型的核心手段。<span class="mono">init_chat_model(configurable_fields=...)</span> 也基于此。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">configurable_fields</span>（<span class="mono">runnables/base.py</span>）/
-        <span class="mono">configurable_alternatives</span>（<span class="mono">同文件</span>）；实现类在 <span class="mono">runnables/configurable.py</span>。</div>
-    </div>
-  </div>
-</details>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li><strong>只写 invoke，就免费得 stream/batch/async</strong>：默认实现 + 可重写的经典模板。</li>
-    <li><strong>组合的产物还是 Runnable</strong>：所以能无限套娃，且整体自动具备全部能力。</li>
-  </ul>
-</div>
-
-<div class="card key">
-  <div class="tag">✅ 本课要点</div>
-  <ul>
-    <li>Runnable 是 LangChain 的<strong>统一抽象</strong>：模型/提示/工具/解析器都是它。</li>
-    <li>统一接口 = <span class="mono">invoke / stream / batch</span>（+ 异步版）；<span class="mono">invoke</span> 是抽象方法，其余有默认实现。</li>
-    <li><span class="mono">|</span>（<span class="mono">__or__</span>）把组件拼成链，这套语法叫 <strong>LCEL</strong>；链本身也是 Runnable。</li>
-    <li>下一课：看 <span class="mono">|</span> 拼出来的到底是什么对象，以及顺序/并行两种组合。</li>
-  </ul>
-</div>
-<div class="selftest">
+  <p class="lead">M3 临时页面：Task 2 会替换为完整 C-level lesson。</p><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
   <div class="qn">1. LangChain 让“模型/提示/工具/解析器”全都实现同一个 <code>Runnable</code> 接口。这个“万物皆 Runnable”的统一抽象，最大的回报是？</div>
@@ -576,7 +360,7 @@ chain.configurable_alternatives(ConfigurableField(<span class="st">"llm"</span>)
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="07-agents-intro.html"><div class="dir">← 上一课</div><div class="ttl">Agent 入门</div></a><a class="next" href="09-runnable-compose.html"><div class="dir">下一课 →</div><div class="ttl">Runnable 如何组合</div></a></div>
+  <div class="footnav"><a class="prev" href="14-streaming-callbacks.html"><div class="dir">← 上一课</div><div class="ttl">Streaming 与 Callbacks</div></a><a class="next" href="09-runnable-compose.html"><div class="dir">下一课 →</div><div class="ttl">LCEL 管道与 Sequence</div></a></div>
 </div>
 
 </body></html>
