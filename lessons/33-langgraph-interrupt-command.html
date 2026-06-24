@@ -298,7 +298,79 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第五部分 · LangGraph 执行引擎</div>
     <h1>interrupt、Command 与人在回路</h1>
   </div>
-<p class="lead">M5 临时页面：Task 2 会替换为完整 C-level lesson。</p>
+
+<p class="lead">复杂 Agent 不应该把所有决定都交给模型自动执行。LangGraph 用 <span class="mono">interrupt</span> 暂停图，把需要人工或外部系统确认的信息交还给调用方；调用方再用 <span class="mono">Command</span> 把 resume payload、状态更新和跳转意图送回运行时。interrupt 不是普通异常，Command 也不是随便返回的 dict：前者是受控暂停，后者是“恢复值、更新状态、选择去向”的控制原语。本课用审批流程追踪 node interrupt、caller 返回 <span class="mono">Command(resume={"approved": True, "comment": "ok"})</span>、图继续执行的全过程。</p>
+<div class="card analogy"><div class="tag">🧩 生活类比</div>把 interrupt 想成医院手术室的暂停核对。医生准备进行高风险步骤时，不是把流程崩溃掉，而是按下暂停铃，请家属或主治医生确认；确认单上可能写同意、备注和下一步安排，这张确认单就是 Command。手术团队收到确认单后，从安全的记录点恢复，更新病历，再决定继续原计划、改去观察室，还是终止手术。暂停不是失败，而是把自动流程交给人类判断的一道闸门。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：中断、恢复与控制命令</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">interrupt</div><div class="mn-desc">节点内声明需要外部输入，运行时捕获为 GraphInterrupt 并把值返回给调用方</div></div><div class="map-node source"><div class="mn-label">GraphInterrupt</div><div class="mn-desc">不是业务失败，而是可恢复暂停信号，需要 checkpoint 支撑</div></div><div class="map-node now"><div class="mn-label">Command.resume</div><div class="mn-desc">调用方把人工输入交回 interrupt 调用点</div></div><div class="map-node now"><div class="mn-label">Command.update/goto</div><div class="mn-desc">同一个原语还能写状态、改变下一跳，表达人审后的控制流</div></div><div class="map-node after"><div class="mn-label">CompiledStateGraph</div><div class="mn-desc">高层状态图编译后通过 Pregel.stream/invoke 暴露这些能力</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>interrupt/Command 的源码阅读要把 types、errors、Pregel.stream 和 CompiledStateGraph 连起来。文件 + 符号名能帮助区分“用户节点如何发出暂停”“运行时如何传播暂停”“调用方如何恢复”。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">langgraph/types.py</td><td class="mono">interrupt</td><td>节点内部调用的暂停原语，向外暴露需要人工或外部系统提供的值</td><td>节点执行中触发，运行时把信息交给 stream/invoke 调用者</td></tr><tr><td class="mono">langgraph/types.py</td><td class="mono">Command</td><td>控制原语，可携带 resume、update、goto 等字段，表达恢复输入、状态更新和跳转</td><td>调用方或节点返回 Command，Pregel 解释并继续调度</td></tr><tr><td class="mono">langgraph/errors.py</td><td class="mono">GraphInterrupt</td><td>运行时用于区别受控中断与普通异常的信号</td><td>interrupt 触发后沿 Pregel 执行边界传播</td></tr><tr><td class="mono">langgraph/pregel/main.py</td><td class="mono">Pregel.stream</td><td>流式运行入口，能把 interrupt、debug、values、updates 等事件交给调用方</td><td>调用方观察到暂停事件后决定是否返回 Command</td></tr><tr><td class="mono">langgraph/graph/state.py</td><td class="mono">CompiledStateGraph</td><td>用户编译后的状态图对象，对外提供 invoke/stream/get_state/update_state 等接口</td><td>高层图 API 最终复用 Pregel 的中断恢复能力</td></tr></table>
+<h2>状态流：审批节点暂停再恢复</h2>
+<div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>准备高风险动作</h4><p>节点发现将要退款、发邮件或执行交易，需要人工确认。它把待审批摘要放进 interrupt payload。</p><div class="mono">interrupt({&#x27;action&#x27;: &#x27;refund&#x27;, &#x27;amount&#x27;: 500})</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>运行时暂停</h4><p>GraphInterrupt 被 Pregel 捕获。因为有 checkpointer，当前线程停在可恢复 checkpoint 上。</p><div class="mono">state.next includes approval node</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>调用方展示</h4><p>stream 把暂停信息交给 UI/API。人类审核员看到金额、理由、上下文，填写同意和备注。</p><div class="mono">UI form -&gt; approved/comment</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>Command 恢复</h4><p>调用方用同一 thread_id 继续调用，并传入 Command(resume={&#x27;approved&#x27;: True, &#x27;comment&#x27;: &#x27;ok&#x27;})。</p><div class="mono">Command(resume=...)</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>图继续执行</h4><p>interrupt 调用点获得 resume 值，节点写入 approval，再 goto 执行实际退款或拒绝分支。</p><div class="mono">update approval -&gt; goto execute_refund</div></div></div></div>
+<h2>Trace：approval workflow</h2>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. model proposes</td><td>用户要求退款 500 元，risk_score=&#x27;high&#x27;</td><td>route 进入 approval 节点</td><td>next=&#x27;approval&#x27;</td></tr><tr><td>2. node interrupts</td><td>approval 节点读取 refund_request</td><td>调用 interrupt({&#x27;amount&#x27;: 500, &#x27;reason&#x27;: &#x27;high risk&#x27;})</td><td>GraphInterrupt，stream 返回待审批 payload</td></tr><tr><td>3. human reviews</td><td>UI 展示 payload 和历史 state</td><td>审核员点击通过并填写 ok</td><td>Command(resume={&#x27;approved&#x27;: True, &#x27;comment&#x27;: &#x27;ok&#x27;})</td></tr><tr><td>4. resume</td><td>同一 thread_id + Command.resume</td><td>运行时从 checkpoint 恢复，interrupt 返回 resume payload</td><td>approval_result={&#x27;approved&#x27;: True, &#x27;comment&#x27;: &#x27;ok&#x27;}</td></tr><tr><td>5. continue</td><td>approval_result approved</td><td>节点返回 Command(update={&#x27;approval&#x27;: ...}, goto=&#x27;execute_refund&#x27;)</td><td>下一超步执行退款节点</td></tr></table>
+<h2>简化源码走读：interrupt 与 Command</h2>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">langgraph/types.py :: interrupt / Command</span><span class="ln">简化版</span></div><pre>def approval_node(state):
+    decision = interrupt({
+        &#x27;kind&#x27;: &#x27;refund_approval&#x27;,
+        &#x27;amount&#x27;: state[&#x27;amount&#x27;],
+    })
+    if decision[&#x27;approved&#x27;]:
+        return Command(
+            update={&#x27;approval&#x27;: decision},
+            goto=&#x27;execute_refund&#x27;,
+        )
+    return Command(update={&#x27;approval&#x27;: decision}, goto=&#x27;reject&#x27;)
+</pre><div class="cw-note">真实恢复依赖 checkpointer 和同一 thread_id。interrupt 第一次运行时暂停；恢复时同一调用点得到 Command.resume 中的值。Command 可以从调用方传入，也可以由节点返回，用统一结构表达更新与跳转。</div></div><h2>interrupt 不是普通异常</h2><p>普通异常表示程序遇到未处理失败，通常要回滚或终止。GraphInterrupt 表示图主动把控制权交还给外部世界，等待一个值后可以继续。二者的处理策略完全不同：异常要修 bug 或走失败分支；interrupt 要保存状态、展示问题、收集输入、用同一线程恢复。</p><p>这也是为什么 interrupt 几乎总是和 checkpointer 一起使用。没有 checkpoint，暂停后就没有可靠位置可以恢复。你可以把 interrupt 看成“可恢复异常”，但更准确地说，它是运行时协议：节点发出暂停请求，Pregel 记录停点，调用方返回 Command，运行时把 resume 值送回原调用点。</p><p>调试时要区分“节点抛错导致失败”和“节点中断等待人”。如果 UI 把 GraphInterrupt 当成 500 错误，用户会以为系统崩了；如果日志把它当成正常事件，就能展示审批卡片并保持线程等待。</p><h2>Command 为什么同时包含 resume、update、goto</h2><p>人审后的动作通常不只是一段输入。审批通过时，你要把审批结果写入 state，可能跳去 execute 节点；审批拒绝时，要写入拒绝原因，跳去 reject 节点；需要补充信息时，可能回到 ask_user。Command 把这些控制意图放在同一个结构里，避免调用方先 update_state、再手动改边、再 invoke 的多步脆弱流程。</p><p>resume 的语义是“把这个值交回正在等待的 interrupt 调用点”。update 的语义是“向图状态写入这些增量”。goto 的语义是“下一步去这个节点或这些节点”。三者正交，可以单独用，也可以组合。理解这个正交性，就能把 human-in-the-loop、agent handoff、修补状态和路由控制看成同一套机制。</p><p>不过 Command 不是万能遥控器。goto 必须指向图里合法节点，update 必须符合 state schema，resume 必须匹配等待点需要的数据形状。调用方传入任意 dict 不会自动变成安全业务流程；你仍要做权限校验、payload 校验和审计记录。</p><h2>恢复会重新执行什么</h2><p>interrupt 的一个重要边界是恢复语义。常见心智模型是：恢复后运行时会回到包含 interrupt 的节点，让 interrupt 调用返回 resume 值，然后节点继续计算。由于实现需要重建调用栈，interrupt 之前的代码可能重新执行。具体行为要看版本和节点结构，但工程上应按“interrupt 之前不要做不可重复副作用”来设计。</p><p>高风险副作用应放在审批之后。例如不要先扣款再 interrupt 等待确认；应先 interrupt，拿到 approved=True 后再进入 execute_refund 节点扣款。若必须在中断前做外部调用，必须保证幂等，例如使用业务 idempotency key，或把副作用结果写入 checkpoint 后让恢复逻辑检测已执行。</p><p>这个规则看似保守，却能避免真实事故。人工审批常发生在退款、发信、删数据、下单、创建工单等副作用前。把 interrupt 放在副作用之前，配合 Command.goto 到执行节点，是最清晰也最安全的结构。</p><h2>设计 human-in-the-loop 的数据边界</h2><p>interrupt payload 应该足够让人做决定，但不应该泄露不必要的敏感信息。审批卡片通常包含动作类型、金额、原因、模型证据、相关消息摘要和可选建议；不应把整份内部 state 原样暴露给前端，尤其是包含密钥、系统提示词或其他用户数据时。</p><p>resume payload 应该结构化。不要只传 'yes' 或 'ok'，而应传 {'approved': True, 'comment': 'ok', 'reviewer_id': '...'} 这类可审计字段。节点收到后先校验字段，再写入 approval channel。结构化 payload 让后续节点能清楚地区分通过、拒绝、要求修改和超时。</p><p>还要定义超时和取消。如果审核员一直不处理，线程是否保持等待？是否自动拒绝？是否通知用户？这些不是 LangGraph 自动替你决定的业务规则。interrupt 只提供暂停点，产品规则仍要在图结构和外部服务里明确。</p><h2>stream 视角下的中断</h2><p>Pregel.stream 的价值在于调用方可以逐步观察事件，而不是等 invoke 最终返回。中断发生时，stream 可以把 interrupt 信息作为事件交出，UI 立即渲染审批表单；debug 模式还可以显示中断发生在哪个 step、哪个 task、哪个节点。</p><p>恢复时仍要使用同一 thread_id。很多失败来自调用方拿到 interrupt 后丢失 config，下一次把 Command 发到新线程。运行时在新线程里找不到等待点，自然无法把 resume 值交回原 interrupt。把 thread_id 和 checkpoint namespace 存在审批任务记录里，是生产系统必须做的事情。</p><p>如果一个图可能同时有多个 interrupt，要记录每个 interrupt 的上下文和路径。不要只在前端保存“当前有个审批”。多用户、多标签页、多 agent handoff 场景下，审批事件必须能回到准确线程和准确等待点。</p><h2>工程复盘：人审流程的安全边界</h2><p>human-in-the-loop 的核心不是让人点一个按钮，而是把自动系统的风险边界显式化。哪些动作必须审批，审批人需要哪些证据，审批结果如何影响后续节点，审批记录如何审计，这些问题都应在图和外部系统里有明确答案。interrupt 只负责暂停，不负责替产品定义规则。</p><p>审批 payload 要做到足够但最小。足够是指审核员能判断动作是否合理，例如金额、对象、理由、模型证据、工具结果、风险分数；最小是指不暴露与决策无关的内部提示、其他用户信息或密钥。很多安全问题不是模型自动执行造成的，而是人审 UI 泄露了过多 state。</p><p>resume payload 要可验证。approved=True 只是一个布尔值，通常不够。更好的结构包括 reviewer_id、approved、comment、reviewed_at、policy_version，必要时还要包含签名或后端生成的审批记录 id。节点收到 resume 后应校验字段，而不是把前端传来的任意对象写进 state。</p><p>Command.update 和 Command.goto 让审批结果进入图语义。通过时写 approval 并去 execute，拒绝时写 rejection 并去 notify_user，需要补件时写 request_more_info 并回到 ask_user。不要在调用方外部偷偷执行退款再让图继续，否则 trace 会看不到真正的副作用。</p><p>副作用节点应独立且幂等。审批节点只负责收集决定，execute_refund 节点负责调用支付系统，并使用 refund_id 或 operation_id 防重复。这样即使恢复、重试或 worker 崩溃，也能通过外部幂等键避免重复扣款。把审批和执行写在一个节点里，会让恢复边界变得模糊。</p><p>超时策略必须提前设计。审批可能几分钟，也可能几天。线程等待期间 checkpoint 要保留多久，用户是否能取消，系统是否提醒审批人，超时后默认拒绝还是升级，这些都不是 interrupt 自动提供的。可以用外部任务队列或调度器在超时后向同一 thread 发送 Command。</p><p>多审批人场景要避免竞态。两个人同时打开审批页面，一个通过一个拒绝，哪个生效？可以让后端审批服务先完成乐观锁或状态机判断，再只向 LangGraph 发送一个最终 Command。不要让多个前端直接向同一等待点竞争写 resume。</p><p>中断恢复的权限检查不能只靠 thread_id。攻击者如果猜到 thread_id，不应能提交 Command。恢复 API 要验证当前用户是否有权审批该 action、该 checkpoint 是否仍在等待、payload 是否符合当前 policy。LangGraph 是运行时，不是权限系统。</p><p>调试人审问题时，先看三个对象：等待时的 StateSnapshot、审批系统保存的 decision record、恢复时传入的 Command。三者应该能互相对应。如果 state 有 approval 但审批系统没有记录，说明有人绕过了流程；如果审批系统有记录但图没继续，说明 Command 没有送回正确线程。</p><p>一个成熟的人审图会把自动化和人工判断都纳入 trace。模型提出动作、路由进入审批、人类给出决定、图执行副作用，每一步都有 checkpoint 和 metadata。这样事故发生后，团队能回答谁在什么时候基于什么信息批准了什么，而不是只看到一个最终退款结果。</p>
+<h2>常见误解与边界情况</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：interrupt 就是 raise Exception</div><div class="pf-correct">正确：它是受控暂停信号，预期由调用方收集输入后恢复。</div></div><div class="pitfall"><div class="pf-wrong">误解：Command(resume=...) 会自动更新 state</div><div class="pf-correct">正确：resume 只返回给等待点；要持久记录审批结果，节点或 Command 还需要 update。</div></div><div class="pitfall"><div class="pf-wrong">误解：可以在 interrupt 前执行扣款</div><div class="pf-correct">正确：恢复可能重跑前置代码，高风险副作用应放在审批通过后的独立节点，并做幂等。</div></div><div class="pitfall"><div class="pf-wrong">误解：前端随便传 thread_id 就能恢复</div><div class="pf-correct">正确：恢复需要同一线程、权限校验和匹配等待点，生产系统必须保存并验证 config。</div></div></div><h2>实践提示：审批图的端到端验收</h2><p>验收审批图时，不要只测 approved=True 的快乐路径。还要测试拒绝、补充信息、审批超时、审批人无权限、重复提交 Command、恢复时 thread_id 错误、执行节点失败等场景。</p><p>通过路径应证明三件事：interrupt payload 足够审核，resume payload 被校验并写入 approval，execute 节点只在批准后运行。任何一个条件缺失，都可能让人审流于形式。</p><p>拒绝路径应证明副作用没有发生。比如退款审批拒绝后，支付系统不应收到 refund 请求，state 中应记录拒绝原因，用户通知节点应能解释结果。</p><p>重复提交场景尤其重要。用户双击按钮、浏览器重试、审批服务超时重发，都可能让同一个决定被发送两次。后端和副作用节点都应使用幂等键。</p><p>恢复错线程场景可以暴露 config 管理问题。Command 如果被发到新 thread，运行时找不到等待点；如果被发到别人的 thread，则是严重安全事故。审批任务记录必须保存并校验 thread_id、namespace 和 checkpoint。</p><p>审批 UI 还应展示足够上下文，但隐藏敏感内部字段。测试时可以故意在 state 放入不应展示的字段，确认 payload 构造函数不会泄露它。</p><p>执行节点失败后，图应有可解释状态：审批已经通过，但副作用执行失败，需要重试或人工处理。不要把执行失败伪装成审批未发生。</p><p>这些验收让 interrupt 与 Command 从 API 用法变成可靠流程。人审不是一个按钮，而是一条带权限、审计、幂等和恢复语义的状态机。</p><h2>补充推演：Command 让控制流保持可审计</h2><p>如果没有 Command，审批系统可能会分散成三段：前端调用一个接口保存审批结果，后端再手动改数据库，最后另一个接口触发图继续。三段之间任何一步失败，图状态和业务记录都可能不一致。Command 的价值是把恢复输入、状态更新和下一跳放在同一个运行时事件里。</p><p>例如通过审批时，Command.resume 把表单值交回 interrupt，节点校验后返回 Command(update={'approval': decision}, goto='execute_refund')。trace 里能看到审批结果写入，也能看到为什么下一步去执行退款。拒绝时同理写 rejection 并 goto notify_user。</p><p>这种可审计性对合规场景很重要。事后复盘时，你可以从 checkpoint 看到模型提出退款，从 interrupt 看到等待人工，从 Command 看到审核员决定，从 execute 节点看到外部退款请求。每一步都有状态证据，而不是散落在多个服务日志里。</p><p>Command 也让多 Agent handoff 更朴素。所谓交接给另一个 agent，本质上是更新共享状态并 goto 另一个节点或子图。理解这一点后，就不需要为每种交接发明新机制，只要把交接原因、上下文和目标写清楚。</p><p>不过，Command 的集中表达不等于绕过业务校验。恢复 API 仍应确认当前 checkpoint 正在等待审批，审批人有权限，payload 符合 schema，goto 目标合法。运行时负责执行命令，应用负责决定谁可以发命令。</p><p>因此，在代码评审中看到 Command 时，应同时问三个问题：resume 值是否可信，update 是否符合审计要求，goto 是否让副作用边界更清晰。能回答这三点，Command 才是安全控制原语。</p><h2>最后校验：把概念写成团队约定</h2><p>完成一个图之后，建议在设计评审里用一句话描述本页概念的边界：哪些状态由谁写入，哪些动作在哪个超步可见，哪些恢复依赖同一 thread，哪些实验必须走新 namespace。能说清这些约定，代码才不只是能运行，而是能被后来的人维护。</p><p>团队还应把这些约定放进测试和调试模板。每个关键节点至少有输入输出样例，每个并行区域有读写矩阵，每个持久流程有恢复用例，每个人审流程有拒绝和重复提交用例，每个调试分支有 checkpoint 记录。约定如果只存在脑子里，轮到事故时就会失效。</p><p>当需求变化时，先更新约定，再更新节点。新增一个并行分支，要重新检查 fan-in；新增一个审批动作，要重新检查副作用位置；新增一个调试分支，要重新检查 namespace；新增一个状态字段，要重新检查 checkpoint 中是否需要长期保存。</p><p>这套做法看似繁琐，本质是在用工程纪律保护 Agent 系统。LangGraph 给了显式图、显式状态和显式历史，团队要做的是把显式性继续延伸到评审、测试、权限和运维中。</p><div class="card lab"><div class="tag">🧪 小实验 · 设计退款审批图</div><ol><li>列出 state key：refund_request、risk_score、approval、messages，并决定哪些需要 reducer。</li><li>让 route 节点在 risk_score 高时进入 approval，否则直接进入 execute_refund。</li><li>approval 节点调用 interrupt，payload 只包含审批必需字段。</li><li>调用方返回 Command(resume={&#x27;approved&#x27;: True, &#x27;comment&#x27;: &#x27;ok&#x27;}) 后，节点写 approval 并 goto execute_refund。</li><li>把 execute_refund 设计成幂等副作用节点，使用 refund_id 作为 idempotency key。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>LangGraph 的 interrupt API、Command 字段和 stream 事件格式可能随版本扩展，但“中断是可恢复暂停、Command 是恢复/更新/跳转原语、checkpoint/thread_id 是恢复前提”的心智模型稳定。读新版源码时重点跟踪 types.py、errors.py 与 Pregel.stream 的交界。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>interrupt 用来把图暂停在可恢复边界，不应被当成普通失败异常。</li><li>Command.resume 把人工输入交回等待点，Command.update/goto 表达状态更新和控制流跳转。</li><li>人审流程必须依赖稳定 thread_id/checkpoint，并做好权限、结构化 payload 和审计。</li><li>高风险副作用放在 interrupt 之后，并使用幂等键防止恢复或重试造成重复执行。</li></ul></div><div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. interrupt 与普通异常最大的语义差别是什么？</div>
+  <ol class="opts">
+    <li>interrupt 只能在测试里使用</li>
+    <li>interrupt 表示受控暂停，预期通过 checkpoint 和 Command.resume 恢复；普通异常通常表示失败</li>
+    <li>interrupt 不需要 thread_id 或 checkpointer</li>
+    <li>interrupt 会自动执行所有高风险副作用</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。GraphInterrupt 是运行时协议的一部分，用来把控制权交给调用方；它不是未处理错误。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. Command(resume={...})、Command(update={...})、Command(goto='x') 分别表达什么？</div>
+  <ol class="opts">
+    <li>resume 给等待的 interrupt 返回值，update 写状态增量，goto 指定后续控制流去向</li>
+    <li>它们只影响前端 UI，不影响图运行</li>
+    <li>resume 只能删除 checkpoint，update 只能改配置，goto 只能结束图</li>
+    <li>三者完全等价，只是字段名不同</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。Command 把恢复输入、状态更新和跳转控制放在一个正交原语里，适合人审、handoff 和修补流程。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 在退款审批节点中，为什么高风险副作用通常应放在 interrupt 之后？</div>
+  <ol class="opts">
+    <li>因为 interrupt 之后不能再运行任何节点</li>
+    <li>因为 Command 不能携带审批备注</li>
+    <li>因为审批前执行扣款更容易通过测试</li>
+    <li>因为恢复/重试可能重新执行 interrupt 前代码，副作用提前执行会造成重复扣款或重复发信</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。恢复语义要求副作用边界清晰。先暂停审批，通过后再 goto 幂等执行节点，是更安全的设计。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>设计一个退款 approval flow：interrupt payload 包含哪些字段？resume payload 怎样结构化？哪些字段要写入 state 供审计？</li>
+    <li>如果一个节点在 interrupt 前已经调用了外部发邮件 API，恢复时可能出现什么事故？请提出两种修复：移动副作用或做幂等。</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="26-langgraph-persistence-control.html"><div class="dir">← 上一课</div><div class="ttl">Checkpoint 与持久化</div></a><a class="next" href="34-langgraph-time-travel-debug.html"><div class="dir">下一课 →</div><div class="ttl">时间旅行、回放与调试</div></a></div>
 </div>
 

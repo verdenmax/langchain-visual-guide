@@ -1531,111 +1531,213 @@ QUIZZES = {
         ],
     },
 
-    # ===== LangGraph 引擎旧版 ================================================
+    # ===== 第五部分 · LangGraph 执行引擎 =====================================
     "25-langgraph-pregel-engine.html": {
         "mcq": [
             {
-                "q": "LangGraph 借用 Pregel/BSP 的“超步”模型，分 Plan→Execution→Update。其中“本步的写、要下一步才可见”最关键保证了什么？",
+                "q": "Pregel/BSP 超步中的 Plan、Execution、Update 三段，最关键的工程收益是什么？",
                 "opts": [
-                    "速度",
-                    "确定性：并行节点看不到彼此本步的半成品，于是同样输入→同样结果，可复现、可持久化",
-                    "省内存",
-                    "好调试",
+                    "让节点可以在同一超步内立刻读取彼此刚写入的半成品",
+                    "把任务选择、并行执行、统一提交分开，让同批任务读稳定快照，结果更确定可复现",
+                    "取消 channel 和 reducer，直接修改全局 dict",
+                    "保证模型回答一定正确，不再需要调试",
                 ],
                 "answer": 1,
-                "why": "“写入延迟到下一步可见”消除了并行节点间的竞态，让执行确定可复现——这是能把任意一步存档/重放的前提。",
+                "why": "BSP 屏障的核心是可见性控制：本步任务读上一轮已提交状态，写入缓冲后在 Update 阶段统一提交，避免调度顺序造成竞态。",
             },
             {
-                "q": "状态某个键的 reducer，本质上“就是那个 channel 的更新函数”。把“reducer”和“channel”统一起来，优雅在哪？",
+                "q": "为什么 LangGraph 要把节点写入先放进 buffered writes，而不是节点返回后马上改 channel？",
                 "opts": [
-                    "名字统一",
-                    "你在 state 上声明的 reducer，被直接落实为底层通道的合并逻辑——上层语义和底层机制是同一个东西，没有翻译损耗",
-                    "更快",
-                    "巧合",
+                    "因为 Python 不能修改对象",
+                    "因为所有写入都必须丢弃",
+                    "为了让并行任务互相看不到本步半成品，apply_writes 再按 channel/reducer 规则统一合并",
+                    "只是为了让日志更长，没有语义意义",
                 ],
-                "answer": 1,
-                "why": "上层“标个 reducer”和底层“channel 怎么合并”是一回事。概念在不同抽象层级保持一致，是设计自洽的体现。",
+                "answer": 2,
+                "why": "buffered writes 是确定性和 fan-in 的基础。它把节点执行与状态提交隔开，让合并规则集中在 Update 阶段。",
             },
             {
-                "q": "LangGraph 没自己发明执行模型，而是搬来 20 年前 Google Pregel 的成熟图计算范式。这种“借用成熟模型”好在哪？",
+                "q": "prepare_next_tasks 在 Plan 阶段主要根据什么决定下一批 PregelTask？",
                 "opts": [
-                    "省力",
-                    "站在被验证过的理论肩上：BSP 的确定性/并行/可持久化特性现成可用，不必从零趟坑",
-                    "显得有学问",
-                    "没好处",
+                    "channel 版本变化、订阅关系、branch/send 等运行时状态",
+                    "源码文件里的函数定义顺序",
+                    "节点函数运行耗时的排名",
+                    "最终答案是否已经生成中文",
                 ],
-                "answer": 1,
-                "why": "把一个被充分研究的成熟模型迁移到新场景(LLM Agent)，复用了它所有被验证的好性质。好设计常是“挪用”而非“发明”。",
-            },
-            {
-                "q": "课里把 <code>recursion_limit</code> 解释为“超步循环 <code>step &gt; stop</code> 的兜底”。从这个实现细节能看出它的真正作用是？",
-                "opts": [
-                    "限制递归函数",
-                    "给“可能无限转圈的图”一个硬性步数上限，是防失控的最后一道保险",
-                    "控制内存",
-                    "限制并发",
-                ],
-                "answer": 1,
-                "why": "在超步循环里 step 超过 stop 就停。recursion_limit 不是限制递归调用，而是限制“图最多推进多少个超步”——失控的兜底。",
+                "answer": 0,
+                "why": "Plan 不是简单拓扑遍历，而是查看哪些 channel 有新可见版本、哪些节点订阅这些变化，以及是否有 pending send/branch。",
             },
         ],
         "open": [
-            "“本步写、下步见”用一条简单规则换来了确定性和可并行。你在并发编程里见过哪些“靠约束可见性/时序来消除竞态”的类似招数？",
-            "LangGraph 借用了 Pregel(图计算)的成熟模型。如果让你为“LLM Agent 的执行”从零设计引擎，你会从哪个已有领域(数据库事务? actor 模型? 数据流?)借思想？",
+            "任选一个 model → tools → model 的图，按 Plan、Execution、Update 写出一个超步的任务选择、节点读取、buffered writes 和下一步可见状态。",
+            "解释“本步写、下步见”为什么能减少并行竞态；如果改成节点返回后立即修改共享 state，会出现哪两类调试困难？",
+        ],
+    },
+    "32-langgraph-tasks-channels.html": {
+        "mcq": [
+            {
+                "q": "PregelTask 与用户定义的 node 最准确的关系是什么？",
+                "opts": [
+                    "二者完全相同，都是同一个函数对象",
+                    "node 是定义，PregelTask 是某次运行实例；动态 fan-out 时同一 node 可以生成多个 task",
+                    "PregelTask 只用于保存最终答案，与执行无关",
+                    "node 只能同步运行，PregelTask 只能异步运行",
+                ],
+                "answer": 1,
+                "why": "运行时调度的是任务实例。任务携带输入、路径、配置、触发信息和写入上下文，比节点定义更具体。",
+            },
+            {
+                "q": "两个并行任务写同一个 channel 时，运行时应如何判断能否合并？",
+                "opts": [
+                    "看该 channel/reducer 是否定义了多写合并语义；没有语义时应暴露冲突",
+                    "永远选择最后完成的任务",
+                    "随机保留一个值以提高吞吐",
+                    "把两个值转成字符串拼接，不需要 schema",
+                ],
+                "answer": 0,
+                "why": "fan-in 的关键是业务合并规则。列表聚合、消息合并、数值累加可以由 reducer 表达；唯一值多写应失败。",
+            },
+            {
+                "q": "ChannelWrite 的设计价值主要体现在哪里？",
+                "opts": [
+                    "让节点不需要返回任何内容",
+                    "把 partial state、branch、send 等输出归一成标准 writes，方便 debug、checkpoint 和 apply_writes 处理",
+                    "强制所有 channel 都只能保存字符串",
+                    "绕过 Pregel 的 Update 阶段直接写数据库",
+                ],
+                "answer": 1,
+                "why": "标准化写入让不同节点输出形式进入同一运行时管道，后续才能统一记录来源、合并和持久化。",
+            },
+        ],
+        "open": [
+            "设计一个并行检索 fan-out：两个 retriever 分别写什么 channel？如果都写 documents，reducer 应处理顺序、去重和失败中的哪些问题？",
+            "某图报错说同一 step 多个任务写 final_answer。请写出排查路径：先看哪些 task，再判断应该加 reducer、拆 key，还是改图结构。",
         ],
     },
     "26-langgraph-persistence-control.html": {
         "mcq": [
             {
-                "q": "课里说持久化、时间旅行、人审“其实是同一个设计的三个面”。这个共同的底座是什么？",
+                "q": "configurable.thread_id 在 LangGraph 持久化中最核心的作用是什么？",
                 "opts": [
-                    "更大的内存",
-                    "“每个超步都把状态存成一个 checkpoint”——有了逐步存档，续跑/回到过去/暂停等人就都水到渠成",
-                    "更快的模型",
-                    "更多的节点",
+                    "决定模型温度",
+                    "作为会话/线程索引，让 checkpointer 找到同一条历史的最新或指定 checkpoint",
+                    "自动加密所有消息",
+                    "替代 state schema 和 reducer",
                 ],
                 "answer": 1,
-                "why": "一个机制(逐步 checkpoint)派生出多种能力(续跑/时间旅行/人审)。这是“找到正确的底层抽象、上层能力自然涌现”的范例。",
+                "why": "thread_id 是恢复同一运行历史的关键。没有稳定 thread_id，第二次调用通常会像新会话一样从空状态开始。",
             },
             {
-                "q": "interrupt 的恢复是“从节点开头重新执行”。课里专门把它列为“坑”。这个设计的代价是什么、该怎么应对？",
+                "q": "Checkpoint 与普通聊天日志的主要区别是什么？",
                 "opts": [
-                    "没有代价",
-                    "interrupt 之前的副作用(已发邮件/已扣款)会重复执行——应把副作用放在 interrupt 之后，或做幂等",
-                    "恢复会变慢",
-                    "状态会丢",
+                    "Checkpoint 只能保存字符串，聊天日志能保存对象",
+                    "Checkpoint 保存图在超步边界恢复所需的 channel values、versions、pending 信息和 metadata，不只是展示给用户的消息",
+                    "Checkpoint 不需要 checkpointer",
+                    "Checkpoint 只在程序退出时生成一次",
                 ],
                 "answer": 1,
-                "why": "“从头重放”换来了实现的简单与一致，但代价是 interrupt 前的代码会重跑。理解这个取舍，才能避免“重复扣款”这类真实事故。",
+                "why": "checkpoint 是运行状态存档，支撑 resume、get_state、history、interrupt 等能力；聊天日志只是其中可能的一部分。",
             },
             {
-                "q": "多个独立工具调用用 <code>Send</code>“扇出”，把“改状态 + 跳转”统一成 <code>Command</code>。把这两件事分成两个原语，体现了什么？",
+                "q": "使用 Pregel.update_state 修补状态时，哪种做法最安全？",
                 "opts": [
-                    "原语越多越好",
-                    "用正交的小原语覆盖图的控制流：Send 管“并行分身”、Command 管“状态+去向”，组合起来表达复杂流转",
-                    "为了好记",
-                    "没意图",
+                    "直接改底层存储里的 JSON，绕过运行时",
+                    "不记录操作者和原因，避免日志太多",
+                    "通过图的状态更新语义写入增量，并记录基于哪个 checkpoint、谁因为什么修改",
+                    "只要能恢复就可以忽略 state schema",
                 ],
-                "answer": 1,
-                "why": "又是“少数正交原语组合出复杂行为”。Send 和 Command 各管一件事，组合起来就能表达 map-reduce、handoff 等复杂控制流。",
-            },
-            {
-                "q": "多 Agent 的“handoff(交接)”被落实为 <code>Command(goto=另一个 agent)</code>。把“交接”建模成“改状态 + 跳转”，说明了什么？",
-                "opts": [
-                    "handoff 很神秘",
-                    "多 Agent 协作不需要新机制：它就是图里的“带状态更新的跳转”，复用了已有的控制流原语",
-                    "必须用 AutoGen",
-                    "很难实现",
-                ],
-                "answer": 1,
-                "why": "“交接”听起来高级，落到图模型就是 Command(goto)。用已有原语表达新概念，避免为每个新需求发明新机制——抽象选对了，能力就复用。",
+                "answer": 2,
+                "why": "update_state 仍应尊重 channel/reducer 语义，并保留审计信息，否则人审修补会变成新的黑盒。",
             },
         ],
         "open": [
-            "“逐步 checkpoint”这一个机制派生出了续跑/时间旅行/人审三种能力。回想你用过的系统，有没有“一个底层设计意外解锁了一堆上层能力”的例子？",
-            "interrupt“从节点头重放”带来了“副作用会重复”的坑。如果让你设计中断/恢复，你会选“从头重放(简单但有副作用风险)”还是“精确续接(复杂但无重复)”？为什么？",
+            "为客服对话图设计 checkpoint config：thread_id 从哪个业务对象来？checkpoint_ns 何时需要？如何防止不同用户读到彼此状态？",
+            "一次续聊丢失上下文。请按顺序检查 thread_id、checkpointer 生命周期、namespace、get_state 结果和 messages reducer。",
         ],
     },
+    "33-langgraph-interrupt-command.html": {
+        "mcq": [
+            {
+                "q": "interrupt 与普通异常最大的语义差别是什么？",
+                "opts": [
+                    "interrupt 表示受控暂停，预期通过 checkpoint 和 Command.resume 恢复；普通异常通常表示失败",
+                    "interrupt 只能在测试里使用",
+                    "interrupt 会自动执行所有高风险副作用",
+                    "interrupt 不需要 thread_id 或 checkpointer",
+                ],
+                "answer": 0,
+                "why": "GraphInterrupt 是运行时协议的一部分，用来把控制权交给调用方；它不是未处理错误。",
+            },
+            {
+                "q": "Command(resume={...})、Command(update={...})、Command(goto='x') 分别表达什么？",
+                "opts": [
+                    "三者完全等价，只是字段名不同",
+                    "resume 给等待的 interrupt 返回值，update 写状态增量，goto 指定后续控制流去向",
+                    "resume 只能删除 checkpoint，update 只能改配置，goto 只能结束图",
+                    "它们只影响前端 UI，不影响图运行",
+                ],
+                "answer": 1,
+                "why": "Command 把恢复输入、状态更新和跳转控制放在一个正交原语里，适合人审、handoff 和修补流程。",
+            },
+            {
+                "q": "在退款审批节点中，为什么高风险副作用通常应放在 interrupt 之后？",
+                "opts": [
+                    "因为 interrupt 之后不能再运行任何节点",
+                    "因为审批前执行扣款更容易通过测试",
+                    "因为恢复/重试可能重新执行 interrupt 前代码，副作用提前执行会造成重复扣款或重复发信",
+                    "因为 Command 不能携带审批备注",
+                ],
+                "answer": 2,
+                "why": "恢复语义要求副作用边界清晰。先暂停审批，通过后再 goto 幂等执行节点，是更安全的设计。",
+            },
+        ],
+        "open": [
+            "设计一个退款 approval flow：interrupt payload 包含哪些字段？resume payload 怎样结构化？哪些字段要写入 state 供审计？",
+            "如果一个节点在 interrupt 前已经调用了外部发邮件 API，恢复时可能出现什么事故？请提出两种修复：移动副作用或做幂等。",
+        ],
+    },
+    "34-langgraph-time-travel-debug.html": {
+        "mcq": [
+            {
+                "q": "StateSnapshot 调试时为什么不能只看 values？",
+                "opts": [
+                    "因为 values 永远为空",
+                    "因为还要结合 next、tasks、config、metadata 才能解释控制流、任务状态和写入来源",
+                    "因为 values 只保存 CSS 样式",
+                    "因为 StateSnapshot 不能用于调试",
+                ],
+                "answer": 1,
+                "why": "坏答案可能来自错误路由、失败任务或错误写入来源；只看当前值无法解释状态是怎样变成这样的。",
+            },
+            {
+                "q": "从生产 checkpoint 做时间旅行实验时，哪种方式更安全？",
+                "opts": [
+                    "直接覆盖主线历史，方便少存数据",
+                    "从选定 checkpoint 在新 namespace/thread 中 fork，记录实验修改，再与主线比较",
+                    "删除所有 metadata，避免干扰判断",
+                    "只改最终 HTML，不看运行历史",
+                ],
+                "answer": 1,
+                "why": "fork 能保护主线审计记录，同时允许对旧状态做受控实验。覆盖历史会破坏复盘能力。",
+            },
+            {
+                "q": "调查坏答案时，最合理的第一步是什么？",
+                "opts": [
+                    "立刻重写所有 prompt",
+                    "随机修改 reducer 直到答案变好",
+                    "固定 thread_id 和最终 checkpoint，调用 get_state_history 找出错误第一次出现的 step",
+                    "关闭 checkpoint，避免历史太复杂",
+                ],
+                "answer": 2,
+                "why": "先定位错误首次出现的位置，才能判断根因是工具、路由、reducer、状态覆盖还是模型解释。",
+            },
+        ],
+        "open": [
+            "一次最终答案把 cancelled 订单说成 shipped。请写出如何用 get_state_history 找到工具结果写入、最终模型回答前后的关键 snapshots。",
+            "你要从某个 checkpoint fork 做修复实验：选择 namespace、修改哪个状态、运行哪些后续节点、如何比较主线与分支？",
+        ],
+    },
+
 }
 
 
