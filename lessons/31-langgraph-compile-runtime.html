@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>24 · 工具调用内部 — LangChain 图解教程</title>
-<meta name="description" content="迁移中 · 内部源码｜工具调用内部：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>21 · compile 与 Runtime — LangChain 图解教程</title>
+<meta name="description" content="第四部分 · LangGraph 心智模型｜compile 与 Runtime：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="24 · 工具调用内部 — LangChain 图解教程">
-<meta property="og:description" content="迁移中 · 内部源码｜工具调用内部：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="21 · compile 与 Runtime — LangChain 图解教程">
+<meta property="og:description" content="第四部分 · LangGraph 心智模型｜compile 与 Runtime：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="24 · 工具调用内部 — LangChain 图解教程">
-<meta name="twitter:description" content="迁移中 · 内部源码｜工具调用内部：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="21 · compile 与 Runtime — LangChain 图解教程">
+<meta name="twitter:description" content="第四部分 · LangGraph 心智模型｜compile 与 Runtime：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -288,242 +288,18 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">迁移中 · 内部源码</span>
-    <span class="pill">24 / 36</span>
+    <span class="pill">第四部分 · LangGraph 心智模型</span>
+    <span class="pill">21 / 36</span>
   </div>
-  <div class="progress"><span style="width:66%"></span></div>
+  <div class="progress"><span style="width:58%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">迁移中 · 内部源码</div>
-    <h1>工具调用内部</h1>
+    <div class="part">第四部分 · LangGraph 心智模型</div>
+    <h1>compile 与 Runtime</h1>
   </div>
-  
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-第 8 课你学会了用 <span class="inline">@tool</span>。这一课深入源码，看清楚两件"魔法"到底怎么发生：
-<strong>① 你的函数怎么变成模型能读的 JSON Schema</strong>，<strong>② 模型返回的 tool_calls 怎么被解析和执行</strong>。
-</p>
-
-<div class="card analogy">
-  <div class="tag">🌐 生活类比</div>
-  你的 Python 函数说"中文"，大模型 API 只认"JSON 方言"。这中间需要一个<strong>翻译官</strong>：
-  去程把函数签名翻成 JSON Schema 给模型看，回程把模型说的"我要调这个函数、参数是这些"翻回成你能执行的调用。
-  这两段翻译，就是工具机制的核心。
-</div>
-
-<h2>去程：函数 → JSON Schema</h2>
-<p>当你 <span class="inline">@tool</span> 一个函数，<span class="inline">StructuredTool</span> 会用
-<span class="inline">create_schema_from_function</span> 读取<strong>函数签名 + 类型注解 + docstring</strong>，
-自动生成一个 pydantic schema：</p>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/tools/structured.py</span><span class="ln">推断 schema</span></div>
-<pre><span class="kw">if</span> args_schema <span class="kw">is</span> None <span class="kw">and</span> infer_schema:
-    <span class="cm"># 从函数签名自动推断参数 schema</span>
-    args_schema = create_schema_from_function(name, func, ...)
-</pre>
-</div>
-
-<div class="flow">
-  <div class="node hl"><div class="nt">Python 函数</div><div class="nd">get_weather(city: str)</div></div>
-  <div class="arrow">→</div>
-  <div class="node"><div class="nt">pydantic schema</div><div class="nd">推断参数类型</div></div>
-  <div class="arrow">→</div>
-  <div class="node"><div class="nt">JSON Schema</div><div class="nd">{city: {type: string}}</div></div>
-  <div class="arrow">→</div>
-  <div class="node hl"><div class="nt">发给模型</div><div class="nd">bind_tools</div></div>
-</div>
-
-<p><span class="inline">model.bind_tools([get_weather])</span> 就是把上面生成的 JSON Schema 塞进请求，
-告诉模型"你有这么个工具可用"。</p>
-
-<h2>回程：tool_calls → 执行 → ToolMessage</h2>
-<p>模型决定用工具时，会在响应里返回结构化的工具调用。partner 把它解析成
-<span class="inline">AIMessage.tool_calls</span>，其中每一项是一个 <span class="inline">ToolCall</span>：</p>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/messages/tool.py</span><span class="ln">ToolCall 结构</span></div>
-<pre><span class="kw">class</span> <span class="fn">ToolCall</span>(TypedDict):
-    name: str               <span class="cm"># 要调用的工具名</span>
-    args: dict[str, Any]    <span class="cm"># 参数（已是 Python dict）</span>
-    id: str | None          <span class="cm"># 本次调用的唯一 id</span>
-</pre>
-</div>
-
-<div class="vflow">
-  <div class="step"><div class="num">1</div><div class="sc"><h4>解析</h4><p>厂商响应中的工具调用被解析成 <span class="mono">AIMessage.tool_calls = [ToolCall, ...]</span>。</p></div></div>
-  <div class="step"><div class="num">2</div><div class="sc"><h4>匹配</h4><p>按 <span class="mono">name</span> 找到对应的工具对象。</p></div></div>
-  <div class="step"><div class="num">3</div><div class="sc"><h4>执行</h4><p><span class="mono">tool.invoke(tool_call["args"])</span> 真正运行你的函数。</p></div></div>
-  <div class="step"><div class="num">4</div><div class="sc"><h4>封装</h4><p>结果包成 <span class="mono">ToolMessage(content=..., tool_call_id=id)</span>，用 id 与请求一一对应。</p></div></div>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应</div>
-  <ul>
-    <li><span class="mono">@tool</span> → <span class="mono">tools/convert.py</span>；底层 <span class="mono">StructuredTool</span> → <span class="mono">tools/structured.py</span>。</li>
-    <li><span class="mono">ToolCall</span> / <span class="mono">ToolCallChunk</span> → <span class="mono">messages/tool.py</span>；<span class="mono">ToolMessage</span> 同文件。</li>
-    <li>在 Agent 里，这套"匹配 + 执行 + 封装"由 LangGraph 的 <span class="mono">ToolNode</span> 节点完成（下一课）。</li>
-  </ul>
-</div>
-
-<div class="card macro">
-  <div class="tag">🌍 宏观理解</div>
-  工具机制 = <strong>两段翻译 + 一个 id 配对</strong>。<span class="mono">tool_call_id</span> 像快递单号，
-  保证"哪个请求对应哪个结果"不会错乱（尤其当模型一次请求<strong>多个</strong>工具时）。
-  这套机制纯靠<strong>结构化消息</strong>运转——又一次印证"消息是通用货币"。
-</div>
-
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入两个内部机制。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 类型注解是怎么变成 JSON Schema 的 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 映射关系</div>
-      <div class="a"><span class="mono">create_schema_from_function</span> 读取签名，把 Python 类型映射成 JSON Schema 类型：
-<pre class="code">city: str         → {<span class="st">"type"</span>: <span class="st">"string"</span>}
-count: int        → {<span class="st">"type"</span>: <span class="st">"integer"</span>}
-ratio: float      → {<span class="st">"type"</span>: <span class="st">"number"</span>}
-tags: list[str]   → {<span class="st">"type"</span>: <span class="st">"array"</span>, <span class="st">"items"</span>: {<span class="st">"type"</span>: <span class="st">"string"</span>}}
-<span class="cm"># 没有默认值的参数 → required；docstring → description</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么用 pydantic 当中间层</div>
-      <div class="a">pydantic 既能<strong>生成</strong> JSON Schema（给模型看），又能在执行时<strong>校验</strong>模型传回的参数
-        （类型不对就报错）。一举两得，避免脏参数进入你的函数。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">你只写普通类型注解，schema 生成与参数校验全自动；想更精细时再用显式 <span class="mono">args_schema</span>。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> 流式下工具参数是"碎着来"的：ToolCallChunk <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 为什么会有 ToolCallChunk</div>
-      <div class="a">流式输出时，模型生成的工具参数 JSON 是<strong>一段段</strong>吐出来的（如 <span class="mono">{"ci</span> … <span class="mono">ty": "北</span> … <span class="mono">京"}</span>）。
-        每一段是一个 <span class="mono">ToolCallChunk</span>，累加后才拼成完整的 <span class="mono">ToolCall</span>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">要在 UI 上"边生成边显示工具调用"，就不能等参数全部到齐。分块 + 累加让你能实时呈现，
-        最终再得到可执行的完整调用。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">ToolCall</span> 与 <span class="mono">ToolCallChunk</span> 都在 <span class="mono">messages/tool.py</span>；
-        chunk 的累加规则与第 16 课的 <span class="mono">AIMessageChunk</span> 相加是同一套思路。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> 参数校验失败会怎样：错误如何"回灌"给模型 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 失败路径</div>
-      <div class="a">模型偶尔会传回<strong>不合法的参数</strong>（类型不对、缺必填项）。pydantic 校验不过 → 抛
-        <span class="mono">ValidationError</span>。默认情况下 <span class="mono">ToolNode</span>（<span class="mono">handle_tool_errors</span> 默认开启）会<strong>捕获</strong>它，
-        把错误信息包成一条 <span class="mono">ToolMessage</span>（<span class="mono">status="error"</span>）追加回对话——<strong>而不是让程序崩溃</strong>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 然后呢：模型会自我纠正</div>
-      <div class="a">这条错误 <span class="mono">ToolMessage</span> 回灌后，Agent 循环把它当作新的"观察"喂给模型，
-        模型通常会<strong>读懂报错、改对参数再调一次</strong>——这正是 Agent "试错 → 纠正"能力的来源。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 可配置 / 可加固</div>
-      <div class="a">行为由 <span class="mono">ToolNode(handle_tool_errors=...)</span> 控制（<span class="mono">langgraph.prebuilt</span>）：可用默认提示、自定义错误文案，或关掉直接抛。
-        还有现成的 <span class="mono">ToolRetryMiddleware</span> 能在工具抖动时自动重试（见第 9 课）。</div>
-    </div>
-  </div>
-</details>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li><strong>两段翻译 + id 配对</strong>：函数 ↔ JSON 全自动，pydantic 既生成 schema 又校验参数。</li>
-    <li><strong>ToolCallChunk 可累加</strong>：流式下工具参数碎着来，也能拼回完整调用。</li>
-  </ul>
-</div>
-
-<div class="card key">
-  <div class="tag">✅ 本课要点</div>
-  <ul>
-    <li>去程：函数签名 → <span class="mono">create_schema_from_function</span> → pydantic → JSON Schema → <span class="mono">bind_tools</span>。</li>
-    <li>回程：<span class="mono">AIMessage.tool_calls</span>（ToolCall）→ 匹配 → 执行 → <span class="mono">ToolMessage</span>，靠 <span class="mono">id</span> 配对。</li>
-    <li>类型注解和 docstring 直接决定模型看到的工具说明，<strong>务必写好</strong>。</li>
-    <li>下一课：看 Agent 把这套循环编成一张 LangGraph 状态图。</li>
-  </ul>
-</div>
-<div class="selftest">
-<h2>🧪 自测 · 想一想为什么这么设计</h2>
-<div class="quiz">
-  <div class="qn">1. 去程“函数签名 → schema → tool_calls”、回程“tool_calls → 执行 → ToolMessage”全自动。这“两段翻译”把什么复杂性挡在了你看不见的地方？</div>
-  <ol class="opts">
-    <li>“Python 世界 ↔ 模型的 JSON 世界”之间繁琐易错的格式转换与配对，你只写普通函数</li>
-    <li>没挡什么</li>
-    <li>模型推理</li>
-    <li>网络请求</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。把“函数↔JSON”双向翻译自动化，你的工具就是普通 Python 函数。这层翻译是 Agent 能“调用代码”的桥，被刻意隐藏。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">2. 工具结果和请求靠 <code>id</code> 配对（tool_call_id）。为什么需要 id，而不是按顺序匹配？</div>
-  <ol class="opts">
-    <li>一次可能并行发起多个工具调用，结果回来的顺序不定，用 id 才能可靠地把“结果”对回“请求”</li>
-    <li>防止重复</li>
-    <li>id 更短</li>
-    <li>凑字段</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。并行/乱序场景下，位置不可靠、id 才可靠。这个看似不起眼的 id，是支持“并行工具调用”的前提。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">3. 参数校验失败时默认不崩溃，而是把 <code>ValidationError</code> 包成 <code>ToolMessage(error)</code> 回灌给模型。这让 Agent 获得了什么？</div>
-  <ol class="opts">
-    <li>永不失败</li>
-    <li>自我纠正：模型读到报错→改对参数再试，错误成为新观察而非程序崩溃</li>
-    <li>更快崩溃</li>
-    <li>隐藏错误</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把“异常”翻译成“对话里的反馈”，闭环从崩溃变成纠正。这是 Agent 鲁棒性的来源，也呼应第 8 课的“错误转消息”。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. 类型注解和 docstring“直接决定模型看到的工具说明”。这把“写好注解/文档”从‘好习惯’变成了什么？</div>
-  <ol class="opts">
-    <li>可选项</li>
-    <li>装饰</li>
-    <li>影响模型能否正确调用工具的“功能性需求”——注解/文档写不好，模型就用不对工具</li>
-    <li>没影响</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。当文档成了“喂给模型的说明书”，它就不再是给人看的可选注释，而是直接影响 Agent 行为的输入。</div></div></div>
-  </details>
-</div>
-<div class="card spark">
-  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
-  <ul>
-    <li>用 id 配对支持了“并行工具调用”。但并行也意味着多个工具可能同时改外部状态、互相干扰。你会怎么判断哪些工具适合并行、哪些必须串行？</li>
-    <li>“把工具说明书交给类型注解和 docstring”很优雅，但模型表现就依赖你写得好不好。你会怎么测试“模型到底有没有看懂你的工具”？</li>
-  </ul>
-</div>
-</div>
-  <div class="footnav"><a class="prev" href="11-chat-internals.html"><div class="dir">← 上一课</div><div class="ttl">聊天模型内部</div></a><a class="next" href="13-agent-internals.html"><div class="dir">下一课 →</div><div class="ttl">Agent 内部</div></a></div>
+  <p class="lead">M4 临时页面：Task 2 会替换为完整 C-level lesson。</p>
+  <div class="footnav"><a class="prev" href="30-langgraph-reducers-channels.html"><div class="dir">← 上一课</div><div class="ttl">Reducer 与 Channel</div></a><a class="next" href="07-agents-intro.html"><div class="dir">下一课 →</div><div class="ttl">Agent 入门</div></a></div>
 </div>
 
 </body></html>

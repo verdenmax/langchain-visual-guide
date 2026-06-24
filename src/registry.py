@@ -6,6 +6,7 @@ this so the lesson set stays in sync.
 import part01_overview
 import part02_user_api
 import part03_runnable_lcel
+import part04_langgraph_model
 import part2
 import part3
 import part4
@@ -32,6 +33,11 @@ CONTENT = {
     "12-runnable-parallel-branch.html": part03_runnable_lcel.LESSON_14_PARALLEL_BRANCH,
     "13-runnable-config-callbacks.html": part03_runnable_lcel.LESSON_15_CONFIG_CALLBACKS,
     "15-runnable-retry-fallback.html": part03_runnable_lcel.LESSON_16_RETRY_FALLBACK,
+    "24-langgraph-mental-model.html": part04_langgraph_model.LESSON_17_GRAPH_WHY,
+    "28-langgraph-state-schema.html": part04_langgraph_model.LESSON_18_STATE_SCHEMA,
+    "29-langgraph-nodes-edges.html": part04_langgraph_model.LESSON_19_NODES_EDGES,
+    "30-langgraph-reducers-channels.html": part04_langgraph_model.LESSON_20_REDUCERS_CHANNELS,
+    "31-langgraph-compile-runtime.html": part04_langgraph_model.LESSON_21_COMPILE_RUNTIME,
     "07-agents-intro.html": part2.LESSON_07,
     "11-chat-internals.html": part3.LESSON_10,
     "12-tool-internals.html": part3.LESSON_11,
@@ -44,7 +50,6 @@ CONTENT = {
     "21-langchain-vs-autogen.html": part6.LESSON_CMP,
     "22-ai-stack.html": part6.LESSON_STACK,
     "23-learning-map.html": part6.LESSON_LEARN,
-    "24-langgraph-mental-model.html": part7.LESSON_LG1,
     "25-langgraph-pregel-engine.html": part7.LESSON_LG2,
     "26-langgraph-persistence-control.html": part7.LESSON_LG3,
     "27-glossary.html": glossary.LESSON_GLOSSARY,

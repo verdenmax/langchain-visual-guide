@@ -34,6 +34,11 @@ C_LEVEL_PAGES = {
     "12-runnable-parallel-branch.html": {"min_cjk": 4500, "min_visual": 5},
     "13-runnable-config-callbacks.html": {"min_cjk": 4500, "min_visual": 5},
     "15-runnable-retry-fallback.html": {"min_cjk": 4500, "min_visual": 5},
+    "24-langgraph-mental-model.html": {"min_cjk": 4500, "min_visual": 5},
+    "28-langgraph-state-schema.html": {"min_cjk": 4500, "min_visual": 5},
+    "29-langgraph-nodes-edges.html": {"min_cjk": 4500, "min_visual": 5},
+    "30-langgraph-reducers-channels.html": {"min_cjk": 4500, "min_visual": 5},
+    "31-langgraph-compile-runtime.html": {"min_cjk": 4500, "min_visual": 5},
 }
 
 RE_SCRIPT_STYLE = re.compile(r"<(script|style)\b.*?</\1>", re.I | re.S)
