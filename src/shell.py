@@ -285,7 +285,7 @@ SUBTITLES = {
     "12-runnable-parallel-branch.html": "RunnableParallel · RunnableBranch · assign/map/passthrough",
     "12-tool-internals.html": "函数 → JSON Schema → tool_calls",
     "13-runnable-config-callbacks.html": "RunnableConfig · ensure_config · callbacks/tags/metadata",
-    "13-agent-internals.html": "create_agent · StateGraph · tools_condition · ToolNode",
+    "13-agent-internals.html": "create_agent · StateGraph · _make_model_to_tools_edge · ToolNode",
     "14-streaming-callbacks.html": "stream/astream_events · callback manager · run tree",
     "15-runnable-retry-fallback.html": "with_retry · with_fallbacks · RunnableWithFallbacks",
     "15-contributing.html": "uv · 测试 · 调试 · 贡献",
