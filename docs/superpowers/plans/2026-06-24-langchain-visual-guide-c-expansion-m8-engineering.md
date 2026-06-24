@@ -89,30 +89,33 @@ Every lesson must include `lead`, `lesson_map`, `source_map`, `state_flow` or `c
 - [ ] **Step 1: Write `LESSON_37_LOCAL_DEV`**
 
 Cover local development, source debugging, repo/package layout, editable install, and contribution loop. Source rows:
-- `pyproject.toml :: dependency-groups`
-- `libs/langchain_v1/pyproject.toml :: langchain package`
-- `libs/core/pyproject.toml :: langchain-core package`
-- `libs/langgraph/pyproject.toml :: langgraph package`
-- `.github/workflows/ci.yml :: CI checks`
+- `langchain/libs/langchain_v1/pyproject.toml :: [project] / [dependency-groups] / [tool.uv.sources]`
+- `langchain/libs/core/pyproject.toml :: langchain-core package`
+- `langgraph/libs/langgraph/pyproject.toml :: langgraph package`
+- `src/build.py :: build`
+- `src/check_html.py :: check_lesson / check_stale`
+- `.github/workflows/ci.yml :: verify job`
+
+Path correction: current LangChain master has no root `pyproject.toml`; package metadata is in package-level pyprojects. LangGraph is in the separate `langchain-ai/langgraph` repository, not `langchain/libs/langgraph`.
 
 Trace: choose API -> find package -> create editable env -> run focused test -> open PR.
 
 - [ ] **Step 2: Write `LESSON_38_TESTING_DEBUGGING`**
 
 Cover fake models, deterministic tools, trace assertions, regression cases. Source rows:
-- `libs/core/langchain_core/language_models/fake_chat_models.py :: GenericFakeChatModel`
-- `libs/core/langchain_core/messages/ai.py :: AIMessage`
-- `libs/core/langchain_core/runnables/base.py :: Runnable`
-- `libs/langgraph/langgraph/checkpoint/memory/__init__.py :: InMemorySaver`
-- `libs/langchain_v1/langchain/agents/factory.py :: create_agent`
+- `langchain/libs/core/langchain_core/language_models/fake_chat_models.py :: GenericFakeChatModel`
+- `langchain/libs/core/langchain_core/messages/ai.py :: AIMessage`
+- `langchain/libs/core/langchain_core/runnables/base.py :: Runnable`
+- `langgraph/libs/checkpoint/langgraph/checkpoint/memory/__init__.py :: InMemorySaver`
+- `langchain/libs/langchain_v1/langchain/agents/factory.py :: create_agent`
 
 Trace: one deterministic Agent test with fake model/tool/checkpointer.
 
 - [ ] **Step 3: Write `LESSON_39_OBSERVABILITY_CI`**
 
 Cover callbacks/run tree, LangSmith-style observability, local CI checks, generated HTML/PDF sync. Source rows:
-- `libs/core/langchain_core/callbacks/base.py :: BaseCallbackHandler`
-- `libs/core/langchain_core/tracers/base.py :: BaseTracer`
+- `langchain/libs/core/langchain_core/callbacks/base.py :: BaseCallbackHandler`
+- `langchain/libs/core/langchain_core/tracers/base.py :: BaseTracer`
 - `src/check_html.py :: main`
 - `src/check_links.py :: check`
 - `src/check_content_density.py :: main`
@@ -123,11 +126,11 @@ Trace: code change -> build -> checks -> generated diff gate -> deploy/PDF.
 - [ ] **Step 4: Write `LESSON_40_CAPSTONE`**
 
 Cover an end-to-end customer-service Agent assembled from previous parts: prompt, tools, RAG, middleware, runtime context, structured response, tests. Source rows:
-- `libs/langchain_v1/langchain/agents/factory.py :: create_agent`
-- `libs/core/langchain_core/prompts/chat.py :: ChatPromptTemplate`
-- `libs/core/langchain_core/tools/convert.py :: tool`
-- `libs/core/langchain_core/retrievers.py :: BaseRetriever`
-- `libs/langchain_v1/langchain/agents/middleware/types.py :: AgentMiddleware`
+- `langchain/libs/langchain_v1/langchain/agents/factory.py :: create_agent`
+- `langchain/libs/core/langchain_core/prompts/chat.py :: ChatPromptTemplate`
+- `langchain/libs/core/langchain_core/tools/convert.py :: tool`
+- `langchain/libs/core/langchain_core/retrievers.py :: BaseRetriever`
+- `langchain/libs/langchain_v1/langchain/agents/middleware/types.py :: AgentMiddleware`
 
 Trace: user issue -> prompt/context -> retrieve order docs -> tool action -> middleware guard -> structured response -> regression test.
 
