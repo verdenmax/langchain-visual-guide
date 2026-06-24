@@ -46,8 +46,8 @@ LESSON_22_PREGEL = (
     + shell.source_map(
         [
             {"file": "langgraph/pregel/main.py", "symbol": "Pregel", "role": "编译后图的底层运行时，封装 invoke、stream、状态读取、checkpoint、interrupt 等能力", "direction": "用户调用 CompiledStateGraph，最终进入 Pregel 的步骤循环"},
-            {"file": "langgraph/pregel/algo.py", "symbol": "prepare_next_tasks", "role": "Plan 阶段核心，根据哪些 channel 有新版本、哪些节点订阅它们，构造下一批 PregelTask", "direction": "每个超步开始时读取当前 checkpoint/channel 版本，输出待运行任务"},
-            {"file": "langgraph/pregel/algo.py", "symbol": "apply_writes", "role": "Update 阶段核心，把任务产生的 writes 按 channel 规则合并并更新版本", "direction": "任务全部结束后统一调用，产生下一步可见状态"},
+            {"file": "langgraph/pregel/_algo.py", "symbol": "prepare_next_tasks", "role": "Plan 阶段核心，根据哪些 channel 有新版本、哪些节点订阅它们，构造下一批内部 PregelExecutableTask，并在 debug/state 视图中映射为公开 PregelTask 快照", "direction": "每个超步开始时读取当前 checkpoint/channel 版本，输出待运行任务"},
+            {"file": "langgraph/pregel/_algo.py", "symbol": "apply_writes", "role": "Update 阶段核心，把任务产生的 writes 按 channel 规则合并并更新版本", "direction": "任务全部结束后统一调用，产生下一步可见状态"},
             {"file": "langgraph/pregel/_runner.py", "symbol": "PregelRunner", "role": "Execution 阶段调度器，负责运行任务、收集写入、处理重试和异常边界", "direction": "接收 plan 出来的任务列表，驱动节点代码执行"},
             {"file": "langgraph/pregel/debug.py", "symbol": "print_step_*", "role": "调试输出工具，把 step、tasks、writes、checkpoint 变化映射成文本", "direction": "stream/debug 模式下帮助观察超步内部发生了什么"},
         ]
@@ -57,7 +57,7 @@ LESSON_22_PREGEL = (
 """
     + shell.state_flow(
         [
-            ("Plan：订阅关系选任务", "运行时查看上一超步已经提交的 channel 版本。某个节点订阅的输入 channel 发生变化，且该节点没有被中断或等待，prepare_next_tasks 就为它创建 PregelTask。", "visible channels: messages@v3 -> task:model"),
+            ("Plan：订阅关系选任务", "运行时查看上一超步已经提交的 channel 版本。某个节点订阅的输入 channel 发生变化，且该节点没有被中断或等待，prepare_next_tasks 就为它创建内部 PregelExecutableTask；对外的 StateSnapshot/debug 事件再把执行结果投影成 PregelTask。", "visible channels: messages@v3 -> task:model"),
             ("Execution：任务读稳定快照", "PregelRunner 让本批任务读取同一份已提交状态。任务可以并行运行，看到的是上一步结果，而不是同批其他任务刚产生的半成品。", "model reads messages@v3, tools reads tool_calls@v1"),
             ("Buffer：写入先进入暂存区", "节点返回 partial state 或 ChannelWrite 后，写入被记录为 task writes。此时 channel 当前值尚未改变，因此并行任务之间不会互相污染。", "writes=[('messages', AIMessage), ('next', 'tools')]"),
             ("Update：统一合并写入", "所有任务结束后 apply_writes 按 channel/reducer 规则合并写入，更新 channel 版本，并把 checkpoint 所需信息整理好。", "messages@v4, next@v2"),
@@ -69,7 +69,7 @@ LESSON_22_PREGEL = (
 """
     + shell.trace_table(
         [
-            {"step": "1. step=4 plan", "input": "messages channel 已在 step=3 更新，model 节点订阅 messages", "action": "prepare_next_tasks 发现 model 的触发条件满足，构造 PregelTask(name='model')", "output": "本批任务=[model]"},
+            {"step": "1. step=4 plan", "input": "messages channel 已在 step=3 更新，model 节点订阅 messages", "action": "prepare_next_tasks 发现 model 的触发条件满足，构造 PregelExecutableTask(name='model')", "output": "本批任务=[model]"},
             {"step": "2. run model", "input": "model 读取 messages@v3 和配置", "action": "PregelRunner 调用节点函数，模型决定调用 search_order 工具", "output": "task writes 暂存 messages+=AIMessage(tool_calls=[...])、branch='tools'"},
             {"step": "3. no immediate visibility", "input": "同一超步内仍是 messages@v3", "action": "若还有并行任务，它们看不到 model 刚写的 AIMessage", "output": "避免同批任务因调度先后不同而结果不同"},
             {"step": "4. update phase", "input": "buffered writes from model", "action": "apply_writes 调用 messages channel 的更新逻辑，写入 checkpoint 元数据", "output": "messages@v4、branch@v2 成为下一步可见值"},
@@ -113,7 +113,7 @@ LESSON_22_PREGEL = (
     + _section(
         "Execution 阶段如何看节点",
         [
-            "执行阶段的任务并不等于用户写的一个函数调用那么简单。PregelTask 携带任务名、输入、写入目标、配置、触发信息和可能的重试/缓存信息。PregelRunner 负责把这些任务交给对应节点，同时维护一个写入收集器。节点可以返回 partial state，也可以通过内部 write 原语写 channel；无论形式如何，最后都被归一成“某任务向某 channel 写了某值”。",
+            "执行阶段的任务并不等于用户写的一个函数调用那么简单。这里要区分两个名字：公开/调试视角的 PregelTask 是 StateSnapshot、tasks/debug stream 里给人看的快照，字段偏向 id、name、path、error、interrupts、state、result；内部真正交给 Runner 的是 PregelExecutableTask，它才携带 input、proc、writes、config、triggers、retry_policy、cache_key、timeout 等执行上下文。PregelRunner 负责把这些可执行任务交给对应节点，同时维护写入收集器。节点可以返回 partial state，也可以通过内部 write 原语写 channel；无论形式如何，最后都被归一成“某任务向某 channel 写了某值”。",
             "这里要避免一个常见误解：节点返回后，state 对象不会被就地改成新状态再传给同批其他节点。用户代码里最好也不要依赖原地修改输入 dict。健康的节点像纯函数：读取本步快照，返回自己负责的增量。副作用工具当然可能访问外部世界，但对图状态的贡献仍应通过写入缓冲区表达。",
             "Runner 也是错误边界。节点抛异常、请求 interrupt、触发重试或被取消，都要转成运行时可理解的状态。只有这样 stream/debug/checkpoint 才能用统一方式描述失败发生在哪个 task，而不是只看到一段散乱 Python traceback。",
         ],
@@ -197,13 +197,13 @@ LESSON_22_PREGEL = (
 
 LESSON_23_TASKS_CHANNELS = (
     r"""
-<p class="lead">上一课把 LangGraph 执行看成超步循环，本课进一步拆开超步内部的基本零件：<span class="mono">PregelTask</span> 是一次可调度工作，<span class="mono">BaseChannel</span> 是状态在运行时的存储与合并边界，<span class="mono">ChannelWrite</span> 把节点返回值归一成写入，<span class="mono">PregelNode</span> 把用户节点包装成能读 channel、写 channel 的运行时节点。理解 Tasks 与 Channels，才能解释 fan-out 为什么能并行，fan-in 为什么需要 reducer，以及两个任务写同一 key 时到底谁说了算。</p>
+<p class="lead">上一课把 LangGraph 执行看成超步循环，本课进一步拆开超步内部的基本零件：公开的 <span class="mono">PregelTask</span> 是 StateSnapshot/debug 面向观察者的任务快照，内部的 <span class="mono">PregelExecutableTask</span> 才是 Runner 调度的可执行工作；<span class="mono">BaseChannel</span> 是状态在运行时的存储与合并边界，<span class="mono">ChannelWrite</span> 把节点返回值归一成写入，<span class="mono">PregelNode</span> 把用户节点包装成能读 channel、写 channel 的运行时节点。理解 Tasks 与 Channels，才能解释 fan-out 为什么能并行，fan-in 为什么需要 reducer，以及两个任务写同一 key 时到底谁说了算。</p>
 """
-    + _analogy("把图运行想成一家报社。每个记者接到的采访单就是 PregelTask；不同栏目版面就是 channel，例如头版、财经版、评论版；记者写完稿件不会直接冲进印刷机改版面，而是把稿件交给编辑部的收件箱，这就是 ChannelWrite；同一栏目收到多篇稿件时，编辑规则决定是只放最后一篇、按顺序拼接，还是因为冲突退稿。fan-out 像把一个选题分给多名记者，fan-in 像多个稿件回到同一栏目，关键不在记者多快，而在栏目合并规则是否明确。")
+    + _analogy("把图运行想成一家报社。每个记者真正拿到的采访单像 PregelExecutableTask，里面有采访对象、截止时间、编辑要求和交稿通道；总编看板上的进度卡像公开 PregelTask，只记录任务编号、记者名、路径、是否出错和最终稿件摘要。不同栏目版面就是 channel，例如头版、财经版、评论版；记者写完稿件不会直接冲进印刷机改版面，而是把稿件交给编辑部的收件箱，这就是 ChannelWrite；同一栏目收到多篇稿件时，编辑规则决定是只放最后一篇、按顺序拼接，还是因为冲突退稿。")
     + shell.lesson_map(
         "本课地图：任务、通道与写入如何协作",
         [
-            ("PregelTask", "运行时真正调度的是任务，任务记录节点名、输入、写入、配置和触发来源", "now"),
+            ("PregelTask", "内部真正调度的是 PregelExecutableTask；公开 PregelTask 主要是 StateSnapshot/debug 面向观察者的任务快照", "now"),
             ("BaseChannel", "每个 state key 编译成 channel，channel 负责保存值、判断可读、应用更新", "now"),
             ("读取", "PregelNode/local_read 让节点看到本超步的稳定 channel 快照", "source"),
             ("写入", "ChannelWrite 把 partial state、branch、send 等输出变成标准化 writes", "now"),
@@ -216,11 +216,11 @@ LESSON_23_TASKS_CHANNELS = (
 """
     + shell.source_map(
         [
-            {"file": "langgraph/types.py", "symbol": "PregelTask", "role": "描述一次被调度的任务，包含任务 id/name、输入、写入、触发器和运行配置等执行上下文", "direction": "prepare_next_tasks 产出，PregelRunner 消费"},
+            {"file": "langgraph/types.py", "symbol": "PregelTask / PregelExecutableTask", "role": "PregelTask 是公开/调试快照，含 id、name、path、error、interrupts、state、result；PregelExecutableTask 才携带 input、writes、config、triggers、retry、cache 等执行上下文", "direction": "prepare_next_tasks 构造内部可执行任务，StateSnapshot/debug 再暴露公开任务视图"},
             {"file": "langgraph/channels/base.py", "symbol": "BaseChannel", "role": "所有 channel 的抽象基类，定义值的读取、更新、检查点复制和生命周期", "direction": "State schema/reducer 编译后落到具体 channel 实现"},
-            {"file": "langgraph/pregel/algo.py", "symbol": "local_read", "role": "让任务在执行期读取局部可见的 channel 值，同时尊重本步可见性规则", "direction": "PregelNode 或运行时读 state 时使用"},
-            {"file": "langgraph/pregel/write.py", "symbol": "ChannelWrite", "role": "把节点返回、branch、send、特殊写入统一成 channel write entries", "direction": "节点执行后进入 buffered writes，再由 apply_writes 应用"},
-            {"file": "langgraph/pregel/read.py", "symbol": "PregelNode", "role": "把用户节点包装成可订阅 channel、可读取输入、可产出 writes 的 Pregel 运行时节点", "direction": "编译后的节点对象由 Plan 选择、Runner 调用"},
+            {"file": "langgraph/pregel/_algo.py", "symbol": "local_read", "role": "让任务在执行期读取局部可见的 channel 值，同时尊重本步可见性规则", "direction": "PregelNode 或运行时读 state 时使用"},
+            {"file": "langgraph/pregel/_write.py", "symbol": "ChannelWrite", "role": "把节点返回、branch、send、特殊写入统一成 channel write entries", "direction": "节点执行后进入 buffered writes，再由 apply_writes 应用"},
+            {"file": "langgraph/pregel/_read.py", "symbol": "PregelNode", "role": "把用户节点包装成可订阅 channel、可读取输入、可产出 writes 的 Pregel 运行时节点", "direction": "编译后的节点对象由 Plan 选择、Runner 调用"},
         ]
     )
     + r"""
@@ -230,7 +230,7 @@ LESSON_23_TASKS_CHANNELS = (
         [
             ("StateGraph node", "用户写的函数：State -> partial State", False),
             ("PregelNode", "编译包装：声明订阅哪些 channel、怎样读输入", True),
-            ("PregelTask", "Plan 阶段生成：本超步要执行的一次任务", True),
+            ("PregelExecutableTask", "Plan 阶段生成：本超步要执行的内部任务，之后映射为公开 PregelTask 快照", True),
             ("ChannelWrite", "Execution 后归一：把返回值转成写入条目", True),
             ("BaseChannel.update", "Update 阶段合并：决定 fan-in 的语义", False),
         ]
@@ -240,7 +240,7 @@ LESSON_23_TASKS_CHANNELS = (
 """
     + shell.trace_table(
         [
-            {"step": "1. plan fan-out", "input": "question channel 更新，extract_keywords 与 classify_intent 都订阅 question", "action": "prepare_next_tasks 生成两个 PregelTask", "output": "tasks=[keywords, intent] 可并行"},
+            {"step": "1. plan fan-out", "input": "question channel 更新，extract_keywords 与 classify_intent 都订阅 question", "action": "prepare_next_tasks 生成两个 PregelExecutableTask", "output": "tasks=[keywords, intent] 可并行"},
             {"step": "2. parallel writes", "input": "两个任务都读取 question@v1", "action": "keywords 写 keywords channel，intent 写 intent channel", "output": "writes=[('keywords', ['退款']), ('intent', 'refund')]"},
             {"step": "3. update different", "input": "写入目标不同", "action": "apply_writes 分别调用两个 channel 的 update", "output": "keywords@v2、intent@v2，无冲突"},
             {"step": "4. same channel fan-in", "input": "retrieve_a 与 retrieve_b 并行写 documents channel", "action": "若 documents 有 list reducer，则两个结果被聚合；若是 LastValue，则多写会冲突", "output": "documents=[docA, docB] 或 InvalidUpdate"},
@@ -251,7 +251,7 @@ LESSON_23_TASKS_CHANNELS = (
 <h2>简化源码走读：节点读写如何归一</h2>
 """
     + shell.code_walkthrough(
-        "langgraph/pregel/read.py",
+        "langgraph/pregel/_read.py",
         "PregelNode",
         """class PregelNode:
     def run(self, task, channels):
@@ -266,11 +266,11 @@ class BaseChannel:
         "真实代码更复杂：读输入可能包含 mapper、config、managed values、branch 和 send；写入也会区分普通 channel、特殊控制写入和隐藏元数据。教学版强调同一个事实：节点读的是 channel 快照，返回会被标准化成 writes，合并由 channel 决定。",
     )
     + _section(
-        "PregelTask 不是业务节点本身",
+        "PregelTask 不是业务节点本身，也不是内部执行对象",
         [
-            "用户常说“运行某个节点”，但运行时更准确的单位是 PregelTask。一个节点可能因为不同 send、不同输入或不同路径生成多个任务；一个任务也会携带本次执行的触发信息、路径、配置和写入收集器。把任务和节点区分开，可以解释 map-reduce、动态 fan-out 和多 Agent handoff 为什么不需要复制节点定义。",
-            "任务的存在还让 trace 更精确。最终报错不是“graph 坏了”，而是“某个 task 在某个 step、某个 path 上失败”。当同一个工具节点被并行调用十次时，节点名不足以定位问题；task id/path 才能告诉你是哪一次工具输入触发异常。",
-            "调度层面也依赖这个区分。Plan 阶段不是只列节点名，而是构造可以独立运行的任务对象；Runner 可以对任务做重试、取消、缓存或错误传播；Update 阶段可以把写入归属到具体任务，便于 debug 和 checkpoint 元数据记录。",
+            "用户常说“运行某个节点”，但运行时更准确的单位是任务；同时还要分清公开视图和内部视图。公开的 PregelTask 出现在 StateSnapshot.tasks、checkpoint/debug 输出中，像一张任务快照：它强调 id、name、path，以及失败、interrupt、子图 state、result 等便于观察和恢复的信息。它不是用户节点函数，也不等同于 Runner 手里正在执行的完整对象。",
+            "内部可执行对象是 PregelExecutableTask。prepare_next_tasks 会根据 send、订阅变化、路径和配置生成它；它携带 input、proc、writes deque、config、triggers、retry_policy、cache_key、writers、subgraphs、timeout 等上下文。PregelRunner 消费的是这种更丰富的任务对象，才能调用节点、收集写入、应用重试/缓存/超时策略。",
+            "区分这两层可以避免调试误判。看到 debug 里的 PregelTask 时，应把它当成对外报告：哪一个 task 在哪个 path 上失败、产生了什么 result 或 interrupt；追执行语义时，则回到 PregelExecutableTask 和 Runner。动态 fan-out 下同一个节点定义可以生成多个内部可执行任务，最终又各自留下对应的公开快照。",
         ],
     )
     + _section(
@@ -325,7 +325,7 @@ class BaseChannel:
 """
     + shell.pitfall_grid(
         [
-            ("PregelTask 等同于节点函数", "节点是定义，task 是某次运行实例；动态 fan-out 时同一节点可对应多个 task。"),
+            ("PregelTask 等同于节点函数", "节点是定义；公开 PregelTask 是调试/快照视图，内部 PregelExecutableTask 才是某次运行的可执行实例。"),
             ("State 就是普通 dict", "编译后 state key 由 channel 管理，channel 决定读取、更新、冲突和 checkpoint 行为。"),
             ("并行写同一 key 会自动选择一个", "无 reducer 的多写应失败；有 reducer 才能表达列表追加、消息合并或数值聚合。"),
             ("ChannelWrite 只是语法糖", "它是节点返回值进入 Pregel 写入缓冲区的标准化边界，影响 debug、checkpoint 和合并。"),
@@ -356,12 +356,12 @@ class BaseChannel:
         ],
     )
     + _section(
-        "最后校验：把概念写成团队约定",
+        "最后校验：用读写矩阵验收任务与通道",
         [
-            "完成一个图之后，建议在设计评审里用一句话描述本页概念的边界：哪些状态由谁写入，哪些动作在哪个超步可见，哪些恢复依赖同一 thread，哪些实验必须走新 namespace。能说清这些约定，代码才不只是能运行，而是能被后来的人维护。",
-            "团队还应把这些约定放进测试和调试模板。每个关键节点至少有输入输出样例，每个并行区域有读写矩阵，每个持久流程有恢复用例，每个人审流程有拒绝和重复提交用例，每个调试分支有 checkpoint 记录。约定如果只存在脑子里，轮到事故时就会失效。",
-            "当需求变化时，先更新约定，再更新节点。新增一个并行分支，要重新检查 fan-in；新增一个审批动作，要重新检查副作用位置；新增一个调试分支，要重新检查 namespace；新增一个状态字段，要重新检查 checkpoint 中是否需要长期保存。",
-            "这套做法看似繁琐，本质是在用工程纪律保护 Agent 系统。LangGraph 给了显式图、显式状态和显式历史，团队要做的是把显式性继续延伸到评审、测试、权限和运维中。",
+            "完成 tasks/channels 设计后，不要只看图能不能跑通，而要把每个节点在一个表里列成 read/write 矩阵：行是 PregelExecutableTask 或节点实例，列是 channel，格子标出读取、写入、reducer 和失败策略。矩阵能直接暴露哪些任务可以并行，哪些必须跨超步，哪些 fan-in 还没有业务语义。",
+            "对每个可能多写的 channel，评审时要写出一句可测试的合并承诺。例如 documents 是按来源去重后保留分数，messages 是按 id 替换或追加，candidate_answers 是保留所有候选并交给 judge 排序。若只能说“框架会处理”，就说明 reducer 还没有被业务定义。",
+            "对每个公开 PregelTask 快照，调试模板应记录它对应的内部执行上下文线索：task id、name、path、triggers、写入目标和最终 result/error。这样遇到十个并行工具调用时，团队不会只说“工具节点失败”，而能定位是哪一次 send、哪个输入和哪个 channel 写入导致问题。",
+            "最后用一个最小 fan-out/fan-in 小图做回归：两个 retriever 并行写 documents，一个 ranker 下一超步读取合并结果，再故意让两个节点写 final_answer 触发冲突。这个练习能证明通道协议、任务粒度和错误边界都被设计清楚，而不是靠模型输出碰巧正确。",
         ],
     )
     + shell.lab_card(
@@ -374,7 +374,7 @@ class BaseChannel:
             "用 trace 表记录每个 task 写了哪个 channel，并确认下一超步消费者只读提交后的结果。",
         ],
     )
-    + shell.version_note("LangGraph 的具体 channel 类名和 PregelTask 字段可能随版本微调，但“任务实例化、channel 持有合并语义、写入先标准化再统一提交”的结构非常稳定。读新版源码时优先找 BaseChannel、PregelNode、ChannelWrite 与 prepare/apply 之间的连接。")
+    + shell.version_note("LangGraph 的具体 channel 类名、PregelTask 快照字段和 PregelExecutableTask 执行字段可能随版本微调，但“任务实例化、channel 持有合并语义、写入先标准化再统一提交”的结构非常稳定。读新版源码时优先找 BaseChannel、PregelNode、ChannelWrite 与 prepare/apply 之间的连接。")
     + _points(
         [
             "Task 是运行实例，Node 是定义；动态并行时一个节点可以生成多个任务。",
@@ -550,12 +550,12 @@ LESSON_24_CHECKPOINTS = (
         ],
     )
     + _section(
-        "最后校验：把概念写成团队约定",
+        "上线校验：把 checkpoint 当成恢复契约",
         [
-            "完成一个图之后，建议在设计评审里用一句话描述本页概念的边界：哪些状态由谁写入，哪些动作在哪个超步可见，哪些恢复依赖同一 thread，哪些实验必须走新 namespace。能说清这些约定，代码才不只是能运行，而是能被后来的人维护。",
-            "团队还应把这些约定放进测试和调试模板。每个关键节点至少有输入输出样例，每个并行区域有读写矩阵，每个持久流程有恢复用例，每个人审流程有拒绝和重复提交用例，每个调试分支有 checkpoint 记录。约定如果只存在脑子里，轮到事故时就会失效。",
-            "当需求变化时，先更新约定，再更新节点。新增一个并行分支，要重新检查 fan-in；新增一个审批动作，要重新检查副作用位置；新增一个调试分支，要重新检查 namespace；新增一个状态字段，要重新检查 checkpoint 中是否需要长期保存。",
-            "这套做法看似繁琐，本质是在用工程纪律保护 Agent 系统。LangGraph 给了显式图、显式状态和显式历史，团队要做的是把显式性继续延伸到评审、测试、权限和运维中。",
+            "持久化页的最后检查应围绕 thread 归属，而不是围绕 saver 类型。每条业务会话都要能回答：thread_id 从哪个业务对象生成，谁有权限读取，checkpoint_ns 何时分支，checkpoint_id 何时固定到一次审核或复盘。没有这些规则，换成再可靠的数据库也只是把混乱状态保存得更久。",
+            "恢复契约还包括输入合并方式。第二次 invoke 不是把旧 checkpoint 和新输入随便拼在一起，而是让新 HumanMessage 或业务事件作为增量进入正确 channel，再由 reducer 合并。测试要覆盖连续多轮、进程重启、多 worker、同用户多会话和错误 thread_id，证明恢复链路在真实部署形态下仍然成立。",
+            "人工 update_state 应被当成一次正式状态转移。评审清单里要写操作者、原因、基于哪个 parent checkpoint、写了哪些 channel、是否触发下游节点，以及如何回滚或再审。缺少审计的修补能力会让 checkpoint 从可靠历史变成不可解释的后门。",
+            "最后把数据生命周期也纳入契约：哪些 state key 可以长期保存，哪些必须脱敏或定期清理，哪些 debug namespace 只能短期存在。checkpoint 支撑恢复、客服和复盘，但也扩大了数据责任；上线标准必须同时覆盖可用性、隔离性和合规性。",
         ],
     )
     + _section(
@@ -750,12 +750,12 @@ LESSON_25_INTERRUPT_COMMAND = (
         ],
     )
     + _section(
-        "最后校验：把概念写成团队约定",
+        "上线校验：把人审流做成可恢复状态机",
         [
-            "完成一个图之后，建议在设计评审里用一句话描述本页概念的边界：哪些状态由谁写入，哪些动作在哪个超步可见，哪些恢复依赖同一 thread，哪些实验必须走新 namespace。能说清这些约定，代码才不只是能运行，而是能被后来的人维护。",
-            "团队还应把这些约定放进测试和调试模板。每个关键节点至少有输入输出样例，每个并行区域有读写矩阵，每个持久流程有恢复用例，每个人审流程有拒绝和重复提交用例，每个调试分支有 checkpoint 记录。约定如果只存在脑子里，轮到事故时就会失效。",
-            "当需求变化时，先更新约定，再更新节点。新增一个并行分支，要重新检查 fan-in；新增一个审批动作，要重新检查副作用位置；新增一个调试分支，要重新检查 namespace；新增一个状态字段，要重新检查 checkpoint 中是否需要长期保存。",
-            "这套做法看似繁琐，本质是在用工程纪律保护 Agent 系统。LangGraph 给了显式图、显式状态和显式历史，团队要做的是把显式性继续延伸到评审、测试、权限和运维中。",
+            "Interrupt/Command 页的最后检查应从状态机开始：哪些节点可能暂停，暂停 payload 暴露哪些字段，等待期间状态里记录什么，Command.resume 的 schema 怎样校验，通过、拒绝、补充信息和超时分别 goto 哪里。只有把这些路径列全，人审才不是一个临时弹窗，而是图中的正式控制流。",
+            "高风险副作用必须有独立边界。审批前节点只收集证据并 interrupt；审批通过后的 execute 节点才调用外部系统，并使用业务 idempotency key。测试要覆盖恢复重跑、重复提交 Command、浏览器刷新、worker 重启和外部 API 超时，证明不会因为 LangGraph 重新执行等待点前代码而重复扣款、发信或下单。",
+            "权限和审计不能依赖前端自觉。恢复接口要校验 thread_id、namespace、checkpoint 是否处于等待点，审批人是否有权限处理该业务对象，resume/update/goto 是否符合后端允许的转移。Command 是运行时原语，不是授权系统；应用必须在发出 Command 前完成业务校验。",
+            "最终验收应能从 history 复盘完整链路：模型或规则为什么请求审批，interrupt 给了审核员哪些上下文，Command 写入了什么决定，副作用节点是否执行成功，失败后如何重试或通知。能复盘，才说明人审流真正可恢复、可审计、可维护。",
         ],
     )
     + shell.lab_card(
@@ -940,12 +940,12 @@ LESSON_26_TIME_TRAVEL = (
         ],
     )
     + _section(
-        "最后校验：把概念写成团队约定",
+        "复盘校验：让时间旅行结论可复现",
         [
-            "完成一个图之后，建议在设计评审里用一句话描述本页概念的边界：哪些状态由谁写入，哪些动作在哪个超步可见，哪些恢复依赖同一 thread，哪些实验必须走新 namespace。能说清这些约定，代码才不只是能运行，而是能被后来的人维护。",
-            "团队还应把这些约定放进测试和调试模板。每个关键节点至少有输入输出样例，每个并行区域有读写矩阵，每个持久流程有恢复用例，每个人审流程有拒绝和重复提交用例，每个调试分支有 checkpoint 记录。约定如果只存在脑子里，轮到事故时就会失效。",
-            "当需求变化时，先更新约定，再更新节点。新增一个并行分支，要重新检查 fan-in；新增一个审批动作，要重新检查副作用位置；新增一个调试分支，要重新检查 namespace；新增一个状态字段，要重新检查 checkpoint 中是否需要长期保存。",
-            "这套做法看似繁琐，本质是在用工程纪律保护 Agent 系统。LangGraph 给了显式图、显式状态和显式历史，团队要做的是把显式性继续延伸到评审、测试、权限和运维中。",
+            "时间旅行调试的交付物不应只是“我 fork 后好了”，而应是一份可复现结论。开头固定列 thread_id、checkpoint_ns、起点 checkpoint_id、模型和工具版本、原始输入、错误输出、选择该起点的理由。坐标越精确，别人越能判断实验是否真的隔离了变量。",
+            "报告正文要按状态转移写证据：错误前一个 snapshot 的 values/next/tasks，错误写入发生时的 metadata.writes，错误后下游节点读到了什么。若只贴最终 answer，就无法区分是工具错、reducer 覆盖、路由误判、prompt 忽略字段，还是模型非确定性解释错。",
+            "Fork 实验一次只改一个因素，并写清改动位置：某个 channel 值、某条 reducer、某个 route 条件或某段 prompt。比较主线和分支时，用同一 step 的 writes、next、关键 values 和最终输出对齐。这样评审者能看到修复从哪一步改变了状态，而不是只相信分支结果更好。",
+            "最后把复盘收束为回归项。若根因是状态 schema，应新增 reducer/冲突测试；若根因是路由，应新增条件函数样例；若根因是 prompt 忽略字段，应固定输入 snapshot 做评估。时间旅行的价值在于把一次事故变成可自动检查的状态转移知识。",
         ],
     )
     + shell.lab_card(

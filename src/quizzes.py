@@ -1537,12 +1537,12 @@ QUIZZES = {
             {
                 "q": "Pregel/BSP 超步中的 Plan、Execution、Update 三段，最关键的工程收益是什么？",
                 "opts": [
-                    "让节点可以在同一超步内立刻读取彼此刚写入的半成品",
-                    "把任务选择、并行执行、统一提交分开，让同批任务读稳定快照，结果更确定可复现",
                     "取消 channel 和 reducer，直接修改全局 dict",
                     "保证模型回答一定正确，不再需要调试",
+                    "让节点可以在同一超步内立刻读取彼此刚写入的半成品",
+                    "把任务选择、并行执行、统一提交分开，让同批任务读稳定快照，结果更确定可复现",
                 ],
-                "answer": 1,
+                "answer": 3,
                 "why": "BSP 屏障的核心是可见性控制：本步任务读上一轮已提交状态，写入缓冲后在 Update 阶段统一提交，避免调度顺序造成竞态。",
             },
             {
@@ -1557,7 +1557,7 @@ QUIZZES = {
                 "why": "buffered writes 是确定性和 fan-in 的基础。它把节点执行与状态提交隔开，让合并规则集中在 Update 阶段。",
             },
             {
-                "q": "prepare_next_tasks 在 Plan 阶段主要根据什么决定下一批 PregelTask？",
+                "q": "prepare_next_tasks 在 Plan 阶段主要根据什么决定下一批内部可执行任务？",
                 "opts": [
                     "channel 版本变化、订阅关系、branch/send 等运行时状态",
                     "源码文件里的函数定义顺序",
@@ -1565,7 +1565,7 @@ QUIZZES = {
                     "最终答案是否已经生成中文",
                 ],
                 "answer": 0,
-                "why": "Plan 不是简单拓扑遍历，而是查看哪些 channel 有新可见版本、哪些节点订阅这些变化，以及是否有 pending send/branch。",
+                "why": "Plan 不是简单拓扑遍历，而是查看哪些 channel 有新可见版本、哪些节点订阅这些变化，以及是否有 pending send/branch。内部结果是可执行任务；公开 PregelTask 只是 debug/state 快照视图。",
             },
         ],
         "open": [
@@ -1576,15 +1576,15 @@ QUIZZES = {
     "32-langgraph-tasks-channels.html": {
         "mcq": [
             {
-                "q": "PregelTask 与用户定义的 node 最准确的关系是什么？",
+                "q": "公开 PregelTask、内部 PregelExecutableTask 与用户定义 node 的关系，哪项最准确？",
                 "opts": [
-                    "二者完全相同，都是同一个函数对象",
-                    "node 是定义，PregelTask 是某次运行实例；动态 fan-out 时同一 node 可以生成多个 task",
-                    "PregelTask 只用于保存最终答案，与执行无关",
-                    "node 只能同步运行，PregelTask 只能异步运行",
+                    "三者完全相同，都是同一个函数对象",
+                    "PregelTask 只用于保存最终答案，与 debug/state 无关",
+                    "node 只能同步运行，PregelExecutableTask 只能异步运行",
+                    "node 是定义；PregelExecutableTask 是某次内部执行实例；公开 PregelTask 是 StateSnapshot/debug 面向观察者的任务快照",
                 ],
-                "answer": 1,
-                "why": "运行时调度的是任务实例。任务携带输入、路径、配置、触发信息和写入上下文，比节点定义更具体。",
+                "answer": 3,
+                "why": "不要把公开 PregelTask 当成 Runner 手里的完整执行对象。公开快照偏向 id/name/path/error/interrupts/state/result；内部 PregelExecutableTask 才携带 input、writes、config、triggers、retry/cache 等执行上下文。",
             },
             {
                 "q": "两个并行任务写同一个 channel 时，运行时应如何判断能否合并？",
@@ -1631,11 +1631,11 @@ QUIZZES = {
                 "q": "Checkpoint 与普通聊天日志的主要区别是什么？",
                 "opts": [
                     "Checkpoint 只能保存字符串，聊天日志能保存对象",
-                    "Checkpoint 保存图在超步边界恢复所需的 channel values、versions、pending 信息和 metadata，不只是展示给用户的消息",
                     "Checkpoint 不需要 checkpointer",
                     "Checkpoint 只在程序退出时生成一次",
+                    "Checkpoint 保存图在超步边界恢复所需的 channel values、versions、pending 信息和 metadata，不只是展示给用户的消息",
                 ],
-                "answer": 1,
+                "answer": 3,
                 "why": "checkpoint 是运行状态存档，支撑 resume、get_state、history、interrupt 等能力；聊天日志只是其中可能的一部分。",
             },
             {
@@ -1701,12 +1701,12 @@ QUIZZES = {
             {
                 "q": "StateSnapshot 调试时为什么不能只看 values？",
                 "opts": [
-                    "因为 values 永远为空",
                     "因为还要结合 next、tasks、config、metadata 才能解释控制流、任务状态和写入来源",
+                    "因为 values 永远为空",
                     "因为 values 只保存 CSS 样式",
                     "因为 StateSnapshot 不能用于调试",
                 ],
-                "answer": 1,
+                "answer": 0,
                 "why": "坏答案可能来自错误路由、失败任务或错误写入来源；只看当前值无法解释状态是怎样变成这样的。",
             },
             {
