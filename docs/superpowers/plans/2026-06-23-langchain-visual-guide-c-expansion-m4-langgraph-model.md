@@ -144,7 +144,7 @@ Must cover:
   - `langgraph/runtime.py :: Runtime`
   - `langgraph/graph/message.py :: add_messages`
 - Explain `TypedDict`, Pydantic/dataclass style schemas, `context_schema`, input/output/private state, partial updates.
-- Trace: node receives state, returns `{"messages": [...]}`, reducer merges.
+- Trace: node receives state, returns `{"messages": [AIMessage("ok")]}`, reducer merges.
 - Pitfalls: mutating state in place, returning whole state unnecessarily, confusing context with state, missing reducer for list accumulation.
 
 - [ ] **Step 3: Write `LESSON_19_NODES_EDGES`**
@@ -171,7 +171,7 @@ Must cover:
   - `langgraph/channels/topic.py :: Topic`
   - `langgraph/channels/binop.py :: BinaryOperatorAggregate`
   - `langgraph/graph/state.py :: _get_channel`
-- Explain default overwrite, `Annotated[..., reducer]`, message ID replacement/append, fan-in updates, why reducers matter for parallel branches.
+- Explain default overwrite, `Annotated[list[AnyMessage], reducer]`, message ID replacement/append, fan-in updates, why reducers matter for parallel branches.
 - Trace: two nodes update same key; LastValue conflict vs reducer merge.
 - Pitfalls: expecting list append without reducer, duplicate message IDs, non-commutative reducers, reducers doing I/O.
 
