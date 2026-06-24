@@ -706,6 +706,7 @@ result = compiled.invoke(
 <p>第二组清单关注调用方式。invoke 用于普通请求，stream 用于需要中间事件的交互，batch 用于评测或批处理。三者应共享同一个 compiled graph 和业务语义，只改变结果暴露方式。若你发现 stream 路径和 invoke 路径调用了不同节点或不同 prompt，就要警惕逻辑分叉。调用方式可以不同，状态机不应随意变成两套。</p>
 <p>第三组清单关注版本。编译产物对应哪份图定义？部署后旧 checkpoint 是否还能被新 schema 读取？新增 key 是否有默认处理？删除节点后，是否还有旧线程停在那个节点附近？这些问题在无状态链里不明显，但在有 checkpoint 的图里非常重要。状态一旦持久化，图结构就和数据迁移产生了关系。</p>
 <p>最后，运行时排障要保存足够但不过量的信息。trace 需要看到节点名、路由结果、state update 摘要、thread_id 和错误类型；不应随意泄漏密钥、完整隐私数据或不可公开的工具响应。Runtime context、RunnableConfig metadata、checkpoint 内容各有边界。边界清楚，既能调试，也能保护用户数据。</p>
+<p>对 checkpointer 来说，<span class="mono">configurable</span> 不是随便放参数的杂物箱，而是运行时定位线程、命名空间和恢复点的合同。至少要明确 <span class="mono">thread_id</span> 从哪里来，是否还需要 <span class="mono">checkpoint_ns</span> 区分子图或业务域，恢复时是否沿用同一份 config。把这些字段当成 API 合同记录下来，才能让同一张 compiled graph 在多租户、批处理和人工恢复场景里稳定复用。</p>
 <p>补充检查：compile/runtime 的测试最好包含一个“不会发生”的断言，例如只调用 compile 时节点计数器保持为零，只有 invoke 后计数器才增加。再加一个 checkpoint 配置测试：同一 thread_id 能恢复历史，不同 thread_id 彼此隔离，缺失 thread_id 时给出明确错误或退化策略。这样的测试能防止团队把构建期、运行期和持久化边界混在一起。</p>
 <p>部署时还要记录 compiled graph 的版本。运行日志中保留图版本、thread_id、入口 schema 版本和关键路由结果，能帮助你把用户报告的问题对应到具体图结构。如果没有这些信息，checkpoint 里的状态可能来自旧图，当前代码却按新图解释，排查会非常困难。版本信息不是课程细节，而是有状态运行系统的基本卫生。</p>
 <p>运营清单应按生命周期排列：构建期检查节点名、边、schema 和 reducer；编译期确认 checkpointer、interrupt 和 debug 配置；运行期确认 input、context、configurable.thread_id 和 stream_mode；恢复期确认 checkpoint 版本、state 兼容和输出过滤。按阶段排查，能避免把 thread_id 配错误判成模型问题，或把旧 compiled graph 误判成节点 bug。</p>

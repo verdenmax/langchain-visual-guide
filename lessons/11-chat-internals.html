@@ -300,7 +300,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   </div>
 
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-第 3 课我们鸟瞰过"一次调用的生命周期"。现在放大到<strong>聊天模型内部</strong>，
+一次调用的全链路课里我们鸟瞰过生命周期。现在放大到<strong>聊天模型内部</strong>，
 逐方法追踪 <span class="inline">model.invoke(...)</span> 真正经过的调用链——这是理解"统一接口 + 厂商实现"分工的关键。
 </p>
 
@@ -364,7 +364,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   这是经典的<strong>"模板方法"设计模式</strong>：地基层把<strong>不变的流程</strong>
   （缓存、回调、重试、批处理）写死成模板，把<strong>会变的那一步</strong>（怎么和具体厂商对话）
   留成抽象方法 <span class="mono">_generate</span> 交给子类。<br>
-  这正是<strong>第 2 课“项目与包结构”在方法级别的体现</strong>：要支持新厂商，只需在 partner 适配层实现一个 <span class="mono">_generate</span>。
+  这正是<strong>项目与包结构课在方法级别的体现</strong>：要支持新厂商，只需在 partner 适配层实现一个 <span class="mono">_generate</span>。
 </div>
 
 <h2>🔍 深入理解</h2>
@@ -415,7 +415,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="qa">
       <div class="q">❓ 为什么由模板层统一触发</div>
       <div class="a">这样无论哪个厂商、无论命中缓存与否，<strong>事件序列都一致</strong>，
-        LangSmith 等追踪工具才能可靠地记录每一次模型调用（第 16 课）。</div>
+        LangSmith 等追踪工具才能可靠地记录每一次模型调用（Streaming 与 Callbacks 课）。</div>
     </div>
     <div class="qa">
       <div class="q">✅ 优点</div>

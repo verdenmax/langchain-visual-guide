@@ -300,7 +300,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   </div>
 
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-第 8 课你学会了用 <span class="inline">@tool</span>。这一课深入源码，看清楚两件"魔法"到底怎么发生：
+工具 Tools 课里你学会了用 <span class="inline">@tool</span>。这一课深入源码，看清楚两件"魔法"到底怎么发生：
 <strong>① 你的函数怎么变成模型能读的 JSON Schema</strong>，<strong>② 模型返回的 tool_calls 怎么被解析和执行</strong>。
 </p>
 
@@ -417,7 +417,7 @@ tags: list[str]   → {<span class="st">"type"</span>: <span class="st">"array"<
     <div class="qa">
       <div class="q">✅ 代码对应</div>
       <div class="a"><span class="mono">ToolCall</span> 与 <span class="mono">ToolCallChunk</span> 都在 <span class="mono">messages/tool.py</span>；
-        chunk 的累加规则与第 16 课的 <span class="mono">AIMessageChunk</span> 相加是同一套思路。</div>
+        chunk 的累加规则与 Streaming 与 Callbacks 课里的 <span class="mono">AIMessageChunk</span> 相加是同一套思路。</div>
     </div>
   </div>
 </details>
@@ -439,7 +439,7 @@ tags: list[str]   → {<span class="st">"type"</span>: <span class="st">"array"<
     <div class="qa">
       <div class="q">✅ 可配置 / 可加固</div>
       <div class="a">行为由 <span class="mono">ToolNode(handle_tool_errors=...)</span> 控制（<span class="mono">langgraph.prebuilt</span>）：可用默认提示、自定义错误文案，或关掉直接抛。
-        还有现成的 <span class="mono">ToolRetryMiddleware</span> 能在工具抖动时自动重试（见第 9 课）。</div>
+        还有现成的 <span class="mono">ToolRetryMiddleware</span> 能在工具抖动时自动重试（见 Agent 入门课）。</div>
     </div>
   </div>
 </details>

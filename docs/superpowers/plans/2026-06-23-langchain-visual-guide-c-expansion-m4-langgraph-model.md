@@ -125,7 +125,6 @@ Must cover:
 - Why LCEL chains are not enough for cyclic/stateful/branching workflows.
 - Source rows:
   - `langgraph/graph/state.py :: StateGraph`
-  - `langgraph/graph/graph.py :: Graph`
   - `langgraph/graph/message.py :: add_messages`
   - `langgraph/pregel/main.py :: Pregel`
   - `libs/langchain_v1/langchain/agents/factory.py :: create_agent`
@@ -153,8 +152,8 @@ Must cover:
 - Nodes as state -> partial state functions, edges as routing.
 - Source rows:
   - `langgraph/graph/state.py :: StateGraph.add_node`
-  - `langgraph/graph/graph.py :: Graph.add_edge`
-  - `langgraph/graph/graph.py :: Graph.add_conditional_edges`
+  - `langgraph/graph/state.py :: StateGraph.add_edge`
+  - `langgraph/graph/state.py :: StateGraph.add_conditional_edges`
   - `langgraph/constants.py :: START`
   - `langgraph/constants.py :: END`
 - Explain normal edges, conditional edges, routing functions, START/END, node naming, tool loop route.
@@ -184,7 +183,7 @@ Must cover:
   - `langgraph/graph/state.py :: CompiledStateGraph`
   - `langgraph/pregel/main.py :: Pregel`
   - `langgraph/runtime.py :: Runtime`
-  - `langgraph/checkpoint/base.py :: BaseCheckpointSaver`
+  - `langgraph/checkpoint/base/__init__.py :: BaseCheckpointSaver`
 - Explain validation, channel creation, node wrapping, runtime context, checkpointer hook, result can invoke/stream/batch.
 - Trace: build graph -> compile -> invoke -> run nodes -> produce state.
 - Pitfalls: thinking compile executes graph, changing builder after compile, missing `thread_id` when using checkpointer, runtime context vs state.

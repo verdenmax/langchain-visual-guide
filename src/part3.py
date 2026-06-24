@@ -15,7 +15,7 @@ LESSON_08 = r"""
 </div>
 
 <h2>统一接口：每个 Runnable 都有这几招</h2>
-<p>不管底层是什么，只要是 Runnable，就一定具备这套方法。你在第 7 课用过的 invoke/stream/batch，
+<p>不管底层是什么，只要是 Runnable，就一定具备这套方法。你在聊天模型课用过的 invoke/stream/batch，
 其实就来自这里：</p>
 
 <table class="t">
@@ -129,7 +129,7 @@ result = chain.invoke({<span class="st">"city"</span>: <span class="st">"北京"
 <pre class="code">chain = prompt | model | parser
 <span class="cm"># 等价于：</span>
 chain = prompt.pipe(model).pipe(parser)
-<span class="cm"># 两者都得到一个 RunnableSequence（第 11 课详解）</span>
+<span class="cm"># 两者都得到一个 RunnableSequence（LCEL 管道与 Sequence 课详解）</span>
 <span class="kw">type</span>(chain)   <span class="cm"># RunnableSequence</span></pre>
       </div>
     </div>
@@ -152,7 +152,7 @@ chain = prompt.pipe(model).pipe(parser)
       <div class="q">🧪 RunnableConfig 携带什么</div>
       <div class="a">
 <pre class="code">chain.invoke(x, config={
-    <span class="st">"callbacks"</span>: [...],       <span class="cm"># 回调/追踪（第 16 课）</span>
+    <span class="st">"callbacks"</span>: [...],       <span class="cm"># 回调/追踪（Streaming 与 Callbacks 课）</span>
     <span class="st">"tags"</span>: [<span class="st">"prod"</span>],         <span class="cm"># 给这次运行打标签</span>
     <span class="st">"metadata"</span>: {<span class="st">"uid"</span>: 1},   <span class="cm"># 自定义元数据</span>
     <span class="st">"max_concurrency"</span>: 5,    <span class="cm"># 并发上限</span>
@@ -422,7 +422,7 @@ chain = RunnableBranch(
 # ---------------------------------------------------------------------------
 LESSON_10 = r"""
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-第 3 课我们鸟瞰过"一次调用的生命周期"。现在放大到<strong>聊天模型内部</strong>，
+一次调用的全链路课里我们鸟瞰过生命周期。现在放大到<strong>聊天模型内部</strong>，
 逐方法追踪 <span class="inline">model.invoke(...)</span> 真正经过的调用链——这是理解"统一接口 + 厂商实现"分工的关键。
 </p>
 
@@ -486,7 +486,7 @@ LESSON_10 = r"""
   这是经典的<strong>"模板方法"设计模式</strong>：地基层把<strong>不变的流程</strong>
   （缓存、回调、重试、批处理）写死成模板，把<strong>会变的那一步</strong>（怎么和具体厂商对话）
   留成抽象方法 <span class="mono">_generate</span> 交给子类。<br>
-  这正是<strong>第 2 课“项目与包结构”在方法级别的体现</strong>：要支持新厂商，只需在 partner 适配层实现一个 <span class="mono">_generate</span>。
+  这正是<strong>项目与包结构课在方法级别的体现</strong>：要支持新厂商，只需在 partner 适配层实现一个 <span class="mono">_generate</span>。
 </div>
 
 <h2>🔍 深入理解</h2>
@@ -537,7 +537,7 @@ LESSON_10 = r"""
     <div class="qa">
       <div class="q">❓ 为什么由模板层统一触发</div>
       <div class="a">这样无论哪个厂商、无论命中缓存与否，<strong>事件序列都一致</strong>，
-        LangSmith 等追踪工具才能可靠地记录每一次模型调用（第 16 课）。</div>
+        LangSmith 等追踪工具才能可靠地记录每一次模型调用（Streaming 与 Callbacks 课）。</div>
     </div>
     <div class="qa">
       <div class="q">✅ 优点</div>
@@ -568,7 +568,7 @@ LESSON_10 = r"""
 # ---------------------------------------------------------------------------
 LESSON_11 = r"""
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-第 8 课你学会了用 <span class="inline">@tool</span>。这一课深入源码，看清楚两件"魔法"到底怎么发生：
+工具 Tools 课里你学会了用 <span class="inline">@tool</span>。这一课深入源码，看清楚两件"魔法"到底怎么发生：
 <strong>① 你的函数怎么变成模型能读的 JSON Schema</strong>，<strong>② 模型返回的 tool_calls 怎么被解析和执行</strong>。
 </p>
 
@@ -685,7 +685,7 @@ tags: list[str]   → {<span class="st">"type"</span>: <span class="st">"array"<
     <div class="qa">
       <div class="q">✅ 代码对应</div>
       <div class="a"><span class="mono">ToolCall</span> 与 <span class="mono">ToolCallChunk</span> 都在 <span class="mono">messages/tool.py</span>；
-        chunk 的累加规则与第 16 课的 <span class="mono">AIMessageChunk</span> 相加是同一套思路。</div>
+        chunk 的累加规则与 Streaming 与 Callbacks 课里的 <span class="mono">AIMessageChunk</span> 相加是同一套思路。</div>
     </div>
   </div>
 </details>
@@ -707,7 +707,7 @@ tags: list[str]   → {<span class="st">"type"</span>: <span class="st">"array"<
     <div class="qa">
       <div class="q">✅ 可配置 / 可加固</div>
       <div class="a">行为由 <span class="mono">ToolNode(handle_tool_errors=...)</span> 控制（<span class="mono">langgraph.prebuilt</span>）：可用默认提示、自定义错误文案，或关掉直接抛。
-        还有现成的 <span class="mono">ToolRetryMiddleware</span> 能在工具抖动时自动重试（见第 9 课）。</div>
+        还有现成的 <span class="mono">ToolRetryMiddleware</span> 能在工具抖动时自动重试（见 Agent 入门课）。</div>
     </div>
   </div>
 </details>
@@ -734,7 +734,7 @@ tags: list[str]   → {<span class="st">"type"</span>: <span class="st">"array"<
 # ---------------------------------------------------------------------------
 LESSON_12 = r"""
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-第 9 课的 <span class="inline">create_agent</span> 看起来像魔法。真相是：它<strong>构建并编译了一张
+Agent 入门课的 <span class="inline">create_agent</span> 看起来像魔法。真相是：它<strong>构建并编译了一张
 LangGraph 状态图（StateGraph）</strong>。这一课拆开这张图，你会发现"Agent 循环"不过是图里的两个节点 + 几条边。
 </p>
 
@@ -783,7 +783,7 @@ graph.add_conditional_edges(<span class="st">"tools"</span>, ...)   <span class=
     <li><span class="mono">create_agent</span> 在 <span class="mono">agents/factory.py</span>：定义 <span class="mono">model_node</span>，加 <span class="mono">"model"</span>/<span class="mono">"tools"</span> 两节点，
       用 <span class="mono">add_conditional_edges</span> 接好循环，最后 <span class="mono">compile()</span>。</li>
     <li>返回的 <span class="mono">CompiledStateGraph</span> <strong>本身也是一个 Runnable</strong>——所以你能对它
-      <span class="mono">invoke</span>/<span class="mono">stream</span>（呼应第 10 课）。</li>
+      <span class="mono">invoke</span>/<span class="mono">stream</span>（呼应 Runnable 协议课）。</li>
   </ul>
 </div>
 
@@ -794,15 +794,15 @@ graph.add_conditional_edges(<span class="st">"tools"</span>, ...)   <span class=
   <tr><td class="mono">StateGraph / CompiledStateGraph</td><td>定义并编译整张 Agent 图</td><td>本课</td></tr>
   <tr><td class="mono">START / END</td><td>图的入口与出口</td><td>本课流程图</td></tr>
   <tr><td class="mono">add_conditional_edges</td><td>"去 tools 还是结束"的条件路由</td><td>本课 · 深入 ①</td></tr>
-  <tr><td class="mono">ToolNode</td><td>执行工具、产出 ToolMessage 的节点</td><td>第 14 课</td></tr>
+  <tr><td class="mono">ToolNode</td><td>执行工具、产出 ToolMessage 的节点</td><td>工具调用内部课</td></tr>
   <tr><td class="mono">add_messages（reducer）</td><td>messages 的<strong>合并规则</strong>（按 id 追加/替换）</td><td>下方 ⤵</td></tr>
   <tr><td class="mono">Send</td><td><strong>并行扇出</strong>多个工具调用</td><td>本课 · 进阶 ④</td></tr>
-  <tr><td class="mono">Command</td><td>状态更新 + 跳转（多 Agent <strong>handoff</strong> 的底座）</td><td>本课 · 进阶 ④ · 第 23 课</td></tr>
+  <tr><td class="mono">Command</td><td>状态更新 + 跳转（多 Agent <strong>handoff</strong> 的底座）</td><td>本课 · 进阶 ④ · 横向对比 AutoGen 课</td></tr>
   <tr><td class="mono">Checkpointer / Store</td><td>持久化会话 / 长期记忆</td><td>本课 · 进阶 ①③</td></tr>
-  <tr><td class="mono">interrupt</td><td>中断等人审批（HITL）</td><td>本课 · 进阶 ② · 第 9 课</td></tr>
-  <tr><td class="mono">Runtime</td><td>运行时上下文（依赖注入）</td><td>第 21 课</td></tr>
+  <tr><td class="mono">interrupt</td><td>中断等人审批（HITL）</td><td>本课 · 进阶 ② · Agent 入门课</td></tr>
+  <tr><td class="mono">Runtime</td><td>运行时上下文（依赖注入）</td><td>compile 与 Runtime 课</td></tr>
 </table>
-<p style="color:var(--muted);font-size:.9rem">想把这些零件<strong>逐个拆到引擎层</strong>（Pregel 超步、channels、checkpoint、Send/Command 的实现）？见 <strong>第七部分 · 深入 LangGraph</strong>。</p>
+<p style="color:var(--muted);font-size:.9rem">想把这些零件<strong>逐个拆到引擎层</strong>（Pregel 超步、channels、checkpoint、Send/Command 的实现）？见 <strong>LangGraph 引擎旧版三课</strong>。</p>
 
 <h2>状态：在节点间流动的是什么？</h2>
 <p>图里流动的不是裸消息，而是 <span class="inline">AgentState</span>——一个至少含 <span class="inline">messages</span> 键的状态字典。
@@ -820,12 +820,12 @@ graph.add_conditional_edges(<span class="st">"tools"</span>, ...)   <span class=
   <ul>
     <li>所以 <span class="mono">"model"</span> 节点只要 <span class="mono">return {"messages": [ai]}</span> 就能"追加一条"，不必自己拼回整段历史。</li>
     <li>想<strong>删 / 改</strong>历史？返回<strong>相同 id</strong> 的消息可替换，或用 <span class="mono">RemoveMessage</span> 删除——直接塞一个新列表是<strong>删不掉</strong>的（只会被合并进去）。</li>
-    <li>这也解释了第 20 课中间件改消息为何要小心：你返回的是会被 reducer <strong>归并</strong>的"更新"，而不是整份状态。</li>
+    <li>这也解释了写自己的中间件课里改消息为何要小心：你返回的是会被 reducer <strong>归并</strong>的"更新"，而不是整份状态。</li>
   </ul>
 </div>
 
 <h2>middleware：在循环里插钩子</h2>
-<p>第 9 课签名里的 <span class="inline">middleware</span> 参数，就是往这张图里<strong>插入额外节点/包裹逻辑</strong>的机制——
+<p>Agent 入门课签名里的 <span class="inline">middleware</span> 参数，就是往这张图里<strong>插入额外节点/包裹逻辑</strong>的机制——
 可在"调用模型前后"做拦截（如改写请求、人审、日志）。它让 Agent 行为可扩展而无需改核心循环。</p>
 
 <div class="card macro">
@@ -956,7 +956,7 @@ agent.invoke({<span class="st">"messages"</span>: [...]}, config={<span class="s
       <div class="q">🧪 机制</div>
       <div class="a"><span class="mono">interrupt_before=["tools"]</span> 让图在执行工具节点<strong>前暂停</strong>并存档，
         把控制权交还给你的程序；人确认后再 <span class="mono">invoke(None, config=...)</span> <strong>从断点继续</strong>。
-        第 9 课的 <span class="mono">HumanInTheLoopMiddleware</span> 正是基于这套机制。</div>
+        Agent 入门课的 <span class="mono">HumanInTheLoopMiddleware</span> 正是基于这套机制。</div>
     </div>
     <div class="qa">
       <div class="q">❓ 为什么只有"图"能做到</div>
@@ -1010,7 +1010,7 @@ agent = create_agent(model, tools, store=my_store)</pre>
       <div class="a">普通节点返回一个 <span class="mono">dict</span> 只更新状态；返回 <span class="mono">Command</span> 则能<strong>同时</strong>"改状态 + 指定下一步去哪"：
 <pre class="code"><span class="kw">from</span> langgraph.types <span class="kw">import</span> Command
 <span class="kw">return</span> Command(update={<span class="st">"messages"</span>: [...]}, goto=<span class="st">"researcher"</span>)  <span class="cm"># 改状态并跳到另一个 agent</span></pre>
-        多 Agent <strong>handoff</strong>（第 23 课对照 AutoGen 时提到的"交接"）正是用 <span class="mono">Command(goto=...)</span> 实现的——一个 Agent 把任务<strong>交棒</strong>给另一个。</div>
+        多 Agent <strong>handoff</strong>（横向对比 AutoGen 课提到的"交接"）正是用 <span class="mono">Command(goto=...)</span> 实现的——一个 Agent 把任务<strong>交棒</strong>给另一个。</div>
     </div>
     <div class="qa">
       <div class="q">✅ 一句话记</div>
@@ -1074,7 +1074,7 @@ LESSON_13 = r"""
 </div>
 
 <h2>Callbacks：在生命周期关键点挂钩子</h2>
-<p>还记得第 3 课"沿途触发回调"吗？回调系统在每次调用的关键时刻发出事件，
+<p>还记得一次调用的全链路课里的"沿途触发回调"吗？回调系统在每次调用的关键时刻发出事件，
 你可以注册处理器来响应。最常见的用途就是 <strong>LangSmith 追踪</strong>。</p>
 
 <div class="flow">
@@ -1111,7 +1111,7 @@ LESSON_13 = r"""
 
 <h2>config：回调/标签如何传进去</h2>
 <p>回调、标签（tags）、元数据通过 <span class="inline">RunnableConfig</span> 这个配置字典在调用时一路传递。
-这就是第 10 课 <span class="mono">invoke(input, config)</span> 里 <span class="inline">config</span> 参数的用途：</p>
+这就是 Runnable 协议课 <span class="mono">invoke(input, config)</span> 里 <span class="inline">config</span> 参数的用途：</p>
 <pre class="code">model.invoke(<span class="st">"你好"</span>, config={
     <span class="st">"callbacks"</span>: [MyHandler()],
     <span class="st">"tags"</span>: [<span class="st">"demo"</span>],
@@ -1164,7 +1164,7 @@ LESSON_13 = r"""
     <div class="qa">
       <div class="q">🧪 一句话区分</div>
       <div class="a"><strong>callbacks = 观察</strong>（被动收到事件，做日志/追踪，不改流程）；
-        <strong>middleware = 干预</strong>（主动改写请求、拦截、加节点，<strong>会改变</strong>流程，第 15 课）。</div>
+        <strong>middleware = 干预</strong>（主动改写请求、拦截、加节点，<strong>会改变</strong>流程，Agent 内部课）。</div>
     </div>
     <div class="qa">
       <div class="q">❓ 何时用哪个</div>
@@ -1281,7 +1281,7 @@ LESSON_13 = r"""
 # ---------------------------------------------------------------------------
 LESSON_OP = r"""
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-第 10、11 课你反复见到 <span class="inline">prompt | model | parser</span> 这条链，但 <strong>parser（输出解析器）</strong>一直没讲。
+Runnable 与 LCEL 课程里你反复见到 <span class="inline">prompt | model | parser</span> 这条链，但 <strong>parser（输出解析器）</strong>一直没讲。
 它负责把模型吐出的"一段文本"变成<strong>程序能直接用的结构化数据</strong>——这是 LCEL 链里缺失的第三块拼图。
 </p>
 
@@ -1319,7 +1319,7 @@ text: str = chain.invoke({<span class="st">"q"</span>: <span class="st">"你好"
 
 <div class="card key">
   <div class="tag">🔑 核心认知</div>
-  <strong>解析器也是 Runnable</strong>（第 10 课）。所以它能用 <span class="inline">|</span> 接在 model 后面，
+  <strong>解析器也是 Runnable</strong>（Runnable 协议课）。所以它能用 <span class="inline">|</span> 接在 model 后面，
   成为链的最后一环——这就是 <span class="inline">prompt | model | parser</span> 三段式的由来。
 </div>
 
@@ -1377,7 +1377,7 @@ chain = prompt | model | parser   <span class="cm"># 模型按要求输出 → p
     <div class="qa">
       <div class="q">🧪 两条路线</div>
       <div class="a"><strong>解析器路线</strong>：模型<strong>自由输出文本</strong> → 事后用 parser 解析（靠提示 + 解析，<strong>任何模型都能用</strong>）。
-        <strong>with_structured_output 路线</strong>（第 7 课）：用工具调用 / JSON 模式<strong>强约束</strong>模型输出（更可靠，但需模型支持）。</div>
+        <strong>with_structured_output 路线</strong>（聊天模型课）：用工具调用 / JSON 模式<strong>强约束</strong>模型输出（更可靠，但需模型支持）。</div>
     </div>
     <div class="qa">
       <div class="q">❓ 各自适合</div>
@@ -1387,7 +1387,7 @@ chain = prompt | model | parser   <span class="cm"># 模型按要求输出 → p
     </div>
     <div class="qa">
       <div class="q">✅ 关系</div>
-      <div class="a">其实 <span class="mono">with_structured_output</span> 内部也用到 tool/JSON 解析器（第 13 课）。解析器是更底层、更通用的一层。</div>
+      <div class="a">其实 <span class="mono">with_structured_output</span> 内部也用到 tool/JSON 解析器（聊天模型内部课）。解析器是更底层、更通用的一层。</div>
     </div>
   </div>
 </details>
@@ -1402,7 +1402,7 @@ chain = prompt | model | parser   <span class="cm"># 模型按要求输出 → p
     </div>
     <div class="qa">
       <div class="q">✅ 还有一个好处</div>
-      <div class="a"><span class="mono">StrOutputParser</span> 对<strong>流式</strong>友好：逐 token 产出纯文本块，正好做打字机效果（第 16 课）。</div>
+      <div class="a"><span class="mono">StrOutputParser</span> 对<strong>流式</strong>友好：逐 token 产出纯文本块，正好做打字机效果（Streaming 与 Callbacks 课）。</div>
     </div>
   </div>
 </details>
