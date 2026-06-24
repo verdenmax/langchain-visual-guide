@@ -938,53 +938,206 @@ QUIZZES = {
     "17-rag.html": {
         "mcq": [
             {
-                "q": "RAG 的本质是“先检索、再生成”。它为什么能突破“模型只懂训练数据”的局限？",
+                "q": "RAG 端到端链路中，哪一步最直接负责把外部知识变成模型可读上下文？",
                 "opts": [
-                    "它重新训练了模型",
-                    "把私有/最新知识在“运行时”检索出来塞进上下文，让模型基于“现查的资料”作答，而不依赖记在权重里的旧知识",
-                    "它让模型更大",
-                    "它缓存了答案",
+                    "直接微调模型权重，让知识永久进入参数",
+                    "只把用户问题原样发给模型，不做任何资料处理",
+                    "让输出解析器随机选择一个引用编号",
+                    "Retriever 返回 Document 后，由格式化步骤把 page_content 和 metadata 整理进 prompt context",
                 ],
-                "answer": 1,
-                "why": "RAG 不改模型，而是改“喂给模型的上下文”。知识的新鲜与私有性靠外挂检索解决——这是性价比极高的设计。",
+                "answer": 3,
+                "why": "Retriever 只返回 Document；真正进入模型的是格式化后的 context，里面应保留 source、编号和边界说明。",
             },
             {
-                "q": "RAG 流水线是 Document → Splitter → Embeddings → VectorStore → Retriever 五件套。拆成五个清晰阶段，好处是？",
+                "q": "为什么说 <code>BaseRetriever</code> 可以被放进 LCEL 链？",
                 "opts": [
-                    "显得复杂",
-                    "每个阶段职责单一、可独立替换/调优（换嵌入、换库、调切块），整条管道清晰可维护",
-                    "运行更快",
-                    "减少代码",
+                    "因为它继承 Runnable 契约，能用 invoke/stream/config 等统一接口接收 query 并返回 Document",
+                    "因为它只能返回字符串，不能返回 Document",
+                    "因为它会自动调用所有工具",
+                    "因为它负责训练 embedding 模型",
                 ],
-                "answer": 1,
-                "why": "把“知识检索”拆成正交阶段，每步都能单独优化或替换。这又是“分阶段流水线”的可维护性回报。",
+                "answer": 0,
+                "why": "Retriever as Runnable 让检索成为链中的普通节点，也能被包装成 Agent 工具复用。",
             },
             {
-                "q": "课里强调“切块控制精度与 token”。为什么要先“切块”，而不是把整篇文档直接嵌入？",
+                "q": "当 RAG 没检索到足够证据时，最稳妥的回答策略是什么？",
                 "opts": [
-                    "文档太大存不下",
-                    "检索要的是“最相关的片段”：切块让检索更精准、只把相关小段塞进上下文，省 token 又减噪声",
-                    "嵌入不支持长文本",
-                    "切块更快",
+                    "让模型凭常识补全缺失事实",
+                    "删除所有 metadata，避免用户看到来源",
+                    "承认证据不足、要求澄清或扩大检索，而不是编造带引用答案",
+                    "把 top_k 调成 1，让答案更短",
                 ],
-                "answer": 1,
-                "why": "块太大→噪声多且费 token，太小→语义碎。切块是 RAG 质量的关键旋钮，本质是“检索粒度”的权衡。",
-            },
-            {
-                "q": "Retriever 被设计成 Runnable，既能拼进链、也能“包成工具交给 Agent”。这种双重身份图什么？",
-                "opts": [
-                    "炫技",
-                    "同一个检索器，既能用在确定的 RAG 链里，也能当工具让 Agent“自己决定何时查”——一份能力两种用法",
-                    "让检索更准",
-                    "减少类",
-                ],
-                "answer": 1,
-                "why": "因为它是 Runnable，所以能无缝进入两种范式（固定管道 / Agent 自主）。统一抽象让组件复用面最大化。",
+                "answer": 2,
+                "why": "RAG 的可信度来自证据链。证据不足时应降级或补检索，不能把流畅文本伪装成有来源的事实。",
             },
         ],
         "open": [
-            "RAG 用“运行时检索”代替“重新训练”来获得新知识。什么情况下你反而应该选择微调/训练，而不是 RAG？两者怎么配合？",
-            "切块大小、检索条数 k、嵌入模型——RAG 一堆旋钮且互相影响。如果你的 RAG“答得不准”，你会按什么<strong>顺序</strong>排查这些旋钮？",
+            "设计一条 RAG trace：从用户问题、可选 query rewrite、retriever 返回 Document、context 格式化到最终引用核验，说明每一步记录哪些字段。",
+            "列出三个不适合优先使用 RAG 的场景，并说明这些场景更适合微调、规则系统、工具调用还是直接拒答。",
+        ],
+    },
+    "36-documents-splitters.html": {
+        "mcq": [
+            {
+                "q": "Document 的 metadata 在切块后为什么必须继续保留？",
+                "opts": [
+                    "metadata 只给前端美化使用，切块后可以删除",
+                    "metadata 会让 embedding 维度自动变小",
+                    "metadata 会替代 page_content 成为模型回答正文",
+                    "metadata 保存 source、页码、权限和版本，决定后续能否引用、过滤和排障",
+                ],
+                "answer": 3,
+                "why": "chunk 仍然要能回到父文档和权限边界；否则检索命中后无法引用，也可能越权。",
+            },
+            {
+                "q": "chunk_overlap 的主要作用是什么？",
+                "opts": [
+                    "保护跨边界语义，避免定义、上下文或句子在硬切分时断裂",
+                    "让所有 chunk 完全相同，便于缓存",
+                    "强制 loader 跳过 metadata",
+                    "把长文档直接交给模型而不做切分",
+                ],
+                "answer": 0,
+                "why": "适量 overlap 能保住边界附近的语义；过大则会制造重复、成本和召回噪声。",
+            },
+            {
+                "q": "Loader 与 Splitter 的责任边界哪项最准确？",
+                "opts": [
+                    "Splitter 负责连接数据库权限系统，Loader 只负责排序",
+                    "Loader 必须决定最终 prompt 模板",
+                    "二者没有区别，只是命名不同",
+                    "Loader 负责读取外部来源并构造初始 Document；Splitter 负责把 Document 切成子 Document 并传播 metadata",
+                ],
+                "answer": 3,
+                "why": "Loader 是摄取入口，Splitter 是索引前的粒度控制；二者都不能吞掉来源和权限字段。",
+            },
+        ],
+        "open": [
+            "给一篇包含标题、表格和步骤说明的文档设计 splitter：说明 chunk_size、overlap、separator 和 metadata 字段如何设置。",
+            "调试一个丢引用问题：检索结果内容正确但没有 source/page。请按 raw page、Document、split_documents、add_documents 的顺序排查。",
+        ],
+    },
+    "37-embeddings-vectorstores.html": {
+        "mcq": [
+            {
+                "q": "Embeddings 契约中最关键的一致性要求是什么？",
+                "opts": [
+                    "每次查询都必须重新训练模型",
+                    "文档和查询必须使用兼容的 embedding 模型与向量空间，否则相似度不可比较",
+                    "metadata 必须为空，避免影响向量维度",
+                    "VectorStore 只能保存一个文档",
+                ],
+                "answer": 1,
+                "why": "换 embedding 模型通常意味着向量空间改变，旧索引需要重建或隔离命名空间。",
+            },
+            {
+                "q": "<code>VectorStoreRetriever</code> 的价值是什么？",
+                "opts": [
+                    "把向量库包装成 BaseRetriever/Runnable，让 RAG 链按统一检索接口调用",
+                    "把所有 Document 变成 SystemMessage",
+                    "自动删除所有旧索引且无法关闭",
+                    "替代 ChatPromptTemplate 生成最终答案",
+                ],
+                "answer": 0,
+                "why": "as_retriever 暴露 query -> Document 的接口，屏蔽具体向量库实现，便于组合和替换。",
+            },
+            {
+                "q": "为什么生产索引需要 stable id / source_id？",
+                "opts": [
+                    "为了让答案押韵",
+                    "为了让模型跳过检索",
+                    "为了支持 upsert、去重、cleanup 和排查 stale index",
+                    "为了让 chunk_overlap 自动为 0",
+                ],
+                "answer": 2,
+                "why": "没有稳定标识，更新同一来源时无法判断追加、覆盖还是删除旧版本，过期内容会长期留在检索结果里。",
+            },
+        ],
+        "open": [
+            "为一个小型知识库选择向量库：比较 InMemory、FAISS/本地库、托管向量库在规模、持久化、权限过滤和运维上的取舍。",
+            "排查 stale index：用户问到旧政策，请设计检查顺序，包括 source_id、version、embedding_model、cleanup 和缓存。",
+        ],
+    },
+    "38-retrievers-rerankers.html": {
+        "mcq": [
+            {
+                "q": "两阶段检索中，第一层 broad retriever 通常追求什么？",
+                "opts": [
+                    "高召回，先把可能相关的候选尽量放进池子，再交给压缩或 rerank 精排",
+                    "只返回一个最短 chunk，避免后续处理",
+                    "直接生成最终自然语言答案",
+                    "删除所有低分文档的 source 字段",
+                ],
+                "answer": 0,
+                "why": "如果正确文档第一层没召回，后面的 reranker 没机会修复；所以第一层通常宁可多拿。",
+            },
+            {
+                "q": "Contextual compression 的核心目的是什么？",
+                "opts": [
+                    "把用户问题永久写入向量库",
+                    "让模型忽略所有引用",
+                    "把检索到的候选按当前 query 裁剪、过滤或重排，减少无关上下文",
+                    "替代 Loader 读取原始文件",
+                ],
+                "answer": 2,
+                "why": "压缩器处理的是已召回 Document，目标是在保留证据的同时降低噪声和 token 成本。",
+            },
+            {
+                "q": "为什么 reranker 不能解决所有检索失败？",
+                "opts": [
+                    "reranker 只能处理图片，不能处理文本",
+                    "reranker 会强制关闭 metadata filter",
+                    "reranker 的输出不能排序",
+                    "reranker 只能重排或过滤候选；如果正确文档没有被 base retriever 召回，它根本看不见",
+                ],
+                "answer": 3,
+                "why": "召回和精排是两层指标：先保证候选池覆盖，再优化排序和上下文精度。",
+            },
+        ],
+        "open": [
+            "设计一个 retriever stack：说明 base k、metadata filter、compressor、reranker、最终 top_k，以及每层记录哪些日志。",
+            "针对“回答漏掉关键条件”的问题，说明如何调 top_k、score_threshold、rerank_k，并如何判断是召回问题还是压缩问题。",
+        ],
+    },
+    "39-memory-conversation-state.html": {
+        "mcq": [
+            {
+                "q": "Chat history、summary memory、checkpoint 的区别哪项最准确？",
+                "opts": [
+                    "三者完全相同，只是不同包的名字",
+                    "Chat history 保存消息；summary 压缩长历史；checkpoint 保存线程状态快照以便恢复和调试",
+                    "checkpoint 只能保存向量，不能保存消息",
+                    "summary memory 必须永久保存所有敏感信息",
+                ],
+                "answer": 1,
+                "why": "三者生命周期和用途不同：消息服务当前对话，摘要服务窗口压缩，checkpoint 服务状态恢复。",
+            },
+            {
+                "q": "LangGraph 中 <code>add_messages</code> 常用于什么？",
+                "opts": [
+                    "把节点返回的消息增量合并进 state['messages']，并按消息 id 处理追加/覆盖",
+                    "把所有用户偏好写入公开网页",
+                    "把向量相似度改成余弦距离",
+                    "把 retriever 自动变成 loader",
+                ],
+                "answer": 0,
+                "why": "add_messages 是 messages 状态的 reducer，帮助多轮 Agent loop 保持结构化消息历史。",
+            },
+            {
+                "q": "长期记忆写入最应该遵守哪条原则？",
+                "opts": [
+                    "只要用户说过就永久保存",
+                    "为了个性化可以忽略删除请求",
+                    "最小化、可解释、可删除，并过滤敏感或临时信息",
+                    "把 checkpoint 当作公开知识库",
+                ],
+                "answer": 2,
+                "why": "长期记忆涉及隐私和陈旧风险，必须有写入理由、过期/删除机制和使用边界。",
+            },
+        ],
+        "open": [
+            "为学习助手设计 memory policy：哪些内容进入最近窗口、摘要、长期偏好或拒绝保存？说明写入和删除规则。",
+            "分析一次隐私泄漏风险：用户临时提供身份证号完成任务。系统在 chat history、checkpoint、summary、long-term memory 中应如何处理？",
         ],
     },
     "18-custom-middleware.html": {

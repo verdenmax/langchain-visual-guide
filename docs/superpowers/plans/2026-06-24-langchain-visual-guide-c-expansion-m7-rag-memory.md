@@ -117,8 +117,7 @@ Cover Document, metadata, loaders concept, splitting/chunk overlap. Source rows:
 - `libs/core/langchain_core/documents/base.py :: Document`
 - `libs/text-splitters/langchain_text_splitters/base.py :: TextSplitter`
 - `libs/text-splitters/langchain_text_splitters/character.py :: RecursiveCharacterTextSplitter`
-- `libs/community/langchain_community/document_loaders/base.py :: BaseLoader`
-- `libs/core/langchain_core/document_loaders/base.py :: BaseLoader` if present; if current source differs, use the verified actual path and update plan before final review.
+- `libs/core/langchain_core/document_loaders/base.py :: BaseLoader` (verified current core loader path; old `libs/community/langchain_community/document_loaders/base.py` is stale)
 
 Trace: raw page -> Document -> chunks -> metadata propagation.
 
@@ -129,7 +128,7 @@ Cover embeddings, vector stores, similarity search, indexing/upserts. Source row
 - `libs/core/langchain_core/vectorstores/base.py :: VectorStore`
 - `libs/core/langchain_core/vectorstores/base.py :: VectorStoreRetriever`
 - `libs/core/langchain_core/indexing/api.py :: index`
-- `libs/community/langchain_community/vectorstores/faiss.py :: FAISS` or another verified concrete vector store path.
+- `libs/core/langchain_core/vectorstores/in_memory.py :: InMemoryVectorStore` (verified concrete core vector store path; old community FAISS path is stale)
 
 Trace: chunks -> embedding vectors -> add_documents -> similarity_search -> docs.
 
@@ -138,8 +137,8 @@ Trace: chunks -> embedding vectors -> add_documents -> similarity_search -> docs
 Cover BaseRetriever, search kwargs, contextual compression, rerank, recall/precision. Source rows:
 - `libs/core/langchain_core/retrievers.py :: BaseRetriever`
 - `libs/core/langchain_core/vectorstores/base.py :: VectorStoreRetriever`
-- `libs/langchain/langchain/retrievers/contextual_compression.py :: ContextualCompressionRetriever` if current source exists; otherwise verify/update to current path.
-- `libs/langchain/langchain/retrievers/document_compressors/base.py :: BaseDocumentCompressor` if current source exists; otherwise verify/update.
+- `libs/langchain/langchain_classic/retrievers/contextual_compression.py :: ContextualCompressionRetriever` (verified current classic path; old `libs/langchain/langchain/retrievers/...` path is stale)
+- `libs/core/langchain_core/documents/compressor.py :: BaseDocumentCompressor` (verified current core compressor abstraction)
 - `libs/core/langchain_core/runnables/base.py :: Runnable`
 
 Trace: query -> broad retriever -> compressor/reranker -> top-k context.
@@ -148,7 +147,7 @@ Trace: query -> broad retriever -> compressor/reranker -> top-k context.
 
 Cover chat history, summary memory, LangGraph state, short-term vs long-term memory. Source rows:
 - `libs/core/langchain_core/chat_history.py :: BaseChatMessageHistory`
-- `libs/community/langchain_community/chat_message_histories/in_memory.py :: ChatMessageHistory` or verified current path
+- `libs/core/langchain_core/chat_history.py :: InMemoryChatMessageHistory` (verified current core path; old community path is stale/re-exported through classic)
 - `langgraph/graph/message.py :: add_messages`
 - `langgraph/checkpoint/memory/__init__.py :: InMemorySaver`
 - `libs/langchain_v1/langchain/agents/factory.py :: create_agent`
