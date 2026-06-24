@@ -29,7 +29,7 @@ LESSON_17_GRAPH_WHY = (
         "本课地图：为什么从链升级到状态图",
         [
             ("链的边界", "LCEL 擅长直线和 DAG 组合，但循环、长期状态、动态路由会变得别扭", "before"),
-            ("图的承诺", "Graph/StateGraph 用节点、边、共享状态表达可执行流程", "now"),
+            ("图的承诺", "StateGraph 用节点、边、共享状态表达可执行流程", "now"),
             ("Agent 循环", "messages 进入模型，按 tool_calls 条件分支到工具，再回到模型", "now"),
             ("Runnable 兼容", "CompiledStateGraph 仍能被 LangChain 当作 Runnable 调用", "source"),
             ("下一课", "把 State schema 当成整张图的契约来读", "after"),
@@ -37,12 +37,11 @@ LESSON_17_GRAPH_WHY = (
     )
     + r"""
 <h2>源码入口：文件 + 符号名</h2>
-<p>本课的源码证据只使用文件 + 符号名，不写行号，因为 LangGraph 版本迭代时行号会移动，而类名、函数名和模块边界更适合作为阅读锚点。建议按“抽象图 → 状态图 → 消息 reducer → Pregel 运行时 → LangChain Agent 入口”的顺序读。</p>
+<p>本课的源码证据只使用文件 + 符号名，不写行号，因为 LangGraph 版本迭代时行号会移动，而类名、函数名和模块边界更适合作为阅读锚点。建议按“状态图 → 消息 reducer → Pregel 运行时 → LangChain Agent 入口”的顺序读。</p>
 """
     + shell.source_map(
         [
             {"file": "langgraph/graph/state.py", "symbol": "StateGraph", "role": "有状态图建造者，要求每个节点围绕共享 state 读写 partial update", "direction": "用户定义 schema、节点和边后调用 compile"},
-            {"file": "langgraph/graph/graph.py", "symbol": "Graph", "role": "更基础的图结构，提供节点、边和条件边的公共骨架", "direction": "StateGraph 继承/复用图结构并加上状态语义"},
             {"file": "langgraph/graph/message.py", "symbol": "add_messages", "role": "消息列表 reducer，按消息 id 替换或追加，支撑聊天历史合并", "direction": "State key 标注后在运行时合并模型和工具消息"},
             {"file": "langgraph/pregel/main.py", "symbol": "Pregel", "role": "编译图的底层执行模型，按步骤调度节点、通道和更新", "direction": "Compiled graph 作为 Pregel/Runnable 被 invoke 或 stream"},
             {"file": "libs/langchain_v1/langchain/agents/factory.py", "symbol": "create_agent", "role": "LangChain 高层 Agent 工厂，把易用 API 建在 LangGraph 能力之上", "direction": "用户调用 create_agent，内部组装/编译 LangGraph agent"},
@@ -79,7 +78,7 @@ LESSON_17_GRAPH_WHY = (
     + shell.code_walkthrough(
         "langgraph/graph/state.py",
         "StateGraph",
-        """class StateGraph(Graph):
+        """class StateGraph:
     def __init__(self, state_schema, *, context_schema=None):
         self.schema = state_schema
         self.channels = _get_channels(state_schema)
@@ -92,7 +91,7 @@ LESSON_17_GRAPH_WHY = (
         self.validate()
         return CompiledStateGraph(...)
 """,
-        "教学版只保留关键形状：StateGraph 在 Graph 的节点/边之上增加 schema 和 channel；compile 之后才得到可运行对象。真实实现还会处理输入输出 schema、checkpointer、interrupt、retry 和 Pregel 节点包装。",
+        "教学版只保留关键形状：StateGraph 维护节点、边、schema 和 channel；compile 之后才得到可运行对象。真实实现还会处理输入输出 schema、checkpointer、interrupt、retry 和 Pregel 节点包装。",
     )
     + r"""
 <h2>图和链的根本差别</h2>
@@ -106,7 +105,7 @@ LESSON_17_GRAPH_WHY = (
     + _h3("七、分支不是 if 语句散落在业务里", "条件边把“根据状态去哪”提升成图结构的一部分。route_tools 这样的函数只负责观察状态并返回目的节点名或 END。这样 trace 可以看到为什么走 tools，不会把路由逻辑藏在模型节点内部。越复杂的 Agent 越需要这种分离：模型节点产出内容，路由函数做决策，工具节点处理副作用，边负责控制流。")
     + _h3("八、循环必须有终止条件", "图能表达环，不代表应该无限绕。每个环都要回答：什么状态表示任务完成？什么状态表示工具失败？最多允许几次工具调用？是否需要 recursion_limit 兜底？如果没有这些问题的答案，LangGraph 只会让无限循环更容易发生。工程上常见做法是让路由函数识别无 tool_calls、达到最大步数、出现不可恢复错误或用户中断，然后走 END 或错误处理节点。")
     + _h3("九、图不是 UI，而是执行语义", "很多人看到 Graph 就想到可视化拖拽。LangGraph 的图当然可以被可视化，但它首先是运行时契约：节点怎样被调度，状态怎样合并，边怎样选择，什么时候保存 checkpoint，异常怎样传播。把它误解成 UI，会低估 schema、reducer 和 Pregel 执行模型的重要性。图的价值不是画出来好看，而是运行出来可解释、可恢复、可组合。")
-    + _h3("十、读源码时先找稳定抽象", "本课 source map 里的 StateGraph、Graph、add_messages、Pregel、create_agent 分别代表建图层、基础结构、状态合并、运行引擎和高层入口。不要一开始就陷入某个具体工具节点或 provider 适配器。先建立“入口到运行时”的纵向路径，再回头读细节，会更容易判断某个行为属于图语义、状态 reducer、还是 LangChain Agent 的封装。")
+    + _h3("十、读源码时先找稳定抽象", "本课 source map 里的 StateGraph、add_messages、Pregel、create_agent 分别代表建图层、状态合并、运行引擎和高层入口。不要一开始就陷入某个具体工具节点或 provider 适配器。先建立“入口到运行时”的纵向路径，再回头读细节，会更容易判断某个行为属于图语义、状态 reducer、还是 LangChain Agent 的封装。")
     + _h3("十一、从链迁移到图的判断题", "如果你的流程只有“取输入、格式化、调用模型、解析输出”，链更清楚。如果你开始写 while、把 message history 放在外部变量、根据模型输出选择工具、需要中断恢复、需要多节点共享状态，就该考虑图。判断标准不是代码行数，而是控制流是否已经变成状态机。状态机用图表达，通常比把状态藏在链外更诚实。")
     + _h3("十二、调试视角的变化", "调试链时，你常问“上一段输出是什么，下一段为什么不接收”。调试图时，你要问“当前 state 是什么，哪个节点写了哪个 partial，reducer 怎样合并，路由函数为什么选了这个节点，循环为什么还没结束”。问题从线性数据形状扩展到状态演化和控制流演化。这个视角转变，是学习 LangGraph 的第一道门槛。")
     + _h3("十三、最小心智模型", "把 LangGraph 记成一句话：一张编译后可运行的状态图，节点读取 state 并返回 partial state，边决定下一步，reducer 合并同一 key 的更新，Pregel 风格运行时负责按步骤调度。只要这句话站稳，后面 State schema、节点边、reducer、compile/runtime 都是对其中某个名词的展开。")
@@ -331,8 +330,8 @@ LESSON_19_NODES_EDGES = (
     + shell.source_map(
         [
             {"file": "langgraph/graph/state.py", "symbol": "StateGraph.add_node", "role": "把函数、Runnable 或节点规格注册进状态图，并绑定节点名", "direction": "用户定义业务步骤，compile 时被包装成 Pregel 节点"},
-            {"file": "langgraph/graph/graph.py", "symbol": "Graph.add_edge", "role": "声明一个固定后继关系，当前节点完成后调度目标节点", "direction": "START、普通节点和 END 之间建立静态路径"},
-            {"file": "langgraph/graph/graph.py", "symbol": "Graph.add_conditional_edges", "role": "注册路由函数和可选路径映射，让 state 决定下一跳", "direction": "运行时调用 route 函数，返回节点名、END 或映射键"},
+            {"file": "langgraph/graph/state.py", "symbol": "StateGraph.add_edge", "role": "声明一个固定后继关系，当前节点完成后调度目标节点", "direction": "START、普通节点和 END 之间建立静态路径"},
+            {"file": "langgraph/graph/state.py", "symbol": "StateGraph.add_conditional_edges", "role": "注册路由函数和可选路径映射，让 state 决定下一跳", "direction": "运行时调用 route 函数，返回节点名、END 或映射键"},
             {"file": "langgraph/constants.py", "symbol": "START", "role": "虚拟入口常量，供 add_edge 等图结构 API 标记初始边界", "direction": "START -> first_node，运行时从入口边接收初始 state"},
             {"file": "langgraph/constants.py", "symbol": "END", "role": "虚拟终点常量，供普通边或条件边标记运行完成", "direction": "route 返回 END 或边指向 END 后结束本次图运行"},
         ]
@@ -365,8 +364,8 @@ LESSON_19_NODES_EDGES = (
 <h2>简化源码走读：注册和路由</h2>
 """
     + shell.code_walkthrough(
-        "langgraph/graph/graph.py",
-        "add_conditional_edges",
+        "langgraph/graph/state.py",
+        "StateGraph.add_conditional_edges",
         """builder.add_node('model', call_model)
 builder.add_node('tools', tool_node)
 builder.add_edge(START, 'model')
@@ -441,7 +440,7 @@ def route_tools(state):
             "给 state 增加 tool_rounds，并让 route 在超过 3 次时返回 END 或 human_review。",
         ],
     )
-    + shell.version_note("本课锚定 StateGraph.add_node、Graph.add_edge、Graph.add_conditional_edges、START、END。未来 API 可能增加更丰富的控制流原语，但“节点做状态更新，边做控制转移”的边界仍是读图的第一原则。")
+    + shell.version_note("本课锚定 StateGraph.add_node、StateGraph.add_edge、StateGraph.add_conditional_edges、START、END。未来 API 可能增加更丰富的控制流原语，但“节点做状态更新，边做控制转移”的边界仍是读图的第一原则。")
     + _points([
         "节点是 state -> partial state 的可测试步骤；边是节点之间的控制关系。",
         "普通边适合固定顺序，条件边适合运行时路由。",
@@ -624,7 +623,7 @@ LESSON_21_COMPILE_RUNTIME = (
             {"file": "langgraph/graph/state.py", "symbol": "CompiledStateGraph", "role": "编译后的状态图，继承/组合 Pregel 能力并实现 Runnable 调用面", "direction": "调用者对它 invoke、stream、batch"},
             {"file": "langgraph/pregel/main.py", "symbol": "Pregel", "role": "底层图执行运行时，按步骤计划、执行节点、提交 channel 更新", "direction": "CompiledStateGraph 的运行核心"},
             {"file": "langgraph/runtime.py", "symbol": "Runtime", "role": "节点运行时对象，暴露 context、store、stream_writer 等非 state 能力", "direction": "运行阶段注入节点，不属于 compile 执行"},
-            {"file": "langgraph/checkpoint/base.py", "symbol": "BaseCheckpointSaver", "role": "checkpoint 抽象接口，保存和读取线程/步骤状态", "direction": "invoke/stream 时通过 config 中 thread_id 等信息定位"},
+            {"file": "langgraph/checkpoint/base/__init__.py", "symbol": "BaseCheckpointSaver", "role": "checkpoint 抽象接口，保存和读取线程/步骤状态", "direction": "invoke/stream 时通过 config 中 thread_id 等信息定位"},
         ]
     )
     + r"""
