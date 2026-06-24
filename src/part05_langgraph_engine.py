@@ -36,7 +36,7 @@ LESSON_22_PREGEL = (
             ("Plan", "prepare_next_tasks 按 subscribed channels、pending writes 和版本信息挑出本超步要跑的任务", "now"),
             ("Execution", "PregelRunner 调度任务，任务读取稳定快照，把写入交给缓冲区而不是马上改全局状态", "now"),
             ("Update", "apply_writes 把 buffered writes 合并进 channels，推进版本，供下一超步观察", "source"),
-            ("调试", "print_step_* 把每一步计划、任务、写入和结果打印成可读 trace", "after"),
+            ("调试", "map_debug_tasks / map_debug_task_results / map_debug_checkpoint 把任务、结果和检查点映射成可读 debug 事件", "after"),
         ],
     )
     + r"""
@@ -49,7 +49,7 @@ LESSON_22_PREGEL = (
             {"file": "langgraph/pregel/_algo.py", "symbol": "prepare_next_tasks", "role": "Plan 阶段核心，根据哪些 channel 有新版本、哪些节点订阅它们，构造下一批内部 PregelExecutableTask，并在 debug/state 视图中映射为公开 PregelTask 快照", "direction": "每个超步开始时读取当前 checkpoint/channel 版本，输出待运行任务"},
             {"file": "langgraph/pregel/_algo.py", "symbol": "apply_writes", "role": "Update 阶段核心，把任务产生的 writes 按 channel 规则合并并更新版本", "direction": "任务全部结束后统一调用，产生下一步可见状态"},
             {"file": "langgraph/pregel/_runner.py", "symbol": "PregelRunner", "role": "Execution 阶段调度器，负责运行任务、收集写入、处理重试和异常边界", "direction": "接收 plan 出来的任务列表，驱动节点代码执行"},
-            {"file": "langgraph/pregel/debug.py", "symbol": "print_step_*", "role": "调试输出工具，把 step、tasks、writes、checkpoint 变化映射成文本", "direction": "stream/debug 模式下帮助观察超步内部发生了什么"},
+            {"file": "langgraph/pregel/debug.py", "symbol": "map_debug_tasks / map_debug_task_results / map_debug_checkpoint", "role": "debug stream 映射工具，把 task、task result 与 checkpoint 变化转换成可读事件", "direction": "stream/debug 模式下帮助观察超步内部发生了什么"},
         ]
     )
     + r"""
@@ -127,9 +127,9 @@ LESSON_22_PREGEL = (
         ],
     )
     + _section(
-        "调试时如何读 print_step_*",
+        "调试时如何读 map_debug_* 事件",
         [
-            "debug 输出的价值在于把黑盒运行拆成超步。你应该按 step 阅读：先看本步计划了哪些 tasks，再看每个 task 的输入和输出，再看 writes 如何被应用。不要只看最终 state；最终答案错误时，真正的原因可能是上一步选择了错误节点，也可能是本步多个写入合并方式不对。",
+            "debug 输出的价值在于把黑盒运行拆成超步。map_debug_tasks 会描述本步任务，map_debug_task_results 会描述任务结果，map_debug_checkpoint 会描述 checkpoint 变化。你应该按 step 阅读：先看本步计划了哪些 tasks，再看每个 task 的输入和输出，再看 writes 如何被应用。不要只看最终 state；最终答案错误时，真正的原因可能是上一步选择了错误节点，也可能是本步多个写入合并方式不对。",
             "当你看到某个节点“晚一步”才响应上一个节点的输出，不要急着怀疑路由函数。先问：这个输出是不是刚在本超步产生？如果是，它本来就只能触发下一超步。LangGraph 的时间模型是离散步，不是连续回调链。用连续调用链的直觉读 Pregel trace，最容易把正常屏障误判为延迟。",
             "另一个调试技巧是记录 channel 版本而不只是值。值一样但版本变了，说明有写入发生；值变了但预期节点没跑，说明订阅或触发关系可能没有连上；同一版本被重复观察，说明图可能在等待 interrupt 或无新任务可计划。版本把“为什么跑/不跑”从猜测变成证据。",
         ],
