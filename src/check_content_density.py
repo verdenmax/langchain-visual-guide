@@ -44,6 +44,11 @@ C_LEVEL_PAGES = {
     "26-langgraph-persistence-control.html": {"min_cjk": 4500, "min_visual": 5},
     "33-langgraph-interrupt-command.html": {"min_cjk": 4500, "min_visual": 5},
     "34-langgraph-time-travel-debug.html": {"min_cjk": 4500, "min_visual": 5},
+    "07-agents-intro.html": {"min_cjk": 4500, "min_visual": 5},
+    "13-agent-internals.html": {"min_cjk": 4500, "min_visual": 5},
+    "18-custom-middleware.html": {"min_cjk": 4500, "min_visual": 5},
+    "19-runtime-context.html": {"min_cjk": 4500, "min_visual": 5},
+    "35-agent-control-errors.html": {"min_cjk": 4500, "min_visual": 5},
 }
 
 RE_SCRIPT_STYLE = re.compile(r"<(script|style)\b.*?</\1>", re.I | re.S)

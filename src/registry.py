@@ -8,7 +8,7 @@ import part02_user_api
 import part03_runnable_lcel
 import part04_langgraph_model
 import part05_langgraph_engine
-import part2
+import part06_agent_internals
 import part3
 import part4
 import part5
@@ -44,14 +44,15 @@ CONTENT = {
     "26-langgraph-persistence-control.html": part05_langgraph_engine.LESSON_24_CHECKPOINTS,
     "33-langgraph-interrupt-command.html": part05_langgraph_engine.LESSON_25_INTERRUPT_COMMAND,
     "34-langgraph-time-travel-debug.html": part05_langgraph_engine.LESSON_26_TIME_TRAVEL,
-    "07-agents-intro.html": part2.LESSON_07,
+    "07-agents-intro.html": part06_agent_internals.LESSON_27_AGENT_LOOP,
+    "13-agent-internals.html": part06_agent_internals.LESSON_28_CREATE_AGENT,
+    "18-custom-middleware.html": part06_agent_internals.LESSON_29_MIDDLEWARE,
+    "19-runtime-context.html": part06_agent_internals.LESSON_30_RUNTIME_CONTEXT,
+    "35-agent-control-errors.html": part06_agent_internals.LESSON_31_CONTROL_ERRORS,
     "11-chat-internals.html": part3.LESSON_10,
     "12-tool-internals.html": part3.LESSON_11,
-    "13-agent-internals.html": part3.LESSON_12,
     "15-contributing.html": part4.LESSON_14,
     "17-rag.html": part5.LESSON_16,
-    "18-custom-middleware.html": part5.LESSON_17,
-    "19-runtime-context.html": part5.LESSON_18,
     "20-capstone.html": part5.LESSON_CAP,
     "21-langchain-vs-autogen.html": part6.LESSON_CMP,
     "22-ai-stack.html": part6.LESSON_STACK,

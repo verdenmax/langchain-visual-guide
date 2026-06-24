@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>27 · Agent 循环心智模型 — LangChain 图解教程</title>
-<meta name="description" content="第六部分 · Agent 内部｜Agent 循环心智模型：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>31 · 控制边界、递归限制与错误恢复 — LangChain 图解教程</title>
+<meta name="description" content="第六部分 · Agent 内部｜控制边界、递归限制与错误恢复：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="27 · Agent 循环心智模型 — LangChain 图解教程">
-<meta property="og:description" content="第六部分 · Agent 内部｜Agent 循环心智模型：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="31 · 控制边界、递归限制与错误恢复 — LangChain 图解教程">
+<meta property="og:description" content="第六部分 · Agent 内部｜控制边界、递归限制与错误恢复：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="27 · Agent 循环心智模型 — LangChain 图解教程">
-<meta name="twitter:description" content="第六部分 · Agent 内部｜Agent 循环心智模型：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="31 · 控制边界、递归限制与错误恢复 — LangChain 图解教程">
+<meta name="twitter:description" content="第六部分 · Agent 内部｜控制边界、递归限制与错误恢复：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -289,78 +289,17 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
     <span class="pill">第六部分 · Agent 内部</span>
-    <span class="pill">27 / 40</span>
+    <span class="pill">31 / 40</span>
   </div>
-  <div class="progress"><span style="width:67%"></span></div>
+  <div class="progress"><span style="width:77%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
     <div class="part">第六部分 · Agent 内部</div>
-    <h1>Agent 循环心智模型</h1>
+    <h1>控制边界、递归限制与错误恢复</h1>
   </div>
-<p class="lead">M6 临时页面：Task 2 会替换为完整 C-level lesson。</p><div class="selftest">
-<h2>🧪 自测 · 想一想为什么这么设计</h2>
-<div class="quiz">
-  <div class="qn">1. <code>create_agent</code> 把“调用→判断→执行工具→回灌→再调用”这个循环自动化。它体现的核心设计哲学是？</div>
-  <ol class="opts">
-    <li>函数式</li>
-    <li>面向对象</li>
-    <li>命令式：你写每一步</li>
-    <li>声明式：你只声明“用什么（模型/工具/护栏）”，循环的编排交给框架</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。“声明用什么、而非手写怎么循环”是本课灵魂。便利来自把易错的循环编排收进框架——也因此后面要掀开盖子看它其实是张图。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">2. Agent 是否继续循环，判据简单到只有一句：“最新 AIMessage 还有没有 <code>tool_calls</code>”。把复杂行为压成这么简单的判据，好处是？</div>
-  <ol class="opts">
-    <li>终止逻辑清晰、可预测、好调试：复杂度都在“模型决定要不要调工具”，而控制流本身极简</li>
-    <li>显得简单</li>
-    <li>限制了能力</li>
-    <li>纯属巧合</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。把“智能”（要不要继续）交给模型、把“控制流”做到极简，是关注点分离的漂亮例子——引擎简单，灵活性来自模型输出。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">3. 生产里给 Agent 装“刹车与护栏”（限次/人审/重试/降级），做成可插拔的 middleware 而非写进核心循环。为什么？</div>
-  <ol class="opts">
-    <li>强制都用上</li>
-    <li>显得模块多</li>
-    <li>让 Agent 更慢</li>
-    <li>核心循环保持稳定纯净，安全/健壮性按需声明式叠加，不同项目装不同护栏、互不污染</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。把横切的护栏与核心循环解耦，你能像配置一样增减能力（写自己的中间件课看机制）。核心不变、外围灵活，又是分离思想。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. <code>ModelCallLimitMiddleware</code> 限“思考几轮”、<code>recursion_limit</code> 是“图的硬上限”。同时有软上限和硬上限两道防线，图什么？</div>
-  <ol class="opts">
-    <li>没有意义</li>
-    <li>重复造轮子</li>
-    <li>让配置更复杂</li>
-    <li>软上限给友好行为（到点收尾），硬上限做最后兜底（绝不无限跑）；分层防御，体验与安全兼顾</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。软硬两道防线分工不同：一个为“优雅降级”，一个为“绝对安全”。关键系统常用这种“多层兜底”。</div></div></div>
-  </details>
-</div>
-<div class="card spark">
-  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
-  <ul>
-    <li><code>create_agent</code> 把循环“自动化”了，但也“藏起来”了。什么情况下这种“便利的黑盒”反而会成为问题？什么时候你宁愿自己用 LangGraph 手搭图？</li>
-    <li>给 Agent 加护栏几乎总是对的，但每道护栏都增加复杂度与延迟。如果只能选<strong>一道</strong>护栏上生产，你会选哪个、为什么？</li>
-  </ul>
-</div>
-</div>
-  <div class="footnav"><a class="prev" href="34-langgraph-time-travel-debug.html"><div class="dir">← 上一课</div><div class="ttl">时间旅行、回放与调试</div></a><a class="next" href="13-agent-internals.html"><div class="dir">下一课 →</div><div class="ttl">create_agent 构图内部</div></a></div>
+<p class="lead">M6 临时页面：Task 2 会替换为完整 C-level lesson。</p>
+  <div class="footnav"><a class="prev" href="19-runtime-context.html"><div class="dir">← 上一课</div><div class="ttl">Runtime Context 与结构化响应</div></a><a class="next" href="11-chat-internals.html"><div class="dir">下一课 →</div><div class="ttl">聊天模型内部</div></a></div>
 </div>
 
 </body></html>

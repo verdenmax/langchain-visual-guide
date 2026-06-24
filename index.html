@@ -3,16 +3,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LangChain 图解教程 · 从零理解整个项目</title>
-<meta name="description" content="从零理解整个 LangChain 项目的图解教程：宏观结构、用户用法、内部源码、自己动手做 Agent，外加横向对比 / AI 全栈坐标系 / LangGraph 引擎深入等番外。11 部分 39 课，每课配真实代码对应、折叠深挖与设计亮点。">
+<meta name="description" content="从零理解整个 LangChain 项目的图解教程：宏观结构、用户用法、内部源码、自己动手做 Agent，外加横向对比 / AI 全栈坐标系 / LangGraph 引擎深入等番外。11 部分 40 课，每课配真实代码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="LangChain 图解教程">
 <meta property="og:title" content="LangChain 图解教程 · 从零理解整个项目">
-<meta property="og:description" content="从零理解整个 LangChain 项目的图解教程：宏观结构、用户用法、内部源码、自己动手做 Agent，外加横向对比 / AI 全栈坐标系 / LangGraph 引擎深入等番外。11 部分 39 课，每课配真实代码对应、折叠深挖与设计亮点。">
+<meta property="og:description" content="从零理解整个 LangChain 项目的图解教程：宏观结构、用户用法、内部源码、自己动手做 Agent，外加横向对比 / AI 全栈坐标系 / LangGraph 引擎深入等番外。11 部分 40 课，每课配真实代码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="LangChain 图解教程 · 从零理解整个项目">
-<meta name="twitter:description" content="从零理解整个 LangChain 项目的图解教程：宏观结构、用户用法、内部源码、自己动手做 Agent，外加横向对比 / AI 全栈坐标系 / LangGraph 引擎深入等番外。11 部分 39 课，每课配真实代码对应、折叠深挖与设计亮点。">
+<meta name="twitter:description" content="从零理解整个 LangChain 项目的图解教程：宏观结构、用户用法、内部源码、自己动手做 Agent，外加横向对比 / AI 全栈坐标系 / LangGraph 引擎深入等番外。11 部分 40 课，每课配真实代码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -288,7 +288,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <span class="home">📘 LangChain 图解教程</span>
-    <span class="pill">共 39 课 · 11 个部分</span>
+    <span class="pill">共 40 课 · 11 个部分</span>
   </div>
   <div class="progress"><span style="width:100%"></span></div>
 </div>
@@ -306,7 +306,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
       <span><i style="background:var(--accent)"></i>关键要点</span>
     </div>
     <div style="margin-top:1.1rem">
-      <a href="langchain-visual-guide.pdf" class="pdf-btn">📄 下载完整 PDF（全 39 课）</a>
+      <a href="langchain-visual-guide.pdf" class="pdf-btn">📄 下载完整 PDF（全 40 课）</a>
     </div>
     <p style="margin:.8rem 0 0;color:var(--faint);font-size:.8rem">📌 对照 <strong>LangChain v1（<span class="mono">langchain_v1</span>）</strong> 与 <strong>LangGraph</strong> 源码讲解 · 最后核验 2026-06 · 源码引用以"文件 + 符号名"为主（行号会随上游更新而变）</p>
   </div>
@@ -345,25 +345,26 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <a href="lessons/26-langgraph-persistence-control.html"><span class="n">24</span><span class="tt">Checkpoint 与持久化</span><span class="ts">Checkpoint · checkpointer · thread_id · resume</span></a>
 <a href="lessons/33-langgraph-interrupt-command.html"><span class="n">25</span><span class="tt">interrupt、Command 与人在回路</span><span class="ts">interrupt · Command · human-in-the-loop · goto/update</span></a>
 <a href="lessons/34-langgraph-time-travel-debug.html"><span class="n">26</span><span class="tt">时间旅行、回放与调试</span><span class="ts">StateSnapshot · get_state_history · replay · debug workflow</span></a>
-<div class="toc-part">迁移中 · Agent 旧版</div>
-<a href="lessons/07-agents-intro.html"><span class="n">27</span><span class="tt">Agent 入门</span><span class="ts">create_agent · Agent 循环</span></a>
+<div class="toc-part">第六部分 · Agent 内部</div>
+<a href="lessons/07-agents-intro.html"><span class="n">27</span><span class="tt">Agent 循环心智模型</span><span class="ts">model node · tools node · tool_calls · loop termination</span></a>
+<a href="lessons/13-agent-internals.html"><span class="n">28</span><span class="tt">create_agent 构图内部</span><span class="ts">create_agent · StateGraph · tools_condition · ToolNode</span></a>
+<a href="lessons/18-custom-middleware.html"><span class="n">29</span><span class="tt">Middleware 生命周期</span><span class="ts">AgentMiddleware · before/after/wrap hooks · dynamic prompt</span></a>
+<a href="lessons/19-runtime-context.html"><span class="n">30</span><span class="tt">Runtime Context 与结构化响应</span><span class="ts">context_schema · Runtime · response_format · structured response</span></a>
+<a href="lessons/35-agent-control-errors.html"><span class="n">31</span><span class="tt">控制边界、递归限制与错误恢复</span><span class="ts">recursion_limit · tool errors · fallback/retry · safe control</span></a>
 <div class="toc-part">迁移中 · 内部源码</div>
-<a href="lessons/11-chat-internals.html"><span class="n">28</span><span class="tt">聊天模型内部</span><span class="ts">BaseChatModel 调用链</span></a>
-<a href="lessons/12-tool-internals.html"><span class="n">29</span><span class="tt">工具调用内部</span><span class="ts">函数 → JSON Schema → tool_calls</span></a>
-<a href="lessons/13-agent-internals.html"><span class="n">30</span><span class="tt">Agent 内部</span><span class="ts">LangGraph 状态图 · Send/Command · add_messages reducer</span></a>
+<a href="lessons/11-chat-internals.html"><span class="n">32</span><span class="tt">聊天模型内部</span><span class="ts">BaseChatModel 调用链</span></a>
+<a href="lessons/12-tool-internals.html"><span class="n">33</span><span class="tt">工具调用内部</span><span class="ts">函数 → JSON Schema → tool_calls</span></a>
 <div class="toc-part">迁移中 · 工程旧版</div>
-<a href="lessons/15-contributing.html"><span class="n">31</span><span class="tt">读源码 / 调试 / 测试 / 贡献</span><span class="ts">uv · 测试 · 调试 · 贡献</span></a>
+<a href="lessons/15-contributing.html"><span class="n">34</span><span class="tt">读源码 / 调试 / 测试 / 贡献</span><span class="ts">uv · 测试 · 调试 · 贡献</span></a>
 <div class="toc-part">迁移中 · Agent/RAG 旧版</div>
-<a href="lessons/17-rag.html"><span class="n">32</span><span class="tt">RAG 检索增强</span><span class="ts">Document → 切块 → Embeddings → VectorStore → Retriever</span></a>
-<a href="lessons/18-custom-middleware.html"><span class="n">33</span><span class="tt">写自己的中间件</span><span class="ts">AgentMiddleware 钩子 · before/after/wrap</span></a>
-<a href="lessons/19-runtime-context.html"><span class="n">34</span><span class="tt">运行时上下文与健壮性</span><span class="ts">context_schema · with_fallbacks · stream_mode</span></a>
-<a href="lessons/20-capstone.html"><span class="n">35</span><span class="tt">端到端实战：拼一个客服 Agent</span><span class="ts">把所有零件拼成一个完整可跑的 Agent</span></a>
+<a href="lessons/17-rag.html"><span class="n">35</span><span class="tt">RAG 检索增强</span><span class="ts">Document → 切块 → Embeddings → VectorStore → Retriever</span></a>
+<a href="lessons/20-capstone.html"><span class="n">36</span><span class="tt">端到端实战：拼一个客服 Agent</span><span class="ts">把所有零件拼成一个完整可跑的 Agent</span></a>
 <div class="toc-part">迁移中 · 生态旧版</div>
-<a href="lessons/21-langchain-vs-autogen.html"><span class="n">36</span><span class="tt">横向对比：LangChain vs AutoGen</span><span class="ts">两种范式对照：图/管道 vs 多 Agent 对话</span></a>
-<a href="lessons/22-ai-stack.html"><span class="n">37</span><span class="tt">全栈坐标系：从 LangChain 缩放到整个生态</span><span class="ts">Agent 编排 5 流派 · AI 全栈 7 层 · 你在哪</span></a>
-<a href="lessons/23-learning-map.html"><span class="n">38</span><span class="tt">隔壁层学习地图：L5 推理 · L6 向量检索</span><span class="ts">vLLM/llama.cpp/Ollama · hnswlib/pgvector/Qdrant</span></a>
+<a href="lessons/21-langchain-vs-autogen.html"><span class="n">37</span><span class="tt">横向对比：LangChain vs AutoGen</span><span class="ts">两种范式对照：图/管道 vs 多 Agent 对话</span></a>
+<a href="lessons/22-ai-stack.html"><span class="n">38</span><span class="tt">全栈坐标系：从 LangChain 缩放到整个生态</span><span class="ts">Agent 编排 5 流派 · AI 全栈 7 层 · 你在哪</span></a>
+<a href="lessons/23-learning-map.html"><span class="n">39</span><span class="tt">隔壁层学习地图：L5 推理 · L6 向量检索</span><span class="ts">vLLM/llama.cpp/Ollama · hnswlib/pgvector/Qdrant</span></a>
 <div class="toc-part">附录 · 术语速查</div>
-<a href="lessons/27-glossary.html"><span class="n">39</span><span class="tt">术语表 · 概念索引</span><span class="ts">全书术语一句话查 + 点链接跳到对应课</span></a></div>
+<a href="lessons/27-glossary.html"><span class="n">40</span><span class="tt">术语表 · 概念索引</span><span class="ts">全书术语一句话查 + 点链接跳到对应课</span></a></div>
   <div class="toc-empty" id="tocempty">没有匹配的课程，换个关键词试试。</div>
 </div>
 
