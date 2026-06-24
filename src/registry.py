@@ -7,6 +7,7 @@ import part01_overview
 import part02_user_api
 import part03_runnable_lcel
 import part04_langgraph_model
+import part05_langgraph_engine
 import part2
 import part3
 import part4
@@ -38,6 +39,11 @@ CONTENT = {
     "29-langgraph-nodes-edges.html": part04_langgraph_model.LESSON_19_NODES_EDGES,
     "30-langgraph-reducers-channels.html": part04_langgraph_model.LESSON_20_REDUCERS_CHANNELS,
     "31-langgraph-compile-runtime.html": part04_langgraph_model.LESSON_21_COMPILE_RUNTIME,
+    "25-langgraph-pregel-engine.html": part05_langgraph_engine.LESSON_22_PREGEL,
+    "32-langgraph-tasks-channels.html": part05_langgraph_engine.LESSON_23_TASKS_CHANNELS,
+    "26-langgraph-persistence-control.html": part05_langgraph_engine.LESSON_24_CHECKPOINTS,
+    "33-langgraph-interrupt-command.html": part05_langgraph_engine.LESSON_25_INTERRUPT_COMMAND,
+    "34-langgraph-time-travel-debug.html": part05_langgraph_engine.LESSON_26_TIME_TRAVEL,
     "07-agents-intro.html": part2.LESSON_07,
     "11-chat-internals.html": part3.LESSON_10,
     "12-tool-internals.html": part3.LESSON_11,
@@ -50,7 +56,5 @@ CONTENT = {
     "21-langchain-vs-autogen.html": part6.LESSON_CMP,
     "22-ai-stack.html": part6.LESSON_STACK,
     "23-learning-map.html": part6.LESSON_LEARN,
-    "25-langgraph-pregel-engine.html": part7.LESSON_LG2,
-    "26-langgraph-persistence-control.html": part7.LESSON_LG3,
     "27-glossary.html": glossary.LESSON_GLOSSARY,
 }

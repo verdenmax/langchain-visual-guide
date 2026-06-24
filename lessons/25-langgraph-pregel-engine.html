@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>34 · 执行引擎：Pregel 与超步 — LangChain 图解教程</title>
-<meta name="description" content="迁移中 · LangGraph 引擎旧版｜执行引擎：Pregel 与超步：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>22 · Pregel 与超步 — LangChain 图解教程</title>
+<meta name="description" content="第五部分 · LangGraph 执行引擎｜Pregel 与超步：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="34 · 执行引擎：Pregel 与超步 — LangChain 图解教程">
-<meta property="og:description" content="迁移中 · LangGraph 引擎旧版｜执行引擎：Pregel 与超步：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="22 · Pregel 与超步 — LangChain 图解教程">
+<meta property="og:description" content="第五部分 · LangGraph 执行引擎｜Pregel 与超步：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="34 · 执行引擎：Pregel 与超步 — LangChain 图解教程">
-<meta name="twitter:description" content="迁移中 · LangGraph 引擎旧版｜执行引擎：Pregel 与超步：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="22 · Pregel 与超步 — LangChain 图解教程">
+<meta name="twitter:description" content="第五部分 · LangGraph 执行引擎｜Pregel 与超步：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -288,170 +288,17 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">迁移中 · LangGraph 引擎旧版</span>
-    <span class="pill">34 / 36</span>
+    <span class="pill">第五部分 · LangGraph 执行引擎</span>
+    <span class="pill">22 / 39</span>
   </div>
-  <div class="progress"><span style="width:94%"></span></div>
+  <div class="progress"><span style="width:56%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">迁移中 · LangGraph 引擎旧版</div>
-    <h1>执行引擎：Pregel 与超步</h1>
+    <div class="part">第五部分 · LangGraph 执行引擎</div>
+    <h1>Pregel 与超步</h1>
   </div>
-
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-上一课的 <span class="inline">compile()</span> 产物到底怎么"跑"？答案藏在一个名字里：<strong>Pregel</strong>。
-你编译出来的图，<strong>本质上就是一个 <span class="mono">Pregel</span> 对象</strong>。这是 LangGraph 引擎旧版三课里<strong>最硬核</strong>的一课。
-</p>
-
-<div class="card analogy">
-  <div class="tag">♟️ 一句话类比：回合制</div>
-  把图的运行想成<strong>回合制游戏</strong>：每一<strong>回合（超步 super-step）</strong>里，所有"该动的"节点<strong>同时行动</strong>，
-  各自把要写的东西<strong>先攒着</strong>；回合一结束，<strong>统一结算</strong>到共享状态，再开下一回合——直到没有节点要动。
-</div>
-
-<h2>编译产物 = 一个 Pregel</h2>
-<p>官方源码 <span class="mono">pregel/main.py</span> 里 <span class="mono">Pregel</span> 类的文档说得很直白（这里翻译关键句）：</p>
-<div class="card detail">
-  <div class="tag">🔬 Pregel 类文档（直译）</div>
-  <p>"<strong>Pregel 把 actors（行动者）和 channels（通道）组合成一个应用。</strong>
-  Actors 从 channels 读数据、往 channels 写数据。Pregel 把执行组织成<strong>多个步骤</strong>，
-  遵循 <strong>Pregel 算法 / Bulk Synchronous Parallel（BSP，整体同步并行）模型</strong>。"</p>
-  <ul>
-    <li><strong>actor = 一个 <span class="mono">PregelNode</span></strong>（它也实现了 LangChain 的 <span class="mono">Runnable</span>）。</li>
-    <li>"Graph API（<span class="mono">StateGraph</span>）/ Functional API 都会在底层<strong>编译成 Pregel</strong>。"——你的图就是这么跑的。</li>
-  </ul>
-</div>
-<p style="color:var(--muted);font-size:.9rem">＊ Pregel 是 Google 2010 年提出的大规模图计算模型，LangGraph 把这套"消息传递 + 逐步推进"的成熟范式搬来跑 LLM 应用。</p>
-
-<h2>一个"超步"的三阶段：Plan → Execution → Update</h2>
-<p>每一个超步（step）都严格走三步（直接来自 Pregel 类文档）：</p>
-<div class="vflow">
-  <div class="step"><div class="num">1</div><div class="sc">
-    <h4>Plan（计划）：选出本步要执行的节点</h4>
-    <p>挑出"<strong>订阅了『上一步被更新的 channel』</strong>"的那些 actor。第一步则选订阅<strong>输入通道</strong>的节点。</p>
-  </div></div>
-  <div class="step"><div class="num">2</div><div class="sc">
-    <h4>Execution（执行）：并行跑选中的节点</h4>
-    <p>选中的 actor <strong>并行执行</strong>。<strong>关键</strong>：本步产生的 channel 写入，<strong>对本步的 actor 不可见</strong>——要到下一步才生效。</p>
-  </div></div>
-  <div class="step"><div class="num">3</div><div class="sc">
-    <h4>Update（更新）：把写入统一应用到 channels</h4>
-    <p>把本步所有节点写的值，<strong>一次性</strong>结算进 channels。然后回到 Plan，开下一超步——直到没有节点被触发，或到达步数上限。</p>
-  </div></div>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 确定性从哪来 + 代码对应</div>
-  <p>"<strong>本步的写下一步才可见</strong>"是整个模型的灵魂：它让<strong>并行节点不会看到彼此的半成品</strong>，
-  于是同样输入 → 同样结果，可复现、可持久化。</p>
-  <ul>
-    <li>超步循环：<span class="mono">pregel/_loop.py · PregelLoop.tick()</span>——里面先 <span class="mono">prepare_next_tasks(...)</span>（Plan），执行后 <span class="mono">apply_writes(...)</span>（Update）。</li>
-    <li>步数上限：<span class="mono">tick()</span> 开头检查 <span class="mono">step &gt; stop</span> → 置 <span class="mono">out_of_steps</span>。这就是 Agent 入门课 <span class="mono">recursion_limit</span> 的<strong>兜底实现</strong>。</li>
-  </ul>
-</div>
-
-<h2>channels：状态到底怎么存与合并</h2>
-<p>"状态的每个键"在底层其实是一个 <strong>channel（通道）</strong>。每个 channel 有<strong>值类型 + 更新函数（reducer）</strong>。
-LangGraph 内置了几种（来自 Pregel 文档）：</p>
-<table class="t">
-  <tr><th>Channel</th><th>行为</th><th>用途</th></tr>
-  <tr><td class="mono">LastValue</td><td><strong>默认</strong>：只存"最后写入的值"</td><td>键没标 reducer 时；在步与步之间传值</td></tr>
-  <tr><td class="mono">BinaryOperatorAggregate</td><td>用<strong>二元运算</strong>把每次写入累积进去（如 <span class="mono">operator.add</span>）</td><td>需要"累加/合并"的键（reducer 的真身）</td></tr>
-  <tr><td class="mono">Topic</td><td>可配置的 <strong>PubSub</strong>，能累积 / 去重</td><td>多个 actor 之间多值传递</td></tr>
-  <tr><td class="mono">EphemeralValue / Context</td><td>只活一步的临时值 / 暴露上下文管理器</td><td>临时数据 / 外部资源生命周期</td></tr>
-</table>
-
-<div class="card detail">
-  <div class="tag">🔬 reducer 的真身 = channel 的更新函数</div>
-  <p>Agent 内部课里你见过 <span class="mono">messages: Annotated[list[AnyMessage], add_messages]</span>。现在能说清它的实现了：
-  <strong>编译时，这个标注让 "messages" 键变成一个『以 <span class="mono">add_messages</span> 为更新函数』的 channel</strong>。
-  节点写 <span class="mono">{"messages": [ai]}</span> 时，channel 用 <span class="mono">add_messages</span> 把新值<strong>归并</strong>进旧值——这就是"追加而非覆盖"。</p>
-  <ul>
-    <li><span class="mono">add_messages</span>（<span class="mono">graph/message.py</span>）默认<strong>"append-only"</strong>：按 <span class="mono">id</span> 合并（同 id 替换、不同 id 追加），还支持 <span class="mono">RemoveMessage</span> 删除。</li>
-    <li>你自定义的 reducer 也一样：标 <span class="mono">Annotated[T, 你的函数]</span>，编译时就接到对应 channel 上。</li>
-  </ul>
-</div>
-
-<h2>回到 Agent：model / tools 两节点怎么在超步里转</h2>
-<p>把上面这套套回 Agent 内部课那张图，"Agent 循环"就清清楚楚是<strong>一串超步</strong>：</p>
-<div class="vflow">
-  <div class="step"><div class="num">1</div><div class="sc"><h4>超步 A</h4><p><span class="mono">model</span> 节点执行 → 往 <span class="mono">messages</span> channel 写一条 <span class="mono">AIMessage</span>。</p></div></div>
-  <div class="step"><div class="num">2</div><div class="sc"><h4>超步 B</h4><p><span class="mono">model</span> 的<strong>条件边</strong>据 <span class="mono">tool_calls</span> 选定下一站为 <span class="mono">tools</span> → 这一步执行 <span class="mono">tools</span> 节点 → 写回 <span class="mono">ToolMessage</span>。</p></div></div>
-  <div class="step"><div class="num">3</div><div class="sc"><h4>超步 C…</h4><p>又选中 <span class="mono">model</span>……如此往复，<strong>直到某次 AIMessage 没有 <span class="mono">tool_calls</span></strong> → 路由到 <span class="mono">END</span>，循环停。</p></div></div>
-</div>
-<div class="card detail">
-  <div class="tag">🔬 多个工具如何"同一超步并行"</div>
-  当一条 AIMessage 里有<strong>多个 <span class="mono">tool_calls</span></strong>，路由会用 <span class="mono">Send</span> 把它们<strong>同时</strong>扇给 <span class="mono">tools</span> 节点，
-  于是它们在<strong>同一个超步内并发执行</strong>、再一起结算。<span class="mono">Send</span> 的细节留到持久化 · 中断 · 控制流课。
-</div>
-
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入超步引擎的三个细节。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> Plan 阶段怎么"选中"要跑的节点 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 订阅机制</div>
-      <div class="a">每个节点<strong>订阅</strong>若干 channel。一个超步结束后，引擎看<strong>哪些 channel 被更新了</strong>，
-        就在下一步<strong>触发订阅了它们的节点</strong>（源码里叫 <span class="mono">trigger_to_nodes</span>）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 套到 Agent</div>
-      <div class="a"><span class="mono">model</span> 节点写了 <span class="mono">messages</span>，其<strong>条件边</strong>据 <span class="mono">tool_calls</span> 选定下一站 → 下一超步执行 <span class="mono">tools</span>（或走 <span class="mono">END</span>）。没有任何节点被触发时，图自然停下。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> 除了 LastValue / Aggregate 还有哪些 channel <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 常见几种</div>
-      <div class="a"><span class="mono">Topic</span>（PubSub，可累积/去重，多节点多值传递）、<span class="mono">EphemeralValue</span>（只活一个超步的临时值）、
-        <span class="mono">Context</span>（暴露上下文管理器，管外部资源生命周期）等。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 实际上</div>
-      <div class="a">用 <span class="mono">StateGraph</span> 时你几乎只碰两种：<strong>不标 reducer 的键 = LastValue</strong>，<strong>标了 reducer 的键 = 聚合通道</strong>。其余是底层在用。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> 超步与流式：stream_mode 看到的是什么 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 对应关系</div>
-      <div class="a"><span class="mono">stream_mode="updates"</span>：每个超步吐出<strong>被更新节点的输出</strong>；
-        <span class="mono">"values"</span>：每步吐出<strong>整份状态</strong>；<span class="mono">"messages"</span>：逐 token。呼应 Streaming 与 Callbacks、运行时上下文相关课程。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么能逐步流</div>
-      <div class="a">正因为执行被切成<strong>一个个离散超步</strong>，引擎才能在<strong>每步边界</strong>把进展推给你——这是"边想边显示 Agent 过程"的基础。</div>
-    </div>
-  </div>
-</details>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点：借一套 20 年的成熟模型来跑 Agent</div>
-  LangGraph 没有自己发明轮子，而是把 Google <strong>Pregel（大规模图计算）</strong>的 <strong>BSP 超步模型</strong>搬过来——
-  "actors 读写 channels、逐超步推进、写入延迟到下一步可见"。这套范式天生<strong>确定、可并行、可在任意一步存档</strong>，
-  正好满足 Agent 对"可控 + 可持久化"的需求。
-</div>
-
-<div class="card key">
-  <div class="tag">✅ 本课要点</div>
-  <ul>
-    <li>你 <span class="mono">compile()</span> 出的图<strong>就是一个 <span class="mono">Pregel</span></strong>（<span class="mono">CompiledStateGraph</span> 继承 Pregel）。</li>
-    <li>运行 = 一串<strong>超步</strong>，每步三阶段 <strong>Plan → Execution → Update</strong>；"<strong>本步写、下步见</strong>"保证确定性。</li>
-    <li>状态的每个键是一个 <strong>channel</strong>；<strong>reducer 就是 channel 的更新函数</strong>（<span class="mono">add_messages</span> = "messages" 通道的更新函数）。</li>
-    <li>Agent 循环 = model/tools 两节点在超步间往复，靠 <span class="mono">tool_calls</span> 决定继续还是 <span class="mono">END</span>。</li>
-    <li>下一课：每个超步存档之后，<strong>持久化、时间旅行、人审、跳转</strong>如何水到渠成。</li>
-  </ul>
-</div>
-<div class="selftest">
+<p class="lead">M5 临时页面：Task 2 会替换为完整 C-level lesson。</p><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
   <div class="qn">1. LangGraph 借用 Pregel/BSP 的“超步”模型，分 Plan→Execution→Update。其中“本步的写、要下一步才可见”最关键保证了什么？</div>
@@ -513,7 +360,7 @@ LangGraph 内置了几种（来自 Pregel 文档）：</p>
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="23-learning-map.html"><div class="dir">← 上一课</div><div class="ttl">隔壁层学习地图：L5 推理 · L6 向量检索</div></a><a class="next" href="26-langgraph-persistence-control.html"><div class="dir">下一课 →</div><div class="ttl">持久化 · 中断 · 控制流</div></a></div>
+  <div class="footnav"><a class="prev" href="31-langgraph-compile-runtime.html"><div class="dir">← 上一课</div><div class="ttl">compile 与 Runtime</div></a><a class="next" href="32-langgraph-tasks-channels.html"><div class="dir">下一课 →</div><div class="ttl">Tasks、Channels 与调度</div></a></div>
 </div>
 
 </body></html>

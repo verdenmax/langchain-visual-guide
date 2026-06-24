@@ -247,6 +247,11 @@ PAGES = [
     ("29-langgraph-nodes-edges.html", "Node、Edge 与路由", "第四部分 · LangGraph 心智模型"),
     ("30-langgraph-reducers-channels.html", "Reducer 与 Channel", "第四部分 · LangGraph 心智模型"),
     ("31-langgraph-compile-runtime.html", "compile 与 Runtime", "第四部分 · LangGraph 心智模型"),
+    ("25-langgraph-pregel-engine.html", "Pregel 与超步", "第五部分 · LangGraph 执行引擎"),
+    ("32-langgraph-tasks-channels.html", "Tasks、Channels 与调度", "第五部分 · LangGraph 执行引擎"),
+    ("26-langgraph-persistence-control.html", "Checkpoint 与持久化", "第五部分 · LangGraph 执行引擎"),
+    ("33-langgraph-interrupt-command.html", "interrupt、Command 与人在回路", "第五部分 · LangGraph 执行引擎"),
+    ("34-langgraph-time-travel-debug.html", "时间旅行、回放与调试", "第五部分 · LangGraph 执行引擎"),
     ("07-agents-intro.html", "Agent 入门", "迁移中 · Agent 旧版"),
     ("11-chat-internals.html", "聊天模型内部", "迁移中 · 内部源码"),
     ("12-tool-internals.html", "工具调用内部", "迁移中 · 内部源码"),
@@ -259,8 +264,6 @@ PAGES = [
     ("21-langchain-vs-autogen.html", "横向对比：LangChain vs AutoGen", "迁移中 · 生态旧版"),
     ("22-ai-stack.html", "全栈坐标系：从 LangChain 缩放到整个生态", "迁移中 · 生态旧版"),
     ("23-learning-map.html", "隔壁层学习地图：L5 推理 · L6 向量检索", "迁移中 · 生态旧版"),
-    ("25-langgraph-pregel-engine.html", "执行引擎：Pregel 与超步", "迁移中 · LangGraph 引擎旧版"),
-    ("26-langgraph-persistence-control.html", "持久化 · 中断 · 控制流", "迁移中 · LangGraph 引擎旧版"),
     ("27-glossary.html", "术语表 · 概念索引", "附录 · 术语速查"),
 ]
 
@@ -298,8 +301,11 @@ SUBTITLES = {
     "29-langgraph-nodes-edges.html": "add_node · add_edge · conditional edges · START/END",
     "30-langgraph-reducers-channels.html": "Annotated reducer · add_messages · LastValue/Topic/Aggregate",
     "31-langgraph-compile-runtime.html": "compile() · CompiledStateGraph · runtime/context · Runnable",
-    "25-langgraph-pregel-engine.html": "Pregel/BSP 超步 · Plan→Execution→Update · channels",
-    "26-langgraph-persistence-control.html": "Checkpoint/StateSnapshot · interrupt · Send/Command",
+    "25-langgraph-pregel-engine.html": "Pregel · superstep · Plan/Execution/Update",
+    "32-langgraph-tasks-channels.html": "PregelTask · channels · writes · fan-in/fan-out",
+    "26-langgraph-persistence-control.html": "Checkpoint · checkpointer · thread_id · resume",
+    "33-langgraph-interrupt-command.html": "interrupt · Command · human-in-the-loop · goto/update",
+    "34-langgraph-time-travel-debug.html": "StateSnapshot · get_state_history · replay · debug workflow",
     "27-glossary.html": "全书术语一句话查 + 点链接跳到对应课",
 }
 

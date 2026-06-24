@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>38 · 隔壁层学习地图：L5 推理 · L6 向量检索 — LangChain 图解教程</title>
-<meta name="description" content="迁移中 · 生态旧版｜隔壁层学习地图：L5 推理 · L6 向量检索：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>25 · interrupt、Command 与人在回路 — LangChain 图解教程</title>
+<meta name="description" content="第五部分 · LangGraph 执行引擎｜interrupt、Command 与人在回路：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="38 · 隔壁层学习地图：L5 推理 · L6 向量检索 — LangChain 图解教程">
-<meta property="og:description" content="迁移中 · 生态旧版｜隔壁层学习地图：L5 推理 · L6 向量检索：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="25 · interrupt、Command 与人在回路 — LangChain 图解教程">
+<meta property="og:description" content="第五部分 · LangGraph 执行引擎｜interrupt、Command 与人在回路：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="38 · 隔壁层学习地图：L5 推理 · L6 向量检索 — LangChain 图解教程">
-<meta name="twitter:description" content="迁移中 · 生态旧版｜隔壁层学习地图：L5 推理 · L6 向量检索：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="25 · interrupt、Command 与人在回路 — LangChain 图解教程">
+<meta name="twitter:description" content="第五部分 · LangGraph 执行引擎｜interrupt、Command 与人在回路：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -288,192 +288,18 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">迁移中 · 生态旧版</span>
-    <span class="pill">38 / 39</span>
+    <span class="pill">第五部分 · LangGraph 执行引擎</span>
+    <span class="pill">25 / 39</span>
   </div>
-  <div class="progress"><span style="width:97%"></span></div>
+  <div class="progress"><span style="width:64%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">迁移中 · 生态旧版</div>
-    <h1>隔壁层学习地图：L5 推理 · L6 向量检索</h1>
+    <div class="part">第五部分 · LangGraph 执行引擎</div>
+    <h1>interrupt、Command 与人在回路</h1>
   </div>
-
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-学完编排层（L7），想往下探一层？最值得动手的是<strong>紧挨着你的两层</strong>：
-<strong>L5 推理服务</strong>（让模型高效跑起来）和 <strong>L6 向量检索</strong>（RAG 的底座）。
-这一课给你一张<strong>"该读哪些项目、按什么顺序"</strong>的实战地图。
-</p>
-
-<div class="card analogy">
-  <div class="tag">🏭 一句话类比</div>
-  如果 <strong>L7（你已会）</strong>是"一个会用工具的工人"，那么
-  <strong>L5</strong> 是<strong>给工人配一台高效引擎</strong>（同样的活，更快更省）；
-  <strong>L6</strong> 是<strong>给工人一个随手可查的资料库</strong>（不靠死记，靠查）。
-</div>
-
-<div class="card warn">
-  <div class="tag">⚠️ 这是"地图"，不是"作业"</div>
-  下面项目<strong>不用全学</strong>。每层我都标了一个 <strong>⭐ 主攻项目</strong>和一条<strong>推荐主线</strong>——
-  先跟主线走通一条，建立体感，再按兴趣横向铺开。<strong>能跑 → 读核心 → 工程深度</strong>，三步走。
-</div>
-
-<h2>L5 · 推理 / 服务：让模型高效跑起来</h2>
-<p>这层解决一件事：<strong>同一个模型，怎么更快、更省、更高并发地对外提供</strong>。
-核心关键词：<span class="mono">KV-cache</span>、<span class="mono">PagedAttention</span>、
-<span class="mono">continuous batching</span>、<span class="mono">量化(quantization)</span>。</p>
-
-<table class="t">
-  <tr><th>项目</th><th>语言</th><th>难度</th><th>读它能学到</th></tr>
-  <tr><td class="mono">⭐ vLLM</td><td>Python/CUDA</td><td>中</td><td><strong>生产级推理引擎的范式</strong>：PagedAttention、continuous batching、OpenAI 兼容 server</td></tr>
-  <tr><td class="mono">SGLang</td><td>Python</td><td>中</td><td>vLLM 之外的前沿：<strong>RadixAttention</strong>、结构化输出、超高并发</td></tr>
-  <tr><td class="mono">llama.cpp</td><td>C/C++</td><td>中高</td><td>从底层吃透<strong>量化与推理</strong>：GGUF、纯 CPU 也能跑大模型</td></tr>
-  <tr><td class="mono">Ollama</td><td>Go</td><td>低</td><td>本地<strong>一键起模型</strong>（底层基于 llama.cpp / GGML）——最快练手</td></tr>
-  <tr><td class="mono">TensorRT-LLM · TGI</td><td>C++ · Rust</td><td>高</td><td>厂商级<strong>极致优化</strong>，进阶 / 特定硬件再看</td></tr>
-</table>
-
-<div class="card key">
-  <div class="tag">✅ L5 推荐主线</div>
-  <strong>① 用 Ollama 跑起来</strong>（10 分钟建立"模型在本地转"的直觉）→
-  <strong>② 主攻 vLLM</strong>（读懂生产级推理怎么做高吞吐，这是行业事实标准）→
-  <strong>③ 想深入底层再啃 llama.cpp</strong>（量化、算子）。
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 vLLM 想先读哪几处</div>
-  <ul>
-    <li><strong>PagedAttention / KV-cache 管理</strong>——它最核心的创新，把"显存碎片"问题用"分页"解决。</li>
-    <li><strong>Scheduler（continuous batching）</strong>——为什么它能把 GPU 利用率拉满。</li>
-    <li><strong>OpenAI 兼容 server 入口</strong>——看"一个请求进来后怎么被排队、批处理、流式返回"。</li>
-  </ul>
-</div>
-
-<h2>L6 · 检索 / 记忆：RAG 的底座</h2>
-<p>你在<strong>第 19 课</strong>已经用过 <span class="mono">VectorStore / Retriever</span>——这层就是它们的<strong>"引擎室"</strong>。
-核心关键词：<span class="mono">向量(embedding)</span>、<span class="mono">相似度</span>、
-<span class="mono">ANN 近邻索引(HNSW / IVF)</span>。它分三小块：①向量索引/库　②嵌入模型　③长期记忆。</p>
-
-<h3>① 向量索引 / 数据库</h3>
-<table class="t">
-  <tr><th>项目</th><th>语言</th><th>难度</th><th>读它能学到</th></tr>
-  <tr><td class="mono">⭐ hnswlib</td><td>C++/Python</td><td>中</td><td><strong>HNSW 算法本身</strong>（ANN 检索的核心）。代码极小，最适合读懂"向量检索到底怎么算"</td></tr>
-  <tr><td class="mono">FAISS</td><td>C++/Python</td><td>中高</td><td>工业级<strong>索引大全</strong>（IVF / PQ / HNSW），Meta 出品</td></tr>
-  <tr><td class="mono">pgvector</td><td>C</td><td>中</td><td>在 <strong>Postgres 里做向量检索</strong>——最贴近真实业务落地</td></tr>
-  <tr><td class="mono">Qdrant</td><td>Rust</td><td>中</td><td>生产级向量数据库的<strong>完整工程</strong>（过滤 + payload + 分布式）</td></tr>
-  <tr><td class="mono">Chroma</td><td>Python</td><td>低</td><td>最易上手，<strong>本地 RAG 原型</strong>首选（第 19 课就是它这类）</td></tr>
-  <tr><td class="mono">Milvus · Weaviate</td><td>Go</td><td>高</td><td>大规模<strong>分布式</strong>向量库，海量数据再看</td></tr>
-</table>
-
-<h3>② 嵌入模型　③ 长期记忆</h3>
-<table class="t">
-  <tr><th>项目</th><th>属于</th><th>读它能学到</th></tr>
-  <tr><td class="mono">BGE（bge-m3 等）</td><td>嵌入模型</td><td>把文本变向量，<strong>中文友好、开源</strong>，RAG 检索质量的关键一环</td></tr>
-  <tr><td class="mono">sentence-transformers</td><td>库</td><td>跑 / 微调嵌入模型的<strong>标准库</strong></td></tr>
-  <tr><td class="mono">Mem0 · Zep</td><td>记忆层</td><td>在向量库之上给 Agent 加<strong>"长期记忆"</strong>（跨会话记住用户）</td></tr>
-</table>
-
-<div class="card key">
-  <div class="tag">✅ L6 推荐主线</div>
-  <strong>① 读 hnswlib</strong>（2~3 个核心文件就能看懂 HNSW，从此"向量检索"不再是黑盒）→
-  <strong>② 用 pgvector 或 Chroma 落地一个 RAG</strong>（把第 19 课的玩具升级成能用的东西）→
-  <strong>③ 要工程深度再看 Qdrant / FAISS</strong>。嵌入选 <strong>BGE</strong>，要记忆看 <strong>Mem0 / Zep</strong>。
-</div>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点：为什么偏偏是这两层</div>
-  <ul>
-    <li>L5 和 L6 是<strong>"应用开发者最该下探的两层"</strong>——它们紧挨着你已会的 L7，学了立刻能用。</li>
-    <li><strong>懂 L5</strong>：你能解释"为什么慢 / 为什么贵"，能判断<strong>本地 vs API</strong> 怎么选。</li>
-    <li><strong>懂 L6</strong>：你的 RAG 才能从<strong>"能跑"进化到"答得准"</strong>（选对索引、选对嵌入、调对 chunk）。</li>
-    <li>再往下（L3 训练 / L1 硬件）是<strong>另一条职业路线</strong>了——不是不好，而是投入产出比对应用开发者没这么高，按需再说。</li>
-  </ul>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 术语速查：5 个高频词，一句话各拆一个</div>
-  <table class="t" style="margin-top:.6rem">
-    <tr><th>术语</th><th>一句话理解</th></tr>
-    <tr><td class="mono">PagedAttention</td><td>把 KV-cache 像操作系统的<strong>虚拟内存"分页"</strong>来管，消除显存碎片 → 同一张卡能跑更多并发</td></tr>
-    <tr><td class="mono">continuous batching</td><td>不等"整批"凑齐，谁先生成完就把<strong>新请求填进空位</strong> → GPU 不空转</td></tr>
-    <tr><td>量化 <span class="mono">quantization</span></td><td>用更低精度（int8/int4）存权重，<strong>省显存、提速</strong>，精度略有损失</td></tr>
-    <tr><td class="mono">HNSW</td><td>一种多层"跳表式"图索引，<strong>快速找到最近邻向量</strong>（hnswlib 就是它）</td></tr>
-    <tr><td class="mono">ANN</td><td>近似最近邻：<strong>牺牲一点点精度，换巨大的速度</strong>——向量检索能上规模的关键</td></tr>
-  </table>
-</div>
-
-<div class="card key">
-  <div class="tag">✅ 本课要点</div>
-  <ul>
-    <li><strong>L5 主攻 vLLM</strong>（先 Ollama 起步，深入再读 llama.cpp）；关键词 <span class="mono">PagedAttention / continuous batching / 量化</span>。</li>
-    <li><strong>L6 主攻 hnswlib</strong>（懂算法）+ <strong>pgvector / Chroma</strong>（会落地）；关键词 <span class="mono">HNSW / ANN / 嵌入</span>。</li>
-    <li>嵌入选 <strong>BGE</strong>，长期记忆看 <strong>Mem0 / Zep</strong>。</li>
-    <li>统一学习节奏：<strong>能跑 → 读核心 → 工程深度</strong>，先走通一条主线再横向铺开。</li>
-    <li>🎉 番外到此为止——你已从"LangChain 一个点"，缩放到了"整个 AI 生态的坐标系"，并拿到了往下探的地图。祝你走得更远。</li>
-  </ul>
-</div>
-<div class="selftest">
-<h2>🧪 自测 · 想一想为什么这么设计</h2>
-<div class="quiz">
-  <div class="qn">1. 课里建议优先下探 L5(推理) 和 L6(检索)，而不是 L3(训练) 或 L1(硬件)。这个优先级的依据是？</div>
-  <ol class="opts">
-    <li>随便选的</li>
-    <li>它们更简单</li>
-    <li>它们更火</li>
-    <li>投入产出比：L5/L6 紧挨着你已会的应用层、学了立刻能用（解释慢/贵、让 RAG 更准），而 L3/L1 是另一条职业路线</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。学习路径应按“与你当前能力的邻接度 + 即时收益”排序。L5/L6 是应用开发者性价比最高的下探方向。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">2. vLLM 的 PagedAttention 把 KV-cache 当“虚拟内存分页”来管。理解这个设计，能让你抓住推理引擎的核心矛盾是？</div>
-  <ol class="opts">
-    <li>模型太大</li>
-    <li>CPU 太弱</li>
-    <li>网络太慢</li>
-    <li>显存的高效利用：把“碎片化的显存”用分页管起来，同一张卡就能扛更多并发——推理优化常是“显存/吞吐”之争</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。借操作系统的成熟思想（分页）解决新问题（KV-cache 碎片），是好设计的共性。理解它，你就抓住了“推理服务”这层的核心矛盾。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">3. 推荐主线都是“先用(Ollama/Chroma 起步)→再读核心(vLLM/hnswlib)→要深度再扩展”。这个学习节奏的意图是？</div>
-  <ol class="opts">
-    <li>先建立直觉再啃原理：能跑起来获得反馈，再深入实现，避免一上来啃硬骨头劝退</li>
-    <li>让你多学</li>
-    <li>没意图</li>
-    <li>拖时间</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。“能跑→读核心→工程深度”是符合认知规律的路径：先有体感、再求甚解。这本身就是一种教学设计。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. hnswlib 被选为 L6 主攻，理由是“代码小、最适合读懂向量检索到底怎么算”。这种“选小而核心的项目入门”好在哪？</div>
-  <ol class="opts">
-    <li>它最快</li>
-    <li>用最小的代码量看清一个核心算法(HNSW/ANN)的本质，不被工程噪声淹没，学到可迁移的原理</li>
-    <li>省时间</li>
-    <li>它最流行</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。入门读“小而纯”的实现能聚焦核心思想；工程级大库(FAISS/Qdrant)留到要深度时再看。这是“先原理后工程”的选材智慧。</div></div></div>
-  </details>
-</div>
-<div class="card spark">
-  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
-  <ul>
-    <li>课里按“与你能力的邻接度 + 即时收益”推荐先学 L5/L6。用同样标准，给你自己当前的技术栈排一个“接下来最该补的相邻一层”。</li>
-    <li>PagedAttention 借用了操作系统“分页”、HNSW 借用了“跳表/小世界图”。这种“把老领域的成熟思想搬到新问题”的套路，你在别处还见过哪些例子？</li>
-  </ul>
-</div>
-</div>
-  <div class="footnav"><a class="prev" href="22-ai-stack.html"><div class="dir">← 上一课</div><div class="ttl">全栈坐标系：从 LangChain 缩放到整个生态</div></a><a class="next" href="27-glossary.html"><div class="dir">下一课 →</div><div class="ttl">术语表 · 概念索引</div></a></div>
+<p class="lead">M5 临时页面：Task 2 会替换为完整 C-level lesson。</p>
+  <div class="footnav"><a class="prev" href="26-langgraph-persistence-control.html"><div class="dir">← 上一课</div><div class="ttl">Checkpoint 与持久化</div></a><a class="next" href="34-langgraph-time-travel-debug.html"><div class="dir">下一课 →</div><div class="ttl">时间旅行、回放与调试</div></a></div>
 </div>
 
 </body></html>

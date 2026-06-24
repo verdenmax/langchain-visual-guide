@@ -39,6 +39,11 @@ C_LEVEL_PAGES = {
     "29-langgraph-nodes-edges.html": {"min_cjk": 4500, "min_visual": 5},
     "30-langgraph-reducers-channels.html": {"min_cjk": 4500, "min_visual": 5},
     "31-langgraph-compile-runtime.html": {"min_cjk": 4500, "min_visual": 5},
+    "25-langgraph-pregel-engine.html": {"min_cjk": 4500, "min_visual": 5},
+    "32-langgraph-tasks-channels.html": {"min_cjk": 4500, "min_visual": 5},
+    "26-langgraph-persistence-control.html": {"min_cjk": 4500, "min_visual": 5},
+    "33-langgraph-interrupt-command.html": {"min_cjk": 4500, "min_visual": 5},
+    "34-langgraph-time-travel-debug.html": {"min_cjk": 4500, "min_visual": 5},
 }
 
 RE_SCRIPT_STYLE = re.compile(r"<(script|style)\b.*?</\1>", re.I | re.S)
