@@ -206,7 +206,7 @@ LESSON_12_RUNNABLE_PROTOCOL = (
 
 LESSON_13_LCEL_SEQUENCE = (
     r"""
-<p class="lead">LCEL 的 <span class="mono">|</span> 看起来像把几个对象排成一行，实质是在构造 <span class="mono">RunnableSequence</span>：前一步输出成为后一步输入，整条链本身仍是 Runnable。本课的重点不是记住“prompt | model | parser”这句示例，而是掌握三件事：管道如何从左到右传递数据，普通 dict/list/callable 如何被 <span class="mono">coerce_to_runnable</span> 变成可组合组件，以及为什么类型不匹配会让链在中途失败。</p>
+<p class="lead">LCEL 的 <span class="mono">|</span> 看起来像把几个对象排成一行，实质是在构造 <span class="mono">RunnableSequence</span>：前一步输出成为后一步输入，整条链本身仍是 Runnable。本课的重点不是记住“prompt | model | parser”这句示例，而是掌握三件事：管道如何从左到右传递数据，已有 Runnable、普通 callable/generator-like 和 dict/mapping 如何被 <span class="mono">coerce_to_runnable</span> 变成可组合组件，以及为什么类型不匹配会让链在中途失败。注意，普通 list 不会被它自动提升；列表式批量输入属于 <span class="mono">batch</span> / <span class="mono">RunnableEach</span>，多步顺序组合则要显式串成 Sequence。</p>
 
 <div class="card analogy">
   <div class="tag">🚚 生活类比</div>
@@ -217,7 +217,7 @@ LESSON_13_LCEL_SEQUENCE = (
         [
             ("| 运算符", "Runnable.__or__ 把左右两侧合成 RunnableSequence", "now"),
             ("顺序数据流", "每一步的 output 直接作为下一步 input", "now"),
-            ("自动提升", "callable、dict、list 等通过 coerce_to_runnable 进入协议世界", "now"),
+            ("自动提升", "Runnable、callable/generator-like、dict/mapping 通过 coerce_to_runnable 进入协议世界；plain list 不属于这里", "now"),
             ("胶水组件", "RunnableLambda 和 RunnablePassthrough 修补形状、保留原输入", "source"),
             ("后续扩展", "并行、分支、重试都依赖“组合结果仍是 Runnable”", "after"),
         ],

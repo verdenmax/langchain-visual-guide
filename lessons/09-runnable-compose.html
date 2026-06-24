@@ -299,12 +299,12 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <h1>LCEL 管道与 Sequence</h1>
   </div>
   
-<p class="lead">LCEL 的 <span class="mono">|</span> 看起来像把几个对象排成一行，实质是在构造 <span class="mono">RunnableSequence</span>：前一步输出成为后一步输入，整条链本身仍是 Runnable。本课的重点不是记住“prompt | model | parser”这句示例，而是掌握三件事：管道如何从左到右传递数据，普通 dict/list/callable 如何被 <span class="mono">coerce_to_runnable</span> 变成可组合组件，以及为什么类型不匹配会让链在中途失败。</p>
+<p class="lead">LCEL 的 <span class="mono">|</span> 看起来像把几个对象排成一行，实质是在构造 <span class="mono">RunnableSequence</span>：前一步输出成为后一步输入，整条链本身仍是 Runnable。本课的重点不是记住“prompt | model | parser”这句示例，而是掌握三件事：管道如何从左到右传递数据，已有 Runnable、普通 callable/generator-like 和 dict/mapping 如何被 <span class="mono">coerce_to_runnable</span> 变成可组合组件，以及为什么类型不匹配会让链在中途失败。注意，普通 list 不会被它自动提升；列表式批量输入属于 <span class="mono">batch</span> / <span class="mono">RunnableEach</span>，多步顺序组合则要显式串成 Sequence。</p>
 
 <div class="card analogy">
   <div class="tag">🚚 生活类比</div>
   把 RunnableSequence 想成<strong>装配线</strong>：第一站把零件盒整理成半成品，第二站加工，第三站质检。传送带不是 shell 管道那种“字节流”，而是把上一站的完整产物交给下一站。上一站如果交出一箱螺丝，下一站却期待一块主板，传送带不会自动发明转接件；你必须显式加一个 RunnableLambda、Passthrough 或 parser 来改变形状。</div>
-<div class="lesson-map"><div class="lm-title">🗺️ 本课地图：LCEL 顺序组合</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">| 运算符</div><div class="mn-desc">Runnable.__or__ 把左右两侧合成 RunnableSequence</div></div><div class="map-node now"><div class="mn-label">顺序数据流</div><div class="mn-desc">每一步的 output 直接作为下一步 input</div></div><div class="map-node now"><div class="mn-label">自动提升</div><div class="mn-desc">callable、dict、list 等通过 coerce_to_runnable 进入协议世界</div></div><div class="map-node source"><div class="mn-label">胶水组件</div><div class="mn-desc">RunnableLambda 和 RunnablePassthrough 修补形状、保留原输入</div></div><div class="map-node after"><div class="mn-label">后续扩展</div><div class="mn-desc">并行、分支、重试都依赖“组合结果仍是 Runnable”</div></div></div></div>
+<div class="lesson-map"><div class="lm-title">🗺️ 本课地图：LCEL 顺序组合</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">| 运算符</div><div class="mn-desc">Runnable.__or__ 把左右两侧合成 RunnableSequence</div></div><div class="map-node now"><div class="mn-label">顺序数据流</div><div class="mn-desc">每一步的 output 直接作为下一步 input</div></div><div class="map-node now"><div class="mn-label">自动提升</div><div class="mn-desc">Runnable、callable/generator-like、dict/mapping 通过 coerce_to_runnable 进入协议世界；plain list 不属于这里</div></div><div class="map-node source"><div class="mn-label">胶水组件</div><div class="mn-desc">RunnableLambda 和 RunnablePassthrough 修补形状、保留原输入</div></div><div class="map-node after"><div class="mn-label">后续扩展</div><div class="mn-desc">并行、分支、重试都依赖“组合结果仍是 Runnable”</div></div></div></div>
 <h2>源码入口：文件 + 符号名</h2>
 <p>LCEL 的入口在 Runnable 基类而不是某个独立 DSL 解释器里。原因很直接：只有 Runnable 自己知道如何保持“组合后仍是 Runnable”。看源码时，请把 <span class="mono">__or__</span>、<span class="mono">RunnableSequence</span> 和 <span class="mono">coerce_to_runnable</span> 连起来读。</p>
 <table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">Runnable.__or__</td><td>重载 |，把左 Runnable 与右侧可运行对象组合</td><td>用户写 a | b 时触发</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">RunnableSequence</td><td>顺序执行多个步骤，保存 first/middle/last 或 steps</td><td>依次调用每个子 Runnable</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">coerce_to_runnable</td><td>把 callable、dict 等普通对象提升为 Runnable</td><td>组合前标准化右侧对象</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">RunnableLambda</td><td>把普通 Python 函数包成 Runnable</td><td>自定义转换逻辑进入链</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/passthrough.py</td><td class="mono">RunnablePassthrough</td><td>原样透传输入，并可 assign 新字段</td><td>在链中保留原始输入或补充字典键</td></tr></table>
@@ -423,14 +423,14 @@ def coerce_to_runnable(obj):
 <div class="quiz">
   <div class="qn">2. LCEL 中 <code>coerce_to_runnable</code> 的作用更接近哪一项？</div>
   <ol class="opts">
-    <li>把 callable、dict 等可组合对象提升为 Runnable，例如函数变 RunnableLambda、dict 变并行映射</li>
     <li>把所有异常吞掉并继续执行</li>
+    <li>把 callable、dict 等可组合对象提升为 Runnable，例如函数变 RunnableLambda、dict 变并行映射</li>
     <li>把所有输出都转成 JSON</li>
     <li>把 config 转成业务输入</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。coercion 让普通 Python 对象进入 Runnable 协议，但也带来 dict-as-parallel 等需要理解的语义。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。coercion 让普通 Python 对象进入 Runnable 协议，但也带来 dict-as-parallel 等需要理解的语义。</div></div></div>
   </details>
 </div>
 <div class="quiz">

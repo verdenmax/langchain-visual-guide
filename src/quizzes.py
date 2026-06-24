@@ -418,7 +418,7 @@ QUIZZES = {
         ],
     },
 
-    # ===== 第三部分 · 内部源码 =================================================
+    # ===== 第三部分 · Runnable 与 LCEL =========================================
     "08-runnable.html": {
         "mcq": [
             {
@@ -478,10 +478,10 @@ QUIZZES = {
                 "opts": [
                     "把所有输出都转成 JSON",
                     "把 config 转成业务输入",
-                    "把 callable、dict 等可组合对象提升为 Runnable，例如函数变 RunnableLambda、dict 变并行映射",
                     "把所有异常吞掉并继续执行",
+                    "把 callable、dict 等可组合对象提升为 Runnable，例如函数变 RunnableLambda、dict 变并行映射",
                 ],
-                "answer": 2,
+                "answer": 3,
                 "why": "coercion 让普通 Python 对象进入 Runnable 协议，但也带来 dict-as-parallel 等需要理解的语义。",
             },
             {
