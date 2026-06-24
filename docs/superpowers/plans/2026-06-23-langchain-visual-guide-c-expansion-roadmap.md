@@ -7,8 +7,8 @@
 | Milestone | Scope | Status | Detailed plan |
 | --- | --- | --- | --- |
 | M0-M1 | Shared components, density checks, rewritten Part 1 global map | Done | `2026-06-23-langchain-visual-guide-c-expansion-m0-m1.md` |
-| M2 | Part 2 user API basics: messages, chat models, tools, prompts, parsers, streaming | In review | `2026-06-23-langchain-visual-guide-c-expansion-m2-user-api.md` |
-| M3 | Part 3 Runnable and LCEL | Not started | Plan pending after M2 review |
+| M2 | Part 2 user API basics: messages, chat models, tools, prompts, parsers, streaming | Done | `2026-06-23-langchain-visual-guide-c-expansion-m2-user-api.md` |
+| M3 | Part 3 Runnable and LCEL | In review | `2026-06-23-langchain-visual-guide-c-expansion-m3-runnable-lcel.md` |
 | M4 | Part 4 LangGraph mental model | Not started | Plan pending after M3 review |
 | M5 | Part 5 LangGraph execution engine | Not started | Plan pending after M4 review |
 | M6 | Part 6 Agent internals | Not started | Plan pending after M5 review |
