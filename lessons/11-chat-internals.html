@@ -298,65 +298,71 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第九部分 · 生态与速查</div>
     <h1>ChatModel Provider 内部</h1>
   </div>
-<p class="lead">本课《ChatModel Provider 内部》将在 M9 Task 2 填充完整内容；当前先注册页面入口、导航、索引与质量门，确保第九部分的最终课程序列稳定。</p><div class="card analogy"><div class="tag">🧩 临时占位</div>把这页先看成书架上的空标签：标签已经贴好，后续会把 ChatModel provider 适配、调用链和响应元数据 的图解、源码入口、边界情况和练习逐步放进来。</div><div class="lesson-map"><div class="lm-title">🗺️ M9 占位地图</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">已注册</div><div class="mn-desc">页面、标题、分区和导航已经进入全站顺序</div></div><div class="map-node now"><div class="mn-label">待填充</div><div class="mn-desc">正文、图示、源码走读和术语索引会在下一任务完成</div></div><div class="map-node after"><div class="mn-label">待验收</div><div class="mn-desc">密度门当前应只对这六个临时页面失败</div></div></div></div><h2>本课要点</h2><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>这是第九部分的临时骨架，不包含正式教学内容。</li><li>本页故意低于 C-level 密度门，便于 Task 2 用失败清单驱动补全。</li></ul></div><div class="card version"><div class="tag">📌 版本锚点</div>M9 Task 1 只注册最终页面集合；请勿在本文件写完整正文。</div><div class="selftest">
+<p class="lead">聊天模型内部的关键，不是某个 provider 的参数名字，而是 LangChain 如何把上层输入先收束成标准消息，再由具体适配器翻译成厂商 payload，最后把厂商响应归一回 <span class='mono'>ChatGeneration</span>、<span class='mono'>AIMessage</span>、usage metadata 与 response metadata。本课从 <span class='mono'>BaseChatModel</span> 往下看 provider adapter：输入转换、payload 构造、网络调用、响应标准化、回调与流式分片如何分层。读完后，你应该能解释为什么业务代码不该直接依赖 OpenAI 或 Anthropic 的原始响应字段，也能在模型行为异常时判断问题发生在输入标准化、provider 请求、响应解析还是消息回填阶段。</p><div class="card analogy"><div class="tag">🧩 生活类比</div>把聊天模型适配器想成国际快递的转运中心。寄件人可以拿纸箱、文件袋或托盘来，中心先统一贴成内部运单；发往美国、法国、日本的航班有各自报关单和标签，这一层由对应航空公司窗口处理；包裹回来后，转运中心再把不同国家的回执翻译成统一的签收记录。<span class='mono'>BaseChatModel</span> 像转运中心的总流程，<span class='mono'>ChatOpenAI</span>、<span class='mono'>ChatAnthropic</span> 像不同航司窗口，<span class='mono'>ChatGeneration</span> 像统一签收单。用户关心的是包裹有没有送到、花了多少费用、有没有异常，而不是每家航司内部字段叫什么。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：从任意输入到标准聊天结果</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">用户输入</div><div class="mn-desc">字符串、PromptValue、BaseMessage 列表等输入先进入统一入口</div></div><div class="map-node now"><div class="mn-label">消息标准化</div><div class="mn-desc">_convert_input 与 convert_to_messages 把输入变成 BaseMessage 序列</div></div><div class="map-node source"><div class="mn-label">Provider payload</div><div class="mn-desc">ChatOpenAI、ChatAnthropic 等 wrapper 把标准消息翻译成自家 API 格式</div></div><div class="map-node now"><div class="mn-label">响应归一</div><div class="mn-desc">原始响应被还原成 AIMessage、ChatGeneration、token usage 与 metadata</div></div><div class="map-node after"><div class="mn-label">上层组合</div><div class="mn-desc">Runnable、Agent、回调和追踪只看统一结果，不读 provider 私有字段</div></div></div></div><h2>源码入口：文件 + 符号名</h2><p>下面的 source map 使用当前可复查的文件与符号名。这里故意不写行号，因为上游实现会移动；但文件和类/函数名能稳定指向阅读入口。重点是分清 core 契约与 partner 适配：core 定义标准消息和生成结果，partner 包负责把这些标准对象翻译到具体厂商。</p><table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/language_models/chat_models.py</td><td class="mono">BaseChatModel</td><td>聊天模型基类，定义 invoke/generate/stream 等共享骨架和子类扩展点</td><td>上层 Runnable 调用先进入这里，再委派给具体 provider 实现</td></tr><tr><td class="mono">libs/core/langchain_core/language_models/chat_models.py</td><td class="mono">BaseChatModel._convert_input</td><td>把 str、PromptValue、消息序列统一成 PromptValue/消息输入，隔离调用者输入形态</td><td>位于 provider 调用前，是所有聊天模型共享的输入入口</td></tr><tr><td class="mono">libs/core/langchain_core/messages/utils.py</td><td class="mono">convert_to_messages</td><td>把消息类、元组、字典等 message-like 表示转为 BaseMessage 列表</td><td>供 prompt、chat model、agent loop 共享，避免每个 provider 自己猜输入</td></tr><tr><td class="mono">libs/partners/openai/langchain_openai/chat_models/base.py</td><td class="mono">ChatOpenAI</td><td>OpenAI 聊天模型适配器，负责 OpenAI 风格 payload、工具 schema 与响应字段处理</td><td>继承 core 契约，在 provider 边界做翻译</td></tr><tr><td class="mono">libs/partners/anthropic/langchain_anthropic/chat_models.py</td><td class="mono">ChatAnthropic</td><td>Anthropic 聊天模型适配器，处理 Claude 消息、内容块、工具调用和元数据差异</td><td>与 ChatOpenAI 并列，说明差异应留在 partner 层</td></tr><tr><td class="mono">libs/core/langchain_core/outputs/chat_generation.py</td><td class="mono">ChatGeneration</td><td>单个聊天生成结果，封装 message、generation_info 和文本派生字段</td><td>provider 返回后归一到它，上层再读取 AIMessage 与 metadata</td></tr></table><h2>调用图：共享骨架与 provider 翻译点</h2><div class="flow call-graph"><div class="node"><div class="nt">model.invoke(input)</div><div class="nd">Runnable 入口携带 config、callbacks、tags、metadata</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">_convert_input</div><div class="nd">把 str/PromptValue/message-like 变成标准消息视图</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">generate_prompt</div><div class="nd">共享层处理缓存、回调、批量、stream 分支和错误事件</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">_generate/_stream</div><div class="nd">具体 provider adapter 构造 payload 并调用 SDK 或 HTTP API</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">ChatResult</div><div class="nd">把 raw choices/content blocks/tool calls/usage 归一成 ChatGeneration</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">AIMessage</div><div class="nd">上层看到统一消息、tool_calls、usage_metadata、response_metadata</div></div></div><h2>Trace：把一次运行摊平成证据链</h2><table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. input</td><td>用户传入 &#x27;查一下订单 42&#x27; 或 [HumanMessage(...)]</td><td>BaseChatModel 不直接把字符串交给 provider，而是先走输入转换</td><td>标准化的 BaseMessage 序列</td></tr><tr><td>2. config/callback</td><td>messages + RunnableConfig</td><td>共享骨架合并 config，触发 chat_model_start，建立 trace 节点</td><td>可观测运行上下文</td></tr><tr><td>3. payload</td><td>BaseMessage + tools/response_format 等参数</td><td>ChatOpenAI 或 ChatAnthropic 按各自 API 生成 role/content/tool schema/payload</td><td>provider 请求体</td></tr><tr><td>4. provider response</td><td>raw response、content blocks、token usage、tool calls</td><td>adapter 解析字段、补齐 tool_call id、整理 usage 与 finish reason</td><td>ChatGeneration(message=AIMessage(...))</td></tr><tr><td>5. return</td><td>ChatResult.generations</td><td>invoke 取第一条 message；stream 则逐块合并 chunk</td><td>业务代码读取统一 AIMessage</td></tr></table><h2>简化源码走读：保留契约，不背实现</h2><div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/core/langchain_core/language_models/chat_models.py + partner wrappers :: BaseChatModel.invoke/_convert_input/_generate</span><span class="ln">简化版</span></div><pre># 教学版：真实代码还有缓存、回调、stream、batch、错误分支
+class BaseChatModel:
+    def invoke(self, input, config=None, **kwargs):
+        prompt = self._convert_input(input)
+        result = self.generate_prompt([prompt], config=config, **kwargs)
+        return result.generations[0][0].message
+
+    def _convert_input(self, input):
+        if isinstance(input, str):
+            return StringPromptValue(text=input)
+        if is_message_sequence(input):
+            return ChatPromptValue(messages=convert_to_messages(input))
+        return input
+
+class ChatOpenAI(BaseChatModel):
+    def _generate(self, messages, **kwargs):
+        payload = self._create_message_dicts(messages, **kwargs)
+        raw = self.client.chat.completions.create(**payload)
+        return self._create_chat_result(raw)
+</pre><div class="cw-note">这段伪码只保留契约：BaseChatModel 固化共享调用骨架，_convert_input 负责把输入变成标准中间表示，provider 子类只实现变化点。真实实现会继续处理缓存、回调、异步、流式 chunk、tool calling、结构化输出和 provider 专属参数。</div></div><h2>为什么先统一成 BaseMessage</h2><p>聊天模型的上层调用形态非常宽：有人直接传字符串，有人传 ChatPromptValue，有人传 SystemMessage、HumanMessage、AIMessage、ToolMessage 混合列表，还有人从 prompt 模板或 Agent 状态里传出 message-like 字典。若每个 provider wrapper 都自行解释这些输入，差异会迅速扩散：某个 wrapper 接受二元组，另一个只接受消息对象，第三个把 tool message 当普通文本。统一成 BaseMessage 不是为了形式好看，而是为了把输入语义固定在 core 层。</p><p>BaseMessage 是 LangChain 的聊天中间表示。它保留 role、content、name、id、additional_kwargs、response_metadata 等跨 provider 可能有用的信息，同时允许上层链、回调、Agent、LangGraph state 都围绕同一对象工作。等到真正调用 provider 时，adapter 再把 HumanMessage 翻译成 OpenAI 的 role=user 或 Anthropic 的 message block；这个翻译点越靠近 provider，越容易随 SDK 演进而局部调整。</p><h2>Provider payload 是边界，不是业务模型</h2><p>OpenAI、Anthropic 和其他厂商的请求体经常在字段命名、工具 schema、流式事件、内容块结构和安全参数上不同。LangChain partner wrapper 的职责就是承接这些差异：把标准消息变成该厂商接受的 payload，把统一的 tools 参数变成厂商理解的工具声明，把通用 stop、temperature、max tokens 等配置放到正确位置。业务代码若直接拼这些 payload，就等于绕过适配层，把易变细节写进应用核心。</p><p>边界还体现在错误与元数据。provider 可能返回 request id、model name、finish reason、safety signal、token usage、cache usage 或若干实验字段。适配器通常会把可通用的信息放进 usage_metadata 或 response_metadata，把无法标准化但仍有调试价值的字段保留在 metadata 中。上层应优先读取标准字段，只有做 provider 特定排障时才下钻原始信息。</p><h2>ChatGeneration 与 AIMessage 的关系</h2><p>很多人只看到 model.invoke 返回 AIMessage，于是忽略了内部还有 ChatResult 与 ChatGeneration。生成结果对象的价值，是把“模型产生的一条候选”与它的附加信息绑在一起。对于 invoke，通常取第一条候选的 message；对于 generate/batch，可能返回多个 prompt、多个候选；对于 stream，则会先得到 chunk，再合并成完整 message。ChatGeneration 让这些场景有统一容器。</p><p>AIMessage 则是对话历史要保存的消息。它可以有 content，也可以有 tool_calls；可以携带 usage_metadata，也可以携带 provider response_metadata。Agent loop 最关心的是 tool_calls 是否存在，RAG 与日志最关心的是 content 与 metadata，成本统计最关心 usage。把这些信息放在统一消息里，LangGraph 的 add_messages、callbacks、LangSmith trace 和测试断言就能共享同一套结构。</p><h2>读源码时如何定位差异</h2><p>遇到模型行为异常，先不要直接怪模型。第一步确认输入是否被标准化成你预期的消息序列：系统提示有没有丢，历史消息顺序是否正确，ToolMessage 的 tool_call_id 是否还在。第二步看 provider payload：工具 schema 是否被翻译，参数名是否符合厂商要求，是否把结构化输出和工具调用混在一起。第三步看响应归一：raw response 中是否本来就没有 tool calls，还是 adapter 解析时丢失了。</p><p>这个排查顺序能避免把所有问题都推给 prompt。比如模型没有调用工具，可能是 bind_tools 没进 payload；模型调用了工具但 Agent 没执行，可能是 tool_calls 没被标准化进 AIMessage；成本统计缺失，可能是 usage 字段没有映射到 usage_metadata；流式 UI 卡住，可能是 stream chunk 合并和 callback 事件顺序不匹配。每个现象都对应调用链的一段。</p><h2>流式与非流式只是返回节奏不同</h2><p>非流式调用像一次性拿到完整包裹，stream 像快递员一路播报“已揽收、已装车、已到站”。但二者共享的语义应尽量一致：输入仍要标准化，provider payload 仍要构造，回调仍要记录开始和结束，最终仍应能合并成一条 AIMessage。差异在于 adapter 需要把 provider 的 event stream 转成 ChatGenerationChunk 或 AIMessageChunk，并让上层逐块消费。</p><p>因此排查 stream 问题时要分清“最终消息正确但中间事件不顺”与“最终归一也错”。前者可能影响 UI 和实时回调，后者会影响 Agent 后续控制流。若 provider 流式事件包含工具调用增量，adapter 还要正确合并 tool call name、args、id；否则模型明明发出了工具请求，最终 AIMessage.tool_calls 却可能不完整。</p><h2>边界情况：provider 响应并不总是规整的</h2><p>把响应归一想象成每次都能拿到干净的 content 加 tool_calls，是低估了 provider 的多样性。真实响应里，content 可能为空而只带 tool_calls，可能由多个内容块（文本块、图片块、引用块、推理块）组成列表，也可能因为安全策略返回拒答或被长度截断。finish reason 在不同 provider 下取值不同：正常结束、达到 max tokens、因工具调用停止、被内容过滤拦截，含义都不一样。适配层要做的，是在这些形态之间挑出上层真正需要的标准字段，而不是假设每次响应都长一个样。</p><p>流式让边界情况更明显。工具调用的参数往往分片到达，token usage 常常只在最后一个 chunk 给出，部分 provider 还会把推理过程或缓存信息放进独立事件。如果 adapter 合并 chunk 时没有正确拼接 tool call 的 name、args 和 id，最终 AIMessage.tool_calls 就可能缺字段，导致 Agent 下一步只拿到半个工具请求。排查 stream 问题时，要先分清是中间事件顺序不顺，还是最终合并结果本身就错：前者主要影响实时 UI 和回调，后者会污染后续控制流。</p><h2>常见误解：标准化不是抹平 provider 能力</h2><p>统一成 AIMessage、ChatGeneration 和标准 metadata，统一的是结构形状，不是底层能力。不同 provider 对并行工具调用、严格 JSON schema、系统提示位置、多模态输入、缓存计费的支持并不一致。看到消息里有某个字段，不代表当前模型一定会填它；期望换一个 provider 后行为完全相同，往往会落空。正确心态是：读标准字段是对的，但要把跨 provider 的能力差异当成需要显式验证的变量，而不是默认成立的常量。</p><p>结构化输出也常被误解。with_structured_output 在不少实现里其实是借助工具调用或 response_format 完成的，并不是模型内置的魔法；bind_tools 只是把工具声明放进 payload，模型是否真的调用仍由它自己决定。同理，设定 temperature 或 seed 也不能保证逐字可复现。把这些机制当成确定性保证，会让测试和线上行为对不上。理解“统一接口背后仍是各自实现”，才能在 provider 之间迁移时少踩坑。</p><h2>usage 与 metadata：成本与排障的统一入口</h2><p>成本统计最怕每个 provider 各报各的。适配层通常会把输入、输出、总 token 汇总进 usage_metadata，把缓存读写等细分项放到更具体的字段或 metadata。业务侧据此做配额、计费和容量评估，就不必关心某个 provider 把字段叫 prompt_tokens 还是 input_tokens。当 usage 缺失时，往往不是模型没返回，而是 adapter 在某条响应路径（尤其是流式路径）上没有映射，这恰恰是该补契约测试的地方。</p><p>response_metadata 则是排障证据带。它适合保留 request id、model name、system fingerprint、finish reason、限流或安全信号等不便标准化、但调试有用的信息。原则仍是分层读取：业务逻辑读标准字段，观测与排障读 metadata，只有写 provider 专属能力时才下钻原始响应。把这三层分清，既能享受跨 provider 的统一，又不至于在需要深挖时无据可查。</p><h2>把 provider 边界写成可回归测试</h2><p>适配层最该被测试，却经常被跳过。契约测试的思路是：用一个可控的假聊天模型或最小真实调用，断言上层拿到的标准字段是否正确，例如 content 是否非空、tool_calls 是否包含预期 name 和 args、usage_metadata 是否汇总了 token。断言对象应该是标准消息，而不是某个 provider 的原始 JSON；后者一旦升级就会让测试无谓地变红，反而掩盖真正的回归。</p><p>版本策略是这层测试的延伸。升级 partner 包时，先跑适配层契约测试，再判断是否影响业务链。保持适配层是一条薄缝：provider 字段变化时只改这条缝，不让它扩散到 prompt、Agent 或图节点。同时在 response_metadata 里保留 request id、model name、finish reason 等线索，这样线上出问题时，你能用一次调用的证据快速判断问题落在输入标准化、payload、原始响应还是归一阶段。</p><h2>设计取舍：为什么要把变化点关进适配层</h2><p>软件设计里一个反复出现的原则，是把最常变化的部分与最需要稳定的部分分开。聊天模型领域里，最常变化的就是各家厂商的请求格式、字段命名、工具声明方式和响应结构；最需要稳定的，是上层链路、智能体循环、图状态和测试断言所依赖的那套消息与生成结果。把厂商差异关进适配层，本质上是在易变与稳定之间立一道墙，让墙内的演进不至于震动墙外的业务。</p><p>这道墙带来的第一个好处是可替换。当你想从一家厂商切换到另一家，或在同一应用里按成本和能力混用多家时，理想情况是只更换适配层，而上层链路、提示、工具和测试基本不动。如果业务代码到处直接读厂商私有字段，这道墙就被打穿了，切换会演变成全局手术。第二个好处是可测试：墙的接口稳定，你才能用假模型在不联网的情况下断言行为，把不确定的网络与厂商响应隔离在测试之外。</p><p>代价当然存在。多一层抽象意味着你要先理解标准消息和厂商载荷两套词汇，调试时也要判断问题落在墙的哪一侧。但这笔成本通常划算，因为厂商演进的频率远高于你重构业务的意愿。记住一个简单的判断标准：每当你想在业务流程里写下某个厂商的专有字段名时，先问自己这是不是应该收进适配层的细节；多数时候答案是肯定的，把它留在墙内，墙外就能保持干净。</p><h2>把这套分层迁移到自研模型与网关</h2><p>这套分层不只适用于商用厂商，也适用于自研模型和模型网关。当你在公司内部署一个推理服务，或在多个模型前架一层网关做路由与限流时，最好仍让它表现得像一个标准聊天模型：对上暴露统一的消息与生成结果，把路由策略、鉴权、配额这些网关细节藏在适配层后面。这样上层链路无需知道请求最终落到哪台机器、哪个版本，灰度和迁移都只在网关层发生。</p><p>反过来，如果让业务直接感知网关的内部协议，你会把网关的每一次演进都变成业务的负担。一个好用的模型网关，应该像电源插座：上层只管按标准接口取电，插座背后是火电还是光伏、是本地还是云端，都不该改变取电的方式。把自研服务也纳入同一套适配纪律，整套系统在更换底座时才会平滑，而不是每换一次模型就牵动一片业务代码。</p><h2>一次最小排障演练</h2><p>把本课的分层用一次最小排障演练串起来：假设线上出现模型回答里突然不再带工具调用。第一步先看输入，确认进入模型前的消息序列是否完整，系统提示是否还在，历史是否被截断；第二步看载荷，确认工具是否真的通过绑定进了请求，而不是被谁从参数里漏掉；第三步看原始响应，判断模型到底有没有发出工具调用；第四步看归一，排除适配层在解析时把工具调用丢了的可能。</p><p>这套从输入到归一的顺序，最大的价值是避免把所有问题都甩给提示词。同一个症状在不同层有完全不同的修法：载荷漏了工具要补绑定，响应本就没有工具调用要回到提示和模型选择，归一丢了字段要修适配层或补契约测试。每次排障都按这条链走一遍，你会越来越快地把模糊的模型不听话，定位成某一层上可复现、可修复的具体问题。</p><h2>课堂检查清单：十二个能定位 provider 边界的问题</h2><p>一，当前输入在进入 provider 前是否已经变成 BaseMessage 序列。二，SystemMessage 是否仍在第一轮可见位置。三，ToolMessage 是否保留 tool_call_id。四，工具 schema 是在 bind_tools 阶段注入，还是被业务代码手写到 prompt。五，provider payload 中是否出现了预期模型名、温度、停止词和工具声明。六，响应中原始 token usage 是否映射到 usage_metadata。七，response_metadata 是否保留 request id 或 finish reason。八，stream chunk 是否能合并成与 invoke 语义一致的 AIMessage。九，异常是在 shared skeleton 抛出，还是 provider SDK 抛出。十，回调 start/end/error 是否围绕同一个 run。十一，测试是否断言标准消息，而不是断言 provider 私有 JSON。十二，升级 provider 包时是否只影响适配层而不修改业务链。</p><h2>标准字段与 provider 字段的分工</h2><p>下面这张表帮助你判断该读哪个层次的数据。原则是：业务逻辑读标准字段，排障和统计可读 metadata，只有 provider 专属能力才下钻私有字段。</p><table class="t"><tr><th>层次</th><th>典型字段</th><th>适合谁读</th><th>风险</th></tr><tr><td>标准消息</td><td>AIMessage.content、tool_calls、usage_metadata</td><td>Agent、链、测试、业务流程</td><td>最稳定，但不覆盖所有厂商细节</td></tr><tr><td>响应元数据</td><td>response_metadata、finish_reason、model_name、request id</td><td>日志、成本、排障、观测</td><td>字段可能因 provider 或版本变化</td></tr><tr><td>原始响应</td><td>choices、content blocks、delta events</td><td>适配器作者、深度排障</td><td>最易变，不应扩散到业务核心</td></tr></table><div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：ChatOpenAI 返回什么，业务就直接依赖什么</div><div class="pf-correct">正确：业务应依赖 AIMessage、ChatGeneration 和标准 metadata；provider 私有字段只在适配层或排障工具中读取。</div></div><div class="pitfall"><div class="pf-wrong">误解：_convert_input 只是把字符串包一下</div><div class="pf-correct">正确：它是所有输入形态进入聊天模型前的语义关口，决定消息顺序、类型和后续 provider 翻译是否可靠。</div></div><div class="pitfall"><div class="pf-wrong">误解：Anthropic 和 OpenAI 差异应由上层 if/else 处理</div><div class="pf-correct">正确：差异应尽量留在 partner wrapper；上层只看统一消息、工具调用和生成结果。</div></div><div class="pitfall"><div class="pf-wrong">误解：stream 与 invoke 是两套无关逻辑</div><div class="pf-correct">正确：它们返回节奏不同，但最终语义应一致；stream chunk 必须能合并成标准 AIMessage。</div></div></div><div class="card lab"><div class="tag">🧪 小实验 · 手工追踪一次 provider 适配</div><ol><li>写一个包含 SystemMessage、HumanMessage 和一个工具声明的最小调用，不需要真实请求也可以用 fake model 描述输入。</li><li>画出进入 provider 前的 BaseMessage 列表，标出每条消息的 type、content、id 和 tool_call_id。</li><li>为 OpenAI 与 Anthropic 各写一份你认为可能的 payload 轮廓，只写 role/content/tools 等关键字段。</li><li>假设 provider 返回一次工具调用，写出 raw response 中可能出现的字段，再把它归一成 AIMessage.tool_calls。</li><li>最后写两个断言：一个断言标准消息字段，一个断言 metadata 中保留了排障需要的信息。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>本课以 LangChain core/partner 分层和 BaseChatModel 适配模式为锚点；provider API、SDK 字段和工具调用格式会演进，实际排障时请以当前安装版本的文件与符号名为准，不把本文示例 payload 当成永久规范。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>BaseChatModel 提供共享调用骨架，provider adapter 只应承担厂商差异翻译。</li><li>_convert_input 与 convert_to_messages 把宽松输入收束成 BaseMessage 中间表示。</li><li>ChatOpenAI、ChatAnthropic 等 partner wrapper 把标准消息翻译为 provider payload，再把响应归一回 ChatGeneration/AIMessage。</li><li>业务逻辑优先读取标准字段；provider 私有字段只用于适配或排障。</li><li>定位模型问题时按输入标准化、payload、raw response、响应归一、上层控制流逐段排查。</li></ul></div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. <code>invoke</code> 的调用链里，前几步所有厂商共享、只有 <code>_generate</code> 各自实现。这种“骨架共享、末端定制”是哪种模式、图什么？</div>
+  <div class="qn">1. 在 <code>BaseChatModel</code> 调用链中，为什么要先执行输入标准化，再进入具体 provider adapter？</div>
   <ol class="opts">
-    <li>模板方法模式；图把“缓存/回调/重试”等通用流程写一遍复用，厂商只填“真正调用”这一步</li>
-    <li>单例；图唯一性</li>
-    <li>装饰器；图加功能</li>
-    <li>工厂模式；图省内存</li>
+    <li>为了绕过回调和缓存</li>
+    <li>为了让业务代码读取 provider 原始响应</li>
+    <li>为了把字符串、PromptValue、message-like 等输入统一成标准消息视图，让 provider wrapper 只负责厂商翻译</li>
+    <li>为了让所有请求都变成 OpenAI payload</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。模板方法把“不变的流程”固化在基类、“会变的一步”留给子类。这正是第 3 课“统一入口 + 厂商 _generate”在代码里的落点。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。输入标准化把上层宽松输入收束到 BaseMessage/PromptValue 中间表示；ChatOpenAI、ChatAnthropic 等适配器再把它翻译成各自 payload。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. 缓存、回调、重试都放在“共享模板”里，而不是让每个厂商各自实现。这样避免了什么？</div>
+  <div class="qn">2. <code>ChatGeneration</code> 在聊天模型内部最准确的角色是什么？</div>
   <ol class="opts">
-    <li>缓存失效</li>
-    <li>每个厂商重复实现这些横切逻辑、且实现不一致——放在模板里写一遍，所有厂商行为统一</li>
-    <li>代码太短</li>
-    <li>厂商太多</li>
+    <li>一个 provider SDK 客户端</li>
+    <li>一个聊天候选生成结果容器，封装 AIMessage、generation_info 等归一化信息</li>
+    <li>一个只用于保存 prompt 模板的对象</li>
+    <li>一个向量检索器</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把通用能力上提到共享层，消除重复 + 保证一致。新增厂商自动获得缓存/回调/重试，不必也不该自己写。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。provider 响应归一后进入 ChatResult/ChatGeneration；invoke 通常取第一条 generation 的 message 返回给上层。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 为什么把“会因厂商而异的那一步”精确隔离成 <code>_generate</code> 一个抽象方法，而不是让厂商重写整个 invoke？</div>
+  <div class="qn">3. 业务代码最不应该做哪件事？</div>
   <ol class="opts">
-    <li>防止厂商创新</li>
-    <li>让厂商多写代码</li>
-    <li>把“变化点”收敛到最小：厂商只关心自己独特的部分，其余流程不可能被写错或写偏</li>
-    <li>没有原因</li>
+    <li>在核心业务流程里直接依赖某个 provider raw response 的私有字段</li>
+    <li>读取 <code>AIMessage.content</code></li>
+    <li>使用 <code>usage_metadata</code> 做成本统计</li>
+    <li>在排障日志里保留 response metadata</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。“识别变化点、把它隔离成最小扩展接口”是模板方法的精髓——扩展成本低、出错面小、流程一致。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. 顺着调用链读源码，能体会到“包边界与分层”在代码里的样子。这说明好的架构有什么特征？</div>
-  <ol class="opts">
-    <li>宏观的分层思想能在微观的调用链里被一眼认出——结构是自洽、可追溯的</li>
-    <li>代码很长</li>
-    <li>文件很多</li>
-    <li>没有特征</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。当“宏观设计”和“微观实现”对得上（包边界 ↔ 调用链 ↔ 模板方法），系统就是可理解的。读一条链就能验证整套架构。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。provider 私有字段易变，应收口在 adapter 或排障工具中；业务流程优先依赖标准消息和标准 metadata。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>模板方法把“通用流程”写死在基类。如果某厂商需求恰好和“通用流程”冲突（比如缓存语义不同），这种设计会变成阻碍吗？框架一般怎么留口子？</li>
-    <li>“把变化点隔离成最小接口”听起来简单，但难在“预判哪里会变”。如果变化点选错了（该变的地方写死了），会发生什么？</li>
+    <li>画出一次 <code>model.invoke</code> 的链路：输入标准化、config/callback、provider payload、raw response、ChatGeneration、AIMessage，每步写出主要输入输出。</li>
+    <li>如果模型返回了工具调用但 Agent 没有执行工具，你会如何区分是 provider payload 没绑定工具、raw response 没有 tool call，还是响应归一丢失了 <code>tool_calls</code>？</li>
   </ul>
 </div>
 </div>

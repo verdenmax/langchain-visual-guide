@@ -298,65 +298,68 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第九部分 · 生态与速查</div>
     <h1>LangChain、LangGraph 与多 Agent 生态</h1>
   </div>
-<p class="lead">本课《LangChain、LangGraph 与多 Agent 生态》将在 M9 Task 2 填充完整内容；当前先注册页面入口、导航、索引与质量门，确保第九部分的最终课程序列稳定。</p><div class="card analogy"><div class="tag">🧩 临时占位</div>把这页先看成书架上的空标签：标签已经贴好，后续会把 LangChain、LangGraph 与多 Agent 框架选型对照 的图解、源码入口、边界情况和练习逐步放进来。</div><div class="lesson-map"><div class="lm-title">🗺️ M9 占位地图</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">已注册</div><div class="mn-desc">页面、标题、分区和导航已经进入全站顺序</div></div><div class="map-node now"><div class="mn-label">待填充</div><div class="mn-desc">正文、图示、源码走读和术语索引会在下一任务完成</div></div><div class="map-node after"><div class="mn-label">待验收</div><div class="mn-desc">密度门当前应只对这六个临时页面失败</div></div></div></div><h2>本课要点</h2><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>这是第九部分的临时骨架，不包含正式教学内容。</li><li>本页故意低于 C-level 密度门，便于 Task 2 用失败清单驱动补全。</li></ul></div><div class="card version"><div class="tag">📌 版本锚点</div>M9 Task 1 只注册最终页面集合；请勿在本文件写完整正文。</div><div class="selftest">
+<p class="lead">横向比较生态时，最危险的写法是给框架贴永久标签：谁“已经过时”、谁“一定更强”、谁“只适合某场景”。这些说法很快会被版本、团队和社区演进打脸。本课采用更稳的比较维度：LangChain/LangGraph 更偏统一组件契约、图状态和可观测运行；AutoGen 风格强调多 actor 对话与消息路由；CrewAI 风格强调角色、任务和团队协作描述；LlamaIndex 风格常从数据连接、索引和 RAG 工作流进入；其他系统可能以 pub/sub、workflow、handoff 或服务网格为中心。比较的目标不是选冠军，而是识别“默认心智模型”与“让什么事情更顺手”。</p><div class="card analogy"><div class="tag">🧩 生活类比</div>把几个生态想成不同类型的工作场所。LangGraph 像白板上画好的流程车间：每个工位读写共享状态，边决定下一站，质检记录每一步。AutoGen 风格像圆桌会议：多个角色发言、回应、转交，重点是参与者之间的消息。CrewAI 风格像项目经理给团队分角色和任务：研究员、写作者、审阅者按职责协作。LlamaIndex 风格像资料馆：先把资料接入、索引、检索，再组织问答。它们都能做复杂应用，但默认入口不同，入口决定你写代码时最自然的表达方式。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：用默认心智模型比较生态</div><div class="lm-grid"><div class="map-node source"><div class="mn-label">LangChain/LangGraph</div><div class="mn-desc">Runnable、工具、消息、StateGraph、Pregel、checkpoint 形成可组合应用栈</div></div><div class="map-node now"><div class="mn-label">Actor/对话</div><div class="mn-desc">AutoGen 风格常把多个可对话 agent 作为一等对象，关注消息路由与协作</div></div><div class="map-node now"><div class="mn-label">角色/任务</div><div class="mn-desc">CrewAI 风格常用 crew、role、task、process 描述团队分工</div></div><div class="map-node now"><div class="mn-label">数据/RAG</div><div class="mn-desc">LlamaIndex 风格常以数据连接、索引、查询引擎和检索工作流切入</div></div><div class="map-node after"><div class="mn-label">选型</div><div class="mn-desc">按状态可控性、数据重心、团队协作、观测和集成边界决定</div></div></div></div><h2>源码入口：文件 + 符号名</h2><p>生态比较的 source map 不追求覆盖每个仓库细节，而是给出本课程已验证的 LangChain/LangGraph 锚点，并用公开概念名描述其他生态的常见心智模型。由于外部框架 API 和维护状态会变化，本文避免对当前热度、活跃度或兼容性做硬断言。</p><table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">Runnable</td><td>LangChain 统一可运行协议，支撑模型、链、工具、检索器和图组合</td><td>体现 LangChain 的组件契约重心</td></tr><tr><td class="mono">libs/langgraph/langgraph/graph/state.py</td><td class="mono">StateGraph</td><td>LangGraph 状态图构建器，节点读写共享 state，边定义控制流</td><td>体现图/状态/边的显式编排重心</td></tr><tr><td class="mono">libs/langgraph/langgraph/pregel/main.py</td><td class="mono">Pregel</td><td>LangGraph 执行引擎，按超步调度 actors/channels/writes</td><td>体现可追踪运行时与 checkpoint 能力</td></tr><tr><td class="mono">libs/langchain_v1/langchain/agents/factory.py</td><td class="mono">create_agent</td><td>LangChain 高层 Agent 入口，常把模型、工具和 middleware 组装到 LangGraph 循环</td><td>体现高层易用 API 与底层图运行时的连接</td></tr><tr><td class="mono">外部生态公开概念</td><td class="mono">AutoGen/CrewAI/LlamaIndex</td><td>分别常以多 agent 对话、角色任务 crew、数据索引/RAG 等概念作为入口</td><td>用于对照心智模型，不在本课做版本状态判断</td></tr></table><h2>调用图：同一个研究任务在不同心智模型中的表达</h2><div class="flow call-graph"><div class="node"><div class="nt">问题</div><div class="nd">用户要求调研一个技术并生成报告</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">图/状态</div><div class="nd">LangGraph 表达为 research -&gt; draft -&gt; review -&gt; END 的状态图</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">Actor 对话</div><div class="nd">AutoGen 风格表达为 researcher 与 writer 互发消息并由 manager 路由</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">角色任务</div><div class="nd">CrewAI 风格表达为角色、目标、任务和执行过程</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">数据索引</div><div class="nd">LlamaIndex 风格先接入资料、建索引、查询，再交给生成步骤</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">选型</div><div class="nd">根据可控性、数据复杂度、协作形态和团队经验选择</div></div></div><h2>Trace：把一次运行摊平成证据链</h2><table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. requirement</td><td>需要对公司知识库做调研并输出可审阅报告</td><td>识别核心难点：数据检索、步骤控制、多角色协作、审计</td><td>选型维度而非框架名单</td></tr><tr><td>2. LangGraph view</td><td>明确状态字段 documents/draft/review</td><td>节点读写 state，条件边决定是否返工</td><td>强可控 trace 与可 checkpoint 工作流</td></tr><tr><td>3. actor view</td><td>多个 agent 需要自由讨论</td><td>定义参与者、消息路由、终止规则</td><td>更像会话型协作</td></tr><tr><td>4. data view</td><td>资料来源多、索引和召回复杂</td><td>优先设计 connector、index、query engine、rerank</td><td>RAG 质量成为主线</td></tr><tr><td>5. decision</td><td>团队已有栈、观测要求、部署边界</td><td>选择默认最顺手的生态，必要时组合使用</td><td>场景化而非宗教化结论</td></tr></table><h2>简化源码走读：保留契约，不背实现</h2><div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">生态对照伪码 :: graph/state vs actor/message vs data/index</span><span class="ln">简化版</span></div><pre># 同一任务的三种表达，不代表实际 API 完全如此
+# 图/状态：显式节点和边
+graph.add_node(&quot;retrieve&quot;, retrieve_docs)
+graph.add_node(&quot;draft&quot;, write_report)
+graph.add_node(&quot;review&quot;, review_report)
+graph.add_conditional_edges(&quot;review&quot;, route_pass_or_rework)
+
+# Actor/对话：参与者之间交换消息
+manager.send(researcher, &quot;find evidence&quot;)
+researcher.reply(writer, evidence)
+writer.reply(reviewer, draft)
+
+# 数据/RAG：先组织资料，再回答
+index = build_index(load_documents())
+ctx = index.query(question)
+answer = synthesize(question, ctx)
+</pre><div class="cw-note">伪码只展示心智模型差异，不声称任何外部框架的当前 API 必然如此。真正选型要读当前版本文档、示例、限制、许可证、部署形态和社区实践。</div></div><h2>比较框架先比较默认抽象</h2><p>一个成熟生态通常什么都能做：图框架能做多 Agent，对话框架能做工具调用，RAG 框架能做 workflow，角色框架也能接向量库。如果只问“能不能”，答案往往都是能；真正有意义的是“默认写法让什么变容易”。默认抽象会决定你第一行代码写什么、日志长什么样、错误在哪里暴露、团队如何讨论设计。</p><p>LangChain/LangGraph 的默认抽象更接近可组合组件与显式运行时：Runnable 定义组件接口，BaseMessage 统一消息，BaseTool 统一工具，StateGraph 定义状态和边，Pregel 负责执行。它适合把复杂应用拆成可观测步骤，并对状态、重试、checkpoint、人审和工具循环保持控制。代价是你要理解图、state、reducer 和运行配置。</p><h2>Actor/pubsub 与图状态的差异</h2><p>Actor 或 pub/sub 风格更自然地表达“多个自治参与者在通信”。每个 agent 像一个有角色、记忆和工具的 actor，消息在参与者之间传递，管理者或路由规则决定下一位说话者。这种模型适合原型化多角色协作、模拟会议、让不同专家互相质询。它的优势是贴近人类协作直觉，弱点是如果没有严密终止条件、状态摘要和审计结构，对话可能变长、重复或难以回放。</p><p>图状态风格则先问：共享 state 有哪些字段，哪些节点能写，哪条边决定下一步，什么时候结束。它不要求每个节点像独立人格，更强调可控流程。多 Agent 在图里可以表现为多个节点或子图，也可以通过 handoff 改变控制权。优势是 trace 和测试清晰，弱点是开放式讨论需要显式建模，否则会显得比对话框架啰嗦。</p><h2>数据/RAG 重心与编排重心</h2><p>LlamaIndex 风格常从数据进入：文档如何接入、如何切分、如何建索引、如何组织查询引擎、如何融合多个数据源、如何评估检索质量。对于知识库问答、文档搜索、结构化资料查询和 RAG 质量优化，数据抽象是第一优先级。编排当然也重要，但如果主要难点是资料来源、索引策略、召回和引用，先选数据/RAG 友好的生态可能更省力。</p><p>LangChain 也有 Document、Retriever、VectorStore、RAG 链和工具化检索；差异不在“有没有”，而在默认入口。你可以用 LangChain/LangGraph 编排一个调用 LlamaIndex 查询引擎的节点，也可以在 LlamaIndex 工作流里调用 LangChain 工具。成熟工程经常组合生态，而不是强行让一个框架负责所有层。组合时要明确边界：谁拥有数据索引，谁拥有控制流，谁负责观测和部署。</p><h2>角色 crew 与 handoff/orchestration</h2><p>CrewAI 风格常把角色、目标、背景、任务、过程作为核心语言。它适合教学、原型和团队协作式任务描述：研究员找资料，分析师整理，写作者成稿，审阅者检查。这样的表达降低了多角色任务的上手门槛，也能帮助非工程同学理解系统。但生产化时仍要落到可验证问题：任务如何终止，工具如何授权，输出如何校验，失败如何重试，成本如何观测。</p><p>handoff 是很多多 Agent 系统都会遇到的概念：当前 agent 判断自己不适合继续，把任务交给另一个 agent 或子流程。LangGraph 里 handoff 可以表现为 Command、goto、子图或路由边；对话框架里可能表现为 manager 改变发言者；角色框架里可能表现为任务流转。比较 handoff 时不要只看 API 名称，要看它是否保留状态、是否可审计、是否支持人审、是否能防止循环交接。</p><h2>选型矩阵比排名更可靠</h2><p>一个简单矩阵通常比“谁更好”更有用。若你的系统需要严格状态、可回放、checkpoint、人审和测试，图/状态框架权重高。若你的系统需要快速模拟多个专家讨论，actor/对话框架权重高。若资料接入、索引、召回、rerank 是主战场，数据/RAG 框架权重高。若你的团队用角色和任务沟通效率最高，crew 风格可能更顺手。</p><p>还要考虑非技术维度：团队已有代码、部署环境、许可证、文档质量、调试工具、社区示例、与现有评测/观测平台的集成。本文避免写当前活跃度或维护状态判断，是因为这些信息变化快，且需要按具体版本核验。工程决策应该把“今天查到的版本证据”写进 ADR 或设计文档，而不是引用泛泛印象。</p><h2>边界情况：把生态比较写成可复查证据</h2><p>生态比较最容易出问题的地方，不是结论本身，而是结论的“保质期”。“某框架已经过时”“某框架一定最好”这类话，往往在你写下它的当天就开始贬值。更稳的做法是把比较当成一次带证据的快照：记录你查证的日期、对照的版本、许可证、部署目标，以及你真正核验过的维护信号（提交活跃度、release 节奏、文档完善度），并把它写进设计决策记录（ADR）。下次复查时，先看快照是否过期，再决定是否更新结论。</p><p>另一个边界是“用人气替代匹配度”。star 数、热度榜、社交媒体声量都不是架构依据；真正决定的是它与你主要难点的契合度，加上团队熟悉度和运维成本。一个在演示里很惊艳的框架，可能在你需要严格状态、审计和回放时并不顺手。把“今天看起来很火”与“适合我这个系统”分开，是避免选型后悔的关键。</p><h2>常见误解：把范式差异当成能力差异</h2><p>几乎每个成熟生态都能做工具调用、RAG 和多 Agent，所以“能不能做某件事”几乎不区分框架。真正区分它们的是默认范式：默认抽象让什么变容易、日志和 trace 长什么样、错误在哪里暴露、团队用什么词讨论设计。按功能清单逐项打勾很容易得出“都能做”的平庸结论；按默认范式比较，才能看出哪种写法让你的主要难点最省力。把范式差异误读成能力差异，往往会高估迁移成本或低估隐性复杂度。</p><p>组合使用是常态，不是失败。用 LangGraph 编排控制流、在某个节点里调用 LlamaIndex 的查询引擎，或把一个外部 actor 框架包成图节点，都是成熟工程里常见的搭配。真正的陷阱不是“混用框架”，而是“两份状态真相”：同一份对话历史或任务状态被两个框架各自维护，最终对不齐。只要明确谁持有权威状态、谁只是被调用方，混用就既灵活又可控。</p><h2>组合多个生态时的所有权边界</h2><p>组合生态前，先回答三个所有权问题：谁拥有控制流（哪一层决定下一步执行什么），谁拥有数据与索引（哪一层负责文档、向量和检索质量），谁拥有可观测（哪一层串起 trace、成本和错误）。把这三件事分派清楚，组合就有了边界；含糊不清时，往往会出现重复的状态、互相覆盖的重试、以及没人负责的失败。一般建议让一个框架做控制流主干，其它能力以适配器或服务的形式被它调用。</p><p>组合系统还需要一条统一的 trace 主线。外部框架的运行 id 要能映射回你的 run id，否则一次跨框架调用会在观测里断成两截，排障时无法对齐。失败归属也要事先约定：外部查询引擎超时算谁的失败、外部 agent 返回低质量结果由谁兜底、降级路径在哪一层触发。把所有权和 trace 想清楚，多生态组合才是加法而不是负担。</p><h2>一个具体任务的四种落地草图</h2><p>设想一个客服工单自动分流并回复的任务。用图与状态的思路，你会先定义状态里有哪些字段：工单内容、分类结果、检索到的知识、草稿回复、是否需要人工。然后把流程拆成分类、检索、起草、审核几个节点，用边决定何时回到起草、何时转人工、何时结束。它的自然之处在于每一步都看得见、可回放、可加检查点；吃力之处在于，如果需求只是随便聊聊，这套显式状态会显得啰嗦。</p><p>用多角色对话的思路，你会把分类员、知识专家、写作员设成几个会说话的角色，让它们就一张工单互相提问和补充，由一个协调者决定谁接着发言。这种表达贴近人类客服小组的直觉，适合快速搭出多角色协作的原型；但要让它在生产里收敛，你得额外设计终止条件、状态摘要和审计，否则对话可能越扯越长。角色式团队的写法介于两者之间：先声明角色、目标和任务，再按流程推进，上手快，但同样要把安全和错误恢复补上。</p><p>如果这张工单的难点主要在从海量历史工单和文档里找到正确依据，那么数据与检索就是主线：先把资料接入、切分、建索引、设计查询和重排，再谈如何生成回复。这时以数据为入口的思路最省力，编排反而是配角。把四种草图摊开比较，你会发现它们都能做这件事，区别只在默认让什么变容易。真正的选型动作，是挑出你这张工单最痛的那一维，让默认范式与它对齐，而不是先认定某个框架再硬套场景。</p><h2>把比较结论交给时间检验</h2><p>任何生态比较都该带一个复查触发条件，而不是写完就封存。比较的结论依赖当时的版本、团队和需求，这些都会变；与其追求一个永久正确的排名，不如约定什么时候回来重看：当某个框架发布重大版本、当团队主要难点改变、当现有方案在成本或可控性上触顶时，就重新跑一遍同样的比较维度。把结论当成会过期的假设，你才不会被一次旧判断长期绑架。</p><p>这也意味着比较的过程比结论更值钱。一份写清了维度、证据和版本的比较记录，即使结论过期，也能在下次快速复用；而一句没有依据的谁更好，即使当时正确，也无法被检验或更新。教学和工程在这里是一致的：留下可复查的推理链，比留下一个漂亮但孤立的结论更有长期价值。</p><h2>课堂检查清单：生态比较的十二个维度</h2><p>一，默认抽象是图、actor、crew、data 还是 workflow。二，状态是显式字段、对话历史还是隐藏在 agent 内。三，工具调用是否有统一 schema 和错误策略。四，RAG 数据层是否是一等能力。五，多 Agent 交接是否保留可审计状态。六，终止条件是结构化字段还是自然语言协商。七，观测能否看到每个节点、消息、工具和成本。八，测试是否能断言中间步骤。九，部署是否支持你的运行环境。十，框架是否允许与现有组件组合。十一，团队是否理解该心智模型。十二，版本和 API 证据是否已经记录。</p><h2>生态心智模型对照表</h2><p>这张表只描述常见默认重心，不评价项目当前活跃度，也不排除某个框架支持其他能力。</p><table class="t"><tr><th>风格</th><th>默认入口</th><th>顺手场景</th><th>需要额外警惕</th></tr><tr><td>LangChain/LangGraph</td><td>Runnable、消息、工具、StateGraph、Pregel</td><td>可控 Agent、工作流、工具/RAG 组合、checkpoint</td><td>需要理解 state/reducer/graph 语义</td></tr><tr><td>AutoGen 风格</td><td>多个可对话 agent、消息路由、manager</td><td>多专家讨论、对话式协作、快速多 Agent 原型</td><td>长对话终止、状态审计和回放要设计清楚</td></tr><tr><td>CrewAI 风格</td><td>role、goal、task、crew、process</td><td>角色分工清晰的团队任务与演示</td><td>生产安全、工具权限和错误恢复不能只靠角色描述</td></tr><tr><td>LlamaIndex 风格</td><td>connector、document、index、query engine</td><td>知识库、RAG、数据接入和检索质量优化</td><td>复杂控制流可能需要额外 workflow/graph 设计</td></tr><tr><td>通用 workflow/pubsub</td><td>事件、队列、任务、服务边界</td><td>已有微服务或异步系统中嵌入 AI</td><td>模型消息和工具 schema 需要自己规范</td></tr></table><div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：某框架能做 X，所以它就是 X 场景最佳</div><div class="pf-correct">正确：能做不等于默认顺手；比较要看默认抽象、观测、测试和团队理解成本。</div></div><div class="pitfall"><div class="pf-wrong">误解：生态比较必须给出赢家</div><div class="pf-correct">正确：成熟选型是场景匹配，不是排名。不同层可以组合使用。</div></div><div class="pitfall"><div class="pf-wrong">误解：用当前热度判断长期架构</div><div class="pf-correct">正确：热度和维护状态会变化，应记录具体版本证据，避免不可复查断言。</div></div><div class="pitfall"><div class="pf-wrong">误解：多 Agent 越自治越智能</div><div class="pf-correct">正确：自治增加表达力，也增加终止、权限、成本和审计风险。</div></div></div><div class="card lab"><div class="tag">🧪 小实验 · 为一个项目做生态选型矩阵</div><ol><li>选一个真实任务，例如客服工单、资料调研、投研报告或内部知识库问答。</li><li>写出最重要的三个难点：状态控制、多角色协作、数据/RAG、工具安全、观测或部署。</li><li>把 LangGraph、actor 对话、crew 角色、data/RAG 四种风格按 1-5 分打分，并写理由。</li><li>说明是否需要组合生态：例如 LangGraph 负责控制流，LlamaIndex 负责索引查询。</li><li>记录本次判断依赖的版本和文档入口，避免未来把临时结论当永久事实。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>AutoGen、CrewAI、LlamaIndex、LangChain/LangGraph 等生态的 API、维护节奏和能力边界都会变化。本课只比较常见心智模型和架构取舍，不对当前活跃度、性能或未来路线做硬断言；正式选型请核验当时版本。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>比较生态要看默认心智模型，而不是只看功能清单。</li><li>LangChain/LangGraph 的强项在统一契约、显式状态图、工具/RAG 集成和可观测运行。</li><li>Actor、crew、data/RAG 风格各有自然表达场景，也各有终止、状态和安全成本。</li><li>多生态可以组合，但要明确谁拥有数据、谁拥有控制流、谁负责观测。</li><li>避免不可验证的当前状态断言；选型文档应记录具体版本证据。</li></ul></div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. LangChain = 可组合的图（数据流优先），AutoGen = 自治 actor 的对话（多 Agent 优先）。这个“根本差异”告诉我们，看懂一个框架的关键是？</div>
+  <div class="qn">1. 横向比较 LangChain/LangGraph、AutoGen、CrewAI、LlamaIndex 等生态时，最可靠的切入点是什么？</div>
   <ol class="opts">
-    <li>抓住它的“核心心智模型/默认重心”——其它差异大多能从这一条推导出来</li>
-    <li>比较谁的星多</li>
-    <li>记住它的 API</li>
-    <li>看谁更新快</li>
+    <li>只看 GitHub star 数</li>
+    <li>识别默认心智模型：图/状态、actor 对话、角色任务、数据/RAG 等分别让什么更顺手</li>
+    <li>比较谁的名字更常见</li>
+    <li>直接断言某个框架已经过时</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。框架的无数差异，往往源于一个根本的心智模型（图 vs actor）。抓住它，就能预测和理解其余设计——这是对照学习的价值。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。功能清单常常都能覆盖，默认抽象才决定开发体验、观测方式和测试边界。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. 课里强调两者的差别在“默认重心”而非“能不能”（LangChain 用 LangGraph 也能多 Agent）。为什么要区分“重心”和“能力”？</div>
+  <div class="qn">2. 为什么本课避免对外部框架写“当前一定更活跃/更落后”的硬断言？</div>
   <ol class="opts">
-    <li>几乎任何框架都“什么都能做”，真正决定体验的是“它让什么变容易”——选型应看默认重心而非功能清单</li>
-    <li>没有意义</li>
-    <li>为了显得公平</li>
-    <li>咬文嚼字</li>
+    <li>因为生态比较完全没有意义</li>
+    <li>因为 LangGraph 不能做多 Agent</li>
+    <li>因为所有框架 API 永远不变</li>
+    <li>因为这些结论会随版本、团队和社区变化，需要按具体时间和证据核验</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。“能不能”的对比常常无意义（都能），“默认让什么顺手”才决定开发体验。这是看待框架对比的成熟视角。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。维护状态、API 和社区实践变化很快；课程应比较可迁移的心智模型，并提醒读者核验版本。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 选型建议：要 RAG/可控工作流→LangChain，要快速多 Agent 协作→AutoGen。这种“按场景选”而非“谁更好”的态度说明？</div>
+  <div class="qn">3. 如果项目主要难点是严格状态、checkpoint、人审和可回放 trace，哪种默认重心通常更贴近？</div>
   <ol class="opts">
-    <li>和稀泥</li>
-    <li>随便选</li>
-    <li>没有银弹：框架是为不同侧重设计的工具，“适合你的场景”才是唯一有意义的标准</li>
-    <li>两个都不行</li>
+    <li>只用角色描述，不设计状态</li>
+    <li>只比较模型参数大小</li>
+    <li>图/状态式编排，例如 LangGraph 的 StateGraph 与 Pregel 运行时</li>
+    <li>只让多个 agent 自由聊天，没有终止规则</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。“哪个更好”是伪命题，“哪个更适合这个场景”才有答案。工程选型的本质是匹配需求与工具的默认重心。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. 课里说两者“边界在模糊”、可以互相借鉴。这对你理解技术生态有什么启发？</div>
-  <ol class="opts">
-    <li>没必要学多个</li>
-    <li>好的设计会互相吸收（LangChain 学团队抽象、AutoGen 学集成/可控），框架在竞争中趋同又各有侧重</li>
-    <li>框架都一样</li>
-    <li>越新越好</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。生态里的框架既竞争又互鉴、边界流动。理解这点，你就不会“非此即彼”，而是从每个框架学它最擅长的设计。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。显式 state、节点、边、checkpoint 和 trace 更适合可控工作流；多 agent 对话也可实现，但需要额外治理。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>“看框架先抓它的核心心智模型（图 vs actor）”。用这个方法，挑一个你最近接触的新框架/库，试着一句话说出它的“默认重心”。</li>
-    <li>“没有银弹，只有适合的场景”。回想一次你的技术选型，当时是按“功能清单”还是“默认重心”选的？如果重来，你会怎么判断？</li>
+    <li>为一个“调研并写报告”的任务分别用图/状态、actor 对话、角色 crew、数据/RAG 四种心智模型描述入口，并指出各自最自然和最吃力的部分。</li>
+    <li>设计一个生态选型矩阵：列出状态控制、数据/RAG、多角色协作、观测、团队熟悉度五个维度，并说明你会如何记录版本证据。</li>
   </ul>
 </div>
 </div>

@@ -298,65 +298,68 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第九部分 · 生态与速查</div>
     <h1>AI 全栈、MCP 与 A2A</h1>
   </div>
-<p class="lead">本课《AI 全栈、MCP 与 A2A》将在 M9 Task 2 填充完整内容；当前先注册页面入口、导航、索引与质量门，确保第九部分的最终课程序列稳定。</p><div class="card analogy"><div class="tag">🧩 临时占位</div>把这页先看成书架上的空标签：标签已经贴好，后续会把 AI 应用栈分层、MCP 工具协议和 A2A 协作协议 的图解、源码入口、边界情况和练习逐步放进来。</div><div class="lesson-map"><div class="lm-title">🗺️ M9 占位地图</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">已注册</div><div class="mn-desc">页面、标题、分区和导航已经进入全站顺序</div></div><div class="map-node now"><div class="mn-label">待填充</div><div class="mn-desc">正文、图示、源码走读和术语索引会在下一任务完成</div></div><div class="map-node after"><div class="mn-label">待验收</div><div class="mn-desc">密度门当前应只对这六个临时页面失败</div></div></div></div><h2>本课要点</h2><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>这是第九部分的临时骨架，不包含正式教学内容。</li><li>本页故意低于 C-level 密度门，便于 Task 2 用失败清单驱动补全。</li></ul></div><div class="card version"><div class="tag">📌 版本锚点</div>M9 Task 1 只注册最终页面集合；请勿在本文件写完整正文。</div><div class="selftest">
+<p class="lead">AI 应用不是只有框架一层。一次用户请求可能经过应用 UI、编排框架、工具协议、agent 协作协议、模型 API、推理服务、向量数据库、存储、观测和安全网关。MCP 与 A2A 这类协议的价值，正是在框架 API 与外部系统之间划出边界：MCP 更常被理解为 agent/客户端发现并调用工具、资源、提示等能力的协议；A2A 更常被描述为 agent 与 agent 之间发现、委托、交换任务状态和结果的协作协议；LangChain/LangGraph 这类 framework API 则是在应用进程里组织模型、工具、状态和运行时。本课给出 AI stack 坐标系，比较工具协议、agent-to-agent 协议与框架 API 的边界，并用谨慎版本说明提醒你：协议规范会演进，工程设计要留适配层。</p><div class="card analogy"><div class="tag">🧩 生活类比</div>把 AI stack 想成一座城市。LangChain/LangGraph 像你公司的调度中心，决定哪个部门先处理、状态表怎么更新、谁审批。MCP 像城市标准插座和服务目录，让调度中心能用统一方式接打印店、档案馆、日历和数据库。A2A 像公司与外包团队之间的任务协作合同，说明如何派单、确认身份、汇报进度和交付结果。模型 API 像电力公司，推理引擎像发电站，向量库像档案馆。不同层可以互相连接，但不能混淆职责。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：AI stack 与协议边界</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">应用/产品</div><div class="mn-desc">UI、权限、业务流程、用户体验和最终责任</div></div><div class="map-node now"><div class="mn-label">框架 API</div><div class="mn-desc">LangChain/LangGraph 组织模型、工具、状态、回调和 Agent 循环</div></div><div class="map-node source"><div class="mn-label">工具协议</div><div class="mn-desc">MCP 等协议把工具、资源、提示暴露给 agent/客户端发现和调用</div></div><div class="map-node source"><div class="mn-label">Agent 协议</div><div class="mn-desc">A2A 等协议关注 agent 间任务委托、状态交换和结果交付</div></div><div class="map-node after"><div class="mn-label">模型/数据底座</div><div class="mn-desc">模型 API、推理引擎、向量数据库、存储、观测和安全横切</div></div></div></div><h2>源码入口：文件 + 符号名</h2><p>source map 采用“课程内可核验锚点 + 协议概念边界”的写法。LangChain/LangGraph 的符号可在源码中定位；MCP/A2A 的具体字段会随规范演进，本课只把它们放在工具协议和 agent-to-agent 协议层，不硬编码可能过期的细节。</p><table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/langchain_v1/langchain/agents/factory.py</td><td class="mono">create_agent</td><td>框架 API：把模型、工具、middleware、response_format 组装成 Agent 运行图</td><td>应用进程内编排，不等同于跨进程协议</td></tr><tr><td class="mono">libs/langgraph/langgraph/graph/state.py</td><td class="mono">StateGraph</td><td>框架 API：定义状态、节点、边和编译图</td><td>用于内部控制流和状态管理</td></tr><tr><td class="mono">libs/core/langchain_core/tools/base.py</td><td class="mono">BaseTool</td><td>框架工具契约：Python 工具对象、args_schema、执行结果</td><td>可由框架本地执行，也可桥接到外部工具协议</td></tr><tr><td class="mono">协议层概念</td><td class="mono">MCP</td><td>工具/上下文协议：常用于把工具、资源、提示等能力标准化暴露给 AI 客户端</td><td>跨进程/跨产品边界，规格会演进</td></tr><tr><td class="mono">协议层概念</td><td class="mono">A2A</td><td>agent-to-agent 协作协议：常用于 agent 发现、任务委托、状态同步和结果交付</td><td>连接多个 agent 系统，而不是替代框架内部 API</td></tr><tr><td class="mono">libs/core/langchain_core/retrievers.py</td><td class="mono">BaseRetriever</td><td>数据/RAG 框架契约：query -&gt; documents，可桥接向量库、搜索和外部数据服务</td><td>位于应用编排与数据底座之间</td></tr></table><h2>状态流：一次跨层 AI 请求</h2><div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>产品请求</h4><p>用户在业务系统里提出问题，应用层负责认证、租户、审计和展示。</p><div class="mono">user/session/tenant</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>框架编排</h4><p>create_agent 或 StateGraph 决定先检索、再调用模型、是否需要工具或人审。</p><div class="mono">state={messages, docs}</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>工具协议边界</h4><p>若工具在外部 MCP server，框架通过适配器发现工具 schema 并发起调用。</p><div class="mono">MCP tool call</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>Agent 协议边界</h4><p>若任务要交给另一个 agent 系统，A2A 风格协议负责委托、状态和结果。</p><div class="mono">task delegation</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>模型/数据底座</h4><p>模型 API、推理服务、向量库、对象存储和观测系统完成底层能力。</p><div class="mono">answer + trace</div></div></div></div><h2>Trace：把一次运行摊平成证据链</h2><table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. app</td><td>用户问：生成上月销售异常分析</td><td>应用验证身份、确定租户和数据权限</td><td>带 context 的请求</td></tr><tr><td>2. framework</td><td>messages + context</td><td>LangGraph 节点先检索报表，再让模型判断是否需要外部工具</td><td>明确的 state 更新和 trace</td></tr><tr><td>3. MCP boundary</td><td>需要读取日历或内部文档工具</td><td>MCP 客户端通过协议调用外部工具服务，得到结构化结果</td><td>工具观察被包装回框架消息</td></tr><tr><td>4. A2A boundary</td><td>需要外部数据团队 agent 补充解释</td><td>通过 agent 协作协议委托任务并接收状态/结果</td><td>外部 agent 的交付物进入 state</td></tr><tr><td>5. response</td><td>检索证据、工具结果、外部 agent 结果</td><td>框架生成最终回答，观测系统记录成本、延迟和错误</td><td>用户可见报告与审计记录</td></tr></table><h2>简化源码走读：保留契约，不背实现</h2><div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">框架 API 与协议适配层伪码 :: FrameworkToolAdapter / AgentDelegationAdapter</span><span class="ln">简化版</span></div><pre># 教学版：框架内部 API 不直接等于外部协议
+class MCPToolAdapter(BaseTool):
+    name = &quot;calendar_search&quot;
+    args_schema = CalendarArgs
+
+    def _run(self, query: str):
+        # 协议细节被适配器包住，框架仍看见 BaseTool
+        return mcp_client.call_tool(&quot;calendar_search&quot;, {&quot;query&quot;: query})
+
+class A2ADelegationNode:
+    def __call__(self, state):
+        task = {&quot;goal&quot;: state[&quot;goal&quot;], &quot;context&quot;: state[&quot;summary&quot;]}
+        result = a2a_client.delegate(&quot;finance_agent&quot;, task)
+        return {&quot;external_findings&quot;: result}
+
+# StateGraph 只关心节点读写 state，不关心协议字段如何演进
+</pre><div class="cw-note">伪码强调适配层：框架内部最好仍使用 BaseTool、StateGraph、Runnable 等稳定契约；MCP/A2A 的 wire format 留在 adapter 中。这样协议升级时主要改 adapter，而不是改业务图。</div></div><h2>框架 API 与协议不是同一种东西</h2><p>框架 API 是你在代码里调用的库接口：create_agent、StateGraph、BaseTool、Runnable、BaseRetriever。它帮助你组织进程内的控制流、对象生命周期、回调、测试和状态。协议是跨边界沟通的约定：不同进程、产品或组织如何发现能力、描述输入输出、传递任务状态、返回错误。把二者混为一谈，会导致设计错位：你可能把协议字段散落在业务节点里，也可能期望外部协议替你管理内部 state。</p><p>更稳的做法是保留适配层。对工具协议，写一个 BaseTool 或 ToolNode adapter，把外部工具发现和调用包成框架工具；对 agent 协作协议，写一个图节点或子图，把外部委托包成 state 更新；对模型 API，使用 provider wrapper，把 raw response 归一成 AIMessage。适配层是抗演进缓冲垫，也是测试边界。</p><h2>MCP：工具和上下文能力的插座</h2><p>MCP 常被放在 agent/AI 客户端与外部工具、资源、提示之间。它的关键价值不是让模型更聪明，而是让工具暴露方式更标准：客户端可以发现有哪些工具或资源，知道参数 schema，按协议调用，并以统一方式接收结果或错误。对于桌面 AI、IDE、企业内部工具目录和跨产品集成，这类协议能减少每个工具都写一套私有插件的成本。</p><p>但协议不是权限系统的全部，也不是业务校验的替代。MCP server 暴露了工具，不代表任何 agent 都该调用；客户端仍要做用户授权、租户隔离、审计、速率限制、危险动作确认和数据脱敏。框架接入 MCP 时，应把 MCP 工具映射成 BaseTool 或等价对象，再复用课程里讲过的 args_schema、ToolMessage、错误分类和人审策略。</p><h2>A2A：agent 间协作的任务边界</h2><p>A2A 这类 agent-to-agent 协议关注的问题与工具协议不同。工具通常是被调用的能力：输入参数，返回结果；agent 协作更像委托任务：对方可能有自己的模型、工具、状态、策略和执行时间，可能需要报告进度、澄清需求、返回结构化成果或拒绝任务。协议边界要表达身份、能力、任务描述、状态、结果、错误和可能的安全约束。</p><p>在 LangGraph 心智模型里，调用另一个 agent 可以被建成一个节点、一个子图或一个 handoff。关键是不要失去可审计状态：委托了什么，给了哪些上下文，对方返回什么，是否可信，是否需要人审，失败后是否重试或转给备用 agent。A2A 不是让所有 agent 随意聊天，而是给跨系统协作提供可治理边界。</p><h2>AI stack 的层次与横切关注点</h2><p>一个实用 AI stack 可以粗分为：产品与业务层、编排框架层、协议/集成层、模型 API 层、推理服务层、数据/检索层、基础设施层。评测、可观测、安全、成本控制和合规不是某一层专属，而是横切每层。比如同一次工具调用，应用层要知道用户是谁，框架层要记录 trace，协议层要记录外部调用，工具层要做权限，模型层要记录 token，数据层要记录文档来源。</p><p>分层的好处是定位问题。回答慢，可能是模型推理慢、向量检索慢、外部工具慢、agent 之间等待、或 UI 流式没有及时渲染。回答错，可能是检索召回差、工具权限不足、模型没有读 ToolMessage、外部 agent 返回低质量结果。没有 stack 坐标，你只能笼统说“AI 不稳定”；有坐标后，你能把失败归到具体层并设计证据。</p><h2>协议演进下的版本策略</h2><p>MCP、A2A、provider tool calling 和框架 API 都在演进。课程内容如果写死某个字段“永远如此”，很容易过期。工程上也一样：不要让业务节点直接依赖协议原始字段；不要把 provider 的实验参数扩散到核心 state；不要把外部 agent 的所有返回都当可信事实。把协议字段收口到 adapter，把 adapter 的版本、能力和限制写进测试和文档，升级时才能局部修改。</p><p>版本策略还包括降级。外部 MCP server 不可用时，系统能否禁用相关工具并给出可解释提示；A2A 委托超时时，能否转人工或返回部分结果；provider 不支持某个 schema 特性时，能否使用更简单工具描述；推理服务压力大时，能否切换模型或降低并发。这些都不是协议本身自动解决的，而是应用和框架层的责任。</p><h2>边界情况：协议演进与不兼容时怎么办</h2><p>协议会演进，这是设计时就该假设的常态，而不是意外。MCP、A2A、provider tool calling 都可能升级字段、调整能力、引入版本协商。工程上的对策是：固定你采用的规范版本和 SDK 版本，为关键路径写兼容测试，并把“能力发现”当成运行时事实而非编译期常量——对方支持什么，应该问出来或探测出来，而不是写死。当某个能力在新旧版本间不一致时，adapter 是吸收差异的那层，业务图不该感知。</p><p>不兼容和不可用必须有降级路径。外部 MCP server 掉线时，系统能否禁用相关工具并给出可解释提示；A2A 委托超时时，能否转人工或返回部分结果；provider 不支持某个 schema 特性时，能否退回更简单的工具描述。这些都不是协议自动解决的，而是应用与框架层的责任。一个常见误解是“协议等于安全”：协议标准化的是连接方式（wire format），不是认证、授权、租户隔离和审计；跨边界进来的数据，默认都应被当成不可信输入处理。</p><h2>常见误解：MCP/A2A 会替你做治理</h2><p>接入 MCP 不等于卸掉治理责任。MCP server 暴露了一批工具，不代表任何 agent 都该调用它们；客户端仍要做用户授权、租户隔离、速率限制、危险动作确认和数据脱敏。正确做法是把 MCP 工具映射成 BaseTool 或等价对象，复用课程里讲过的 args_schema 校验、ToolMessage 回填、错误分类和人审策略。协议帮你省掉的是“每个工具各写一套私有插件”的成本，而不是业务安全那一整套。</p><p>A2A 这类 agent 协作协议也一样。被委托 agent 返回的结果不是天然可信的事实：它可能有自己的偏差、过期数据或失败。你需要保留可审计状态——委托了什么、给了哪些上下文、对方返回什么、是否需要人审、失败后是否重试或转给备用 agent。把外部 agent 的交付物直接当权威结论写进核心 state，等于把治理边界让渡给了你无法控制的系统。协议提供的是可治理的协作边界，治理本身仍要你来做。</p><h2>把 stack 坐标系用于成本、延迟与观测</h2><p>分层不只是画图，它是成本与延迟的归因坐标。给每一层定一个延迟预算：应用层、框架编排、协议边界、模型推理、检索数据，各自允许多少毫秒；当总延迟超标时，用 trace 看超支落在哪一层，而不是笼统说“AI 很慢”。成本同理，一次请求的 token、外部工具调用次数、检索请求量应能分别归到对应层，这样优化才有靶子，降级才知道先砍哪里。</p><p>跨层观测的关键是相关 id。一次用户请求应携带一个贯穿全栈的 run id：应用层记录用户与租户，框架层记录节点与 state 变化，协议层记录外部调用 id，模型层记录 token 与 finish reason，数据层记录命中的文档来源。只有当这些片段能用同一个 id 串起来，你才能在一张 trace 上回答“慢在哪、错在哪、贵在哪”。没有相关 id，分层就只是漂亮的架构图，帮不上排障。</p><h2>设计取舍：用一层适配换取协议自由</h2><p>AI 栈里协议众多且各自演进，一个务实的设计取舍是用一层适配换取对协议的自由。把外部工具协议、智能体协作协议、模型接口都收进各自的适配器，业务图里只出现稳定的工具对象、状态字段和消息。这样当某个协议升级、替换或临时不可用时，你改的是适配器，而不是整张业务流程。适配层看似多写代码，换来的却是把协议风险从核心隔离出去的长期收益，让业务逻辑不必跟着规范一起抖动。</p><p>第二个取舍关乎信任边界。栈越往外，越不该默认可信：外部工具返回的数据、外部智能体交付的结论、第三方服务的状态，都应被当成需要校验、需要审计、可能失败的输入。把它们映射回标准对象的同时，也要带上来源、时间和可信度标记，并为它出错了怎么办预留位置。一个成熟系统的强壮，往往不在于它接了多少协议，而在于每个外部边界都有清楚的校验、降级和审计。</p><p>第三个取舍是在哪一层付出可观测成本。给每一层都加追踪、指标和相关标识是有成本的，但缺了它，跨层排障几乎不可能。务实的做法是优先保证那条贯穿全栈的相关标识和关键层的指标，让一次请求在应用、编排、协议、模型、数据之间的足迹能被拼起来。可观测不是免费的，但它是把分层架构图变成可排障系统的那笔必要投入，省不得也拖不得。</p><h2>协议不是越多越好</h2><p>面对琳琅满目的协议和标准，一个容易被忽略的判断是：接入本身就是成本。每多接一个协议，就多一份版本兼容、安全审计、可观测和降级的长期维护。值得接的协议，应该是能明显降低集成成本或打开关键能力的那种，而不是为了赶时髦把所有标准都塞进系统。先问这个协议解决了我哪个真实问题，再决定是否引入，往往比追逐规范清单更省心。</p><p>即使决定接入，也建议从一个最小可用的子集开始：先支持你真正用到的能力，把适配层和降级路径打磨稳，再按需扩展。一次性实现协议的全部特性，既拖慢上线，又增加了你可能根本用不到的维护面。协议的价值在于连接，但连接的纪律在于克制；接得少而稳，常常比接得多而脆更接近一个可靠系统。</p><h2>课堂检查清单：新协议接入前的十二个问题</h2><p>一，它连接的是工具、agent、模型、数据还是观测。二，它跨越进程、产品、组织还是只在库内部。三，能力发现和 schema 描述由谁负责。四，身份认证和用户授权在哪里完成。五，错误是协议错误、工具错误、模型错误还是业务错误。六，结果如何映射回 BaseMessage、ToolMessage 或 state。七，协议字段是否被 adapter 收口。八，观测能否串起应用 run 与外部调用 id。九，超时、重试和幂等策略在哪里。十，危险动作是否需要人审。十一，版本升级是否有兼容测试。十二，协议不可用时是否有降级路径。</p><h2>协议边界对照表</h2><p>这张表用边界而非品牌记忆协议。具体字段、端点和能力以当时规范为准。</p><table class="t"><tr><th>层次</th><th>解决的问题</th><th>典型对象</th><th>不该承担</th></tr><tr><td>框架 API</td><td>进程内编排、状态、工具对象、回调、测试</td><td>Runnable、StateGraph、BaseTool、create_agent</td><td>跨产品 wire format 的长期兼容承诺</td></tr><tr><td>工具协议</td><td>工具/资源/提示发现与调用</td><td>MCP tool/resource/prompt 类能力</td><td>内部 Agent 循环和业务权限全部逻辑</td></tr><tr><td>Agent 协议</td><td>agent 发现、任务委托、状态和结果交换</td><td>A2A 风格任务、进度、交付物</td><td>替代每个 agent 内部框架</td></tr><tr><td>模型 API</td><td>文本/多模态生成、tool call 输出、token usage</td><td>provider chat/completions/responses</td><td>业务流程、数据权限和长期记忆</td></tr><tr><td>数据协议/存储</td><td>文档、向量、索引、检索和权限</td><td>VectorStore、Retriever、数据库 API</td><td>模型推理和 agent 协商</td></tr></table><div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：接入 MCP 就不用工具 schema 和权限</div><div class="pf-correct">正确：MCP 可以标准化工具暴露，但应用仍要做授权、校验、审计、脱敏和危险动作控制。</div></div><div class="pitfall"><div class="pf-wrong">误解：A2A 会替代 LangGraph</div><div class="pf-correct">正确：A2A 类协议连接 agent 系统；LangGraph 管理某个系统内部的状态图和运行时，二者层次不同。</div></div><div class="pitfall"><div class="pf-wrong">误解：协议字段可以直接写进业务 state</div><div class="pf-correct">正确：应通过 adapter 映射到框架稳定对象，避免规范演进导致业务图大面积修改。</div></div><div class="pitfall"><div class="pf-wrong">误解：AI stack 分层只是画图</div><div class="pf-correct">正确：分层用于定位责任、失败、观测和降级路径，是工程排障工具。</div></div></div><div class="card lab"><div class="tag">🧪 小实验 · 为一个 MCP 工具和外部 agent 画边界</div><ol><li>选择一个外部日历工具，写出它作为 MCP 工具暴露时的名称、参数、权限和返回摘要。</li><li>把这个 MCP 工具映射成 LangChain BaseTool，说明 adapter 保存哪些协议字段、暴露哪些标准字段。</li><li>选择一个外部财务 agent，写出通过 A2A 风格委托时的任务输入、状态、超时和交付物。</li><li>画出 StateGraph 中两个节点：一个调用工具，一个委托 agent，并写出它们各自更新的 state key。</li><li>为 MCP server 不可用、外部 agent 超时、权限不足三种情况写降级策略。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>MCP、A2A、provider API 和框架适配层都在快速演进；本文只固定概念边界：工具协议、agent-to-agent 协议、框架 API、模型/数据底座和横切治理。请在项目中记录采用的规范版本、SDK 版本和兼容测试。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>框架 API 管内部编排，协议管跨边界沟通，二者不应混淆。</li><li>MCP 更适合理解为工具/资源/提示等能力的标准化连接边界。</li><li>A2A 更适合理解为 agent 系统之间的任务委托、状态同步和结果交付边界。</li><li>协议接入应通过 adapter 映射到 BaseTool、StateGraph、ToolMessage 或 state。</li><li>AI stack 分层能帮助定位责任、失败、观测、权限和降级策略。</li></ul></div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. 课里反复纠正“LangChain/AutoGen 不是最底层，它们在 L7 编排层”。把“认清自己在第几层”当成核心能力，图什么？</div>
+  <div class="qn">1. MCP、A2A 与 LangChain/LangGraph framework API 的核心区别是什么？</div>
   <ol class="opts">
-    <li>没用</li>
-    <li>坐标感：知道一个东西在哪一层，就知道它解决什么、依赖什么、和谁是邻居——不会把概念放错位置</li>
-    <li>显得有层次</li>
-    <li>记住更多名词</li>
+    <li>framework API 会自动替代所有外部协议</li>
+    <li>三者都是同一个 Python 类</li>
+    <li>MCP 更偏工具/资源/提示等能力连接，A2A 更偏 agent 间任务协作，framework API 负责应用进程内编排和状态</li>
+    <li>A2A 只用于向量检索</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。分层是一张“坐标系”。能给任何技术定位，你就能快速理解它的职责与边界——这比记住孤立名词有用得多。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。分清工具协议、agent-to-agent 协议和框架 API，才能设计适配层和责任边界。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. 课里教你遇到新名词“先问它在第几层”。这个习惯的价值是？</div>
+  <div class="qn">2. 为什么协议字段不应散落在业务图的每个节点里？</div>
   <ol class="opts">
-    <li>没价值</li>
-    <li>用一个稳定的坐标系去消化层出不穷的新技术，避免被营销词淹没、能快速判断它和你的关系</li>
-    <li>装专业</li>
-    <li>让你显得懂</li>
+    <li>因为协议永远不会变化</li>
+    <li>因为字段名太短</li>
+    <li>因为业务图不能调用外部工具</li>
+    <li>因为通过 adapter 映射到 BaseTool、ToolMessage 或 state，能在协议演进时局部修改</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。技术名词爆炸，但分层坐标相对稳定。“先定位再判断”是应对信息过载的认知工具。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。adapter 是抗演进缓冲垫；协议升级时主要修改 adapter，而不是重写业务流程。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 全栈分成“训练侧(L1-L4)”和“应用侧(L4-L7)”两条河，L4 模型是交汇口。这种划分帮你认清了什么？</div>
+  <div class="qn">3. 接入一个外部 MCP 工具后，应用层仍必须负责什么？</div>
   <ol class="opts">
-    <li>河流地理</li>
-    <li>应用更重要</li>
-    <li>训练更重要</li>
-    <li>99% 应用开发者只在 L4 以上工作（不需自己训模型），认清这点能让你把精力放对地方</li>
+    <li>训练底层大模型</li>
+    <li>认证授权、租户隔离、审计、脱敏、危险动作确认和降级策略</li>
+    <li>关闭所有日志</li>
+    <li>删除所有工具 schema</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。分清“造模型”和“用模型”两条路，你就知道自己该深耕哪侧、哪些层可以“交给大厂”。坐标系帮你做技术取舍。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. 把“横切带（评测/可观测/安全）”画成贯穿多层的独立一条，而不是塞进某一层。为什么？</div>
-  <ol class="opts">
-    <li>这些是“每一层都需要”的横切关注点，独立出来才能表达“它不属于某层、而是贯穿全栈”</li>
-    <li>画着好看</li>
-    <li>它们不重要</li>
-    <li>凑数</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。和回调/config 的“横切”思想一致——可观测/安全不是某层专属，而是贯穿性的。画成独立带子是为了表达这种正交性。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。协议标准化连接方式，但不替代业务安全、权限、观测和治理责任。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>“遇到新名词先问它在第几层”。最近哪个火热的 AI 名词让你困惑过？试着把它放进这张 7 层图里，看看它到底解决哪层的问题。</li>
-    <li>课里说“应用开发者一辈子只在 L4 以上工作”。你认同吗？什么情况下，一个应用工程师值得往下深入到 L5/L3 甚至 L1？</li>
+    <li>画出一次请求经过产品层、LangGraph 编排层、MCP 工具边界、A2A 外部 agent 边界、模型/数据底座的 trace，并写出每层失败时如何定位。</li>
+    <li>为一个 MCP 日历工具写 adapter 设计：哪些协议字段收口，映射成哪个 BaseTool schema，ToolMessage 返回什么，超时和权限不足如何处理。</li>
   </ul>
 </div>
 </div>
