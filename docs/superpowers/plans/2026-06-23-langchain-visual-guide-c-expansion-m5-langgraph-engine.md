@@ -102,8 +102,8 @@ Every lesson must include `lead`, `lesson_map`, `source_map`, `state_flow` or `c
 
 Cover Pregel/BSP supersteps and Plan/Execution/Update. Source rows:
 - `langgraph/pregel/main.py :: Pregel`
-- `langgraph/pregel/algo.py :: prepare_next_tasks`
-- `langgraph/pregel/algo.py :: apply_writes`
+- `langgraph/pregel/_algo.py :: prepare_next_tasks`
+- `langgraph/pregel/_algo.py :: apply_writes`
 - `langgraph/pregel/_runner.py :: PregelRunner`
 - `langgraph/pregel/debug.py :: map_debug_tasks / map_debug_task_results / map_debug_checkpoint`
 
@@ -114,9 +114,9 @@ Trace one graph step: subscribed channels select tasks, tasks run, writes are bu
 Cover `PregelTask`, channels, writes, fan-in/fan-out, and how reducers/channel updates bridge graph state and execution. Source rows:
 - `langgraph/types.py :: PregelTask`
 - `langgraph/channels/base.py :: BaseChannel`
-- `langgraph/pregel/algo.py :: local_read`
-- `langgraph/pregel/write.py :: ChannelWrite`
-- `langgraph/pregel/read.py :: PregelNode`
+- `langgraph/pregel/_algo.py :: local_read`
+- `langgraph/pregel/_write.py :: ChannelWrite`
+- `langgraph/pregel/_read.py :: PregelNode`
 
 Trace two parallel tasks writing to different/same channels.
 
