@@ -266,12 +266,12 @@ PAGES = [
     ("40-testing-debugging.html", "测试、Fake 模型与回归", "第八部分 · 工程化与实战"),
     ("41-observability-ci.html", "观测、CI、PDF 与发布", "第八部分 · 工程化与实战"),
     ("20-capstone.html", "端到端客服 Agent 工程化", "第八部分 · 工程化与实战"),
-    ("11-chat-internals.html", "聊天模型内部", "迁移中 · 内部源码"),
-    ("12-tool-internals.html", "工具调用内部", "迁移中 · 内部源码"),
-    ("21-langchain-vs-autogen.html", "横向对比：LangChain vs AutoGen", "迁移中 · 生态旧版"),
-    ("22-ai-stack.html", "全栈坐标系：从 LangChain 缩放到整个生态", "迁移中 · 生态旧版"),
-    ("23-learning-map.html", "隔壁层学习地图：L5 推理 · L6 向量检索", "迁移中 · 生态旧版"),
-    ("27-glossary.html", "术语表 · 概念索引", "附录 · 术语速查"),
+    ("11-chat-internals.html", "ChatModel Provider 内部", "第九部分 · 生态与速查"),
+    ("12-tool-internals.html", "Tool Schema 与执行内部", "第九部分 · 生态与速查"),
+    ("21-langchain-vs-autogen.html", "LangChain、LangGraph 与多 Agent 生态", "第九部分 · 生态与速查"),
+    ("22-ai-stack.html", "AI 全栈、MCP 与 A2A", "第九部分 · 生态与速查"),
+    ("23-learning-map.html", "后续学习地图", "第九部分 · 生态与速查"),
+    ("27-glossary.html", "术语表与源码索引", "第九部分 · 生态与速查"),
 ]
 
 SUBTITLES = {
@@ -287,9 +287,9 @@ SUBTITLES = {
     "08-runnable.html": "RunnableSerializable · invoke/ainvoke/stream/batch · 标准协议",
     "09-runnable-compose.html": "LCEL `|` · RunnableSequence · 输入输出契约",
     "10-output-parsers.html": "StrOutputParser · JsonOutputParser · structured output · repair loop",
-    "11-chat-internals.html": "BaseChatModel 调用链",
+    "11-chat-internals.html": "BaseChatModel · provider adapter · _generate/_stream · metadata 回填",
     "12-runnable-parallel-branch.html": "RunnableParallel · RunnableBranch · assign/map/passthrough",
-    "12-tool-internals.html": "函数 → JSON Schema → tool_calls",
+    "12-tool-internals.html": "BaseTool · args_schema · JSON Schema · invoke/ainvoke · ToolMessage",
     "13-runnable-config-callbacks.html": "RunnableConfig · ensure_config · callbacks/tags/metadata",
     "13-agent-internals.html": "create_agent · StateGraph · _make_model_to_tools_edge · ToolNode",
     "14-streaming-callbacks.html": "stream/astream_events · callback manager · run tree",
@@ -300,9 +300,9 @@ SUBTITLES = {
     "18-custom-middleware.html": "AgentMiddleware · before/after/wrap hooks · dynamic prompt",
     "19-runtime-context.html": "context_schema · Runtime · response_format · structured response",
     "20-capstone.html": "prompts + tools + RAG + middleware + context + tests",
-    "21-langchain-vs-autogen.html": "两种范式对照：图/管道 vs 多 Agent 对话",
-    "22-ai-stack.html": "Agent 编排 5 流派 · AI 全栈 7 层 · 你在哪",
-    "23-learning-map.html": "vLLM/llama.cpp/Ollama · hnswlib/pgvector/Qdrant",
+    "21-langchain-vs-autogen.html": "LangChain/LangGraph · AutoGen/CrewAI · workflow vs conversation · 选型",
+    "22-ai-stack.html": "应用层 · 编排层 · 模型服务 · MCP · A2A · 部署观测",
+    "23-learning-map.html": "源码阅读路线 · 官方文档 · 实验项目 · 面试复盘",
     "24-langgraph-mental-model.html": "为什么 LCEL 不够 · 有状态图 · Pregel 之前的心智模型",
     "28-langgraph-state-schema.html": "TypedDict/Pydantic state · context_schema · state keys",
     "29-langgraph-nodes-edges.html": "add_node · add_edge · conditional edges · START/END",
@@ -320,7 +320,7 @@ SUBTITLES = {
     "39-memory-conversation-state.html": "chat history · summary memory · LangGraph state · long-term memory",
     "40-testing-debugging.html": "fake models · deterministic tools · trace assertions · regression cases",
     "41-observability-ci.html": "callbacks · LangSmith/run tree · build checks · PDF/deploy workflow",
-    "27-glossary.html": "全书术语一句话查 + 点链接跳到对应课",
+    "27-glossary.html": "核心术语 · 源码符号 · 课程跳转 · 快速索引",
 }
 
 INDEX_FILE = "index.html"

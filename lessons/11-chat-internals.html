@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>41 · 聊天模型内部 — LangChain 图解教程</title>
-<meta name="description" content="迁移中 · 内部源码｜聊天模型内部：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>41 · ChatModel Provider 内部 — LangChain 图解教程</title>
+<meta name="description" content="第九部分 · 生态与速查｜ChatModel Provider 内部：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="41 · 聊天模型内部 — LangChain 图解教程">
-<meta property="og:description" content="迁移中 · 内部源码｜聊天模型内部：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="41 · ChatModel Provider 内部 — LangChain 图解教程">
+<meta property="og:description" content="第九部分 · 生态与速查｜ChatModel Provider 内部：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="41 · 聊天模型内部 — LangChain 图解教程">
-<meta name="twitter:description" content="迁移中 · 内部源码｜聊天模型内部：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="41 · ChatModel Provider 内部 — LangChain 图解教程">
+<meta name="twitter:description" content="第九部分 · 生态与速查｜ChatModel Provider 内部：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -288,160 +288,17 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">迁移中 · 内部源码</span>
+    <span class="pill">第九部分 · 生态与速查</span>
     <span class="pill">41 / 46</span>
   </div>
   <div class="progress"><span style="width:89%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">迁移中 · 内部源码</div>
-    <h1>聊天模型内部</h1>
+    <div class="part">第九部分 · 生态与速查</div>
+    <h1>ChatModel Provider 内部</h1>
   </div>
-
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-一次调用的全链路课里我们鸟瞰过生命周期。现在放大到<strong>聊天模型内部</strong>，
-逐方法追踪 <span class="inline">model.invoke(...)</span> 真正经过的调用链——这是理解"统一接口 + 厂商实现"分工的关键。
-</p>
-
-<div class="card analogy">
-  <div class="tag">🏛️ 生活类比</div>
-  把 <span class="mono">BaseChatModel</span> 想成<strong>政务大厅的标准办事流程</strong>：取号、填表、缓存查重、记录档案——
-  这些<strong>通用步骤对所有窗口都一样</strong>（写在地基层）。只有最后"具体盖哪个部门的章"
-  （<span class="mono">_generate</span>）才由各窗口（各厂商）自己实现。
-</div>
-
-<h2>调用链：从 invoke 到厂商实现</h2>
-<p>一条 <span class="inline">invoke</span> 会层层下钻，最终落到每个厂商<strong>各自实现的</strong> <span class="inline">_generate</span>：</p>
-
-<div class="vflow">
-  <div class="step"><div class="num">1</div><div class="sc"><h4>invoke()</h4>
-    <p>统一入口。把你的输入规整成消息，调用 <span class="mono">generate_prompt</span>。</p>
-    <p class="mono">BaseChatModel.invoke</p></div></div>
-  <div class="step"><div class="num">2</div><div class="sc"><h4>generate_prompt() → generate()</h4>
-    <p>组织本次调用：准备回调管理器、合并参数。<span class="mono">generate</span> 是处理一批输入的模板方法。</p>
-    <p class="mono">generate_prompt → generate</p></div></div>
-  <div class="step"><div class="num">3</div><div class="sc"><h4>_generate_with_cache()</h4>
-    <p>缓存包装层：先查缓存，命中就直接返回；未命中才真正请求，拿到结果后写入缓存。</p>
-    <p class="mono">_generate_with_cache</p></div></div>
-  <div class="step"><div class="num">4</div><div class="sc"><h4>_generate()　← 厂商在这里实现</h4>
-    <p><strong>抽象方法</strong>。<span class="mono">ChatOpenAI</span> / <span class="mono">ChatAnthropic</span> 各自实现：
-      翻译成厂商格式、发 HTTP、把响应转回 <span class="mono">ChatResult</span>（内含 AIMessage）。</p>
-    <p class="mono">ChatOpenAI._generate（集成层）</p></div></div>
-</div>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/language_models/chat_models.py</span><span class="ln">分工示意</span></div>
-<pre><span class="kw">class</span> <span class="fn">BaseChatModel</span>(BaseLanguageModel, ABC):
-    <span class="kw">def</span> <span class="fn">invoke</span>(self, input, config=None) -> AIMessage:
-        <span class="cm"># 规整输入 → generate_prompt → generate</span>
-        ...
-    <span class="kw">def</span> <span class="fn">_generate_with_cache</span>(self, messages, ...) -> ChatResult:
-        <span class="cm"># 查缓存；未命中则调用下面的 _generate</span>
-        ...
-    <span class="nb">@abstractmethod</span>
-    <span class="kw">def</span> <span class="fn">_generate</span>(self, messages, ...) -> ChatResult:
-        <span class="cm"># ★ 由每个厂商子类实现（OpenAI / Anthropic / ...）</span>
-        ...
-</pre>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应</div>
-  全部位于地基层 <span class="mono">core/language_models/chat_models.py</span>（用方法名定位）：
-  <table class="t" style="margin-top:.6rem">
-    <tr><th>方法</th><th>角色</th></tr>
-    <tr><td class="mono">invoke</td><td>统一入口，返回单条 AIMessage</td></tr>
-    <tr><td class="mono">generate_prompt / generate</td><td>模板流程：回调、批处理、参数合并</td></tr>
-    <tr><td class="mono">_generate_with_cache</td><td>缓存层（命中即返回）</td></tr>
-    <tr><td class="mono">_generate（abstract）</td><td>厂商各自实现，真正发请求</td></tr>
-  </table>
-  返回值类型 <span class="mono">ChatResult</span> 来自 <span class="mono">core/outputs/</span>，里面包着 AIMessage。
-</div>
-
-<div class="card macro">
-  <div class="tag">🌍 宏观理解：模板方法模式</div>
-  这是经典的<strong>"模板方法"设计模式</strong>：地基层把<strong>不变的流程</strong>
-  （缓存、回调、重试、批处理）写死成模板，把<strong>会变的那一步</strong>（怎么和具体厂商对话）
-  留成抽象方法 <span class="mono">_generate</span> 交给子类。<br>
-  这正是<strong>项目与包结构课在方法级别的体现</strong>：要支持新厂商，只需在 partner 适配层实现一个 <span class="mono">_generate</span>。
-</div>
-
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入两个内部细节。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 缓存命中时，整条链路怎么"抄近道" <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 命中 vs 未命中</div>
-      <div class="a">
-<pre class="code">_generate_with_cache(messages):
-    key = hash(messages + 参数)
-    <span class="kw">if</span> 缓存有 key:
-        <span class="kw">return</span> 缓存值        <span class="cm"># ← 命中：根本不调 _generate、不发 HTTP</span>
-    result = self._generate(...)  <span class="cm"># 未命中：才真正请求厂商</span>
-    缓存[key] = result
-    <span class="kw">return</span> result</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么放在这一层</div>
-      <div class="a">缓存逻辑对所有厂商一致，放在 <span class="mono">_generate</span> 的<strong>外面一层</strong>，
-        就能让任何 partner 自动获得缓存能力，partner 作者无需关心。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">重复问题零成本、零延迟返回；开/关缓存只是给模型传一个 <span class="mono">cache</span>，业务代码不变。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> 回调是在调用链的哪些点触发的 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 触发时机</div>
-      <div class="a">
-<pre class="code">generate:
-    on_llm_start(...)            <span class="cm"># 调用前</span>
-    try:
-        result = _generate_with_cache(...)
-    except e:
-        on_llm_error(e)          <span class="cm"># 出错时</span>
-    on_llm_end(result)           <span class="cm"># 调用后（含 token 用量）</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么由模板层统一触发</div>
-      <div class="a">这样无论哪个厂商、无论命中缓存与否，<strong>事件序列都一致</strong>，
-        LangSmith 等追踪工具才能可靠地记录每一次模型调用（Streaming 与 Callbacks 课）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">观测能力对所有模型一视同仁；partner 只管发请求，"何时上报"由通用流程负责。</div>
-    </div>
-  </div>
-</details>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li><strong>模板方法模式</strong>：通用流程（缓存/回调/重试）写一次、所有厂商共享，只留 <span class="mono">_generate</span> 抽象。</li>
-    <li>这正是包边界在<strong>方法级</strong>的落点——加新厂商只需实现一个方法。</li>
-  </ul>
-</div>
-
-<div class="card key">
-  <div class="tag">✅ 本课要点</div>
-  <ul>
-    <li>调用链：<span class="mono">invoke → generate_prompt → generate → _generate_with_cache → _generate</span>。</li>
-    <li>前几步是<strong>所有厂商共享</strong>的模板（缓存/回调/重试）；只有 <span class="mono">_generate</span> 由厂商各自实现。</li>
-    <li>这是"模板方法模式"，也是包边界在代码里的落点。</li>
-    <li>下一课：工具调用在内部如何完成"函数 → schema → tool_calls → 执行"。</li>
-  </ul>
-</div>
-<div class="selftest">
+<p class="lead">本课《ChatModel Provider 内部》将在 M9 Task 2 填充完整内容；当前先注册页面入口、导航、索引与质量门，确保第九部分的最终课程序列稳定。</p><div class="card analogy"><div class="tag">🧩 临时占位</div>把这页先看成书架上的空标签：标签已经贴好，后续会把 ChatModel provider 适配、调用链和响应元数据 的图解、源码入口、边界情况和练习逐步放进来。</div><div class="lesson-map"><div class="lm-title">🗺️ M9 占位地图</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">已注册</div><div class="mn-desc">页面、标题、分区和导航已经进入全站顺序</div></div><div class="map-node now"><div class="mn-label">待填充</div><div class="mn-desc">正文、图示、源码走读和术语索引会在下一任务完成</div></div><div class="map-node after"><div class="mn-label">待验收</div><div class="mn-desc">密度门当前应只对这六个临时页面失败</div></div></div></div><h2>本课要点</h2><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>这是第九部分的临时骨架，不包含正式教学内容。</li><li>本页故意低于 C-level 密度门，便于 Task 2 用失败清单驱动补全。</li></ul></div><div class="card version"><div class="tag">📌 版本锚点</div>M9 Task 1 只注册最终页面集合；请勿在本文件写完整正文。</div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
   <div class="qn">1. <code>invoke</code> 的调用链里，前几步所有厂商共享、只有 <code>_generate</code> 各自实现。这种“骨架共享、末端定制”是哪种模式、图什么？</div>
@@ -503,7 +360,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="20-capstone.html"><div class="dir">← 上一课</div><div class="ttl">端到端客服 Agent 工程化</div></a><a class="next" href="12-tool-internals.html"><div class="dir">下一课 →</div><div class="ttl">工具调用内部</div></a></div>
+  <div class="footnav"><a class="prev" href="20-capstone.html"><div class="dir">← 上一课</div><div class="ttl">端到端客服 Agent 工程化</div></a><a class="next" href="12-tool-internals.html"><div class="dir">下一课 →</div><div class="ttl">Tool Schema 与执行内部</div></a></div>
 </div>
 
 </body></html>

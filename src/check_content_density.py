@@ -58,6 +58,12 @@ C_LEVEL_PAGES = {
     "40-testing-debugging.html": {"min_cjk": 4500, "min_visual": 5},
     "41-observability-ci.html": {"min_cjk": 4500, "min_visual": 5},
     "20-capstone.html": {"min_cjk": 4500, "min_visual": 5},
+    "11-chat-internals.html": {"min_cjk": 4500, "min_visual": 5},
+    "12-tool-internals.html": {"min_cjk": 4500, "min_visual": 5},
+    "21-langchain-vs-autogen.html": {"min_cjk": 4500, "min_visual": 5},
+    "22-ai-stack.html": {"min_cjk": 4500, "min_visual": 5},
+    "23-learning-map.html": {"min_cjk": 4500, "min_visual": 5},
+    "27-glossary.html": {"min_cjk": 4500, "min_visual": 5},
 }
 
 RE_SCRIPT_STYLE = re.compile(r"<(script|style)\b.*?</\1>", re.I | re.S)

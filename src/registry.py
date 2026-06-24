@@ -11,12 +11,10 @@ import part05_langgraph_engine
 import part06_agent_internals
 import part07_rag_memory
 import part08_engineering
-import part3
+import part09_ecosystem_reference
 import part4
 import part5
-import part6
 import part7
-import glossary
 
 # Ordered to match shell.PAGES. Filename -> content HTML string.
 CONTENT = {
@@ -60,10 +58,10 @@ CONTENT = {
     "40-testing-debugging.html": part08_engineering.LESSON_38_TESTING_DEBUGGING,
     "41-observability-ci.html": part08_engineering.LESSON_39_OBSERVABILITY_CI,
     "20-capstone.html": part08_engineering.LESSON_40_CAPSTONE,
-    "11-chat-internals.html": part3.LESSON_10,
-    "12-tool-internals.html": part3.LESSON_11,
-    "21-langchain-vs-autogen.html": part6.LESSON_CMP,
-    "22-ai-stack.html": part6.LESSON_STACK,
-    "23-learning-map.html": part6.LESSON_LEARN,
-    "27-glossary.html": glossary.LESSON_GLOSSARY,
+    "11-chat-internals.html": part09_ecosystem_reference.LESSON_41_CHAT_INTERNALS,
+    "12-tool-internals.html": part09_ecosystem_reference.LESSON_42_TOOL_INTERNALS,
+    "21-langchain-vs-autogen.html": part09_ecosystem_reference.LESSON_43_ECOSYSTEM_COMPARE,
+    "22-ai-stack.html": part09_ecosystem_reference.LESSON_44_AI_STACK_PROTOCOLS,
+    "23-learning-map.html": part09_ecosystem_reference.LESSON_45_LEARNING_MAP,
+    "27-glossary.html": part09_ecosystem_reference.LESSON_46_GLOSSARY,
 }
