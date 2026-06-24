@@ -1565,7 +1565,7 @@ QUIZZES = {
                     "最终答案是否已经生成中文",
                 ],
                 "answer": 0,
-                "why": "Plan 不是简单拓扑遍历，而是查看哪些 channel 有新可见版本、哪些节点订阅这些变化，以及是否有 pending send/branch。内部结果是可执行任务；公开 PregelTask 只是 debug/state 快照视图。",
+                "why": "Plan 不是简单拓扑遍历，而是查看哪些 channel 有新可见版本、哪些节点订阅这些变化，以及是否有 Send 触发的 TASKS 通道写入或 branch。内部结果是可执行任务；公开 PregelTask 只是 debug/state 快照视图。",
             },
         ],
         "open": [
@@ -1633,7 +1633,7 @@ QUIZZES = {
                     "Checkpoint 只能保存字符串，聊天日志能保存对象",
                     "Checkpoint 不需要 checkpointer",
                     "Checkpoint 只在程序退出时生成一次",
-                    "Checkpoint 保存图在超步边界恢复所需的 channel values、versions、pending 信息和 metadata，不只是展示给用户的消息",
+                    "Checkpoint 保存图在超步边界恢复所需的 channel_values、channel_versions、versions_seen、updated_channels 和 metadata，不只是展示给用户的消息",
                 ],
                 "answer": 3,
                 "why": "checkpoint 是运行状态存档，支撑 resume、get_state、history、interrupt 等能力；聊天日志只是其中可能的一部分。",

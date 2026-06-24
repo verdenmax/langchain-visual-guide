@@ -348,11 +348,11 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <tr><td class="mono">reducer / add_messages</td><td>状态某键的"合并函数"；add_messages 按 id 追加消息</td><td><a href="13-agent-internals.html">Agent 内部</a> · <a href="25-langgraph-pregel-engine.html">执行引擎：Pregel 与超步</a></td></tr>
   <tr><td class="mono">Pregel / 超步 / BSP</td><td>执行引擎：actors+channels，分超步 Plan→Execution→Update</td><td><a href="25-langgraph-pregel-engine.html">执行引擎：Pregel 与超步</a></td></tr>
   <tr><td class="mono">channel（LastValue/Topic/Aggregate）</td><td>状态的底层通道；reducer 就是它的更新函数</td><td><a href="25-langgraph-pregel-engine.html">执行引擎：Pregel 与超步</a></td></tr>
-  <tr><td class="mono">checkpointer / Checkpoint / thread_id</td><td>每超步存档，按 thread_id 区分会话、可续跑</td><td><a href="13-agent-internals.html">Agent 内部</a> · <a href="26-langgraph-persistence-control.html">持久化 · 中断 · 控制流</a></td></tr>
-  <tr><td class="mono">StateSnapshot / 时间旅行</td><td>某步的状态快照；可回到历史 checkpoint 重跑</td><td><a href="26-langgraph-persistence-control.html">持久化 · 中断 · 控制流</a></td></tr>
-  <tr><td class="mono">interrupt / 人在回路（HITL）</td><td>在节点里暂停等人，Command(resume) 恢复</td><td><a href="07-agents-intro.html">Agent 入门</a> · <a href="26-langgraph-persistence-control.html">持久化 · 中断 · 控制流</a></td></tr>
-  <tr><td class="mono">Send</td><td>动态扇出：把多个任务并行投给同一节点（并行工具）</td><td><a href="26-langgraph-persistence-control.html">持久化 · 中断 · 控制流</a></td></tr>
-  <tr><td class="mono">Command</td><td>改状态 + 跳转（goto）；多 Agent handoff 的底座</td><td><a href="26-langgraph-persistence-control.html">持久化 · 中断 · 控制流</a></td></tr>
+  <tr><td class="mono">checkpointer / Checkpoint / thread_id</td><td>每超步存档，按 thread_id 区分会话、可续跑</td><td><a href="26-langgraph-persistence-control.html">Checkpoint 与持久化</a></td></tr>
+  <tr><td class="mono">StateSnapshot / 时间旅行</td><td>某步的状态快照；可回到历史 checkpoint 重跑</td><td><a href="34-langgraph-time-travel-debug.html">时间旅行、回放与调试</a></td></tr>
+  <tr><td class="mono">interrupt / 人在回路（HITL）</td><td>在节点里暂停等人，Command(resume) 恢复</td><td><a href="33-langgraph-interrupt-command.html">interrupt、Command 与人在回路</a></td></tr>
+  <tr><td class="mono">Send</td><td>动态扇出：把多个任务并行投给同一节点（并行工具）</td><td><a href="32-langgraph-tasks-channels.html">Tasks、Channels 与调度</a></td></tr>
+  <tr><td class="mono">Command</td><td>改状态 + 跳转（goto）；多 Agent handoff 的底座</td><td><a href="33-langgraph-interrupt-command.html">interrupt、Command 与人在回路</a></td></tr>
   <tr><td class="mono">recursion_limit</td><td>图执行步数的硬上限（防失控的兜底）</td><td><a href="07-agents-intro.html">Agent 入门</a> · <a href="25-langgraph-pregel-engine.html">执行引擎：Pregel 与超步</a></td></tr>
 </table>
 
@@ -360,7 +360,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <table class="t">
   <tr><th>术语</th><th>一句话</th><th>见课</th></tr>
   <tr><td class="mono">AutoGen</td><td>微软的多 Agent 对话框架（与 LangChain 对照）</td><td><a href="21-langchain-vs-autogen.html">横向对比：LangChain vs AutoGen</a></td></tr>
-  <tr><td class="mono">handoff（交接）</td><td>一个 Agent 把任务交棒给另一个</td><td><a href="21-langchain-vs-autogen.html">横向对比：LangChain vs AutoGen</a> · <a href="26-langgraph-persistence-control.html">持久化 · 中断 · 控制流</a></td></tr>
+  <tr><td class="mono">handoff（交接）</td><td>一个 Agent 把任务交棒给另一个</td><td><a href="33-langgraph-interrupt-command.html">interrupt、Command 与人在回路</a></td></tr>
   <tr><td class="mono">MCP</td><td>Model Context Protocol（Anthropic）：标准化"Agent↔工具"</td><td><a href="22-ai-stack.html">全栈坐标系：从 LangChain 缩放到整个生态</a></td></tr>
   <tr><td class="mono">A2A</td><td>Agent2Agent（Google）：标准化"Agent↔Agent"</td><td><a href="22-ai-stack.html">全栈坐标系：从 LangChain 缩放到整个生态</a></td></tr>
   <tr><td>AI 全栈 7 层</td><td>硬件→基础设施→训练→模型→推理→检索→编排+应用</td><td><a href="22-ai-stack.html">全栈坐标系：从 LangChain 缩放到整个生态</a></td></tr>

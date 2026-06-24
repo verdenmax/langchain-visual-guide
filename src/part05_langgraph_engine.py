@@ -105,7 +105,7 @@ LESSON_22_PREGEL = (
     + _section(
         "Plan 阶段读什么",
         [
-            "Plan 阶段不是重新遍历用户写的所有边，也不是简单按拓扑排序跑节点。编译后的图会把节点输入、订阅 channel、触发条件、分支写入和状态 key 映射到底层 Pregel 节点。prepare_next_tasks 关注的是：哪些 channel 从上次该节点运行后变了，哪些 pending sends 或 branch 需要展开，哪些任务因为 interrupt、错误或完成状态不能继续。",
+            "Plan 阶段不是重新遍历用户写的所有边，也不是简单按拓扑排序跑节点。编译后的图会把节点输入、订阅 channel、触发条件、分支写入和状态 key 映射到底层 Pregel 节点。prepare_next_tasks 关注的是：哪些 channel 从上次该节点运行后变了，哪些 Send 触发的 TASKS 通道写入或 branch 需要展开，哪些任务因为 interrupt、错误或完成状态不能继续。",
             "这就是为什么学习 LangGraph 时要把“节点订阅什么 channel”放进脑子里。StateGraph 的节点看似只接收一个 state 参数，但编译后会变成读若干 channel 的 PregelNode。某个 channel 有新版本，订阅它的节点才可能被唤醒；没有新版本就不应重复执行，否则图会无意义空转。",
             "Plan 阶段还承担递归上限的守门作用。很多 Agent 图包含 model -> tools -> model 的环，如果模型一直请求工具，图可以无限推进。recursion_limit 在运行时不是限制 Python 递归深度，而是限制超步推进次数：超过上限说明控制流没有按预期收敛，需要停止并暴露错误。",
         ],
@@ -257,13 +257,18 @@ LESSON_23_TASKS_CHANNELS = (
     def run(self, task, channels):
         state = local_read(channels, self.subscriptions)
         result = self.user_func(state)
-        return ChannelWrite.from_partial_state(result)
+        # conceptual pseudocode, not a public API call:
+        writes = [
+            ('keywords', result.get('keywords')),
+            ('intent', result.get('intent')),
+        ]
+        return writes
 
 class BaseChannel:
     def update(self, values):
         raise NotImplementedError
 """,
-        "真实代码更复杂：读输入可能包含 mapper、config、managed values、branch 和 send；写入也会区分普通 channel、特殊控制写入和隐藏元数据。教学版强调同一个事实：节点读的是 channel 快照，返回会被标准化成 writes，合并由 channel 决定。",
+        "真实代码更复杂：读输入可能包含 mapper、config、managed values、branch 和 send；当前写入装配主要沿着 ChannelWrite / _assemble_writes 把普通 channel、特殊控制写入和隐藏元数据归一成 write entries。教学版强调同一个事实：节点读的是 channel 快照，返回会被标准化成 writes，合并由 channel 决定。",
     )
     + _section(
         "PregelTask 不是业务节点本身，也不是内部执行对象",
@@ -388,13 +393,13 @@ class BaseChannel:
 
 LESSON_24_CHECKPOINTS = (
     r"""
-<p class="lead">LangGraph 的持久化不是“把最终答案保存一下”，而是把图在超步边界上的状态保存成 checkpoint。一个 checkpoint 通常包含 channel values、channel versions、pending sends、已见版本和元数据；checkpointer 负责按 <span class="mono">thread_id</span>、checkpoint namespace 和 checkpoint id 读写这些记录。理解 checkpoint 后，resume、get_state、update_state、人审和时间旅行都会变成同一个问题：我要从哪条线程、哪个命名空间、哪一个已提交超步继续观察或修改状态。</p>
+<p class="lead">LangGraph 的持久化不是“把最终答案保存一下”，而是把图在超步边界上的状态保存成 checkpoint。一个 checkpoint 通常围绕 <span class="mono">channel_values</span>、<span class="mono">channel_versions</span>、<span class="mono">versions_seen</span>、<span class="mono">updated_channels</span> 和元数据组织；checkpointer 负责按 <span class="mono">thread_id</span>、checkpoint namespace 和 checkpoint id 读写这些记录。理解 checkpoint 后，resume、get_state、update_state、人审和时间旅行都会变成同一个问题：我要从哪条线程、哪个命名空间、哪一个已提交超步继续观察或修改状态。</p>
 """
     + _analogy("把 checkpoint 想成游戏存档。玩家不是只在通关后保存结局，而是在每个安全房间保存背包、位置、任务进度和世界状态。thread_id 像玩家账号，namespace 像同一账号下的不同存档槽，checkpoint id 像某次具体保存时间。下一次进入游戏时，只要用同一个账号和存档槽，系统就能从上次安全房间继续；如果账号写错，就像打开了别人的空存档，再强的剧情逻辑也找不到你的装备。")
     + shell.lesson_map(
         "本课地图：从 checkpoint 到 resume",
         [
-            ("结构", "Checkpoint 保存 channel values、versions、pending sends 等超步边界状态", "now"),
+            ("结构", "Checkpoint 保存 channel_values、channel_versions、versions_seen、updated_channels 等超步边界状态", "now"),
             ("接口", "BaseCheckpointSaver 定义 put/get/list 等持久化契约", "source"),
             ("内存实现", "InMemorySaver 适合本地实验和测试，不是生产持久层", "now"),
             ("线程", "configurable.thread_id 是恢复同一会话的关键索引", "now"),
@@ -407,7 +412,7 @@ LESSON_24_CHECKPOINTS = (
 """
     + shell.source_map(
         [
-            {"file": "langgraph/checkpoint/base/__init__.py", "symbol": "Checkpoint", "role": "描述一次超步边界的持久化状态，包含 channel_values、channel_versions、versions_seen、pending_sends 等", "direction": "apply_writes 后形成新 checkpoint，saver 持久化"},
+            {"file": "langgraph/checkpoint/base/__init__.py", "symbol": "Checkpoint", "role": "描述一次超步边界的持久化状态，包含 channel_values、channel_versions、versions_seen、updated_channels 等", "direction": "apply_writes 后形成新 checkpoint，saver 持久化"},
             {"file": "langgraph/checkpoint/base/__init__.py", "symbol": "BaseCheckpointSaver", "role": "checkpointer 抽象契约，定义如何按 config 保存、读取、列出 checkpoint", "direction": "Pregel 调用 saver，具体后端实现存储细节"},
             {"file": "langgraph/checkpoint/memory/__init__.py", "symbol": "InMemorySaver", "role": "内存版 saver，适合教程、单进程实验和测试，进程结束数据消失", "direction": "compile(checkpointer=InMemorySaver()) 后被运行时使用"},
             {"file": "langgraph/pregel/main.py", "symbol": "Pregel.get_state", "role": "按 config 读取某条线程最新或指定 checkpoint 的 StateSnapshot", "direction": "外部调试、UI 展示、人审页面查询状态"},
@@ -462,7 +467,7 @@ LESSON_24_CHECKPOINTS = (
     + _section(
         "checkpoint 保存的不是普通聊天记录",
         [
-            "很多人把 LangGraph 持久化理解成“保存 messages 列表”。messages 当然可能在 checkpoint 里，但 checkpoint 的范围更广：每个 channel 的值、每个 channel 的版本、每个节点已经看过哪些版本、还有可能等待发送的任务。它保存的是运行时能恢复图执行所需的最小世界，而不是只给 UI 展示的业务日志。",
+            "很多人把 LangGraph 持久化理解成“保存 messages 列表”。messages 当然可能在 checkpoint 里，但 checkpoint 的范围更广：每个 channel 的值、每个 channel 的版本、每个节点已经看过哪些版本、以及本次更新涉及的 channel 集合。动态 Send 相关任务应理解为通过 TASKS / channel_values[TASKS] 等运行时通道表达；旧版或兼容迁移里看到的 pending_sends 不应当成当前 checkpoint 的顶层字段。它保存的是运行时能恢复图执行所需的最小世界，而不是只给 UI 展示的业务日志。",
             "这就是为什么 checkpoint 能支撑 resume。如果只存最终回答，下次调用只能把历史文字塞回 prompt；如果存完整 channel values 和 versions，运行时知道哪些节点已经执行过、哪些 channel 发生过变化、下一步可以从哪里继续。持久化的是执行状态，不只是对话内容。",
             "checkpoint 也让 get_state 有了精确语义。get_state 返回的 StateSnapshot 不只是 dict values，还可能包含 next tasks、config、metadata、created_at 等信息。调试时你能看到图停在哪里、为什么下一步会去某节点，而不仅是“当前字段长什么样”。",
         ],
@@ -519,7 +524,7 @@ LESSON_24_CHECKPOINTS = (
 """
     + shell.pitfall_grid(
         [
-            ("checkpoint 等于聊天记录", "checkpoint 是图运行状态，包含 channel values、versions、pending 信息和元数据，不只是 messages。"),
+            ("checkpoint 等于聊天记录", "checkpoint 是图运行状态，包含 channel_values、channel_versions、versions_seen、updated_channels 和元数据，不只是 messages。"),
             ("传了 checkpointer 就一定能续聊", "还必须稳定传入 configurable.thread_id，并使用可持久保存的 saver。"),
             ("InMemorySaver 可以生产使用", "它适合实验和测试，进程结束即丢失，生产要使用持久后端并做权限隔离。"),
             ("update_state 可以绕过 reducer", "它仍应尊重 channel 更新语义，并记录审计来源。"),
@@ -844,7 +849,7 @@ LESSON_26_TIME_TRAVEL = (
         print(snapshot.config, snapshot.next, snapshot.metadata)
 
     fork_config = history[2].config
-    graph.update_state(fork_config, {'normalized_status': 'cancelled'})
+    fork_config = graph.update_state(fork_config, {'normalized_status': 'cancelled'})
     return graph.invoke(Command(goto='final_model'), fork_config)
 """,
         "示例代码省略了真实 API 的细节，强调工作流：列出历史，选择 checkpoint，在受控配置或 namespace 中更新状态，再继续运行并比较结果。不要在生产主线随意覆盖历史。",
