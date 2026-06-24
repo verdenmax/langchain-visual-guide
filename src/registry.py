@@ -10,6 +10,7 @@ import part04_langgraph_model
 import part05_langgraph_engine
 import part06_agent_internals
 import part07_rag_memory
+import part08_engineering
 import part3
 import part4
 import part5
@@ -55,10 +56,12 @@ CONTENT = {
     "37-embeddings-vectorstores.html": part07_rag_memory.LESSON_34_EMBEDDINGS_VECTORSTORES,
     "38-retrievers-rerankers.html": part07_rag_memory.LESSON_35_RETRIEVERS_RERANKERS,
     "39-memory-conversation-state.html": part07_rag_memory.LESSON_36_MEMORY_STATE,
+    "15-contributing.html": part08_engineering.LESSON_37_LOCAL_DEV,
+    "40-testing-debugging.html": part08_engineering.LESSON_38_TESTING_DEBUGGING,
+    "41-observability-ci.html": part08_engineering.LESSON_39_OBSERVABILITY_CI,
+    "20-capstone.html": part08_engineering.LESSON_40_CAPSTONE,
     "11-chat-internals.html": part3.LESSON_10,
     "12-tool-internals.html": part3.LESSON_11,
-    "15-contributing.html": part4.LESSON_14,
-    "20-capstone.html": part5.LESSON_CAP,
     "21-langchain-vs-autogen.html": part6.LESSON_CMP,
     "22-ai-stack.html": part6.LESSON_STACK,
     "23-learning-map.html": part6.LESSON_LEARN,

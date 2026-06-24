@@ -54,6 +54,10 @@ C_LEVEL_PAGES = {
     "37-embeddings-vectorstores.html": {"min_cjk": 4500, "min_visual": 5},
     "38-retrievers-rerankers.html": {"min_cjk": 4500, "min_visual": 5},
     "39-memory-conversation-state.html": {"min_cjk": 4500, "min_visual": 5},
+    "15-contributing.html": {"min_cjk": 4500, "min_visual": 5},
+    "40-testing-debugging.html": {"min_cjk": 4500, "min_visual": 5},
+    "41-observability-ci.html": {"min_cjk": 4500, "min_visual": 5},
+    "20-capstone.html": {"min_cjk": 4500, "min_visual": 5},
 }
 
 RE_SCRIPT_STYLE = re.compile(r"<(script|style)\b.*?</\1>", re.I | re.S)
