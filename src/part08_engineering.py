@@ -104,7 +104,7 @@ assert git_diff("index.html", "lessons/", "print.html").is_committed()
                 "包边界还决定兼容性承诺。core 的符号被很多包依赖，修改参数、返回类型或异常语义会影响广泛；高层 langchain_v1 可以组合 core 和 langgraph，但也要保护用户 API；本教程 src 目录则是生成器，修改内容后要提交生成的 HTML。不同边界对应不同风险，不应同样处理。",
             ]),
             ("Editable install 的意义不是省安装时间", [
-                "editable install 的关键价值是让解释器导入你的工作区源码。没有这一步，你可能在编辑 A 文件，却一直运行环境里旧 wheel 的代码，断点打不到、print 不出现、测试也不会反映修改。确认方式很简单：在 Python 中打印目标模块的 __file__，路径必须指向当前 worktree 或克隆目录，而不是 site-packages 里的压缩发布物。",
+                "editable install 的关键价值是让解释器导入你的工作区源码。没有这一步，你可能在编辑 A 文件，却一直运行环境里旧 wheel 的代码，断点打不到、print 不出现、测试也不会反映修改。确认方式很简单：在 Python 中打印目标模块的 __file__，路径必须指向当前仓库或克隆目录，而不是 site-packages 里的压缩发布物。",
                 "LangChain 与 LangGraph 的 pyproject 中都有 tool.uv.sources 指向相邻包的本地路径。这个配置说明维护者希望开发时让多个包以源码方式联动：改 core 后 langchain_v1 立即看到，改 prebuilt 或 checkpoint 后 langgraph 测试能覆盖。若这些来源路径和你本地目录不一致，要先修环境，不要急着怀疑业务代码。",
             ]),
             ("聚焦测试比全量测试更适合调试", [
@@ -133,7 +133,7 @@ assert git_diff("index.html", "lessons/", "print.html").is_committed()
             ]),
             ("从本地失败到教学素材", [
                 "工程化学习的一个技巧，是把每次失败都转成 source map 的一行。今天因为 check_content_density 失败，就记住它从 registry.CONTENT 读原始 lesson body 而不是读 lessons/*.html；明天因为链接失败，就记住 check_links.py 解析所有相对 href。失败越具体，你的源码地图越可靠。",
-                "同样方法也适用于 LangChain。一次 Fake 模型测试失败，可以补充 GenericFakeChatModel 的行为；一次 Agent 工具循环失败，可以补充 AIMessage.tool_calls 和 ToolMessage 的配对规则。读源码不是一次性任务，而是把调试证据持续沉淀成可复查路径。",
+                "同样方法也适用于 LangChain。一次 no-tool Fake 模型测试失败，可以补充 GenericFakeChatModel 的行为；一次 Agent 工具循环失败，可以补充 FakeToolCallingModel、AIMessage.tool_calls 和 ToolMessage 的配对规则。读源码不是一次性任务，而是把调试证据持续沉淀成可复查路径。",
             ]),
 
             ("多包仓库里的调试礼仪", [
@@ -162,9 +162,9 @@ assert git_diff("index.html", "lessons/", "print.html").is_committed()
                 "完成任务后不要只说已经改好，而要列出文件、检查、计数、路径修正和提交号。报告本身也是工程资产：它告诉接手者哪些假设被验证，哪些生成物已经更新，哪些风险仍需后续任务处理。一个清晰报告能减少维护者重新拉分支检查的成本。",
             ]),
 
-            ("补充复盘", [
+            ("贡献失败的复盘路径", [
                 "复盘时还要保存反例：哪些路径原计划可用但当前不存在，哪些检查曾经失败，哪些命令只能在包级目录运行。这些细节会随着仓库演进而变化，写进课程能帮助读者建立版本意识。工程化贡献的最后一步，是让下一位维护者不必重新猜你的调查过程。",
-                "为了让密度和质量同时达标，本课把路线、证据、边界、失败模式和交付报告都纳入正文。读者不只知道怎么操作，还知道为什么这些操作能减少风险、缩短排障时间、提高协作可信度。",
+                "一次成熟的复盘至少回答四件事：失败在哪个阶段暴露，哪个源码或生成物需要更新，哪个检查能在下次提前发现，PR 描述应补充哪条证据。这样贡献循环会越来越短，而不是每次都靠 reviewer 在评论里重新发现同类问题。",
             ]),
         ],
         "pitfalls": [
@@ -195,19 +195,20 @@ assert git_diff("index.html", "lessons/", "print.html").is_committed()
 
 LESSON_38_TESTING_DEBUGGING = _build_lesson(
     {
-        "lead": "测试 Agent 不是把真实模型、真实网络和真实数据库都接上后祈祷输出稳定，而是把不确定性逐层替换成可控组件：GenericFakeChatModel 提供固定 AIMessage，确定性工具返回固定观察，InMemorySaver 保存线程状态，Runnable 接口让每个节点可单独 invoke，create_agent 把这些零件装成完整循环。这样写出的测试关注结构行为：模型是否请求了正确工具、工具观察是否写回 messages、checkpoint 是否能恢复、回归案例是否锁住曾经失败的 trace，而不是脆弱地断言某一句自然语言完全相同。",
+        "lead": "测试 Agent 不是把真实模型、真实网络和真实数据库都接上后祈祷输出稳定，而是把不确定性逐层替换成可控组件。这里要先分清两类 fake：GenericFakeChatModel 适合不带工具绑定的模型测试、token/callback 测试和消息脚本测试；Agent-with-tools 循环会调用模型的 bind_tools，因此需要 FakeToolCallingModel 这类实现 bind_tools 的测试替身，或项目内自定义一个明确标注为 test fake 的 ToolCallingFakeModel。确定性工具返回固定观察，InMemorySaver 保存线程状态，Runnable 接口让每个节点可单独 invoke，create_agent 再把这些零件装成完整循环。这样写出的测试关注结构行为：模型是否请求了正确工具、工具观察是否写回 messages、checkpoint 是否能恢复、回归案例是否锁住曾经失败的 trace，而不是脆弱地断言某一句自然语言完全相同。",
         "analogy": "把 Agent 测试看成消防演习。真正火灾不可控，所以演习不会点燃整栋楼，而是用烟雾机、假警报、固定路线和观察员记录来验证流程：警报是否响、人员是否按路线撤离、门禁是否打开、负责人是否签收。Fake 模型是烟雾机，确定性工具是假警报，trace 断言是观察员记录，回归用例是把上次演习暴露的问题写进下一次检查表。",
         "map_title": "本课地图：确定性 Agent 测试的五个零件",
         "map_nodes": [
-            ("Fake 模型", "用 GenericFakeChatModel 或固定消息模型产出预设 AIMessage/tool_calls", "before"),
+            ("Fake 模型", "无工具绑定用 GenericFakeChatModel；工具循环用实现 bind_tools 的 FakeToolCallingModel/ToolCallingFakeModel", "before"),
             ("确定性工具", "工具只依赖测试输入和内存 fixtures，不访问真实网络或随机时间", "now"),
             ("消息断言", "检查 AIMessage、ToolMessage、structured_response 和 messages 长度", "now"),
             ("检查点", "用 InMemorySaver 验证 thread_id 下状态保存、恢复和回放", "source"),
             ("回归 Trace", "把线上失败压缩成最小消息序列，防止同类问题再出现", "after"),
         ],
-        "source_intro": "测试课的 source map 选择运行契约和测试替身。GenericFakeChatModel、AIMessage、Runnable、create_agent 在 LangChain 主仓；InMemorySaver 在独立 LangGraph 仓库 checkpoint 包。这些路径帮助你把测试失败定位到模型替身、消息结构、可运行接口、图状态或 Agent 工厂。",
+        "source_intro": "测试课的 source map 选择运行契约和测试替身。GenericFakeChatModel 在 langchain-core，适合无工具绑定的固定消息、token 与 callback 测试；LangChain v1 的单测还提供 tests.unit_tests.agents.model.FakeToolCallingModel，专门给 create_agent + tools 场景使用，因为它实现 bind_tools。AIMessage、Runnable、create_agent 和 InMemorySaver 则帮助你把失败定位到消息结构、可运行接口、Agent 工厂或图状态。",
         "sources": [
-            {"file": "langchain/libs/core/langchain_core/language_models/fake_chat_models.py", "symbol": "GenericFakeChatModel", "role": "按迭代器返回预设 AIMessage 或字符串，并支持 token callback 测试", "direction": "替代真实聊天模型，让测试输出可复现"},
+            {"file": "langchain/libs/core/langchain_core/language_models/fake_chat_models.py", "symbol": "GenericFakeChatModel", "role": "按迭代器返回预设 AIMessage 或字符串，并支持 token callback 测试；它不是工具绑定 fake", "direction": "用于无工具模型测试、stream/token/callback 断言，不直接承担 create_agent(tools=...) 循环"},
+            {"file": "langchain/libs/langchain_v1/tests/unit_tests/agents/model.py", "symbol": "FakeToolCallingModel", "role": "LangChain v1 单测中的工具调用 fake，提供 bind_tools 并按脚本吐出 tool_calls/最终消息", "direction": "测试 create_agent + tools 的模型循环时，可参照这种 test fake，而不是把 GenericFakeChatModel 当工具模型"},
             {"file": "langchain/libs/core/langchain_core/messages/ai.py", "symbol": "AIMessage", "role": "承载模型内容、tool_calls、usage 和附加字段", "direction": "Fake 模型输出它，Agent 条件边和 ToolNode 读取它"},
             {"file": "langchain/libs/core/langchain_core/runnables/base.py", "symbol": "Runnable", "role": "统一 invoke/ainvoke/stream/batch/config，使组件可单独测试", "direction": "prompt、model、tool wrapper、graph 都遵守该契约"},
             {"file": "langgraph/libs/checkpoint/langgraph/checkpoint/memory/__init__.py", "symbol": "InMemorySaver", "role": "测试和本地调试用的内存 checkpoint 保存器", "direction": "create_agent/graph 运行时按 thread_id 保存和恢复状态"},
@@ -216,38 +217,70 @@ LESSON_38_TESTING_DEBUGGING = _build_lesson(
         "flow_title": "状态流：用假模型、工具和 checkpointer 跑一次确定性测试",
         "flow_kind": "state_flow",
         "flow_steps": [
-            ("准备消息脚本", "Fake 模型第一轮返回带 tool_calls 的 AIMessage，第二轮返回最终 AIMessage。", "messages=iter([call_tool, final])"),
+            ("准备消息脚本", "实现 bind_tools 的工具调用 fake 第一轮返回带 tool_calls 的 AIMessage，第二轮返回最终 AIMessage。", "responses=[call_tool, final]"),
             ("准备工具 fixture", "工具 search_order('A1') 固定返回订单状态，不读真实数据库。", "tool_result='已发货'"),
-            ("创建 Agent", "create_agent(model=fake, tools=[tool], checkpointer=InMemorySaver())。", "agent=CompiledStateGraph"),
+            ("创建 Agent", "create_agent(model=tool_calling_fake, tools=[tool], checkpointer=InMemorySaver())，确保 fake 可被 bind_tools。", "agent=CompiledStateGraph"),
             ("invoke 并断言 trace", "用 thread_id 运行，检查工具被调用一次、ToolMessage 写回、最终消息不再请求工具。", "assert messages[-1].tool_calls == []"),
             ("复跑回归", "用相同脚本和 thread_id 或新 thread_id 验证状态隔离与曾经失败的边界。", "regression locked"),
         ],
         "trace": [
-            {"step": "1. arrange fake", "input": "两个预设 AIMessage：先请求 search_order，后回答用户", "action": "GenericFakeChatModel 从迭代器依次取消息", "output": "模型行为完全可预测"},
+            {"step": "1. arrange fake", "input": "两个预设 AIMessage：先请求 search_order，后回答用户", "action": "ToolCallingFakeModel/FakeToolCallingModel 保存脚本并在 bind_tools 后依次取消息", "output": "模型行为完全可预测，且 Agent 工厂不会因缺少 bind_tools 失败"},
             {"step": "2. arrange tool", "input": "内存字典 {'A1': '已发货'}", "action": "@tool 函数只查 fixture，不访问网络、不读当前时间", "output": "ToolMessage 内容固定"},
             {"step": "3. invoke agent", "input": "messages=[HumanMessage('查 A1')] + config.thread_id", "action": "Agent 进入 model -> tools -> model 循环", "output": "状态中出现 AIMessage.tool_calls 与 ToolMessage"},
             {"step": "4. assert state", "input": "result['messages'] 或 state snapshot", "action": "断言工具名、参数、tool_call_id、最终 structured_response", "output": "测试锁住结构，不锁死自然语言措辞"},
             {"step": "5. regression", "input": "曾经失败的消息序列", "action": "加入测试集，确保以后 refactor 不破坏", "output": "同类 bug 被自动捕获"},
         ],
         "code_path": "tests/unit_tests/agents/test_customer_agent.py",
-        "code_symbol": "deterministic fake agent test",
-        "code": """fake = GenericFakeChatModel(messages=iter([
+        "code_symbol": "ToolCallingFakeModel test fake",
+        "code": """from typing import Any
+from pydantic import Field
+from langchain.agents import create_agent
+from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import AIMessage
+from langchain_core.outputs import ChatGeneration, ChatResult
+from langchain_core.tools import tool
+from langgraph.checkpoint.memory import InMemorySaver
+
+
+class ToolCallingFakeModel(BaseChatModel):
+    \"\"\"教学用 test fake：真实项目可直接复用上游 FakeToolCallingModel 思路。\"\"\"
+
+    responses: list[AIMessage]
+    index: int = 0
+    bound_tools: list[Any] = Field(default_factory=list)
+
+    @property
+    def _llm_type(self) -> str:
+        return "tool-calling-fake"
+
+    def bind_tools(self, tools, **kwargs):
+        self.bound_tools = list(tools)
+        return self
+
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+        message = self.responses[self.index]
+        self.index += 1
+        return ChatResult(generations=[ChatGeneration(message=message)])
+
+
+tool_calling_fake = ToolCallingFakeModel(responses=[
     AIMessage(content="", tool_calls=[{"name": "search_order", "args": {"order_id": "A1"}, "id": "call_1"}]),
     AIMessage(content="订单 A1 已发货，建议明天关注物流。"),
-]))
+])
 
 @tool
 def search_order(order_id: str) -> str:
     return {"A1": "已发货"}[order_id]
 
-agent = create_agent(fake, tools=[search_order], checkpointer=InMemorySaver())
+agent = create_agent(tool_calling_fake, tools=[search_order], checkpointer=InMemorySaver())
 result = agent.invoke({"messages": [{"role": "user", "content": "查 A1"}]}, config={"configurable": {"thread_id": "t1"}})
 assert result["messages"][-1].tool_calls == []
 """,
-        "code_note": "教学代码突出测试形状：Fake 模型负责固定动作，工具 fixture 固定观察，checkpointer 固定状态保存位置，断言看消息结构。真实测试还会检查 ToolMessage id 配对、工具调用次数、错误分支和 structured_response 字段。",
+        "code_note": "这段代码是教学用 test fake 草图，重点是 bind_tools 返回可继续调用的模型，并由 _generate 按脚本产生 AIMessage。上游 LangChain v1 单测里的 FakeToolCallingModel 展示了同一思路；如果只需要无工具模型输出或 token callback，才选择 GenericFakeChatModel。真实测试还会检查 ToolMessage id 配对、工具调用次数、错误分支和 structured_response 字段。",
         "sections": [
             ("Fake 模型测试的是框架行为，不是模型智商", [
                 "真实模型输出会受采样、服务端版本、网络、速率限制和隐藏系统策略影响。把它放进单元测试，会让失败原因变得模糊：是你的 Agent 循环错了，还是模型今天换了措辞？Fake 模型把模型行为压成一段脚本，让测试只关注框架如何处理这个脚本。",
+                "选择 fake 时要看测试入口是否会绑定工具。GenericFakeChatModel 是轻量的 BaseChatModel fake，适合“给定消息脚本，验证 token callback、stream 或无工具链路”的场景；create_agent(model, tools=[...]) 会先把工具 schema 绑定到模型，因此 fake 必须实现 bind_tools。上游 FakeToolCallingModel 就是为 Agent 工具循环准备的测试模型。",
                 "这并不表示真实模型测试没价值。集成测试可以周期性验证真实 provider、工具 schema 和 prompt 质量；单元测试则验证消息状态、工具路由、错误处理和 checkpoint。两层测试回答不同问题：单元测试问“程序是否按契约处理给定消息”，集成测试问“真实模型在这个契约下是否大概率表现良好”。",
             ]),
             ("确定性工具要去掉时间、网络和随机数", [
@@ -271,7 +304,7 @@ assert result["messages"][-1].tool_calls == []
                 "当端到端测试失败时，按最近新增状态逆向排查。最终回答错，先看最后一条 AIMessage；工具观察没被用，先看 ToolMessage 内容是否可读；工具没被调用，先看 Fake 模型第一条消息是否真的有 tool_calls；状态丢失，先看 config.configurable.thread_id 是否一致。",
             ]),
             ("常见误解与边界情况：Mock 不是越多越好", [
-                "常见误解是“所有依赖都 mock 掉，测试就稳定”。过度 mock 会让测试只验证 mock 的调用姿势，而不是真实契约。GenericFakeChatModel 是有价值的 fake，因为它实现聊天模型接口并返回真实 AIMessage；内存工具 fixture 也有价值，因为它仍通过 @tool schema。相反，直接 mock 掉 create_agent 内部方法，往往会绕开你真正想验证的 Agent 循环。",
+                "常见误解是“所有依赖都 mock 掉，测试就稳定”。过度 mock 会让测试只验证 mock 的调用姿势，而不是真实契约。GenericFakeChatModel 是有价值的 no-tool fake，因为它实现聊天模型接口并返回真实 AIMessage；但工具循环要换成实现 bind_tools 的 FakeToolCallingModel/ToolCallingFakeModel。内存工具 fixture 也有价值，因为它仍通过 @tool schema。相反，直接 mock 掉 create_agent 内部方法，往往会绕开你真正想验证的 Agent 循环。",
                 "边界情况是 provider-specific 行为。不同模型对 tool_calls、stream chunk 或结构化输出支持不同，单元测试可以用 fake 锁住框架预期，但仍需要少量 provider 集成测试覆盖转换层。测试金字塔不是只要底层，而是让大量稳定单测支撑少量昂贵集成测试。",
             ]),
             ("消息状态断言的粒度", [
@@ -297,7 +330,7 @@ assert result["messages"][-1].tool_calls == []
             ("调试 Agent 时的最小观察面", [
                 "最小观察面不是所有日志，而是足以重建控制流的字段。对 Agent 来说，至少要看到消息类型序列、最新 AIMessage 的 tool_calls、每个 ToolMessage 的 tool_call_id、工具参数摘要、checkpoint thread_id、最终结构字段和错误类别。有了这些字段，即使不看完整自然语言，也能判断循环为何继续、为何停止、状态是否保存。",
                 "测试代码可以把这些字段整理成小型 trace，再做快照或显式断言。比如 expected_trace = [('human', None), ('ai', 'search_order'), ('tool', 'call_1'), ('ai', None)]。这种断言一眼就能看出多了一次工具调用或缺了一条观察，比翻完整消息对象更适合回归。",
-                "当失败与流式输出有关时，还要区分 chunk 与最终消息。GenericFakeChatModel 能触发 token callback，但你的业务断言不应把中间 chunk 当最终状态。测试应等待最终聚合结果，再断言 structured_response；同时可单独断言 callback 是否收到了 token 事件。",
+                "当失败与流式输出有关时，还要区分 chunk 与最终消息。GenericFakeChatModel 能用于 token callback 这类无工具绑定测试，但你的业务断言不应把中间 chunk 当最终状态。测试应等待最终聚合结果，再断言 structured_response；如果同一用例还要走工具循环，就改用带 bind_tools 的 test fake，并把 callback 断言与工具断言分开。",
             ]),
 
             ("测试命名、fixture 与可维护性", [
@@ -311,14 +344,14 @@ assert result["messages"][-1].tool_calls == []
                 "当回归测试失败时，先判断是产品意图改变还是 bug 重现。若意图改变，应同步更新测试名称、fixture 和说明；若是 bug，就沿 trace 找到破坏的组件。不要简单删除失败测试，因为那等于删除一段历史事故经验。",
             ]),
 
-            ("补充复盘", [
+            ("并发、重试和恢复边界", [
                 "测试还应覆盖并发和重复调用的边界。即使当前示例只有一个工具，也要理解 tool_call_id 为什么存在，为什么工具观察必须和请求配对，为什么 checkpoint 要按 thread_id 隔离。很多线上事故不是 happy path 不会跑，而是重试、并发、恢复和错误分支没有被测试。",
-                "为了让密度和质量同时达标，本课把路线、证据、边界、失败模式和交付报告都纳入正文。读者不只知道怎么操作，还知道为什么这些操作能减少风险、缩短排障时间、提高协作可信度。",
+                "工具调用 fake 也要覆盖这些边界：可以脚本化两次相同 tool_call_id 来证明系统会拒绝或覆盖异常；可以让第一轮工具返回错误观察、第二轮模型改参重试；可以使用两个 thread_id 运行同一 fake 工厂，确认 checkpointer 不会把消息串到另一个用户。这样的测试才真正保护 Agent 循环，而不是只保护一次 happy path。",
             ]),
 
-            ("补充边界", [
+            ("工具契约和 fake 脚本的同步", [
                 "继续扩展测试时，要为每个工具维护一份小契约：输入字段、可信字段来源、正常返回、可重试错误、不可重试错误、副作用语义。Fake 测试按契约构造消息，集成测试再验证真实工具是否遵守契约。这样模型脚本、工具实现和回归断言不会各说各话。",
-                "这些补充不是额外理论，而是把测试和观测延伸到真实维护周期。系统越长期运行，越需要清楚契约、稳定信号和可执行反馈。",
+                "当工具 schema 改名、参数从字符串变成对象，或权限字段迁到 runtime context 时，fake 脚本必须同步更新；否则测试会继续验证旧协议。维护者可以把工具契约放进 fixture builder：同一处生成 @tool、合法参数、非法参数和期望 ToolMessage。这样测试数据与工具定义一起演进，减少“测试绿但真实 Agent 绑定失败”的风险。",
             ]),
         ],
         "pitfalls": [
@@ -330,14 +363,14 @@ assert result["messages"][-1].tool_calls == []
         "lab_title": "设计一个确定性 Agent 回归测试",
         "lab_steps": [
             "写出曾经失败的用户问题，并删除所有与失败无关的历史消息。",
-            "构造两个 AIMessage：第一条带工具调用，第二条给最终回答。",
+            "构造一个实现 bind_tools 的 ToolCallingFakeModel，并准备两条 AIMessage：第一条带工具调用，第二条给最终回答。",
             "把真实工具替换为只读内存 fixture，并写出未知输入的固定错误分支。",
             "运行 Agent 后断言消息类型序列、工具名、参数、tool_call_id 和最终字段。",
             "故意删掉工具回写或改错参数，确认测试会因预期原因失败。",
         ],
-        "version_note": "路径核验于 2026-06：GenericFakeChatModel、AIMessage、Runnable、create_agent 位于 LangChain 主仓当前 master；InMemorySaver 位于 langchain-ai/langgraph 独立仓库 libs/checkpoint/langgraph/checkpoint/memory/__init__.py。",
+        "version_note": "路径核验于 2026-06：GenericFakeChatModel 位于 langchain-core，适合 no-tool fake；FakeToolCallingModel 位于 LangChain v1 单测 tests/unit_tests/agents/model.py，适合 create_agent + tools；InMemorySaver 位于 langchain-ai/langgraph 独立仓库 libs/checkpoint/langgraph/checkpoint/memory/__init__.py。",
         "points": [
-            "Fake 模型让测试关注框架契约，而不是真实模型随机性。",
+            "GenericFakeChatModel 适合 no-tool 模型测试；Agent 工具循环需要实现 bind_tools 的 fake。",
             "确定性工具应去掉网络、时间和副作用。",
             "Trace 断言比最终文本断言更稳定、更可定位。",
             "InMemorySaver 适合测试状态恢复，不代表生产持久化。",
@@ -359,7 +392,7 @@ LESSON_39_OBSERVABILITY_CI = _build_lesson(
             ("漂移闸门", "CI 重建生成物并 git diff，发现 lessons/index/print 与 src 不一致就失败", "source"),
             ("发布/PDF", "通过 verify 后再部署 Pages 或生成 PDF，发布物有源可追", "after"),
         ],
-        "source_intro": "本课把上游可观测性接口和本仓库 CI 守卫放在同一张图里。BaseCallbackHandler 与 BaseTracer 来自 langchain-core；check_html、check_links、check_content_density 和 ci.yml 来自当前教程仓库，路径已经按本 worktree 验证。",
+        "source_intro": "本课把上游可观测性接口和本仓库 CI 守卫放在同一张图里。BaseCallbackHandler 与 BaseTracer 来自 langchain-core；check_html、check_links、check_content_density 和 ci.yml 来自当前教程仓库，路径已经按当前版本验证。",
         "sources": [
             {"file": "langchain/libs/core/langchain_core/callbacks/base.py", "symbol": "BaseCallbackHandler", "role": "定义 on_chain_start、on_llm_start、on_tool_end、on_error 等观察钩子", "direction": "运行时事件从 Runnable/模型/工具向 callback 管理器传播"},
             {"file": "langchain/libs/core/langchain_core/tracers/base.py", "symbol": "BaseTracer", "role": "把 callback 事件组织成 run 对象和父子关系", "direction": "为 LangSmith 风格 run tree、耗时分析和错误定位提供基础"},
@@ -467,18 +500,19 @@ LESSON_39_OBSERVABILITY_CI = _build_lesson(
                 "如果某个 gate 经常失败但没人知道如何修，它就需要改进错误信息；如果某个线上问题经常发生但没有指标，它就需要补充观测字段。保持这条反馈回路，工程化才不会退化成机械跑命令。",
             ]),
 
-            ("补充复盘", [
+            ("发布后的反馈回流", [
                 "发布前的绿色检查只是起点，发布后的观测还要继续验证真实使用情况。若用户运行路径和测试样例不同，run tree 会暴露新的工具组合、慢查询、空检索和权限拦截。把这些真实信号再反馈到测试和 CI，课程和系统都会越来越稳。",
-                "为了让密度和质量同时达标，本课把路线、证据、边界、失败模式和交付报告都纳入正文。读者不只知道怎么操作，还知道为什么这些操作能减少风险、缩短排障时间、提高协作可信度。",
+                "反馈回流要有明确入口：线上 run_id 可以变成回归 trace，常见 CI 失败可以变成检查器提示，读者报告的死链可以变成链接检查样例。没有入口的反馈会停在聊天记录里；有入口的反馈会变成下一次发布前自动执行的守卫。",
             ]),
 
-            ("补充边界", [
+            ("容量、成本与信号边界", [
                 "可观测性还要服务容量和成本。run tree 中的 token、耗时、检索数量和工具次数能帮助团队发现某个 prompt 过长、某个 retriever 噪声太大、某个工具被重复调用。CI 保证提交自洽，运行指标保证系统在真实流量下仍然经济可控。",
-                "这些补充不是额外理论，而是把测试和观测延伸到真实维护周期。系统越长期运行，越需要清楚契约、稳定信号和可执行反馈。",
+                "边界设计同样重要。高频 token chunk 可以只保留聚合统计，敏感工具参数可以只保留字段名和哈希，长文档可以只保留 doc_id 与 score；而错误类别、run_id、父子关系和发布 SHA 应长期可查。观测不是“全存”或“全丢”，而是按排障、审计和成本目标分层保存。",
             ]),
 
-            ("补充发布观测", [
-                "发布之后还要比较预期路径和真实路径。若 CI 中所有页面都达标，但线上用户主要集中在某几课或某些 Agent 工具路径，观测指标应帮助团队优先优化高频部分。工程质量不是只在合并那一刻存在，而是贯穿编写、审核、发布、使用和复盘的连续过程。这条连续链路越清楚，团队越能稳定交付。",
+            ("发布观测与内容优先级", [
+                "发布之后还要比较预期路径和真实路径。若 CI 中所有页面都达标，但线上用户主要集中在某几课或某些 Agent 工具路径，观测指标应帮助团队优先优化高频部分。页面停留时间、404、下载 PDF 的失败率和搜索关键词都能告诉作者：哪些内容解释不够，哪些链接最影响学习路径。",
+                "内容仓库也可以像服务一样做发布观测：记录部署 SHA、生成时间、页面数量、PDF 大小和检查版本；读者反馈某页异常时，先定位到对应 SHA 和源文件，再判断是源码错误、生成物漂移还是浏览器缓存。工程质量不是只在合并那一刻存在，而是贯穿编写、审核、发布、使用和复盘的连续过程。",
             ]),
         ],
         "pitfalls": [
@@ -637,9 +671,9 @@ agent = create_agent(
                 "因此 Capstone 的验收报告也应包含业务语言：哪些问题能自动回答，哪些必须转人工，哪些工具有副作用，哪些日志会脱敏，哪些失败会触发告警。把技术组件翻译成服务承诺，才说明你真的理解了工程化 Agent。",
             ]),
 
-            ("补充复盘", [
+            ("Capstone 演进复盘", [
                 "端到端 Agent 的难点在长期维护。新政策、新工具、新模型和新渠道都会进入系统，只有组件边界清楚、测试覆盖关键 trace、观测记录真实运行，团队才能安全演进。Capstone 要训练的正是这种演进能力，而不只是一次性跑通示例。",
-                "为了让密度和质量同时达标，本课把路线、证据、边界、失败模式和交付报告都纳入正文。读者不只知道怎么操作，还知道为什么这些操作能减少风险、缩短排障时间、提高协作可信度。",
+                "复盘时可以沿 Capstone 的装配表逐项检查：prompt 是否仍表达最新政策，RAG 引用是否覆盖新增条款，工具是否保持幂等和权限边界，middleware 是否记录拒绝理由，structured_response 是否满足 UI，fake trace 是否覆盖最近事故。每一项都有负责人和检查命令，系统才不会随着功能增加而变成黑箱。",
             ]),
         ],
         "pitfalls": [

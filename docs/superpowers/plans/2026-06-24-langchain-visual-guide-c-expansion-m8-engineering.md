@@ -103,13 +103,14 @@ Trace: choose API -> find package -> create editable env -> run focused test -> 
 - [ ] **Step 2: Write `LESSON_38_TESTING_DEBUGGING`**
 
 Cover fake models, deterministic tools, trace assertions, regression cases. Source rows:
-- `langchain/libs/core/langchain_core/language_models/fake_chat_models.py :: GenericFakeChatModel`
+- `langchain/libs/core/langchain_core/language_models/fake_chat_models.py :: GenericFakeChatModel` (no-tool model/token/callback fake; do not use as the `create_agent(..., tools=[...])` model)
+- `langchain/libs/langchain_v1/tests/unit_tests/agents/model.py :: FakeToolCallingModel` (Agent-with-tools test fake that implements `bind_tools`)
 - `langchain/libs/core/langchain_core/messages/ai.py :: AIMessage`
 - `langchain/libs/core/langchain_core/runnables/base.py :: Runnable`
 - `langgraph/libs/checkpoint/langgraph/checkpoint/memory/__init__.py :: InMemorySaver`
 - `langchain/libs/langchain_v1/langchain/agents/factory.py :: create_agent`
 
-Trace: one deterministic Agent test with fake model/tool/checkpointer.
+Trace: one deterministic Agent test with a `bind_tools`-capable fake model/tool/checkpointer; reserve `GenericFakeChatModel` for no-tool model, token, and callback tests.
 
 - [ ] **Step 3: Write `LESSON_39_OBSERVABILITY_CI`**
 

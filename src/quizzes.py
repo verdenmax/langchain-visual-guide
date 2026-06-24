@@ -856,23 +856,23 @@ QUIZZES = {
             {
                 "q": "一个聚焦测试在贡献循环里最直接解决什么问题？",
                 "opts": [
+                    "先跑全量测试并根据最早失败猜测范围",
+                    "只证明 reviewer 能读懂 PR，不验证行为",
                     "把失败缩到一个可解释行为，先红后绿，再扩大到相关检查",
-                    "替代所有 review",
-                    "证明真实模型永远稳定",
                     "让生成 HTML 不需要提交",
                 ],
-                "answer": 0,
+                "answer": 2,
                 "why": "聚焦测试给出明确因果：这个行为以前失败，修复后通过。之后再跑包级或 CI 级检查。",
             },
             {
                 "q": "教程和 PR 说明为什么优先写“文件 + 符号名”而不是固定行号？",
                 "opts": [
-                    "因为符号锚点比行号更抗上游重排，reviewer 仍能复查结论",
                     "因为符号名不能搜索",
                     "因为行号能跨版本保持不变",
                     "因为文件名不需要核验",
+                    "因为符号锚点比行号更抗上游重排，reviewer 仍能复查结论",
                 ],
-                "answer": 0,
+                "answer": 3,
                 "why": "行号会随着格式化和重构漂移；文件 + 符号名既可复查，又更适合长期教程和开源 PR。",
             },
         ],
@@ -885,15 +885,26 @@ QUIZZES = {
     "40-testing-debugging.html": {
         "mcq": [
             {
-                "q": "在 Agent 单元测试中使用 <code>GenericFakeChatModel</code> 的主要目的是什么？",
+                "q": "在无工具绑定的模型单元测试中使用 <code>GenericFakeChatModel</code> 的主要目的是什么？",
                 "opts": [
                     "评估真实模型的推理质量",
-                    "用预设消息消除模型随机性，让测试关注消息、工具和状态契约",
+                    "用预设消息消除模型随机性，验证消息脚本、token callback 或无工具链路",
                     "自动替换所有工具实现",
-                    "让测试绕过 <code>Runnable</code> 接口",
+                    "让 <code>create_agent(model, tools=[...])</code> 不再需要 <code>bind_tools</code>",
                 ],
                 "answer": 1,
-                "why": "Fake 模型把模型输出脚本化，测试就能稳定断言 AIMessage、tool_calls、ToolMessage 和最终状态。",
+                "why": "GenericFakeChatModel 不实现 bind_tools，适合 no-tool 模型输出、stream/token/callback 等测试；Agent 工具循环要用实现 bind_tools 的 fake。",
+            },
+            {
+                "q": "测试 <code>create_agent(model, tools=[...])</code> 的工具循环时，fake 模型最关键要实现什么？",
+                "opts": [
+                    "只返回普通字符串，不返回消息对象",
+                    "实现 <code>bind_tools</code>，并能按脚本返回带 <code>tool_calls</code> 的 <code>AIMessage</code>",
+                    "直接执行生产数据库查询",
+                    "跳过 <code>ToolMessage.tool_call_id</code> 配对",
+                ],
+                "answer": 1,
+                "why": "create_agent 会把工具 schema 绑定到模型；fake 不支持 bind_tools 时，测试在进入 Agent 循环前就会失败。",
             },
             {
                 "q": "确定性工具在测试中应该避免什么？",
@@ -919,7 +930,7 @@ QUIZZES = {
             },
         ],
         "open": [
-            "设计一个 fake Agent 测试：给出两条预设 AIMessage、一个确定性工具、一个 checkpointer，以及你会断言的消息状态。",
+            "设计一个 fake Agent 测试：说明 ToolCallingFakeModel 如何实现 bind_tools，给出两条预设 AIMessage、一个确定性工具、一个 checkpointer，以及你会断言的消息状态。",
             "某测试最终答案正确但工具被调用了两次。请说明要怎样断言 messages 序列、tool_call_id 和 ToolMessage 内容来定位问题。",
         ],
     },
