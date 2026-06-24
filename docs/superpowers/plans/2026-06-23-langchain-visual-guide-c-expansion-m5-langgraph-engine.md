@@ -105,7 +105,7 @@ Cover Pregel/BSP supersteps and Plan/Execution/Update. Source rows:
 - `langgraph/pregel/algo.py :: prepare_next_tasks`
 - `langgraph/pregel/algo.py :: apply_writes`
 - `langgraph/pregel/_runner.py :: PregelRunner`
-- `langgraph/pregel/debug.py :: print_step_*`
+- `langgraph/pregel/debug.py :: map_debug_tasks / map_debug_task_results / map_debug_checkpoint`
 
 Trace one graph step: subscribed channels select tasks, tasks run, writes are buffered, update phase applies writes.
 
