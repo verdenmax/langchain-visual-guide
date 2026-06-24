@@ -345,10 +345,9 @@ channels[&#x27;answer&#x27;].update([&#x27;最终答案&#x27;])
 <p>对于 LastValue 字段，也要写“同时写入”的设计测试或结构评审。比如 final_answer 不应该被两个并行节点同时写；如果确实可能出现，就让它们写 candidate_answers，再由 judge 节点写 final_answer。这个测试不是为了让 LastValue 通过，而是为了证明图结构避免了冲突。冲突被提前发现，说明 channel 设计在保护你。</p>
 <p>最后，给 reducer 写一句人类可读的业务解释。比如“risk_scores 按来源合并，因为每个评估器代表不同维度”“audit_events 按 event_id 去重追加，因为重试不应制造假审计”“messages 按 id 替换，因为流式或工具回填可能修正旧消息”。这些解释能帮助未来维护者判断是否可以改 reducer，而不是只看到一个神秘函数名。</p>
 <p>补充检查：为每个 reducer 写出“旧值、新值、结果”的三列表格，至少覆盖空旧值、正常追加、重复更新、并行两份更新和错误输入。表格比文字更容易暴露歧义：同一个文档重复出现是替换还是保留两份，同一个审计事件重试出现是忽略还是追加，同一个风险分数来源重复出现是取最大还是取最新，都应该在实现前说清。</p>
-<p>实战复盘时，还要把这节课的概念和前后课程连起来。状态字段会影响节点能否独立测试，节点返回的 partial update 会影响 reducer 是否有机会工作，reducer 的结果又会影响 compile 后运行时每一步看到的 state。任何一层含糊，后面几层都会变得难解释。因此不要把本课当成孤立 API 记忆，而要把它放进“schema 定义合同、节点产生更新、边选择去向、channel 合并更新、runtime 推进步骤”的连续链路里理解。</p>
-<p>写完图以后，建议做一次人工演练：拿一条具体用户输入，从 START 开始逐步写下当前 state、运行节点、返回 update、合并结果、下一条边。演练过程中只要出现“这里大概会怎样”“这个字段应该有吧”“这个分支应该不会走吧”，就说明设计还有隐含假设。把这些假设改成明确的 state key、路由条件、reducer 或测试用例，图才会从能跑的 demo 变成能维护的工程资产。</p>
-<p>还有一个经验是优先优化可解释性，而不是优先压缩代码行数。LangGraph 项目里，少写几行代码不一定更好；让每个节点、每条边、每个 state key 都能被命名和追踪，通常更重要。复杂 Agent 的主要成本不是首次实现，而是线上排障、规则调整、工具替换和版本迁移。清楚的图结构会在这些时刻不断回本。</p>
-<p>如果你需要向同事解释本课，可以用一句话收束：这不是在学习某个函数参数，而是在学习如何把不确定的模型行为包进确定的工程边界。模型可以生成不同文本，但图要明确哪些状态被保存，哪些节点能运行，哪些边能跳转，哪些更新能合并，哪些条件会停止。这个边界越清楚，AI 应用越接近可靠软件系统。</p>
+<p>Reducer 的收束点是合并法律，而不是数据类型技巧。一个好法律要说明是否满足交换律、结合律和幂等性；如果不满足，就要说明运行时顺序从哪里来，业务是否接受。并行 fan-in 里，无法解释顺序的 reducer 会让同样输入在不同调度下产生不同状态，这比显式冲突更危险。</p>
+<p>消息列表还要特别记住 id 语义。add_messages 不是无脑 append：新 id 追加，相同 id 替换。这个能力让流式修正和工具回填更自然，也让手写 message id 变成风险点。测试里要同时覆盖“不同 id 追加”和“相同 id 替换”，否则你可能把修正消息误当成新消息，或把新消息误覆盖掉。</p>
+<p>选择 reducer 时，先问业务再写代码：final_answer 是当前值，通常覆盖；audit_events 是事实历史，通常追加且不可改；retrieved_docs 可能要按 document_id 去重并排序；risk_scores 可能按来源合并。把这些语义写在 schema 旁边，fan-in 才能可复现，checkpoint 重放才不会制造重复或丢失。</p>
 <h2>常见误解与边界情况</h2>
 <div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：list 字段默认 append</div><div class="pf-correct">正确：默认通常是 LastValue 覆盖；需要累积就用 Annotated 声明 reducer。</div></div><div class="pitfall"><div class="pf-wrong">误解：重复 message id 会生成两条消息</div><div class="pf-correct">正确：add_messages 会按 id 替换旧消息，重复 id 表示更新。</div></div><div class="pitfall"><div class="pf-wrong">误解：任何 reducer 都适合并行</div><div class="pf-correct">正确：并行 fan-in 更偏好交换律、结合律清晰的 reducer，否则顺序会影响结果。</div></div><div class="pitfall"><div class="pf-wrong">误解：reducer 里可以顺手写日志或查库</div><div class="pf-correct">正确：reducer 应是纯合并函数；I/O 和副作用放到节点。</div></div></div>
 <h2>小实验</h2>

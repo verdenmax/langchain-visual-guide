@@ -124,34 +124,13 @@ LESSON_17_GRAPH_WHY = (
 <p>调试时，最有价值的不是最终答案，而是每一步 state 的变化。第一次 model 为什么请求 query_order？tools 返回了什么 ToolMessage？第二次 model 为什么没有继续调用工具？needs_human 为什么保持 False？如果图设计得好，这些问题都能从 trace 和 state update 中回答。若只能从一大段日志里猜测，说明节点、边或 state key 还不够显式。</p>
 <p>安全性也来自显式图结构。退款、发邮件、创建工单等副作用可以集中在少数工具节点，并配合 human_review 或 approval 节点。模型节点只提出意图，不直接执行高风险动作；路由函数只决定去向，不偷偷做副作用；工具节点返回可审计结果。这样产品规则、权限控制和工程实现能在同一张图里对齐。</p>
 <p>最后，用图之后仍要保持克制。不要为了展示 LangGraph 把每个 if 都变成节点，也不要让一个 route 函数承担所有业务判断。图应该让复杂性变得可见，而不是把简单问题复杂化。一个健康的订单图，读者能在一分钟内说出主循环、异常分支和终止条件；如果读者只看到满屏节点却说不出状态如何流动，说明抽象粒度需要回调。</p>
-<h2>案例推演：客服 Agent 的 schema 评审</h2>
-<p>假设你要设计订单客服图，第一次评审 schema 时可以把白板分成四栏：入口、内部、输出、上下文。入口可能只有 messages 和可选 order_id；内部包括 retrieved_docs、tool_attempts、last_tool_error、risk_flags、draft_answer；输出包括 messages、final_answer、needs_human；上下文包括 user_id、tenant_id、locale、permissions。这样一分，团队立刻能看出哪些数据来自调用方，哪些数据只是图内部协作，哪些数据会暴露给外部。</p>
-<p>接着审查每个 key 的更新者。messages 会被入口、model、tools 写；tool_attempts 会被工具节点写；risk_flags 由风控节点写；draft_answer 由模型节点覆盖；final_answer 由 finalize 节点覆盖。一个 key 如果没有明确写入者，可能是多余的；如果有太多写入者，可能需要拆分或增加 reducer。schema 评审的目标不是追求字段越少越好，而是让每个字段都有主人和生命周期。</p>
-<p>第三步审查合并语义。messages 用 add_messages，tool_attempts 可以按工具调用 id 去重追加，risk_flags 可以用集合并集，draft_answer 和 final_answer 用 LastValue，last_tool_error 也可以覆盖。retrieved_docs 则要看业务：如果多个检索节点并行，可能按 document_id 去重并按分数排序；如果只有一个检索节点，每次覆盖当前候选就足够。合并语义必须来自业务，而不是来自字段类型。</p>
-<p>第四步审查 checkpoint 价值。哪些 key 是恢复时必须保留的？messages、tool_attempts、needs_human 通常需要；临时 prompt 片段、模型对象、数据库连接不应该进入 state。这个问题能帮助你把不可序列化对象排除出去，也能减少 checkpoint 体积。记住：能写进 state 的，不一定都应该长期保存；应该保存的，必须有清晰类型和语义。</p>
-<p>第五步审查隐私和权限。user_id 放 context 并不表示它不重要，而是它描述运行环境。订单详情、用户输入、工具结果如果进入 state，就可能被 checkpoint 保存，需要考虑脱敏、保留周期和访问控制。schema 设计不是纯技术细节，它决定哪些数据会出现在 trace、存档和调试页面。越早明确，越少后续合规返工。</p>
-<p>最后，把 schema 当成团队接口文档。节点作者按它返回 partial update，测试作者按它构造状态，运维排障按它读 checkpoint，产品讨论按它理解流程。一个好的 State schema 不需要很花哨，但必须命名稳定、合并语义明确、context/state 边界清楚。只要这份合同稳，图的节点可以逐步演进；合同含糊，节点越多越难维护。</p>
-<h2>案例推演：把路由函数从“聪明”改成“可靠”</h2>
-<p>很多初学者会把 route_tools 写得很“聪明”：让它重新调用模型判断要不要工具，查数据库确认工具是否可用，顺手记录一条审计日志，最后返回某个字符串。这样的函数短期看似集中，长期会变成不可测试的黑盒。可靠的路由函数应该更笨：只看当前 state 中已经存在的信息，例如最后一条消息、tool_rounds、last_tool_error、needs_human，然后返回有限集合里的一个目的地。</p>
-<p>以工具循环为例，route_tools 可以先处理保护条件：如果 messages 为空，返回 END 或 error_handler；如果 tool_rounds 超过上限，返回 human_review；如果最后消息不是 AIMessage，返回 END；如果最后 AIMessage 没有 tool_calls，返回 END；否则返回 tools。这个顺序把异常形状、终止条件和正常工具分支分开，测试也能一一覆盖。路由不需要解释业务答案，它只需要做稳定转移。</p>
-<p>节点和路由分离后，错误定位会简单很多。模型没有产生 tool_calls，是 model 节点的问题；tool_calls 参数不合法，是工具节点或模型提示的问题；route 返回了不存在的节点，是路由拼写或 path_map 问题；tools 执行失败后仍然回到 model，是错误分支缺失。每类问题都有明确责任，而不是全部混在一个“Agent 不工作”的症状里。</p>
-<p>条件边的 path_map 可以让路由返回业务标签，而不是直接暴露节点名。例如 route 返回 'need_tool'、'done'、'blocked'，path_map 再映射到 tools、END、human_review。这样业务判断和图节点命名可以适度解耦。但无论是否使用 path_map，返回集合都应清楚、有限、可测试。不要让 route 返回任意模型文本，再靠模糊匹配决定下一跳。</p>
-<p>当一个 route 函数分支越来越多时，可能说明图需要分层。先用 classify 节点写入 next_action，再用简单条件边根据 next_action 跳转；或把错误处理、人审处理、工具处理拆成多个局部路由。复杂路由不是罪，但它必须有结构。把所有 if 都堆在一个函数里，会让图表面清楚、内部混乱。</p>
-<p>最后，边也需要测试。很多项目只测节点输出，不测 route 返回值，结果线上因为 'tool' 和 'tools' 这种拼写差异失败。给每个条件边写一组状态样本，是成本最低的保险。节点测试证明“这一步产出什么”，路由测试证明“产出之后去哪”，两者合起来才证明图能按预期流动。</p>
-<h2>案例推演：并行检索结果如何安全汇总</h2>
-<p>假设一个 RAG 图有三个并行检索节点：向量检索、关键词检索、知识库工具检索。它们都想把候选文档写入 retrieved_docs。如果 retrieved_docs 没有 reducer，最后可能只剩一个分支的结果，或者运行时报冲突。正确做法不是让每个节点返回整份 state，而是先决定合并语义：按 document_id 去重，保留最高 score，记录来源 sources，最后按 score 排序截断前 N 条。</p>
-<p>这个合并语义可以由自定义 reducer 表达，也可以让三个分支分别写 vector_docs、keyword_docs、tool_docs，再由 merge_docs 节点统一处理。前者让 fan-in 更直接，后者让排序、去重和解释更可控。选择哪种方式取决于复杂度：如果合并规则简单、纯粹、无副作用，reducer 很合适；如果合并需要较多业务逻辑、日志或模型判断，单独节点更清楚。</p>
-<p>消息合并也有类似权衡。messages 用 add_messages 是因为聊天消息的追加和按 id 替换是通用语义，适合作为 reducer。若你要做“只保留最近十轮”“压缩旧消息”“根据 token 数摘要历史”，就不一定应该全塞进 reducer。摘要需要模型或复杂策略时，更适合一个 memory_compaction 节点，先读取 messages，再返回压缩后的明确更新。</p>
-<p>审计事件通常要求不可变追加。audit_events 的 reducer 可以按 event_id 去重追加，但不应替换旧内容，因为审计记录代表发生过的事实。相反，current_risk_level 可以覆盖，因为它代表当前判断。把这两类 key 混用会出事故：如果审计用 LastValue，会丢历史；如果当前风险用盲目 append，下游又要猜哪个才是最新。</p>
-<p>并行分支还要求 reducer 的结果可解释。下游 answer 节点看到 retrieved_docs 时，最好知道每条文档来自哪个分支、分数是多少、是否被去重合并。一个只返回纯字符串列表的 reducer，可能让模型能回答，却让排障人员不知道为什么某文档被选中。合并后的数据结构应服务下游模型，也服务人类调试。</p>
-<p>最后，不要为了避免冲突给所有 key 都加“列表追加”。冲突有时是设计给你的提醒：两个节点同时写同一个最终值，说明责任不清。健康的 reducer 设计，会区分“可以自然合并的多值产物”和“必须由某个裁决节点选择的单值决策”。这个区分，是复杂图能长期维护的关键。</p>
-<h2>案例推演：一次带 checkpoint 的运行时间线</h2>
-<p>应用启动时，服务创建 StateGraph，注册 model、tools、human_review、finalize 等节点，添加边和条件边，然后调用 compile(checkpointer=saver)。这一步如果节点名拼错、边指向不存在的节点、schema reducer 无法解析，应该直接启动失败。此时没有任何用户消息进入图，也没有模型调用发生。compile 的输出是一个可复用的 compiled graph，可以放进应用容器供请求处理函数使用。</p>
-<p>用户发来第一条消息时，请求处理函数构造输入 {'messages': [HumanMessage(...)]}，同时构造 config {'configurable': {'thread_id': session_id}}。session_id 必须能唯一代表这段对话或工单。compiled.invoke 接收输入后，Pregel runtime 初始化 channels，读取或创建该 thread 的 checkpoint，注入 runtime context，然后从 START 的后继节点开始执行。模型调用、工具调用、路由判断都发生在这个阶段。</p>
-<p>每个 step 结束时，节点返回的 partial update 会提交到 channel，合并后的 state 可能被 checkpointer 保存。这样当工具调用后需要人审，图可以暂停；人类批准后，再用同一个 thread_id 恢复，运行时能找到之前的 messages、tool_attempts 和等待状态。没有 thread_id，checkpointer 就像录像机没有磁带标签，无法可靠知道该接哪一段。</p>
-<p>如果服务改版增加了一个 fraud_check 节点，必须重新 compile 并部署新 compiled graph。旧 compiled graph 不会自动拥有新节点。对于已经存在的 checkpoint，还要考虑状态兼容：旧 checkpoint 里没有 fraud_flags，新 schema 是否提供默认值？路由是否能处理缺失 key？这说明 compile/runtime 不是孤立 API，而是和版本迁移、持久化兼容一起考虑的工程问题。</p>
-<p>stream 模式下，时间线不变，只是运行过程中的事件或状态片段被逐步交给调用者。前端看到 token、节点事件或中间状态，不代表图用了另一套逻辑。为了避免前后端理解偏差，后端应该明确 stream_mode 输出的是消息、values、updates 还是自定义事件。否则前端可能把中间 update 当最终答案，或漏掉最后的 END 状态。</p>
-<p>排查 checkpoint 问题时，按固定顺序看：config 是否带 thread_id；thread_id 是否对每个用户唯一；checkpointer 是否真的传给 compile；节点是否把需要恢复的数据写入 state 而不是 context；恢复时 input 是否和线程状态兼容；output_schema 是否隐藏了你想看的调试 key。按时间线排查，比反复修改节点逻辑更有效。</p>
+<h2>迁移判断：什么时候从 LCEL 链升级到 LangGraph</h2>
+<p>第一条判断线是循环是否已经成为业务规则，而不只是临时控制代码。如果你在链外写 while，反复让模型判断是否还要调用工具，再手动把工具结果塞回下一次 prompt，那么真正的系统已经不是直线链，而是一个状态机。迁移到 LangGraph 时，循环要有明确终止：无 tool_calls、达到最大轮数、工具重复返回同样信息、出现不可恢复错误、用户取消或进入人工审核。没有终止条件的图只是把隐形无限循环换成显形无限循环。</p>
+<p>第二条判断线是审计是否重要。直线 LCEL 很适合看“输入经过哪些 Runnable 变成输出”；但复杂 Agent 更常问“第几轮模型为什么选择这个工具，工具返回了什么，路由为什么没有结束，最终答案基于哪些观察”。LangGraph 把节点、边和 state update 暴露成可追踪结构，便于事后复盘和问题定位。如果系统涉及订单、退款、医疗建议、合同草稿或高成本工具调用，审计能力通常不是锦上添花，而是上线前提。</p>
+<p>第三条判断线是状态是否应该显式命名。LCEL 链可以把中间结果自然地从上一段传给下一段；一旦多个步骤都要读取和更新 messages、tool_attempts、draft_answer、needs_human、last_error 这样的共享数据，继续靠外部变量或闭包维护就会让责任模糊。LangGraph 要求你把这些数据放进 state，并让节点只返回 partial update。这样每个字段谁写、谁读、怎样合并、何时输出，都能被讨论和测试。</p>
+<p>第四条判断线是未来是否需要人工介入。很多团队一开始只做自动工具循环，后来才发现退款、删除数据、发送邮件、合规回答都需要人审或确认。如果已经预见到这些节点，提前用图表达 human_review、approval、resume 分支会更稳。即使第一版不接真实人工界面，也可以先让路由把高风险状态导向一个占位节点，保持流程边界清楚，避免以后在链外硬塞暂停和恢复逻辑。</p>
+<p>第五条判断线是图边界本身。不是所有小步骤都应该变成节点：字符串清洗、简单格式化、一次 prompt 模板填充，放在 LCEL 子链或普通函数里更清楚。适合作为图节点的是业务上可命名、可观察、可失败、可重试、可能影响下一跳的动作。一个健康设计通常是“外层 LangGraph 管状态机，节点内部继续使用 LCEL 处理局部无环数据流”。这样既不丢掉链的简洁，也不把循环和状态藏在链外。</p>
+<p>因此，迁移不是因为 LangGraph 更高级，而是因为你的应用已经出现了状态机的事实。只要你能写出“哪些状态持续存在、哪些节点负责更新、哪些边决定去向、哪些条件让循环停止、哪些步骤需要审计或人工准备”，迁移就是自然的；如果这些问题还答不上来，先整理链外的隐含规则，再动手建图。</p>
 <h2>常见误解与边界情况</h2>
 """
     + shell.pitfall_grid(
@@ -293,11 +272,10 @@ class StateGraph:
 <p>还可以用 schema 设计测试夹具。为 messages 构造最小历史，为 retrieved_docs 构造空列表、重复文档和高分文档，为 needs_human 构造 True/False 两种状态。节点测试不需要真实跑完整图，只要给定这些状态样本，检查 partial update 是否符合合同。这样测试能直接保护 schema 语义，而不是只验证最终页面有没有文本。</p>
 <p>当需求变化时，先改 schema 说明再改节点。比如新增“用户情绪”能力，不要直接在某个节点里塞一个 sentiment 临时字段；先决定它是当前值还是历史，谁负责写，是否输出，是否影响路由，是否需要 checkpoint。这个顺序能避免临时字段扩散成隐形公共接口。很多长期维护成本，都是从一个没有评审的临时 key 开始的。</p>
 <p>最后，把 schema 文档和源码引用放在一起复查。StateGraph.__init__ 告诉你图接收哪些 schema，_get_channel 告诉你字段会落到什么通道，Runtime 告诉你 context 怎样进入节点，add_messages 告诉你消息列表怎样合并。只要这四个证据能支撑你的设计，schema 就不是凭感觉写出来的，而是和运行时机制对齐的合同。</p>
-<p>补充检查：如果某个字段既被路由函数读取，又被多个节点更新，就要特别确认它的默认值、更新时机和 reducer。路由读到的是合并后的状态，而不是节点内部临时变量；字段缺失、空列表、空字符串和 None 的语义也应写清。很多边界 bug 来自“默认没有值”被误解成“业务判断为否”，所以 schema 评审要覆盖初始状态和异常状态。</p>
-<p>实战复盘时，还要把这节课的概念和前后课程连起来。状态字段会影响节点能否独立测试，节点返回的 partial update 会影响 reducer 是否有机会工作，reducer 的结果又会影响 compile 后运行时每一步看到的 state。任何一层含糊，后面几层都会变得难解释。因此不要把本课当成孤立 API 记忆，而要把它放进“schema 定义合同、节点产生更新、边选择去向、channel 合并更新、runtime 推进步骤”的连续链路里理解。</p>
-<p>写完图以后，建议做一次人工演练：拿一条具体用户输入，从 START 开始逐步写下当前 state、运行节点、返回 update、合并结果、下一条边。演练过程中只要出现“这里大概会怎样”“这个字段应该有吧”“这个分支应该不会走吧”，就说明设计还有隐含假设。把这些假设改成明确的 state key、路由条件、reducer 或测试用例，图才会从能跑的 demo 变成能维护的工程资产。</p>
-<p>还有一个经验是优先优化可解释性，而不是优先压缩代码行数。LangGraph 项目里，少写几行代码不一定更好；让每个节点、每条边、每个 state key 都能被命名和追踪，通常更重要。复杂 Agent 的主要成本不是首次实现，而是线上排障、规则调整、工具替换和版本迁移。清楚的图结构会在这些时刻不断回本。</p>
-<p>如果你需要向同事解释本课，可以用一句话收束：这不是在学习某个函数参数，而是在学习如何把不确定的模型行为包进确定的工程边界。模型可以生成不同文本，但图要明确哪些状态被保存，哪些节点能运行，哪些边能跳转，哪些更新能合并，哪些条件会停止。这个边界越清楚，AI 应用越接近可靠软件系统。</p>
+<p>补充检查：schema 合同要覆盖“初始、运行中、结束后”三个状态。初始 state 里哪些 key 可缺省，运行中哪些 key 只能由内部节点写，结束后 output_schema 暴露哪些 key，都应写清楚。否则同一个字段可能在入口被调用方误传，在中途被节点覆盖，最后又被外部依赖，合同边界会迅速失控。</p>
+<p>context/state 边界也要反复复查。user_id、tenant_id、permissions、实验开关描述运行环境，适合随 Runtime context 注入；messages、retrieved_docs、needs_human、final_answer 描述业务演化，适合进入 state。把环境写进 state 会污染 checkpoint，把业务历史藏进 context 会让 trace 看不见关键变化。边界清楚，恢复、测试和权限审查才有共同语言。</p>
+<p>状态演进要像版本化 API 一样对待。新增 key 时说明默认值、写入者、读取者、合并语义和输出可见性；删除或改名 key 时检查旧 checkpoint、旧测试夹具和下游调用者。LangGraph 的 state 不是临时 dict，而是节点之间的公共合同。合同越稳定，图越容易迭代。</p>
+<p>本课可以用一句话收束：schema 先定义工程边界，再允许模型在边界内产生不确定输出。模型文本可能变化，但 state key 的含义、context 的来源、partial update 的目标和 reducer 的选择必须稳定。把这份合同写清，后续节点、边和运行时才有可靠基础。</p>
 <h2>常见误解与边界情况</h2>
 """
     + shell.pitfall_grid(
@@ -355,8 +333,8 @@ LESSON_19_NODES_EDGES = (
             {"file": "langgraph/graph/state.py", "symbol": "StateGraph.add_node", "role": "把函数、Runnable 或节点规格注册进状态图，并绑定节点名", "direction": "用户定义业务步骤，compile 时被包装成 Pregel 节点"},
             {"file": "langgraph/graph/graph.py", "symbol": "Graph.add_edge", "role": "声明一个固定后继关系，当前节点完成后调度目标节点", "direction": "START、普通节点和 END 之间建立静态路径"},
             {"file": "langgraph/graph/graph.py", "symbol": "Graph.add_conditional_edges", "role": "注册路由函数和可选路径映射，让 state 决定下一跳", "direction": "运行时调用 route 函数，返回节点名、END 或映射键"},
-            {"file": "langgraph/graph/graph.py", "symbol": "START", "role": "虚拟入口节点，表示图从哪里接收初始 state", "direction": "START -> first_node"},
-            {"file": "langgraph/graph/graph.py", "symbol": "END", "role": "虚拟终点，路由到 END 表示本次图运行完成", "direction": "route 或普通边指向 END 后结束"},
+            {"file": "langgraph/constants.py", "symbol": "START", "role": "虚拟入口常量，供 add_edge 等图结构 API 标记初始边界", "direction": "START -> first_node，运行时从入口边接收初始 state"},
+            {"file": "langgraph/constants.py", "symbol": "END", "role": "虚拟终点常量，供普通边或条件边标记运行完成", "direction": "route 返回 END 或边指向 END 后结束本次图运行"},
         ]
     )
     + r"""
@@ -438,10 +416,9 @@ def route_tools(state):
 <p>对工具循环，还要单独写失败转移。工具参数缺失、工具超时、工具返回权限错误、工具结果为空，这些状态不应该全部回到 model 让模型猜。可以让工具节点写 last_tool_error 和 tool_attempts，再由条件边选择 retry、human_review、error_handler 或 END。失败路径越显式，用户体验越稳定，副作用也越可控。</p>
 <p>最后，用 START/END 检查整图连通性。每个业务节点都应该能从 START 到达，也应该在合理条件下走向 END 或错误终点。如果一个节点只能进入不能退出，通常是漏边；如果一个节点永远不可达，通常是旧设计残留。把这项检查放进代码评审，比等运行时发现“某分支永远没触发”更省成本。</p>
 <p>补充检查：每个条件边都应有一组最小样本状态，能证明所有返回值都可达且合法。样本不需要真实模型输出，可以手写 AIMessage、ToolMessage 或错误标记。这样做的好处是把路由从模型不确定性中解耦出来：即使模型偶尔输出奇怪内容，图的控制层仍然有可预测的保护分支和终止路径。</p>
-<p>实战复盘时，还要把这节课的概念和前后课程连起来。状态字段会影响节点能否独立测试，节点返回的 partial update 会影响 reducer 是否有机会工作，reducer 的结果又会影响 compile 后运行时每一步看到的 state。任何一层含糊，后面几层都会变得难解释。因此不要把本课当成孤立 API 记忆，而要把它放进“schema 定义合同、节点产生更新、边选择去向、channel 合并更新、runtime 推进步骤”的连续链路里理解。</p>
-<p>写完图以后，建议做一次人工演练：拿一条具体用户输入，从 START 开始逐步写下当前 state、运行节点、返回 update、合并结果、下一条边。演练过程中只要出现“这里大概会怎样”“这个字段应该有吧”“这个分支应该不会走吧”，就说明设计还有隐含假设。把这些假设改成明确的 state key、路由条件、reducer 或测试用例，图才会从能跑的 demo 变成能维护的工程资产。</p>
-<p>还有一个经验是优先优化可解释性，而不是优先压缩代码行数。LangGraph 项目里，少写几行代码不一定更好；让每个节点、每条边、每个 state key 都能被命名和追踪，通常更重要。复杂 Agent 的主要成本不是首次实现，而是线上排障、规则调整、工具替换和版本迁移。清楚的图结构会在这些时刻不断回本。</p>
-<p>如果你需要向同事解释本课，可以用一句话收束：这不是在学习某个函数参数，而是在学习如何把不确定的模型行为包进确定的工程边界。模型可以生成不同文本，但图要明确哪些状态被保存，哪些节点能运行，哪些边能跳转，哪些更新能合并，哪些条件会停止。这个边界越清楚，AI 应用越接近可靠软件系统。</p>
+<p>路由可靠性的核心，是返回值集合要小而稳定。route_tools 不应返回模型自然语言，也不应把布尔、节点名和业务标签混着用。要么直接返回 tools、END、human_review 这样的合法目的地，要么返回 need_tool、done、blocked 这样的业务标签并用 path_map 明确映射。每个返回值都应能在代码审查中被追到一条边。</p>
+<p>测试路由函数时，不要依赖真实模型刚好生成某种 tool_calls。构造最小 state：空 messages、最后消息无工具、最后消息有工具、工具轮数超限、工具错误需要人工。对每个样本断言返回值和 path_map 都合法。这样即使节点内部 prompt 后来改变，控制层仍然能保证不会跳到不存在的节点或漏掉终止条件。</p>
+<p>节点和边的收束原则是：节点负责产出事实，路由负责根据事实选择去向。只要 route 函数保持纯、短、可枚举，复杂 Agent 的控制流就能被单独理解和验证。反之，如果路由一边调用模型一边写审计再返回任意字符串，图看起来有结构，实际仍然是不可测试的黑盒。</p>
 <h2>常见误解与边界情况</h2>
 """
     + shell.pitfall_grid(
@@ -586,10 +563,9 @@ channels['answer'].update(['最终答案'])
 <p>对于 LastValue 字段，也要写“同时写入”的设计测试或结构评审。比如 final_answer 不应该被两个并行节点同时写；如果确实可能出现，就让它们写 candidate_answers，再由 judge 节点写 final_answer。这个测试不是为了让 LastValue 通过，而是为了证明图结构避免了冲突。冲突被提前发现，说明 channel 设计在保护你。</p>
 <p>最后，给 reducer 写一句人类可读的业务解释。比如“risk_scores 按来源合并，因为每个评估器代表不同维度”“audit_events 按 event_id 去重追加，因为重试不应制造假审计”“messages 按 id 替换，因为流式或工具回填可能修正旧消息”。这些解释能帮助未来维护者判断是否可以改 reducer，而不是只看到一个神秘函数名。</p>
 <p>补充检查：为每个 reducer 写出“旧值、新值、结果”的三列表格，至少覆盖空旧值、正常追加、重复更新、并行两份更新和错误输入。表格比文字更容易暴露歧义：同一个文档重复出现是替换还是保留两份，同一个审计事件重试出现是忽略还是追加，同一个风险分数来源重复出现是取最大还是取最新，都应该在实现前说清。</p>
-<p>实战复盘时，还要把这节课的概念和前后课程连起来。状态字段会影响节点能否独立测试，节点返回的 partial update 会影响 reducer 是否有机会工作，reducer 的结果又会影响 compile 后运行时每一步看到的 state。任何一层含糊，后面几层都会变得难解释。因此不要把本课当成孤立 API 记忆，而要把它放进“schema 定义合同、节点产生更新、边选择去向、channel 合并更新、runtime 推进步骤”的连续链路里理解。</p>
-<p>写完图以后，建议做一次人工演练：拿一条具体用户输入，从 START 开始逐步写下当前 state、运行节点、返回 update、合并结果、下一条边。演练过程中只要出现“这里大概会怎样”“这个字段应该有吧”“这个分支应该不会走吧”，就说明设计还有隐含假设。把这些假设改成明确的 state key、路由条件、reducer 或测试用例，图才会从能跑的 demo 变成能维护的工程资产。</p>
-<p>还有一个经验是优先优化可解释性，而不是优先压缩代码行数。LangGraph 项目里，少写几行代码不一定更好；让每个节点、每条边、每个 state key 都能被命名和追踪，通常更重要。复杂 Agent 的主要成本不是首次实现，而是线上排障、规则调整、工具替换和版本迁移。清楚的图结构会在这些时刻不断回本。</p>
-<p>如果你需要向同事解释本课，可以用一句话收束：这不是在学习某个函数参数，而是在学习如何把不确定的模型行为包进确定的工程边界。模型可以生成不同文本，但图要明确哪些状态被保存，哪些节点能运行，哪些边能跳转，哪些更新能合并，哪些条件会停止。这个边界越清楚，AI 应用越接近可靠软件系统。</p>
+<p>Reducer 的收束点是合并法律，而不是数据类型技巧。一个好法律要说明是否满足交换律、结合律和幂等性；如果不满足，就要说明运行时顺序从哪里来，业务是否接受。并行 fan-in 里，无法解释顺序的 reducer 会让同样输入在不同调度下产生不同状态，这比显式冲突更危险。</p>
+<p>消息列表还要特别记住 id 语义。add_messages 不是无脑 append：新 id 追加，相同 id 替换。这个能力让流式修正和工具回填更自然，也让手写 message id 变成风险点。测试里要同时覆盖“不同 id 追加”和“相同 id 替换”，否则你可能把修正消息误当成新消息，或把新消息误覆盖掉。</p>
+<p>选择 reducer 时，先问业务再写代码：final_answer 是当前值，通常覆盖；audit_events 是事实历史，通常追加且不可改；retrieved_docs 可能要按 document_id 去重并排序；risk_scores 可能按来源合并。把这些语义写在 schema 旁边，fan-in 才能可复现，checkpoint 重放才不会制造重复或丢失。</p>
 <h2>常见误解与边界情况</h2>
 """
     + shell.pitfall_grid(
@@ -648,7 +624,7 @@ LESSON_21_COMPILE_RUNTIME = (
             {"file": "langgraph/graph/state.py", "symbol": "CompiledStateGraph", "role": "编译后的状态图，继承/组合 Pregel 能力并实现 Runnable 调用面", "direction": "调用者对它 invoke、stream、batch"},
             {"file": "langgraph/pregel/main.py", "symbol": "Pregel", "role": "底层图执行运行时，按步骤计划、执行节点、提交 channel 更新", "direction": "CompiledStateGraph 的运行核心"},
             {"file": "langgraph/runtime.py", "symbol": "Runtime", "role": "节点运行时对象，暴露 context、store、stream_writer 等非 state 能力", "direction": "运行阶段注入节点，不属于 compile 执行"},
-            {"file": "langgraph/checkpoint/base/__init__.py", "symbol": "BaseCheckpointSaver", "role": "checkpoint 抽象接口，保存和读取线程/步骤状态", "direction": "invoke/stream 时通过 config 中 thread_id 等信息定位"},
+            {"file": "langgraph/checkpoint/base.py", "symbol": "BaseCheckpointSaver", "role": "checkpoint 抽象接口，保存和读取线程/步骤状态", "direction": "invoke/stream 时通过 config 中 thread_id 等信息定位"},
         ]
     )
     + r"""
@@ -733,10 +709,10 @@ result = compiled.invoke(
 <p>最后，运行时排障要保存足够但不过量的信息。trace 需要看到节点名、路由结果、state update 摘要、thread_id 和错误类型；不应随意泄漏密钥、完整隐私数据或不可公开的工具响应。Runtime context、RunnableConfig metadata、checkpoint 内容各有边界。边界清楚，既能调试，也能保护用户数据。</p>
 <p>补充检查：compile/runtime 的测试最好包含一个“不会发生”的断言，例如只调用 compile 时节点计数器保持为零，只有 invoke 后计数器才增加。再加一个 checkpoint 配置测试：同一 thread_id 能恢复历史，不同 thread_id 彼此隔离，缺失 thread_id 时给出明确错误或退化策略。这样的测试能防止团队把构建期、运行期和持久化边界混在一起。</p>
 <p>部署时还要记录 compiled graph 的版本。运行日志中保留图版本、thread_id、入口 schema 版本和关键路由结果，能帮助你把用户报告的问题对应到具体图结构。如果没有这些信息，checkpoint 里的状态可能来自旧图，当前代码却按新图解释，排查会非常困难。版本信息不是课程细节，而是有状态运行系统的基本卫生。</p>
-<p>实战复盘时，还要把这节课的概念和前后课程连起来。状态字段会影响节点能否独立测试，节点返回的 partial update 会影响 reducer 是否有机会工作，reducer 的结果又会影响 compile 后运行时每一步看到的 state。任何一层含糊，后面几层都会变得难解释。因此不要把本课当成孤立 API 记忆，而要把它放进“schema 定义合同、节点产生更新、边选择去向、channel 合并更新、runtime 推进步骤”的连续链路里理解。</p>
-<p>写完图以后，建议做一次人工演练：拿一条具体用户输入，从 START 开始逐步写下当前 state、运行节点、返回 update、合并结果、下一条边。演练过程中只要出现“这里大概会怎样”“这个字段应该有吧”“这个分支应该不会走吧”，就说明设计还有隐含假设。把这些假设改成明确的 state key、路由条件、reducer 或测试用例，图才会从能跑的 demo 变成能维护的工程资产。</p>
-<p>还有一个经验是优先优化可解释性，而不是优先压缩代码行数。LangGraph 项目里，少写几行代码不一定更好；让每个节点、每条边、每个 state key 都能被命名和追踪，通常更重要。复杂 Agent 的主要成本不是首次实现，而是线上排障、规则调整、工具替换和版本迁移。清楚的图结构会在这些时刻不断回本。</p>
-<p>如果你需要向同事解释本课，可以用一句话收束：这不是在学习某个函数参数，而是在学习如何把不确定的模型行为包进确定的工程边界。模型可以生成不同文本，但图要明确哪些状态被保存，哪些节点能运行，哪些边能跳转，哪些更新能合并，哪些条件会停止。这个边界越清楚，AI 应用越接近可靠软件系统。</p>
+<p>运营清单应按生命周期排列：构建期检查节点名、边、schema 和 reducer；编译期确认 checkpointer、interrupt 和 debug 配置；运行期确认 input、context、configurable.thread_id 和 stream_mode；恢复期确认 checkpoint 版本、state 兼容和输出过滤。按阶段排查，能避免把 thread_id 配错误判成模型问题，或把旧 compiled graph 误判成节点 bug。</p>
+<p>本课最终要记住的是时间线：builder 只是图纸，compile 只是装配，invoke/stream 才运行，checkpoint 在运行步骤边界保存和恢复。每次上线前都应问四个问题：我部署的是哪份 compiled graph？每个请求的 thread_id 从哪里来？旧 checkpoint 是否还能被新 schema 解释？出现中断后由谁、用什么输入恢复？这些问题答清楚，LangGraph 才能从 demo 变成可运营系统。</p>
+<p>还要把这个清单落实到团队流程里：代码评审检查图结构和 state 合同，启动日志记录编译产物版本，请求日志记录 thread_id 与关键路由，恢复工具能查看最近 checkpoint 摘要，回滚方案说明旧线程如何继续运行。compile/runtime 课程的重点不是背 API 名称，而是建立运维边界。谁负责构建，谁负责调用，谁负责保存，谁负责恢复，每一段都明确，线上故障才不会在模型、图、存储和前端之间来回甩锅。</p>
+<p>最后给自己一个上线前口令：先确认图能编译，再确认一次 invoke 能结束，再确认同一 thread_id 能恢复，再确认不同 thread_id 不串线，再确认 stream 只改变输出形式而不改变业务路径。这个顺序能把构建、执行、持久化和观测分开验证，避免把所有风险压到真实用户请求上，也让排障记录能对应具体生命周期阶段和责任人，减少临场猜测即可。</p>
 <h2>常见误解与边界情况</h2>
 """
     + shell.pitfall_grid(

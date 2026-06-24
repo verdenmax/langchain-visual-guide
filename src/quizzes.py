@@ -1354,10 +1354,10 @@ QUIZZES = {
                 "opts": [
                     "create_agent 完全绕过 LangGraph，只使用字符串拼接",
                     "LangGraph 只负责前端可视化，不参与运行",
-                    "create_agent 是高层便利入口，底层 Agent 循环、状态和持久化能力建立在 LangGraph 上",
                     "二者只能二选一，不能同时出现",
+                    "create_agent 是高层便利入口，底层 Agent 循环、状态和持久化能力建立在 LangGraph 上",
                 ],
-                "answer": 2,
+                "answer": 3,
                 "why": "LangChain 提供易用 API，LangGraph 提供状态图运行时。高层 Agent 入口常把用户配置组装成可运行的 LangGraph 图。",
             },
         ],
@@ -1404,7 +1404,7 @@ QUIZZES = {
         ],
         "open": [
             "为一个“订单客服 Agent”选择 state keys：messages、order_id、tool_attempts、retrieved_docs、final_answer、needs_human 中哪些需要 reducer？哪些应只做内部私有 state？",
-            "你发现某节点执行了 <code>state['messages'].append(msg)</code> 后偶发丢历史。请写出调试步骤，并说明如何改成 partial update + reducer。",
+            "你发现某节点直接对 messages 列表执行 append(msg) 后偶发丢历史。请写出调试步骤，并说明如何改成 partial update + reducer。",
         ],
     },
     "29-langgraph-nodes-edges.html": {
@@ -1518,10 +1518,10 @@ QUIZZES = {
                 "opts": [
                     "thread_id 用来选择 HTML 模板",
                     "thread_id 会让模型跳过工具调用",
-                    "thread_id 通常用于定位保存/恢复哪一条会话线程的 checkpoint",
                     "thread_id 会改变 Python 类型检查结果",
+                    "thread_id 通常用于定位保存/恢复哪一条会话线程的 checkpoint",
                 ],
-                "answer": 2,
+                "answer": 3,
                 "why": "checkpointer 需要知道状态属于哪条线程/会话。缺失或复用错误 thread_id 都可能导致无法恢复或状态串线。",
             },
         ],

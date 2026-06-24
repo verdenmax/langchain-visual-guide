@@ -342,11 +342,10 @@ class StateGraph:
 <p>还可以用 schema 设计测试夹具。为 messages 构造最小历史，为 retrieved_docs 构造空列表、重复文档和高分文档，为 needs_human 构造 True/False 两种状态。节点测试不需要真实跑完整图，只要给定这些状态样本，检查 partial update 是否符合合同。这样测试能直接保护 schema 语义，而不是只验证最终页面有没有文本。</p>
 <p>当需求变化时，先改 schema 说明再改节点。比如新增“用户情绪”能力，不要直接在某个节点里塞一个 sentiment 临时字段；先决定它是当前值还是历史，谁负责写，是否输出，是否影响路由，是否需要 checkpoint。这个顺序能避免临时字段扩散成隐形公共接口。很多长期维护成本，都是从一个没有评审的临时 key 开始的。</p>
 <p>最后，把 schema 文档和源码引用放在一起复查。StateGraph.__init__ 告诉你图接收哪些 schema，_get_channel 告诉你字段会落到什么通道，Runtime 告诉你 context 怎样进入节点，add_messages 告诉你消息列表怎样合并。只要这四个证据能支撑你的设计，schema 就不是凭感觉写出来的，而是和运行时机制对齐的合同。</p>
-<p>补充检查：如果某个字段既被路由函数读取，又被多个节点更新，就要特别确认它的默认值、更新时机和 reducer。路由读到的是合并后的状态，而不是节点内部临时变量；字段缺失、空列表、空字符串和 None 的语义也应写清。很多边界 bug 来自“默认没有值”被误解成“业务判断为否”，所以 schema 评审要覆盖初始状态和异常状态。</p>
-<p>实战复盘时，还要把这节课的概念和前后课程连起来。状态字段会影响节点能否独立测试，节点返回的 partial update 会影响 reducer 是否有机会工作，reducer 的结果又会影响 compile 后运行时每一步看到的 state。任何一层含糊，后面几层都会变得难解释。因此不要把本课当成孤立 API 记忆，而要把它放进“schema 定义合同、节点产生更新、边选择去向、channel 合并更新、runtime 推进步骤”的连续链路里理解。</p>
-<p>写完图以后，建议做一次人工演练：拿一条具体用户输入，从 START 开始逐步写下当前 state、运行节点、返回 update、合并结果、下一条边。演练过程中只要出现“这里大概会怎样”“这个字段应该有吧”“这个分支应该不会走吧”，就说明设计还有隐含假设。把这些假设改成明确的 state key、路由条件、reducer 或测试用例，图才会从能跑的 demo 变成能维护的工程资产。</p>
-<p>还有一个经验是优先优化可解释性，而不是优先压缩代码行数。LangGraph 项目里，少写几行代码不一定更好；让每个节点、每条边、每个 state key 都能被命名和追踪，通常更重要。复杂 Agent 的主要成本不是首次实现，而是线上排障、规则调整、工具替换和版本迁移。清楚的图结构会在这些时刻不断回本。</p>
-<p>如果你需要向同事解释本课，可以用一句话收束：这不是在学习某个函数参数，而是在学习如何把不确定的模型行为包进确定的工程边界。模型可以生成不同文本，但图要明确哪些状态被保存，哪些节点能运行，哪些边能跳转，哪些更新能合并，哪些条件会停止。这个边界越清楚，AI 应用越接近可靠软件系统。</p>
+<p>补充检查：schema 合同要覆盖“初始、运行中、结束后”三个状态。初始 state 里哪些 key 可缺省，运行中哪些 key 只能由内部节点写，结束后 output_schema 暴露哪些 key，都应写清楚。否则同一个字段可能在入口被调用方误传，在中途被节点覆盖，最后又被外部依赖，合同边界会迅速失控。</p>
+<p>context/state 边界也要反复复查。user_id、tenant_id、permissions、实验开关描述运行环境，适合随 Runtime context 注入；messages、retrieved_docs、needs_human、final_answer 描述业务演化，适合进入 state。把环境写进 state 会污染 checkpoint，把业务历史藏进 context 会让 trace 看不见关键变化。边界清楚，恢复、测试和权限审查才有共同语言。</p>
+<p>状态演进要像版本化 API 一样对待。新增 key 时说明默认值、写入者、读取者、合并语义和输出可见性；删除或改名 key 时检查旧 checkpoint、旧测试夹具和下游调用者。LangGraph 的 state 不是临时 dict，而是节点之间的公共合同。合同越稳定，图越容易迭代。</p>
+<p>本课可以用一句话收束：schema 先定义工程边界，再允许模型在边界内产生不确定输出。模型文本可能变化，但 state key 的含义、context 的来源、partial update 的目标和 reducer 的选择必须稳定。把这份合同写清，后续节点、边和运行时才有可靠基础。</p>
 <h2>常见误解与边界情况</h2>
 <div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：节点可以直接 append state[&#x27;messages&#x27;]</div><div class="pf-correct">正确：把 state 当只读输入；返回 partial update，让 add_messages 记录和合并更新。</div></div><div class="pitfall"><div class="pf-wrong">误解：返回整份 state 更保险</div><div class="pf-correct">正确：返回整份 state 会制造覆盖和噪声；节点应只返回自己产生的 key。</div></div><div class="pitfall"><div class="pf-wrong">误解：context 和 state 都是 dict，随便放</div><div class="pf-correct">正确：context 是运行环境，state 是业务演化数据；混用会破坏 checkpoint 和可读性。</div></div><div class="pitfall"><div class="pf-wrong">误解：list 字段天然会累积</div><div class="pf-correct">正确：没有 reducer 的字段默认通常是 LastValue 覆盖；累积列表要显式声明 reducer。</div></div></div>
 <h2>小实验</h2>
@@ -395,7 +394,7 @@ class StateGraph:
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
     <li>为一个“订单客服 Agent”选择 state keys：messages、order_id、tool_attempts、retrieved_docs、final_answer、needs_human 中哪些需要 reducer？哪些应只做内部私有 state？</li>
-    <li>你发现某节点执行了 <code>state['messages'].append(msg)</code> 后偶发丢历史。请写出调试步骤，并说明如何改成 partial update + reducer。</li>
+    <li>你发现某节点直接对 messages 列表执行 append(msg) 后偶发丢历史。请写出调试步骤，并说明如何改成 partial update + reducer。</li>
   </ul>
 </div>
 </div>
