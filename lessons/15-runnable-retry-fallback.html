@@ -298,7 +298,157 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第三部分 · Runnable 与 LCEL</div>
     <h1>重试、Fallback 与健壮链</h1>
   </div>
-  <p class="lead">M3 临时页面：Task 2 会替换为完整 C-level lesson。</p>
+  
+<p class="lead">生产链路不能假设模型、网络、解析器和 provider 永远成功。LangChain 把健壮性也做成 Runnable 包装：<span class="mono">with_retry</span> 在同一路径上有限重试，<span class="mono">with_fallbacks</span> 在失败后切换到备用 Runnable。本课关注异常如何流动、哪些错误值得重试、fallback 的输入输出形状如何保持一致，以及为什么“修解析器输出”和“换模型 fallback”是两类不同策略。</p>
+
+<div class="card analogy">
+  <div class="tag">🧯 生活类比</div>
+  把 retry 和 fallback 想成<strong>出行预案</strong>：叫车软件第一次下单失败，可以等几秒重试一次，这是 retry；如果这个平台一直无车，改用地铁或另一个平台，这是 fallback。你不会无限重试一个已经停运的车站，也不会把“地铁票”当成“网约车订单”交给后续报销系统。重试要有限、幂等；备用路线要保持到达目的地的承诺一致。</div>
+<div class="lesson-map"><div class="lm-title">🗺️ 本课地图：从失败到可控降级</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">with_retry</div><div class="mn-desc">包装 RunnableRetry，对指定异常做有限次数重试</div></div><div class="map-node now"><div class="mn-label">with_fallbacks</div><div class="mn-desc">包装 RunnableWithFallbacks，主链失败后尝试备用链</div></div><div class="map-node now"><div class="mn-label">异常流</div><div class="mn-desc">区分可重试、不可重试、应修复、应降级的错误</div></div><div class="map-node source"><div class="mn-label">输入输出形状</div><div class="mn-desc">fallback 必须能接同样输入，并返回下游可接受的 schema</div></div><div class="map-node after"><div class="mn-label">稳健链设计</div><div class="mn-desc">provider fallback、parser repair、超时与观测组合</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>重试和 fallback 不是散落在用户代码外面的 try/except，而是 Runnable 自身的包装能力。源码阅读从 Runnable 的方法入口开始，再跳到 retry/fallback 的包装类，看它们如何保持同一协议。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">Runnable.with_retry</td><td>返回带重试策略的新 Runnable</td><td>用户在任意 Runnable 或链上调用</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/retry.py</td><td class="mono">RunnableRetry</td><td>捕获指定异常，按 stop/wait 策略重复调用 bound Runnable</td><td>外层包装内层 Runnable.invoke</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">Runnable.with_fallbacks</td><td>返回带 fallback 列表的新 Runnable</td><td>主 Runnable 失败后切到备用</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/fallbacks.py</td><td class="mono">RunnableWithFallbacks</td><td>按顺序尝试主链和 fallback，可把异常注入 exception_key</td><td>错误驱动下一候选 Runnable</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/config.py</td><td class="mono">RunnableConfig</td><td>重试/fallback 中继续传播 callbacks、tags、metadata、run_id 等</td><td>每次尝试仍在可观察运行树中</td></tr></table>
+<h2>状态流：主模型失败，备用模型成功</h2>
+<p>稳健链不是把错误藏起来，而是把错误变成可观察、有限、结构一致的流程。下面的例子中，主模型因 provider 超时失败，fallback 模型接收同一输入成功，parser 最终仍返回同一 schema。</p>
+<div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>输入进入稳健链</h4><p>用户问题和 config 进入 primary_chain.with_fallbacks([...])。</p><div class="mono">input + config</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>主模型尝试</h4><p>prompt 成功，primary model 调用 provider 超时并抛出异常。</p><div class="mono">TimeoutError</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>异常被记录</h4><p>RunnableWithFallbacks 捕获允许处理的异常，callbacks 记录 primary error。</p><div class="mono">error event</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>备用模型尝试</h4><p>fallback model 用同样 prompt 输入生成 AIMessage。</p><div class="mono">AIMessage</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>解析并返回</h4><p>parser 校验输出 schema，通过后整条链返回 typed result。</p><div class="mono">TypedResult</div></div></div></div>
+<h2>Retry：适合短暂、可重复、有限的失败</h2>
+<p><span class="mono">with_retry</span> 的核心问题不是“能不能再试一次”，而是“再试一次是否安全且有意义”。网络抖动、429 限流、临时 5xx、provider 短暂超时，通常适合有限退避重试。模板变量缺失、schema 设计错误、权限不足、用户输入不合法，重试一百次也不会变好。工具调用如果会写外部状态，重试前必须确认幂等：同一个请求 ID 重复扣款、重复发邮件、重复创建工单，都是灾难。</p>
+<p>好的 retry 策略要有上限、等待策略和异常白名单。上限防止无限等待，等待策略避免立即打爆服务，异常白名单防止把编程错误伪装成暂时失败。重试仍应进入 trace：每次尝试耗时多少、失败原因是什么、最终第几次成功，这些信息对生产排障很关键。</p>
+
+<h2>Fallback：换路线，但不能换契约</h2>
+<p><span class="mono">with_fallbacks</span> 表示主 Runnable 失败后按顺序尝试备用 Runnable。最常见是 provider fallback：主模型走 A 厂商，失败后走 B 厂商；也可以是能力降级：结构化输出失败后改用更简单 parser，或高级检索失败后使用缓存摘要。无论哪种，fallback 都必须能接收兼容输入，并返回下游能接受的输出 schema。如果主链返回 <span class="mono">AnswerWithCitations</span>，fallback 只返回纯字符串，下游渲染引用就会崩。稳健性不是“只要有返回就行”，而是“在降级后仍守住契约”。</p>
+<p>fallback 也不应该吞掉所有错误。调用者需要知道这次是否走了备用路径，观测系统需要记录主路径失败原因，业务也可能需要在响应中降低置信度或提示“当前使用备用模型”。静默 fallback 会让系统表面成功、内部腐烂：成本、质量和延迟变化都没人知道。</p>
+
+<h2>exception_key 模式：把异常交给备用链</h2>
+<p>某些 fallback 需要知道主链为什么失败。<span class="mono">exception_key</span> 模式会把异常对象或异常信息注入输入字典的某个键，让备用 Runnable 根据错误修复。例如 parser 失败后，把原始文本和解析错误交给 repair prompt，让模型按 schema 重写；或者检索失败后，把错误类型写入 metadata，让 fallback 使用缓存。这个模式要求输入必须是字典，因为异常要被加成一个字段；同时要小心不要把完整异常里的秘密、URL、token 或私有内容交给模型。</p>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. primary</td><td>prompt 输出消息</td><td>主模型 invoke，provider 返回 503</td><td>抛出 ServiceUnavailable</td></tr><tr><td>2. retry 判断</td><td>异常类型</td><td>如果配置了 with_retry 且异常可重试，按退避再试</td><td>成功或最后一次异常</td></tr><tr><td>3. fallback 捕获</td><td>最后异常</td><td>RunnableWithFallbacks 记录错误，选择第一个备用模型</td><td>备用 run 开始</td></tr><tr><td>4. fallback 成功</td><td>同一业务输入</td><td>备用模型生成满足 parser 的文本</td><td>AIMessage</td></tr><tr><td>5. parser</td><td>AIMessage</td><td>校验 schema，返回 typed result</td><td>AnswerWithCitations</td></tr></table>
+<h2>简化源码走读：包装器保持 Runnable 外观</h2>
+<p>真实实现使用 tenacity、异步版本、配置 patch、回调 run 和异常过滤。教学版只展示形状：retry 多次调用同一个 bound Runnable；fallback 按候选列表尝试，成功就返回，全部失败才抛出。</p>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/core/langchain_core/runnables/retry.py / fallbacks.py :: RunnableRetry / RunnableWithFallbacks</span><span class="ln">简化版</span></div><pre>class RunnableRetry(Runnable):
+    def invoke(self, input, config=None):
+        last_error = None
+        for attempt in self.retry_policy:
+            try:
+                return self.bound.invoke(input, config=config)
+            except self.retry_exceptions as exc:
+                last_error = exc
+                attempt.sleep_before_next_try()
+        raise last_error
+
+class RunnableWithFallbacks(Runnable):
+    def invoke(self, input, config=None):
+        errors = []
+        for runnable in [self.primary, *self.fallbacks]:
+            try:
+                return runnable.invoke(input, config=config)
+            except self.exceptions_to_handle as exc:
+                errors.append(exc)
+                input = self.maybe_add_exception(input, exc)
+        raise errors[-1]
+</pre><div class="cw-note">包装器自己也是 Runnable，所以可以包单个模型、包 parser、包整条 chain，并继续被外层 LCEL 组合。</div></div>
+<h2>Parser repair 与 provider fallback：别混成一类</h2>
+<p>模型调用失败和解析失败是两类问题。Provider 失败时，换模型或重试网络可能有效；解析失败时，provider 其实已经返回了内容，只是内容不满足 schema。此时常见策略是 repair：把原始输出、schema 要求和错误信息交给一个修复链，让它重写为合法结构。repair 仍要有限次数，且要保留 raw output 以便审计。不要把 parser 错误一概交给 provider fallback，否则你可能换了三个模型，却没有告诉模型“具体哪里不符合 schema”。</p>
+<p>同样，不要把所有失败都包在最外层 fallback。越靠近失败点，补救策略越精确：模型超时可以包模型，parser 格式错可以包 parser 或 parser 前的修复链，检索超时可以包 retriever。整条链 fallback 适合“大路线切换”，但会牺牲定位精度。</p>
+
+<h2>常见误解与边界情况</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：非幂等工具失败就直接 retry</div><div class="pf-correct">正确：写外部状态的工具必须有幂等键或补偿机制，否则重试会重复副作用。</div></div><div class="pitfall"><div class="pf-wrong">误解：fallback 成功就不用记录主错误</div><div class="pf-correct">正确：主错误必须进入 trace，否则质量、成本和稳定性问题会被静默掩盖。</div></div><div class="pitfall"><div class="pf-wrong">误解：fallback 可以返回任意更简单结果</div><div class="pf-correct">正确：备用链也要保持下游需要的输出 schema，降级不能破坏契约。</div></div><div class="pitfall"><div class="pf-wrong">误解：with_retry 会一直试到成功</div><div class="pf-correct">正确：重试必须有限、有异常白名单和退避策略，永远成功不是现实承诺。</div></div></div>
+<h2>小结前的实验</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 为一条链设计失败策略</div><ol><li>列出链中可能失败的点：retriever、model、parser、tool，并标注可重试/不可重试。</li><li>给模型层设置有限 retry，再给 provider 设置 fallback，确认 trace 中能看到每次尝试。</li><li>让 parser 故意失败，比较 parser repair 与 provider fallback 哪个更精确。</li><li>检查 fallback 输出 schema 是否与主链完全兼容，并写出不兼容时下游会在哪里崩。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>with_retry、RunnableRetry、with_fallbacks、RunnableWithFallbacks 的内部策略对象可能随版本变化，但“包装器仍是 Runnable”“失败可观察”“契约不变”是稳定设计原则。</div>
+
+<h2>深入拆解：失败策略要按失败类型分层</h2>
+<p>稳健链的第一步不是加 retry，而是列失败类型。网络超时、限流、provider 5xx 属于临时外部失败；模板变量缺失、schema 不一致、代码 bug 属于确定性内部失败；模型输出格式不对属于可修复但不一定可重试的生成失败；工具副作用失败则要看是否幂等。不同失败类型需要不同策略。把所有异常都交给同一个 retry 包装器，会让临时问题和设计问题混在一起，既浪费时间，也掩盖真正 bug。</p>
+<p>分层策略通常更清楚：retriever 自己处理检索超时和缓存降级；model 自己处理 provider retry 和备用模型；parser 自己处理 repair loop；整条 chain 外层只处理少数全局降级。这样 trace 能显示“哪一层做了补救”，而不是只看到最外层兜底成功。越靠近失败点，补救越精确；越靠外层，补救越粗，但覆盖面更广。</p>
+<h3>幂等性是 retry 的安全底线</h3>
+<p>读操作通常比较适合 retry，因为重复查询最多增加成本和延迟。写操作必须谨慎：创建订单、扣款、发送邮件、写入 CRM、调用真实世界设备，都可能因为重试造成重复副作用。安全 retry 需要幂等键、去重表、事务状态机或外部 API 的幂等支持。例如扣款请求应带 request_id，服务端保证同一 request_id 只扣一次；邮件发送应记录消息 ID，重复尝试只查询或补偿，而不是盲发。</p>
+<p>LLM 应用里，工具调用经常被包装成 Runnable 或 Agent tool，因此更容易被统一 retry 误伤。不要在整条 agent chain 外层粗暴 retry 所有异常，否则模型已经成功调用一次工具后，外层重试可能让它再次调用。更安全的做法是对纯模型请求、纯检索请求、纯解析请求分别加策略；对有副作用的工具，设计业务级幂等与确认机制。</p>
+<h3>Fallback 的质量与 schema 双重约束</h3>
+<p>备用模型或备用链不只是“能返回东西”。它必须在两个维度上兼容主链：质量边界和 schema 边界。质量边界指备用路径是否仍能满足业务承诺，例如是否支持相同语言、上下文长度、工具调用、结构化输出能力；schema 边界指它返回的对象字段、类型、错误语义是否和主链一致。一个便宜小模型也许能回答普通文本，却不能稳定生成带引用的 JSON；把它作为 fallback 前，就要加 parser repair、schema 校验或降低产品承诺。</p>
+<p>Fallback 顺序也应表达偏好。第一备用可能是同能力不同 provider，第二备用可能是同 provider 小模型，第三备用可能是缓存摘要或人工转接。每一层降级都应在 trace 和必要的业务输出中留下标记。用户不一定需要看到内部模型名，但系统至少要知道这次答案来自备用路径，后续评估才能解释质量波动。</p>
+<h3>Parser repair 是受控再生成</h3>
+<p>解析失败时，最差做法是吞掉异常返回空对象；次差做法是无限让同一模型“再试试”。更好的 repair loop 会给出明确反馈：原始输出是什么，schema 要求是什么，错误字段是什么，只允许输出修正后的结构，最多尝试几次。repair 的目标不是让模型重新思考业务答案，而是把已有答案改写为合法格式。因此 repair prompt 应尽量窄，避免引入新的事实或改变含义。</p>
+<p>repair 也要保留证据。原始输出、解析错误、修复尝试次数、最终结果都应在安全范围内记录。这样当结构化结果出现问题时，你能判断是主模型理解错、repair 改错，还是 schema 本身不合理。没有这些证据，parser repair 会变成新的黑盒：表面上错误率下降，实际上可能制造静默数据污染。</p>
+<h3>不要让稳健性掩盖产品决策</h3>
+<p>技术上可以 retry、fallback、repair、降级，但产品上不一定都应该做。有些场景宁愿明确失败，也不应给低置信答案：法律建议、医疗建议、财务交易、权限判断。稳健链的目标不是“永不报错”，而是“在可接受边界内尽量恢复，在不可接受时清楚失败”。因此每个 fallback 都应对应一条产品决策：用户看到什么、系统记录什么、是否需要人工介入、是否允许继续自动执行。</p>
+<p>最终，健壮性是一套可解释流程，而不是一个万能装饰器。好的链会告诉你：失败发生在哪里，为什么选择重试，为什么切换备用，备用是否保持 schema，是否影响质量，是否泄漏敏感信息。只要这些问题能回答，with_retry 和 with_fallbacks 就不再是魔法，而是工程化可靠性的积木。</p>
+
+
+<h2>设计稳健链的检查清单</h2>
+<p>第一，列失败点：输入校验、prompt 渲染、retriever、model、parser、tool、数据库、外部 API。第二，给每个失败点分类：临时失败、确定失败、格式失败、权限失败、副作用失败。第三，为每类失败选择策略：有限 retry、provider fallback、parser repair、缓存降级、人工接管或直接失败。第四，定义观测：每次尝试如何命名，错误如何记录，fallback 是否打 tag，最终响应是否标注降级。这个清单比先写 with_retry 更重要。</p>
+<p>第五，检查契约：重试前后输出是否等价，fallback 输出是否和主链同 schema，repair 是否会改变业务语义。第六，检查安全：异常信息是否包含密钥或私有内容，exception_key 是否会把敏感堆栈交给模型，metadata 是否记录了不该记录的字段。第七，检查上限：最大重试次数、总超时、最大 repair 次数、fallback 层级都应有限。没有上限的“稳健性”其实是另一种不可控。</p>
+<h2>把错误暴露给谁</h2>
+<p>同一个错误对不同对象有不同表达。开发者需要完整异常类型和 trace；用户需要可理解的降级说明；业务系统需要结构化状态码；安全审计需要知道是否涉及敏感数据；评测系统需要标记这次样本是否走了 fallback。不要把 provider 的原始堆栈直接展示给用户，也不要只给开发者一个“抱歉失败”。稳健链应该把内部错误翻译成多个层级的输出，各层拿到自己需要的信息。</p>
+<p>例如主模型超时、备用模型成功时，用户可以正常得到答案，界面不必显示内部故障；但 metadata 或响应头可以带一个非敏感的 degraded 标记，trace 中记录 primary timeout 和 fallback model。parser repair 成功时，用户看到结构化结果，开发者能看到 raw output 和 repair 次数。全部 fallback 失败时，用户得到明确失败消息，系统保留完整诊断证据。这样既不恐吓用户，也不欺骗自己。</p>
+<h2>何时不要 fallback</h2>
+<p>不是所有失败都应该 fallback。权限不足不应 fallback 到“无权限也回答”的链；安全策略拦截不应 fallback 到更宽松模型；schema 代表强业务约束时，不应 fallback 到无校验字符串；用户输入缺必填字段时，不应让模型猜。Fallback 的前提是备用路径仍在业务允许范围内。如果备用路径降低了安全、合规或事实要求，就应该明确失败或请求人工处理。</p>
+<p>这点在 Agent 和工具场景尤其重要。模型调用失败可以换 provider，但工具权限失败不能换一个绕过权限的工具；解析失败可以 repair，但不能把校验字段删掉；检索失败可以用缓存，但不能返回用户无权访问的缓存内容。稳健性必须服从业务边界。工程上能恢复，不代表产品和安全上允许恢复。</p>
+
+<h2>把稳健性纳入评测</h2>
+<p>重试和 fallback 不能只靠线上祈祷，应该进入评测样本。你可以准备 provider 超时、429、parser 非法 JSON、检索空结果、备用模型格式偏差等场景，用假 Runnable 或 monkey patch 模拟失败。评测不只断言最终是否有答案，还要断言尝试次数、fallback 顺序、错误记录和输出 schema。这样才能防止一次重构把稳健策略悄悄绕开。</p>
+<p>评测还要覆盖“不可恢复”的场景。权限失败、输入缺必填字段、schema 重大不兼容时，正确行为可能是明确失败，而不是 fallback 成功。把这些样本写进测试，能保护业务边界不被“追求成功率”的代码破坏。稳健链的指标不只是成功率，还包括错误透明度、降级可解释性和安全边界。</p>
+
+<h2>稳健性与用户体验</h2>
+<p>用户不关心你用了几次 retry 或哪个 provider fallback，但会感受到延迟、答案质量和失败提示。过多重试可能让页面长时间转圈；过宽 fallback 可能给出质量明显下降的答案；过度暴露错误又会让用户困惑。因此稳健策略要和体验一起设计：什么时候快速失败，什么时候静默降级，什么时候提示“正在使用备用路径”，什么时候转人工。</p>
+<p>一个实用做法是给每条链设定总时间预算。预算内可以进行一次短退避重试和一次同能力 fallback；超出预算就返回明确降级结果或请求稍后再试。这样系统不会为了追求成功而无限消耗用户耐心。trace 中记录预算消耗，也能帮助你判断是模型慢、检索慢，还是 fallback 过多。</p>
+<p>稳健链最终服务的是可信度。用户可以接受系统偶尔失败，但很难接受系统悄悄给出不可靠结果。有限补救、清晰降级、保持 schema、保留证据，才是 retry 和 fallback 真正要达成的目标。</p>
+<div class="card keypoints">
+  <div class="tag">✅ 本课要点</div>
+  <ul>
+    <li>with_retry 适合短暂、可重复、有限的失败，不适合编程错误或非幂等副作用。</li>
+    <li>with_fallbacks 是路线切换，备用 Runnable 必须接收兼容输入并返回兼容 schema。</li>
+    <li>exception_key 可把异常交给备用链，但要避免泄漏秘密和隐私。</li>
+    <li>provider fallback、parser repair、retriever 降级应按失败点精确设计。</li>
+    <li>稳健链不是吞错，而是有限补救、清晰观测、可解释降级。</li>
+  </ul>
+</div>
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. <code>with_retry</code> 与 <code>with_fallbacks</code> 的核心区别是什么？</div>
+  <ol class="opts">
+    <li>retry 在同一路径上有限再试；fallback 在失败后切换到备用 Runnable</li>
+    <li>二者完全相同，只是名字不同</li>
+    <li>fallback 只能用于 parser，retry 只能用于 prompt</li>
+    <li>retry 会改变输出 schema，fallback 不会运行 callbacks</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。retry 是同路线重试，fallback 是换路线降级；二者都应保持可观察、有限且契约清楚。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. 为什么对非幂等工具调用盲目 retry 很危险？</div>
+  <ol class="opts">
+    <li>因为重复执行可能重复扣款、发邮件、建单等外部副作用</li>
+    <li>因为 retry 会禁用所有异常</li>
+    <li>因为 parser 会自动吞掉工具结果</li>
+    <li>因为工具不能作为 Runnable</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。写外部状态的动作必须有幂等键、事务或补偿机制；否则重试会把一次失败变成多次副作用。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 备用链的输出 schema 为什么必须与主链一致或兼容？</div>
+  <ol class="opts">
+    <li>为了让模型运行更快</li>
+    <li>因为下游 prompt/parser/UI 依赖固定字段；fallback 改形状会把失败推迟到后面</li>
+    <li>因为 config 只能保存同一种 schema</li>
+    <li>为了隐藏主链错误</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。fallback 是降级，不是破坏契约。主链返回带引用对象，备用链也要满足下游需要的字段和类型。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>为一个 RAG 答案链设计稳健策略：retriever、model、parser 分别哪些错误 retry、fallback、repair 或直接失败？</li>
+    <li>遇到 parser 非法 JSON、provider 503、权限不足、扣款工具超时四种失败，分别选择 retry、fallback、repair 还是失败，并说明理由。</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="13-runnable-config-callbacks.html"><div class="dir">← 上一课</div><div class="ttl">配置、回调与运行树</div></a><a class="next" href="07-agents-intro.html"><div class="dir">下一课 →</div><div class="ttl">Agent 入门</div></a></div>
 </div>
 

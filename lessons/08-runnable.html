@@ -298,65 +298,178 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第三部分 · Runnable 与 LCEL</div>
     <h1>Runnable 协议</h1>
   </div>
-  <p class="lead">M3 临时页面：Task 2 会替换为完整 C-level lesson。</p><div class="selftest">
+  
+<p class="lead">Runnable 是 LangChain 在应用层最重要的“标准插座”：提示词、模型、解析器、检索器、工具包装器、LCEL 链，甚至 LangGraph 编译后的图，都可以用同一套 <span class="mono">invoke / ainvoke / stream / astream / batch / abatch</span> 协议运行。本课不把 Runnable 当成“会被管道连接的对象”这么简单，而是把它拆成执行入口、输入输出契约、序列化边界、配置传播和回调追踪五层来看。理解这一层，后面的 LCEL、并行、分支、重试、Fallback 才不会像语法糖，而会像一套可组合的运行时。</p>
+
+<div class="card analogy">
+  <div class="tag">🧩 生活类比</div>
+  把 Runnable 想成<strong>通用电源插座和电器铭牌</strong>：插座规定电压、插头形状和接地规则，电器可以是台灯、电脑、充电器；LangChain 规定调用方法、配置传递和事件上报，组件可以是 prompt、model、parser。你不需要知道每个电器内部怎么把电变成光或计算，只要它遵守插座协议，就能接进同一条排插。真正重要的不是“每个电器都一样”，而是“每个电器的连接方式一致”。</div>
+<div class="lesson-map"><div class="lm-title">🗺️ 本课地图：从统一入口到可观测运行</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">标准入口</div><div class="mn-desc">invoke 是同步核心；ainvoke、stream、batch 围绕它给出统一调用形状</div></div><div class="map-node now"><div class="mn-label">数据契约</div><div class="mn-desc">每个 Runnable 明确接收什么输入、返回什么输出，链路靠这个契约首尾相接</div></div><div class="map-node now"><div class="mn-label">配置传播</div><div class="mn-desc">RunnableConfig 携带 callbacks、tags、metadata、run_name 等横切信息</div></div><div class="map-node source"><div class="mn-label">可序列化</div><div class="mn-desc">RunnableSerializable 让部分链可以保存、检查、传输或在 tracing 中展示结构</div></div><div class="map-node after"><div class="mn-label">下一课</div><div class="mn-desc">LCEL 的 | 只是把这些标准插座按顺序接起来</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>读 Runnable 不要从某个模型 provider 开始，因为 provider 代码会把注意力带到网络请求、鉴权和返回格式上。更稳的路线是先看 <span class="mono">libs/core/langchain_core/runnables/</span>：这里定义了“所有可运行组件共同承诺什么”。下面这张源码地图把本课需要盯住的符号放在一起，后面每一段都围绕这些符号解释。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">Runnable</td><td>抽象基类，规定 invoke/ainvoke/stream/batch 等标准执行协议</td><td>用户代码调用入口；子类实现核心行为</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">RunnableSerializable</td><td>可序列化 Runnable 的基类，支持 name、configurable 与结构导出</td><td>链路保存、调试、LangSmith 展示时读取</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/config.py</td><td class="mono">RunnableConfig</td><td>运行配置类型，承载 callbacks、tags、metadata、run_id、max_concurrency 等</td><td>沿父子 Runnable 向下传播</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">RunnableBinding</td><td>把基础 Runnable 与 kwargs/config 绑定成新 Runnable</td><td>外层包装调用内层，保留统一协议</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">RunnableEach</td><td>把单个输入协议提升到列表输入，逐项调用并收集结果</td><td>批处理/映射场景复用底层 Runnable</td></tr></table>
+<h2>调用图：prompt / model / parser 为什么能串成一条链</h2>
+<p>Runnable 协议的价值在“每一段都长得像可运行组件”。一个 prompt 接收字典，产出 PromptValue 或消息；模型接收消息，产出 AIMessage；parser 接收模型输出，产出业务对象。只要每段都通过同一入口调用，上层链就不用知道底层是模板渲染、HTTP 请求还是字符串解析。</p>
+<div class="flow call-graph"><div class="node hl"><div class="nt">用户</div><div class="nd">chain.invoke({&#x27;topic&#x27;: &#x27;回调&#x27;})</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">Prompt Runnable</div><div class="nd">校验变量，渲染消息或 PromptValue</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">ChatModel Runnable</div><div class="nd">接收消息，调用 provider，返回 AIMessage</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">Parser Runnable</div><div class="nd">读取文本或 message，解析成字符串、JSON 或 Pydantic 对象</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">调用者</div><div class="nd">拿到最终业务输出，而不是中间消息</div></div></div>
+<h2>六个执行入口不是六套世界</h2>
+<p><span class="mono">invoke</span> 是最容易理解的入口：给一个输入，得到一个输出。多数自定义 Runnable 只要把同步核心写清楚，就能先跑起来。<span class="mono">ainvoke</span> 是异步入口，但“异步”不等于自动并行，它只是允许事件循环在等待 I/O 时切走；如果底层仍是同步阻塞调用，框架可能只能把它放进线程池或仍然阻塞。<span class="mono">stream</span> 和 <span class="mono">astream</span> 关注“逐块产出”：模型 token、事件片段、解析器增量都可能作为 chunk 出现。chunk 的语义是“到目前为止的一段”，不是最终对象的保证。<span class="mono">batch</span> 和 <span class="mono">abatch</span> 关注“同一个 Runnable 处理多份输入”：它能利用并发限制、复用配置与错误收集，但每个元素仍要满足单次 invoke 的输入契约。</p>
+<p>这六个入口背后有一个统一思想：框架尽量给出默认实现，让新组件的实现成本低；同时允许高性能组件覆盖默认行为。聊天模型可能原生支持 streaming，检索器可能能批量查询，解析器也许只能逐个处理。协议统一并不抹平差异，而是把差异藏在组件内部，把调用形状稳定地暴露给链路。</p>
+
+<h2>输入输出契约：Runnable 不是“随便收、随便吐”</h2>
+<p>很多链路错误不是 Runnable 本身错，而是你忘了每段都有清晰的输入输出边界。Prompt 通常期待一个包含模板变量的字典；ChatModel 通常期待消息列表、PromptValue 或字符串；parser 通常期待模型消息或文本。如果 parser 前面接了一个返回字典的并行分支，parser 就会报类型错误；如果 prompt 需要 <span class="mono">context</span> 和 <span class="mono">question</span>，上游却只返回 <span class="mono">input</span>，模板也会失败。Runnable 协议让“怎么调用”统一，但不替你保证“数据形状永远正确”。因此读 LCEL 链时，要像读函数签名一样读每段的输入输出。</p>
+
+<h2>配置传播：RunnableConfig 是横切上下文，不是业务状态</h2>
+<p><span class="mono">RunnableConfig</span> 携带的是运行时控制信息：callbacks 用于事件上报，tags 用于筛选运行，metadata 用于附加可观察上下文，run_name 和 run_id 用于追踪树，max_concurrency 用于批量并发限制。这些信息会从父 Runnable 传播到子 Runnable，并在进入子步骤时被 patch 或派生。它适合放“这次运行属于哪个实验、哪个页面、哪个租户标签、哪个 trace”，不适合放“购物车内容、用户余额、工具执行结果”。业务状态应该走 input/output 或图状态；配置是横切信号，不是数据管道本身。</p>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. 入口</td><td>{&#x27;topic&#x27;: &#x27;Runnable&#x27;} + config(tags=[&#x27;demo&#x27;])</td><td>外层 RunnableSequence 接收 invoke 请求，标准化配置</td><td>父 run 创建，配置准备下传</td></tr><tr><td>2. prompt</td><td>变量字典</td><td>PromptTemplate.invoke 渲染模板，触发 prompt 子 run</td><td>PromptValue / messages</td></tr><tr><td>3. model</td><td>PromptValue / messages</td><td>ChatModel.invoke 调用 provider，回调记录 start/end/token</td><td>AIMessage(content=&#x27;...&#x27;)</td></tr><tr><td>4. parser</td><td>AIMessage 或文本</td><td>Parser.invoke 提取并校验结构</td><td>最终字符串、JSON 或业务对象</td></tr><tr><td>5. 返回</td><td>parser 输出</td><td>父 run 结束；trace 树闭合</td><td>chain.invoke 的返回值</td></tr></table>
+<h2>简化源码走读：默认实现把协议补齐</h2>
+<p>真实源码有泛型、配置合并、回调管理、异常处理和并发控制。下面的伪代码只保留骨架：一个子类必须定义核心调用；基类围绕它提供异步、流式和批量的默认形状。源码重点不是逐行背诵，而是看出“最小实现面 + 统一外观”的框架设计。</p>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/core/langchain_core/runnables/base.py :: Runnable</span><span class="ln">简化版</span></div><pre>class Runnable(Generic[Input, Output]):
+    def invoke(self, input: Input, config: RunnableConfig | None = None) -&gt; Output:
+        raise NotImplementedError
+
+    async def ainvoke(self, input: Input, config: RunnableConfig | None = None) -&gt; Output:
+        return await run_in_executor(self.invoke, input, config)
+
+    def stream(self, input: Input, config: RunnableConfig | None = None):
+        yield self.invoke(input, config)
+
+    def batch(self, inputs: list[Input], config: RunnableConfig | None = None):
+        return [self.invoke(item, config) for item in inputs]
+</pre><div class="cw-note">这是教学版骨架：真实实现会处理 callbacks、contextvars、max_concurrency、异常聚合和子 run。关键是看懂默认入口怎样围绕 invoke 建立统一协议。</div></div>
+<h2>序列化与绑定：链路能被看见，参数能被固定</h2>
+<p><span class="mono">RunnableSerializable</span> 不是要求所有运行都能完全还原成 JSON；它表达的是“这个 Runnable 的结构、名称、可配置字段尽量可描述”。这对调试和可观察性很重要：当 LangSmith 或本地 trace 展示一条链时，你希望看到“PromptTemplate → ChatOpenAI → StrOutputParser”，而不是一团匿名函数。可序列化结构也让某些链可以保存、加载、对比或作为模板复用。</p>
+<p><span class="mono">RunnableBinding</span> 则像给电器加一个固定转接头：同一个模型可以绑定 stop、temperature、tools 或默认 config，形成一个新 Runnable。调用者看到的仍是 invoke/stream/batch，但内部已经携带一组预设。绑定的好处是把重复参数从调用点挪到组件定义处；风险是过度绑定会让链路行为不透明，所以生产链要给绑定后的组件命名，方便 trace 中辨认。</p>
+
+<h2>RunnableEach：列表输入不是随便 for 循环</h2>
+<p><span class="mono">RunnableEach</span> 把“对一个输入可运行”的组件提升成“对一组输入可运行”的组件。它不是新业务逻辑，而是复用已有 Runnable 的契约：每个元素分别进入内层 Runnable，结果按顺序收集。这个设计的细节在于配置和并发：批量运行时 callbacks 仍要能区分每个子调用，max_concurrency 要限制同时飞出的请求，异常策略要说明是整体失败还是返回异常对象。也就是说，batch 不是“把 list 塞给模型就完了”，而是“在统一协议下组织多次单元调用”。</p>
+
+<h2>常见误解与边界情况</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：Runnable 只是为了使用 | 管道</div><div class="pf-correct">正确：Runnable 首先是标准执行协议；LCEL 管道只是建立在协议之上的组合语法。</div></div><div class="pitfall"><div class="pf-wrong">误解：ainvoke 会让任何代码自动并行</div><div class="pf-correct">正确：异步只表示可等待；是否并行取决于底层 I/O、调度和 max_concurrency。</div></div><div class="pitfall"><div class="pf-wrong">误解：stream 的每个 chunk 都是最终对象</div><div class="pf-correct">正确：chunk 是增量片段，最终对象通常需要合并、解析或等待 end 事件。</div></div><div class="pitfall"><div class="pf-wrong">误解：config 可以塞业务状态</div><div class="pf-correct">正确：config 是 callbacks/tags/metadata 等横切配置；业务状态应走 input/output 或图状态。</div></div></div>
+<h2>小结前的实验</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 手写最小 Runnable 心智模型</div><ol><li>找一个 prompt | model | parser 示例，逐段写下每段的输入类型和输出类型。</li><li>把同一条链分别用 invoke、stream、batch 运行，观察返回值形状与错误位置。</li><li>给 config 加 tags 和 metadata，在回调或 LangSmith trace 中确认它们沿子 Runnable 传播。</li><li>故意把 parser 接到一个返回 dict 的上游后面，记录错误信息，并说明是哪一段契约不匹配。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>本课以 LangChain v1 时代的 langchain-core Runnable 设计为锚点。具体文件行号会随版本移动，但 libs/core/langchain_core/runnables/base.py 与 config.py 中的符号名是更稳定的阅读入口。</div>
+
+<h2>深入拆解：把 Runnable 当成运行时边界</h2>
+<p>学习 Runnable 时，最容易低估的是“边界”二字。一个组件只要承诺自己是 Runnable，就等于承诺调用者可以用统一方式给它输入、拿它输出、给它配置、观察它运行、把它接入更大的组合。这个边界让上层代码不必关心内部是字符串模板、HTTP 模型、向量检索、工具适配器还是一整张图。边界越稳定，系统越能扩展；边界越含糊，链路越容易靠隐式约定维持。Runnable 的设计选择是把“执行”变成公共协议，把“实现细节”关在组件内部。</p>
+<p>这也是为什么 input/output 契约必须被严肃对待。统一入口不会自动修复错误数据形状，只会让错误在清晰位置暴露。Prompt 报缺变量，说明上游没有提供模板需要的键；parser 报解析失败，说明模型输出没有满足解析器承诺；batch 中某个元素失败，说明那一项输入或外部依赖出现问题。把这些错误归咎于“Runnable 太抽象”是不准确的。抽象只负责把调用形状统一，真实的业务契约仍由每个组件定义和维护。</p>
+<h3>同步、异步、流式、批量的同构性</h3>
+<p>Runnable 的多个执行入口看似复杂，其实是在回答同一个问题的四种运行形态：单次同步、单次异步、增量输出、多输入集合。它们同构的意思是：你不需要为 prompt 学一套 batch，为 model 学另一套 stream，为 parser 学第三套 async。只要组件遵守 Runnable，调用者就能先用统一心智模型尝试，再根据组件能力理解性能差异。默认 stream 可能只是 yield 最终结果，原生模型 stream 才会逐 token；默认 batch 可能只是并发多次 invoke，原生批量接口才可能合并请求。协议给你可预期的入口，不承诺每个实现都拥有同样优化。</p>
+<p>在生产里，这种同构性直接影响工程组织。后端服务可以把任意链暴露成“单次调用接口”，前端可以在支持流式时切换到 stream，离线评测可以用 batch 跑样本集，异步 Web 框架可以使用 ainvoke 避免阻塞事件循环。你复用的是同一条链，而不是为四种运行方式各写一份业务流程。代价是必须理解默认实现的边界：如果底层 provider 不支持真正流式，你只能拿到一个最终 chunk；如果工具内部是阻塞 I/O，ainvoke 也不等于无限扩容。</p>
+<h3>配置传播的正确姿势</h3>
+<p>配置传播最常见的误用，是把它当成“隐藏参数通道”。例如把用户输入、会话历史、权限决策或购物车状态塞进 metadata，让下游 Runnable 自己从 config 里读。这样做短期省事，长期会破坏链路可读性：从函数签名看不出依赖，从 trace 看不出数据如何流动，复用组件时也不知道必须带哪些隐藏字段。更健康的做法是：业务必需的数据走 input；可观察、可调度、可筛选的数据走 config。只要某个值会改变模型答案或业务结果，它就应该显式出现在数据流里。</p>
+<p>callbacks、tags、metadata 的继承也要有层次。父链可以打上产品线、环境、实验版本；子步骤可以补充自己的 run_name 和局部 metadata。不要让所有步骤都叫“RunnableLambda”，也不要让所有 metadata 都是一大坨不可搜索 JSON。好的 trace 像清晰的病例：能看到主诉、检查、诊断、用药和结果；坏的 trace 像一页杂乱聊天记录，信息很多却无法定位责任。</p>
+<h3>自定义 Runnable 的判断标准</h3>
+<p>什么时候需要写自定义 Runnable？如果你只是做轻量字段转换，用 RunnableLambda 足够；如果你要组合现有组件，用 LCEL 更清楚；如果你要表达复杂状态机，可能应该用 LangGraph。自定义 Runnable 适合那些有稳定输入输出契约、需要复用、需要独立命名、需要自定义 stream/batch 或需要封装外部系统的步骤。比如一个内部搜索服务适配器、一个带缓存的文档压缩器、一个公司统一审计包装器，都比匿名 lambda 更适合成为命名 Runnable。</p>
+<p>写自定义 Runnable 时，先让 invoke 正确，再考虑 ainvoke、stream、batch。不要为了“看起来完整”复制一堆入口却实现不一致。每个入口都应遵守同一语义：同样输入在合理条件下返回等价结果；stream 的合并结果应能对应最终输出；batch 的每个元素应像独立 invoke；异常应保留足够上下文但不泄漏秘密。这样你的组件才能像标准零件一样进入 LangChain 生态，而不是只在某条链里侥幸可用。</p>
+
+
+<h2>阅读源码时的三个检查点</h2>
+<p>第一，看抽象方法和默认方法的分界。框架作者通常会把“必须由具体组件决定”的部分留成抽象，把“可以统一处理”的部分放进基类默认实现。Runnable 的设计正是如此：不同组件如何真正产生结果由自己负责，但同步、异步、批量、流式、配置、回调这些外观尽量统一。读源码时，如果你能指出哪些逻辑属于基类，哪些逻辑属于子类，就已经抓住了扩展点。</p>
+<p>第二，看配置在哪里被复制、合并和派生。很多运行时问题来自配置没有传到子链，或子链覆盖了父链需要的字段。源码中的 ensure、patch、get_child 这类函数名都在提醒你：配置不是一个全局变量，而是在运行树中层层传递的对象。每进入一个子 Runnable，都要既继承父级观测信息，又给自己留下可识别的名字。这样错误发生时，trace 才能告诉你“哪一个子步骤在什么配置下失败”。</p>
+<p>第三，看异常是否保持语义。一个好的 Runnable 不应该把所有异常都压成同一种“运行失败”，也不应该吞掉底层错误。模板缺变量、模型限流、解析失败、用户取消、批量中某项失败，含义完全不同。统一协议的价值是让这些异常沿同一调用路径冒出来，而不是抹平差异。你在实现自定义 Runnable 时，也应该保留异常类型和必要上下文，让上层 retry、fallback 或日志能做正确判断。</p>
+<h2>和后续课程的连接</h2>
+<p>本课其实是后面四课的地基。Sequence 需要 Runnable，因为只有统一入口才能把多个组件顺序接上；Parallel 需要 Runnable，因为只有统一入口才能把同一输入发给多个分支；Config 和 callbacks 需要 Runnable，因为只有每个节点都遵守配置协议，运行树才能完整；Retry 和 fallback 需要 Runnable，因为包装器要像普通组件一样继续被组合。换句话说，Runnable 不是某一课的局部知识，而是 LangChain 把模型应用工程化的共同底盘。</p>
+<p>如果你以后读到某个新组件，不妨先问四个问题：它的 invoke 输入是什么？输出是什么？config 会如何影响它？它失败时抛什么异常？只要这四个问题回答清楚，你就能判断它能否接进现有链，能否并行，能否重试，能否被 trace。这个阅读习惯比记 API 更重要，因为版本会变，协议思维更稳定。</p>
+
+
+<h2>组合前先写形状注释</h2>
+<p>在团队项目里，建议在复杂 LCEL 链旁边保留简短的形状注释，不是解释语法，而是解释每一步的数据形状。例如：输入是 question 字典；检索后得到 context 和 question；prompt 后得到消息；model 后得到 AIMessage；parser 后得到 Answer。真正容易出错的是形状对不上，而不是大家不知道模型会生成答案。</p>
+<p>形状注释还能帮助评审。评审者看到 dict 出现在链中，会立刻检查它是否表示并行映射；看到 lambda，会追问它是否应该命名；看到 parser，会检查它前面是不是模型输出；看到 passthrough，会确认原始输入是否真的需要保留。LCEL 的语法很短，短语法需要更强的结构意识，否则一行优雅代码可能隐藏很多隐式约定。</p>
+<h2>把长链拆成可测试单元</h2>
+<p>Sequence 的闭包性允许你把长链切成小 Runnable。每个小 Runnable 都能单独 invoke，这给测试带来很大便利。你可以用假 retriever 测 prompt 输入形状，用假 model 输出测 parser，用固定样本测 format_docs，而不必每次都真实调用 provider。这样测试更快、更稳定，也更容易定位失败。长链的端到端测试仍然需要，但不应该替代每段契约测试。</p>
+<p>拆分的粒度可以按责任来定：一个子链负责把用户问题变成 prompt 变量，一个子链负责模型生成，一个子链负责解析和校验。不要按技术层机械拆成很多无意义步骤，也不要把多个责任塞进一个巨大 lambda。好的子链名字应该能回答“它把什么变成什么”。例如 build_rag_inputs、generate_answer_message、parse_answer 都比 step1、helper 清楚。</p>
+<h2>LCEL 与普通 Python 的协作方式</h2>
+<p>有些开发者担心 LCEL 会把 Python 代码变成难调试的 DSL。实际更健康的看法是：LCEL 负责描述可观察的运行结构，Python 函数负责表达局部确定性逻辑。格式化文档、裁剪字符串、转换字段、构造引用编号，这些都可以先写成普通函数并配单元测试，再通过 RunnableLambda 接进链。这样既保留 Python 的清晰和测试便利，又获得 Runnable 的配置、追踪和组合能力。</p>
+<p>反过来，如果你把所有逻辑都塞进一个普通函数，外层只看到一个 RunnableLambda，那么 LangChain 的运行树就失去细节。trace 只能告诉你“lambda 失败了”，不知道是检索、模型、解析还是格式化失败。判断是否使用 LCEL 的标准不是“语法是否更短”，而是“这一步是否值得作为可观察、可替换、可配置的节点出现”。值得，就把它显式放进链；不值得，就留在普通函数里。</p>
+
+
+<h2>并行结构的测试策略</h2>
+<p>测试 RunnableParallel 时，不要只测最终答案。先测汇合字典是否包含下游需要的全部键，再测每个键的值是否符合契约。对于 RAG，至少要断言 context 是字符串或文档列表的约定格式，question 没有被检索器覆盖，引用编号和文档 ID 能对应。很多线上错误不是模型答错，而是 prompt 收到的变量缺失、为空或格式不对。并行汇合处是最适合加测试的边界。</p>
+<p>Branch 的测试则要覆盖每个谓词路径和默认路径。每个样例都应说明为什么会走这条路，而不是只断言返回结果。比如“包含代码块的问题走代码解释链”“带 image 字段的输入走多模态链”“都不匹配时走通用问答链”。如果谓词依赖模型分类，就要用假分类器或固定输出测试路由，不要让测试被真实模型随机性影响。路由逻辑越清晰，生产问题越容易复现。</p>
+<h2>性能与并发的现实边界</h2>
+<p>Parallel 能降低延迟，但不是免费午餐。多个分支可能同时占用模型额度、数据库连接、向量库 QPS、线程池和内存。max_concurrency 可以限制批量和并行压力，但你仍然需要理解外部系统的容量。一个本地 demo 中并行三路很快，到了生产多租户流量下可能触发限流。设计并行链时，要把“理论并发”翻译成“实际依赖能承受的并发”。</p>
+<p>并发还会影响观测。多个分支日志交错出现，如果没有 run_id、parent_run_id 和清晰 run_name，就很难拼回时间线。使用 Parallel 时更应该给关键分支命名，例如 retrieve_context、pass_question、classify_intent。这样当某个分支慢或失败时，trace 能直接显示责任，而不是让你在一堆匿名 Runnable 中猜测。</p>
+<h2>从 LCEL 过渡到 LangGraph 的信号</h2>
+<p>Parallel 和 Branch 能表达很多数据流，但当你开始需要循环、长期状态、多轮人工审批、复杂重入、节点间条件跳转和持久化时，LCEL 可能不再是最合适的层。一个信号是：你开始把一个巨大 dict 当状态在很多 Runnable 之间传来传去，并不断 assign 新字段；另一个信号是：分支结果还要回到前面步骤形成循环。此时 LangGraph 的显式状态、节点和边会更清楚。</p>
+<p>这并不意味着 Parallel 和 Branch 只适合简单场景。它们是链式编排中非常重要的中层抽象：比手写并发和 if/else 更可观察，比完整图更轻量。关键是选择合适复杂度。确定的 RAG fan-out、简单意图路由、独立特征并行计算，用 LCEL 很合适；需要可恢复状态机时，再升级到图。好的架构不是只用一种工具，而是在复杂度上逐层递进。</p>
+
+
+<h2>观测数据的最小披露原则</h2>
+<p>配置和回调最容易在“为了调试”时越界。最小披露原则要求你只记录完成观测目标所需的信息。如果目标是统计延迟，不需要记录完整 prompt；如果目标是分析检索质量，可能只需要文档 ID、分数和集合名；如果目标是排查 parser 错误，可以记录 schema 名称、错误字段和输出长度，而不是完整用户内容。每多记录一个字段，就多一个泄漏面、多一份合规责任、多一个未来需要清理的数据副本。</p>
+<p>实践中可以把 metadata 分成三类。第一类是安全低敏字段，例如环境、功能名、版本、模型名、非敏感实验组。第二类是受控字段，例如内部请求 ID、租户哈希、文档集合 ID，需要访问权限和保留周期。第三类是禁止字段，例如密钥、token、密码、完整身份证件、完整私有文档、系统提示原文。把分类写进团队规范，比依赖每个开发者临时判断更可靠。</p>
+<h2>回调失败时业务应该怎样</h2>
+<p>观测系统也会失败：网络断开、LangSmith 不可用、日志服务限流、handler 自己抛异常。业务链不应该因为非关键观测失败而错误扣款或返回错误答案；但也不应该完全无视观测失败。常见做法是把观测 handler 做成尽量不抛出业务异常的旁路，失败时记录本地告警或指标，同时不改变主链输出。对于强审计场景，则应把审计写入设计成显式业务步骤，而不是普通 callback。</p>
+<p>这再次说明 callbacks 的边界：它们适合观察，不适合承诺业务事实。如果某个行业要求“没有审计记录就不能完成交易”，那审计写入必须是交易流程的一部分，有明确输入、输出、重试和失败策略。然后 callback 可以观察审计步骤是否成功。不要把合规要求隐藏在可选 handler 里。</p>
+<h2>让 trace 服务于学习和协作</h2>
+<p>好的 run tree 不只是排障工具，也是团队沟通工具。新人可以通过 trace 理解一条链包含哪些步骤；产品经理可以看到一次请求为什么慢；安全同学可以检查 metadata 是否越界；评测同学可以对比不同实验组的错误率。为了让 trace 可读，开发者需要主动命名关键节点，保持 tags 体系稳定，避免匿名 lambda 泛滥，避免把无结构大文本塞进 metadata。</p>
+<p>在课程学习中，你可以把每条链都当成“会生成运行树的程序”。写完链后，不只看最终答案，还要看 trace 是否解释得清楚：父子关系是否正确，prompt、model、parser 是否分别出现，错误是否落在预期节点，tags 是否继承，metadata 是否安全。如果 trace 自己都看不懂，说明链的结构或命名还需要整理。</p>
+
+
+<h2>设计稳健链的检查清单</h2>
+<p>第一，列失败点：输入校验、prompt 渲染、retriever、model、parser、tool、数据库、外部 API。第二，给每个失败点分类：临时失败、确定失败、格式失败、权限失败、副作用失败。第三，为每类失败选择策略：有限 retry、provider fallback、parser repair、缓存降级、人工接管或直接失败。第四，定义观测：每次尝试如何命名，错误如何记录，fallback 是否打 tag，最终响应是否标注降级。这个清单比先写 with_retry 更重要。</p>
+<p>第五，检查契约：重试前后输出是否等价，fallback 输出是否和主链同 schema，repair 是否会改变业务语义。第六，检查安全：异常信息是否包含密钥或私有内容，exception_key 是否会把敏感堆栈交给模型，metadata 是否记录了不该记录的字段。第七，检查上限：最大重试次数、总超时、最大 repair 次数、fallback 层级都应有限。没有上限的“稳健性”其实是另一种不可控。</p>
+<h2>把错误暴露给谁</h2>
+<p>同一个错误对不同对象有不同表达。开发者需要完整异常类型和 trace；用户需要可理解的降级说明；业务系统需要结构化状态码；安全审计需要知道是否涉及敏感数据；评测系统需要标记这次样本是否走了 fallback。不要把 provider 的原始堆栈直接展示给用户，也不要只给开发者一个“抱歉失败”。稳健链应该把内部错误翻译成多个层级的输出，各层拿到自己需要的信息。</p>
+<p>例如主模型超时、备用模型成功时，用户可以正常得到答案，界面不必显示内部故障；但 metadata 或响应头可以带一个非敏感的 degraded 标记，trace 中记录 primary timeout 和 fallback model。parser repair 成功时，用户看到结构化结果，开发者能看到 raw output 和 repair 次数。全部 fallback 失败时，用户得到明确失败消息，系统保留完整诊断证据。这样既不恐吓用户，也不欺骗自己。</p>
+<h2>何时不要 fallback</h2>
+<p>不是所有失败都应该 fallback。权限不足不应 fallback 到“无权限也回答”的链；安全策略拦截不应 fallback 到更宽松模型；schema 代表强业务约束时，不应 fallback 到无校验字符串；用户输入缺必填字段时，不应让模型猜。Fallback 的前提是备用路径仍在业务允许范围内。如果备用路径降低了安全、合规或事实要求，就应该明确失败或请求人工处理。</p>
+<p>这点在 Agent 和工具场景尤其重要。模型调用失败可以换 provider，但工具权限失败不能换一个绕过权限的工具；解析失败可以 repair，但不能把校验字段删掉；检索失败可以用缓存，但不能返回用户无权访问的缓存内容。稳健性必须服从业务边界。工程上能恢复，不代表产品和安全上允许恢复。</p>
+
+<div class="card keypoints">
+  <div class="tag">✅ 本课要点</div>
+  <ul>
+    <li>Runnable 是统一执行协议，不只是 LCEL 管道里的一个节点。</li>
+    <li>invoke、ainvoke、stream、astream、batch、abatch 是同一契约的不同运行形状。</li>
+    <li>输入输出契约决定链能否首尾相接；协议统一不代表类型自动正确。</li>
+    <li>RunnableConfig 传播 callbacks、tags、metadata 等横切信息，但不是业务状态容器。</li>
+    <li>RunnableSerializable、RunnableBinding、RunnableEach 让链更可描述、可预设、可批量复用。</li>
+  </ul>
+</div>
+<div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. LangChain 让“模型/提示/工具/解析器”全都实现同一个 <code>Runnable</code> 接口。这个“万物皆 Runnable”的统一抽象，最大的回报是？</div>
+  <div class="qn">1. Runnable 标准协议最核心的价值是什么？</div>
   <ol class="opts">
-    <li>任意组件能用同一套接口（invoke/stream/batch）调用、并用 <code>|</code> 自由拼接——可组合性</li>
-    <li>运行更快</li>
-    <li>名字好听</li>
-    <li>减少类的数量</li>
+    <li>让 prompt、model、parser、retriever 等用同一组执行入口调用并组合</li>
+    <li>让所有调用都自动变成流式输出</li>
+    <li>让所有组件都继承同一个具体模型类</li>
+    <li>让业务状态自动保存在 config 里</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。统一接口是“可组合”的前提：因为大家长一个样，才能像管道一样首尾相接。抽象的价值在于它解锁的组合能力。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。Runnable 统一的是执行协议和组合形状：invoke/stream/batch/config 等入口稳定，具体组件内部如何实现可以不同。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. <code>invoke</code> 是抽象方法（每个组件必须实现），而 <code>stream/batch</code> 给了默认实现。这种“必须实现一个、其余白送”图什么？</div>
+  <div class="qn">2. 为什么说 <code>RunnableConfig</code> 不应该被当成业务状态？</div>
   <ol class="opts">
-    <li>降低实现成本：你只需实现核心的 invoke，就免费获得流式/批量（默认实现基于 invoke），需要时再自定义</li>
-    <li>强制重写所有方法</li>
-    <li>偷懒</li>
-    <li>让 stream 更慢</li>
+    <li>因为 config 会阻止 callbacks 运行</li>
+    <li>因为 config 不能传给子 Runnable</li>
+    <li>因为 config 只能在异步调用里使用</li>
+    <li>因为它承载 tags、metadata、callbacks 等横切运行信息，业务数据应走 input/output 或图状态</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。“提供合理默认、允许覆盖”是好框架的体现——实现一个新组件的门槛被压到最低，同时保留优化空间。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。config 是观测、调度和运行控制通道，不是隐藏业务参数通道。把业务状态塞进去会破坏数据流可读性。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 用 <code>|</code> 拼组件，而不是写嵌套调用 <code>f(g(h(x)))</code>。这种“声明式管道”相比“命令式嵌套”，好处是？</div>
+  <div class="qn">3. 关于 <code>stream</code> 与 <code>batch</code>，哪种理解更准确？</div>
   <ol class="opts">
-    <li>数据流向从左到右一目了然、易读易改易复用，且产物本身还是 Runnable 可继续拼</li>
-    <li>没区别</li>
-    <li>字符更少</li>
-    <li>运行更快</li>
+    <li>stream 的每个 chunk 都必然是最终对象</li>
+    <li>stream 和 batch 不会触发 callbacks</li>
+    <li>stream 返回增量 chunk，batch 对多份输入组织多次调用；二者都仍受单次输入输出契约约束</li>
+    <li>batch 会把所有输入自动合并成一个模型请求</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。管道把“数据怎么流”显式画出来，可读性和可组合性都强于深层嵌套。本质是 DSL 对表达力的提升。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. “链本身也是 Runnable”——拼出来的链和单个组件长一个样。这个“闭包性”（组合的结果仍是同类）为什么重要？</div>
-  <ol class="opts">
-    <li>让链更短</li>
-    <li>它让组合可以无限嵌套：链能当组件再拼进更大的链，复杂度可分层组装</li>
-    <li>防止出错</li>
-    <li>没什么用</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“组合的结果还能再被组合”（代数上的闭包），是积木系统能搭出任意复杂结构的关键——小链拼大链、层层向上。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。流式和批量是运行形态，不改变组件契约。chunk 不是最终对象保证，batch 也不必然等于 provider 原生批量。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>“统一接口换可组合性”是 Runnable 的核心赌注。但统一也意味着每个组件都要迁就同一套接口。你觉得这种“大一统抽象”什么时候会显得别扭或低效？</li>
-    <li>管道 <code>|</code> 让数据流一目了然，但一长串 <code>|</code> 调试时也可能难定位。你会怎么在“优雅的链”和“可调试性”之间取平衡？</li>
+    <li>追踪一次 <code>prompt | model | parser</code> 的 <code>invoke</code>：写出每一步输入、输出、config/callback 如何传播。</li>
+    <li>你要接入一个内部搜索服务时，会用 <code>RunnableLambda</code>、现有 retriever 适配，还是自定义 Runnable？说明判断标准。</li>
   </ul>
 </div>
 </div>
