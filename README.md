@@ -7,7 +7,7 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Lessons](https://img.shields.io/badge/lessons-expanding_to_45--55-blue.svg)
-![Parts](https://img.shields.io/badge/parts-8-9cf.svg)
+![Parts](https://img.shields.io/badge/parts-11-9cf.svg)
 ![Built with](https://img.shields.io/badge/built%20with-Python%203-3776AB.svg?logo=python&logoColor=white)
 ![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 ![Language](https://img.shields.io/badge/docs-%E4%B8%AD%E6%96%87-orange.svg)

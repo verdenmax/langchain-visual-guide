@@ -152,7 +152,7 @@ LESSON_17_GRAPH_WHY = (
             "给 tools 节点返回 ToolMessage，并画出 tools -> model 的回边；再写出最多循环次数或无工具调用的终止条件。",
         ],
     )
-    + shell.version_note("本课以 LangChain v1 与 LangGraph 0.x 的公开结构为锚点。文件名和模块层次可能随发布调整，但 StateGraph、Graph、add_messages、Pregel、create_agent 这些符号代表的分层关系，是阅读新版源码时更稳定的路标。")
+    + shell.version_note("本课以 LangChain v1 与当前 LangGraph 的源码结构为锚点。文件名和模块层次可能随发布调整，但 StateGraph、add_messages、Pregel、create_agent 这些符号分别对应状态建模、消息合并、运行时内核和高层 Agent 入口，是阅读新版源码时更稳定的路标。")
     + _points([
         "LCEL 链适合无环数据流；LangGraph 适合循环、分支、共享状态和可恢复运行。",
         "节点的核心契约是 state -> partial state，不是原地改全局对象。",
