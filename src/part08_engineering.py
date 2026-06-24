@@ -270,6 +270,7 @@ tool_calling_fake = ToolCallingFakeModel(responses=[
 
 @tool
 def search_order(order_id: str) -> str:
+    '查询订单状态。'
     return {"A1": "已发货"}[order_id]
 
 agent = create_agent(tool_calling_fake, tools=[search_order], checkpointer=InMemorySaver())
