@@ -395,7 +395,7 @@ LESSON_34_EMBEDDINGS_VECTORSTORES = _build_lesson(
             ("Retriever", "as_retriever 暴露 Runnable 检索接口", "source"),
             ("Docs", "similarity_search 返回候选文档，进入 context 格式化", "after"),
         ],
-        "source_intro": "计划里 FAISS community 路径已过期；当前 master 中经典 FAISS 位于 langchain_classic，而核心包还提供可验证的 InMemoryVectorStore。教学先用核心抽象和 InMemoryVectorStore 说明契约，再提醒生产可替换为专用向量库。",
+        "source_intro": "FAISS 的真实实现位于独立 langchain-community 包的 langchain_community.vectorstores.faiss；monorepo 中的 libs/langchain/langchain_classic/vectorstores/faiss.py 是弃用期 re-export shim，不是实现文件。本课因此把 core 的 InMemoryVectorStore 作为 source-verified concrete anchor，用它说明 VectorStore 契约，再提醒生产可替换为专用向量库。",
         "sources": [
             {"file": "libs/core/langchain_core/embeddings/embeddings.py", "symbol": "Embeddings", "role": "定义 embed_documents 和 embed_query 的向量化契约", "direction": "索引阶段和查询阶段都必须使用兼容模型"},
             {"file": "libs/core/langchain_core/vectorstores/base.py", "symbol": "VectorStore", "role": "定义 add_documents、similarity_search、as_retriever 等接口", "direction": "连接索引写入和运行时检索"},
@@ -528,7 +528,7 @@ for doc in docs:
             "执行一次 similarity_search，检查返回结果是否来自最新 version。",
             "写下如果旧结果仍出现，你会检查 record manager、cleanup、命名空间还是缓存。",
         ],
-        "version_note": "当前 core 包提供 langchain_core.vectorstores.in_memory.InMemoryVectorStore；FAISS 在当前 monorepo master 中位于 libs/langchain/langchain_classic/vectorstores/faiss.py，而不是旧 community 路径。课程用 core 可验证路径作主锚点。",
+        "version_note": "当前 core 包提供 langchain_core.vectorstores.in_memory.InMemoryVectorStore；FAISS 的真实实现位于独立 langchain-community 包 langchain_community.vectorstores.faiss。monorepo 中 libs/langchain/langchain_classic/vectorstores/faiss.py 只是 deprecation re-export shim，不是实现文件。课程用 core InMemoryVectorStore 作可验证主锚点。",
         "points": [
             "Embeddings 必须保证文档和查询进入同一向量空间。",
             "VectorStore 保存向量、文档和 metadata，不只是一个距离计算器。",
