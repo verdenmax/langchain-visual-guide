@@ -1042,7 +1042,7 @@ QUIZZES = {
                 "why": "user_id、tenant、权限等适合放 context；messages、ToolMessage、structured_response 等属于图 state。分开才能安全和可测试。",
             },
             {
-                "q": "<code>response_format</code> / <code>with_structured_output</code> 的主要价值是什么？",
+                "q": "<code>response_format</code> / 结构化输出策略的主要价值是什么？",
                 "opts": [
                     "让模型输出更长的自然语言段落",
                     "跳过所有工具调用",
@@ -1150,10 +1150,10 @@ QUIZZES = {
                 "opts": [
                     "所有权限错误和内部栈都原样发给模型",
                     "支付扣款状态不一致时，让模型自行决定是否重试",
-                    "用户输入导致的可恢复问题，例如订单号不存在、搜索无结果，且错误文案已脱敏",
                     "任何有副作用工具超时时都自动重试并回填成功",
+                    "用户输入导致的可恢复问题，例如订单号不存在、搜索无结果，且错误文案已脱敏",
                 ],
-                "answer": 2,
+                "answer": 3,
                 "why": "可对话恢复的问题适合回填给模型；权限、内部 bug、危险副作用失败通常应抛出并交给应用层处理。",
             },
         ],

@@ -42,8 +42,8 @@ LESSON_27_AGENT_LOOP = (
     + shell.source_map(
         [
             {"file": "libs/langchain_v1/langchain/agents/factory.py", "symbol": "create_agent", "role": "高层 Agent 工厂，把模型、工具、提示、中间件和上下文组装成可运行图", "direction": "用户调用入口，内部把循环交给 LangGraph 编排"},
-            {"file": "libs/langgraph/langgraph/prebuilt/tool_node.py", "symbol": "ToolNode", "role": "预置工具节点，读取 AIMessage.tool_calls，执行匹配工具并返回 ToolMessage", "direction": "位于 model -> tools -> model 的 tools 阶段"},
-            {"file": "libs/langgraph/langgraph/prebuilt/tool_node.py", "symbol": "tools_condition", "role": "条件路由函数，检查最新 AIMessage 是否还有工具调用", "direction": "model 节点之后决定下一跳是 tools 还是 END"},
+            {"file": "libs/prebuilt/langgraph/prebuilt/tool_node.py", "symbol": "ToolNode", "role": "预置工具节点，读取 AIMessage.tool_calls，执行匹配工具并返回 ToolMessage", "direction": "位于 model -> tools -> model 的 tools 阶段"},
+            {"file": "libs/prebuilt/langgraph/prebuilt/tool_node.py", "symbol": "tools_condition", "role": "条件路由函数，检查最新 AIMessage 是否还有工具调用", "direction": "model 节点之后决定下一跳是 tools 还是 END"},
             {"file": "libs/core/langchain_core/messages/ai.py", "symbol": "AIMessage.tool_calls", "role": "模型请求调用工具的结构化字段，包含 name、args、id 等信息", "direction": "由模型节点写入，供条件边和 ToolNode 读取"},
             {"file": "libs/core/langchain_core/messages/tool.py", "symbol": "ToolMessage", "role": "工具执行结果消息，用 tool_call_id 与原始请求配对", "direction": "由 ToolNode 写回 messages，下一轮 model 读取"},
         ]
@@ -188,24 +188,20 @@ while True:  # 教学版；真实实现是 StateGraph 条件边
     )
 
     + _section(
-        "最后一遍：把概念落到维护动作",
+        "Agent loop 终止与 transcript 审计",
         [
-            "维护课程里的 Agent 页面时，不能只追求术语完整，还要让读者知道下一次出问题该打开哪个文件、看哪个符号、读哪条消息、改哪个边界。源码课的价值正在这里：把抽象概念变成可复查证据，把运行现象变成可解释路径，把设计取舍变成团队可以讨论和测试的维护动作。",
-            "学习者如果能在没有导师提示的情况下完成三件事，就说明本课达标：第一，画出运行时数据从入口到节点再到结果的路径；第二，指出哪个结构化字段决定下一步控制流；第三，为一个失败案例选择合理的日志、测试和修复位置。记住名词只是开始，能用名词定位问题才是 C 级源码课的目标。",
+            "审计一次 Agent loop 时，先把 transcript 分成四种事实：用户输入、模型请求、工具观察、最终模型消息。终止只看最新 AIMessage 是否仍有 tool_calls；业务是否成功则要继续检查最后回答是否引用了必要 ToolMessage。这样能避免把“图停了”误读成“任务完成了”。",
+            "每一轮都应记录 step、message type、tool_call_id、tool name、参数摘要和观察摘要。若出现重复调用同一工具，先比对前一轮 ToolMessage 是否包含足够信息，而不是直接调大 recursion_limit。若最新消息不是 AIMessage，就要解释为什么控制流还会进入条件边。",
+            "生产 trace 建议保留两条视图：一条给工程师看完整消息因果链，一条给客服或用户看阶段化事件。前者用于确认 AIMessage.tool_calls 与 ToolMessage.tool_call_id 是否配对，后者用于说明系统确实查了数据、等待了工具、再生成回答。",
         ],
     )
 
     + _section(
-        "收束提醒",
+        "tool_call 与 ToolMessage 配对核查表",
         [
-            "读完本课后，请把源码符号、运行 trace、错误策略和测试样例连成一条线。只会说概念说明理解还停在表层；能用概念解释一次真实调用为什么进入这个节点、为什么写入这个消息、为什么选择这个错误边界，才算把 Agent 内部机制转化成工程能力。",
-        ],
-    )
-
-    + _section(
-        "定位口诀",
-        [
-            "先看入口，再看状态；先看结构化字段，再看自然语言；先看边界，再看实现。这个顺序能避免把构图问题误判成模型问题，把权限问题误判成提示问题，把可恢复错误误判成系统崩溃。",
+            "第一项，检查每个 tool_call id 是否恰好有一个对应 ToolMessage；并行工具可以有多个 id，但不能缺失、重复或错配。第二项，检查 ToolMessage 内容是否脱敏、可行动、包含模型结束任务所需事实。第三项，检查工具错误是否明确写成观察，还是被日志吞掉导致模型只能继续猜。",
+            "第四项，检查工具参数来源。业务参数可以由模型填写，身份、租户、权限、幂等键等安全参数不应从用户文本或模型输出进入工具。第五项，检查最终 AIMessage 是否还带 tool_calls；若带有请求却被 UI 当成最终回答，就是 transcript 消费方的 bug。",
+            "这张表也适合写成测试夹具：给假模型固定输出 tool_calls，给假工具固定返回 ToolMessage，断言第二轮模型收到配对观察后停止。测试目标不是某句回答，而是循环结构确实按请求、观察、再判断的顺序推进。",
         ],
     )
     + shell.version_note("本课按 LangChain v1 Agent 与 LangGraph prebuilt ToolNode 的心智模型讲解。具体模块行号会随版本移动，但 create_agent、ToolNode、tools_condition、AIMessage.tool_calls、ToolMessage 这组源码锚点是阅读 Agent 循环的稳定入口。")
@@ -222,14 +218,14 @@ while True:  # 教学版；真实实现是 StateGraph 条件边
 
 LESSON_28_CREATE_AGENT = (
     r"""
-<p class="lead"><span class="mono">create_agent</span> 看起来是一行 API，内部却在做一件很工程化的事：把用户声明的 model、tools、system_prompt、middleware、context_schema、response_format 等参数，转成一张 <span class="mono">StateGraph</span>。这张图至少包含 model 节点、可选 tools 节点、条件边、messages 状态和 <span class="mono">add_messages</span> reducer；更复杂时还会插入 middleware 节点、人审边界、结构化输出节点和运行时上下文。本课从参数流入图构件的角度读 <span class="mono">create_agent</span> 与 <span class="mono">_AgentBuilder</span>，理解为什么“高层声明式 API”最终要落到 LangGraph 的状态图。</p>
+<p class="lead"><span class="mono">create_agent</span> 看起来是一行 API，内部却在做一件很工程化的事：它在 <span class="mono">factory.py</span> 里直接归一化 model、tools、system_prompt、middleware、context_schema、response_format 等参数，并内联组装一张 <span class="mono">StateGraph</span>。这张图至少包含 model 节点、可选 tools 节点、真实的 model→tools 条件边、messages 状态和 <span class="mono">add_messages</span> reducer；更复杂时还会插入 middleware 节点、人审边界、结构化输出策略和运行时上下文。本课从参数流入图构件的角度读 <span class="mono">create_agent</span> 与 <span class="mono">_make_model_to_tools_edge</span>、<span class="mono">_chain_model_call_handlers</span>、<span class="mono">_chain_tool_call_wrappers</span> 等 helper，理解为什么“高层声明式 API”最终要落到 LangGraph 的状态图。</p>
 """
-    + _analogy("create_agent 像旅行社的打包行程。你告诉它目的地、预算、想去的景点、是否需要导游、是否要保险；旅行社不会让你自己排每天路线，而是把这些偏好编成一张行程图：第一天集合，某些景点需要门票，遇到天气就改线，晚上回酒店。你传入的是参数，得到的是可执行流程。_AgentBuilder 就像后台行程规划师，把每个参数放到正确位置，确保车、票、导游和应急方案能接起来。")
+    + _analogy("create_agent 像旅行社的打包行程。你告诉它目的地、预算、想去的景点、是否需要导游、是否要保险；旅行社不会让你自己排每天路线，而是在同一个服务台里把这些偏好编成一张行程图：第一天集合，某些景点需要门票，遇到天气就改线，晚上回酒店。你传入的是参数，得到的是可执行流程。factory.py 里的内联构图逻辑和 helper 函数就像服务台背后的路线表、审批表和调度规则，把车、票、导游和应急方案接起来。")
     + shell.lesson_map(
         "本课地图：参数如何变成 StateGraph",
         [
             ("声明入口", "create_agent 接收模型、工具、提示、schema、middleware、response_format 等用户意图", "before"),
-            ("构建器", "_AgentBuilder 归一化参数，判断需要哪些节点、边和状态键", "now"),
+            ("内联构图", "create_agent 在 factory.py 中归一化参数，直接创建 StateGraph、节点、边和状态键", "now"),
             ("状态图", "StateGraph 定义 messages 等 state，并用 add_messages 描述消息如何增量合并", "source"),
             ("节点与边", "model 节点负责模型调用，ToolNode 负责工具执行，条件边负责循环或结束", "now"),
             ("编译运行", "图编译后成为 Runnable，继承 LangGraph 的 stream、checkpoint、interrupt 和 recursion_limit", "after"),
@@ -237,14 +233,15 @@ LESSON_28_CREATE_AGENT = (
     )
     + r"""
 <h2>源码入口：文件 + 符号名</h2>
-<p>源码阅读建议从工厂函数进入，再看构建器如何把参数放进图。不要只读最终返回对象；关键在“参数 -> 状态 -> 节点 -> 边 -> 编译图”的转换链。</p>
+<p>源码阅读建议从工厂函数进入，再看内联构图逻辑如何把参数放进图。不要只读最终返回对象；关键在“参数 -> 状态 -> 节点 -> 边 -> 编译图”的转换链。</p>
 """
     + shell.source_map(
         [
             {"file": "libs/langchain_v1/langchain/agents/factory.py", "symbol": "create_agent", "role": "公开工厂函数，暴露声明式 Agent 配置入口", "direction": "用户参数从这里进入构图流程"},
-            {"file": "libs/langchain_v1/langchain/agents/factory.py", "symbol": "_AgentBuilder", "role": "内部构建器，归一化工具、模型、middleware、response_format 并决定图形状", "direction": "把高层参数映射成 StateGraph 组件"},
-            {"file": "libs/langgraph/langgraph/graph/state.py", "symbol": "StateGraph", "role": "状态图构建器，注册 state schema、节点、普通边、条件边和编译步骤", "direction": "承接 _AgentBuilder 产出的节点与边"},
-            {"file": "libs/langgraph/langgraph/prebuilt/tool_node.py", "symbol": "ToolNode", "role": "当 tools 非空时加入图，负责执行模型发出的 tool_calls", "direction": "由条件边从 model 节点路由进入"},
+            {"file": "libs/langchain_v1/langchain/agents/factory.py", "symbol": "_make_model_to_tools_edge", "role": "真实 model→tools 条件边 helper，读取最新 AIMessage、已完成 ToolMessage 和结构化输出工具，决定去 tools、回 model 或 END", "direction": "替代把 create_agent 构图误讲成 tools_condition 或虚构构建器"},
+            {"file": "libs/langchain_v1/langchain/agents/factory.py", "symbol": "_chain_model_call_handlers / _chain_tool_call_wrappers", "role": "组合 middleware 的 model/tool wrapper 栈，让中间件按顺序包住真实调用", "direction": "把 middleware 参数映射到调用链而不是普通提示词"},
+            {"file": "libs/langgraph/langgraph/graph/state.py", "symbol": "StateGraph", "role": "状态图构建器，注册 state schema、节点、普通边、条件边和编译步骤", "direction": "承接 create_agent 内联添加的节点与边"},
+            {"file": "libs/prebuilt/langgraph/prebuilt/tool_node.py", "symbol": "ToolNode", "role": "当 tools 非空时加入图，负责执行模型发出的 tool_calls", "direction": "由条件边从 model 节点路由进入"},
             {"file": "libs/langgraph/langgraph/graph/message.py", "symbol": "add_messages", "role": "messages 状态的 reducer，把每个节点返回的新消息追加或按 id 合并", "direction": "让 model 和 tools 节点只返回增量消息"},
         ]
     )
@@ -255,7 +252,7 @@ LESSON_28_CREATE_AGENT = (
         [
             ("create_agent(...) ", "接收 model、tools、system_prompt、middleware、context_schema、response_format", True),
             ("normalize inputs", "把模型标识解析为 chat model，把工具转成 BaseTool/ToolNode 可用形式", False),
-            ("_AgentBuilder", "计算 state schema、节点列表、middleware hook、条件边和输出格式策略", True),
+            ("inline factory assembly", "解析 state schema、添加 model/tools/middleware 节点、组合 wrapper、接条件边和输出格式策略", True),
             ("StateGraph", "add_node('model')、可选 add_node('tools')、add_conditional_edges(...)、messages reducer", True),
             ("compile", "返回可 invoke/stream 的编译图，运行时由 LangGraph 调度", False),
         ]
@@ -268,8 +265,8 @@ LESSON_28_CREATE_AGENT = (
             {"step": "1. model 参数", "input": "model='anthropic:claude...' 或 BaseChatModel 实例", "action": "create_agent 归一化为可调用模型，并准备 bind_tools 或工具 schema", "output": "model node 的核心 runnable"},
             {"step": "2. tools 参数", "input": "tools=[search_order, refund_order]", "action": "工具被验证、命名、生成 schema；若非空则构造 ToolNode", "output": "tools 节点 + model 后条件边"},
             {"step": "3. messages state", "input": "用户传入 messages 或 input", "action": "StateGraph 使用包含 messages 的 state schema，并为 messages 绑定 add_messages reducer", "output": "节点可返回 {'messages':[new_message]}"},
-            {"step": "4. middleware 参数", "input": "middleware=[limit, hitl, custom_guard]", "action": "_AgentBuilder 插入 before/after 节点或包裹 model/tool 调用", "output": "图形状和调用链被扩展"},
-            {"step": "5. response_format", "input": "response_format=AnswerSchema", "action": "构建结构化输出路径，必要时让模型 with_structured_output", "output": "最终 state 可含 structured_response"},
+            {"step": "4. middleware 参数", "input": "middleware=[limit, hitl, custom_guard]", "action": "create_agent 直接添加 before/after 节点，并用 _chain_model_call_handlers / _chain_tool_call_wrappers 组合 wrapper", "output": "图形状和调用链被扩展"},
+            {"step": "5. response_format", "input": "response_format=AnswerSchema 或显式策略", "action": "通过 AutoStrategy、ToolStrategy 或 ProviderStrategy 选择结构化输出路径", "output": "最终 state 可含 structured_response"},
         ]
     )
     + r"""
@@ -277,24 +274,31 @@ LESSON_28_CREATE_AGENT = (
 """
     + shell.code_walkthrough(
         "libs/langchain_v1/langchain/agents/factory.py",
-        "create_agent / _AgentBuilder",
+        "create_agent / inline StateGraph assembly",
         """def create_agent(model, tools=None, middleware=(), response_format=None, **opts):
-    builder = _AgentBuilder(
-        model=init_or_use_model(model),
-        tools=normalize_tools(tools or []),
-        middleware=list(middleware),
-        response_format=response_format,
+    normalized_tools = normalize_tools(tools or [])
+    model_handler = _chain_model_call_handlers(wrap_model_handlers)
+    tool_wrapper = _chain_tool_call_wrappers(wrap_tool_handlers)
+
+    graph = StateGraph(
+        state_schema=resolved_state_schema,
+        input_schema=input_schema,
+        output_schema=output_schema,
         context_schema=opts.get("context_schema"),
     )
-
-    graph = StateGraph(builder.state_schema)
-    graph.add_node("model", builder.model_node)
-    if builder.tools:
-        graph.add_node("tools", ToolNode(builder.tools))
-        graph.add_conditional_edges("model", tools_condition)
-        graph.add_edge("tools", "model")
-    graph.set_entry_point(builder.entry_node)
-    return graph.compile()
+    graph.add_node("model", RunnableCallable(model_node, amodel_node))
+    if normalized_tools or tool_wrapper:
+        graph.add_node("tools", ToolNode(normalized_tools, wrap_tool_call=tool_wrapper))
+        graph.add_conditional_edges(
+            loop_exit_node,
+            RunnableCallable(_make_model_to_tools_edge(
+                model_destination=loop_entry_node,
+                structured_output_tools=structured_output_tools,
+                end_destination=exit_node,
+            )),
+            ["tools", loop_entry_node, exit_node],
+        )
+    return graph.compile(checkpointer=checkpointer, store=store)
 """,
         "教学版省略了动态模型选择、中间件链、结构化输出、interrupt 和 store/checkpointer 等细节，但保留了 create_agent 的关键角色：不是直接执行一次模型，而是声明并编译一张可重复运行的图。",
     )
@@ -327,7 +331,7 @@ LESSON_28_CREATE_AGENT = (
         [
             "阅读或评审一个 create_agent 调用时，最有效的方法是先做参数表。第一列写参数名，第二列写它影响的图组件，第三列写运行时可观察结果。model 影响 model 节点；tools 影响 ToolNode 和条件边；middleware 影响额外节点或 wrapper 链；context_schema 影响 Runtime.context；response_format 影响最终 structured_response。参数表一旦完整，图形状基本就能推出来。",
             "不要把所有参数都理解成 prompt 配置。system_prompt 确实会改变模型看到的内容，但 tools 会改变模型可发出的动作空间，middleware 会改变调用边界，checkpointer 会改变恢复能力，context_schema 会改变工具可用的可信环境。这些参数属于不同层次。把它们都塞进“提示词优化”框里，会导致你用错排查手段。",
-            "_AgentBuilder 的价值在于归一化。用户可能传字符串模型名、模型实例、普通函数工具、BaseTool、不同形式的 response_format；构建器要把这些变成图运行时能理解的统一组件。源码里很多分支看似繁琐，其实是在维护公共 API 的宽入口和内部图的窄契约。读源码时要区分“兼容用户输入”的代码和“决定运行语义”的代码。",
+            "create_agent 的源码价值在于把宽入口收束为窄契约。用户可能传字符串模型名、模型实例、普通函数工具、BaseTool、不同形式的 response_format；factory.py 会在函数体内把这些归一化为模型节点、ToolNode、structured_output_tools、middleware wrapper 和 StateGraph schema。源码里很多分支看似繁琐，其实是在维护公共 API 的宽入口和内部图的窄契约。读源码时要区分“兼容用户输入”的代码和“决定运行语义”的代码。",
             "StateGraph 的 state schema 是 Agent 的长期骨架。messages 几乎总在里面，structured_response 可能在里面，某些中间件还会增加额外状态。评审时要问每个 state key 谁写、谁读、合并规则是什么。一个无人负责的 state key 会变成调试噪声；一个无 reducer 却被多个节点写的 key 会在并行场景产生冲突。",
             "ToolNode 是否出现由工具集合决定，但工具集合为空并不代表 Agent 没有价值。无工具 Agent 仍可以用 middleware、context 和 response_format 做结构化问答。相反，有工具也不代表每轮都会进入 ToolNode；条件边仍要看 AIMessage.tool_calls。这个区分能避免很多“我明明传了工具为什么没跑”的误判。",
             "add_messages 让图采用增量写入思维。model 节点不需要复制完整历史，tools 节点也不需要知道前面有多少消息；它们只返回新增消息。运行时用 reducer 统一合并。这个设计降低节点复杂度，也让 checkpoint 可以记录每一步新增内容。若手写循环每次都重建完整 messages，短期简单，长期难以观察和恢复。",
@@ -376,7 +380,7 @@ LESSON_28_CREATE_AGENT = (
 '能把 middleware 分成状态钩子和 wrapper，并指出它们会改变图节点还是调用链。',
 '能说明 response_format 影响最终输出契约，而不是替代中间 ToolMessage 或工具事实来源。',
 '能检查 state schema 中每个 key 的读者、写者和 reducer，避免无主字段或并行写冲突。',
-'能区分用户传入参数的宽入口和图内部组件的窄契约，理解 _AgentBuilder 为什么要做大量归一化。',
+'能区分用户传入参数的宽入口和图内部组件的窄契约，理解 create_agent 为什么要在函数体内做大量归一化。',
 '能说明为什么图比 while 循环更适合 checkpoint、interrupt、stream、debug 和并行工具。',
 '能判断什么时候不该用 create_agent，而应手写 StateGraph 表达固定业务流程。',
 '能从一次运行 trace 反推图路径：入口节点、model、条件边、tools、再回 model 或 END。',
@@ -398,24 +402,20 @@ LESSON_28_CREATE_AGENT = (
     )
 
     + _section(
-        "最后一遍：把概念落到维护动作",
+        "create_agent 构图评审清单",
         [
-            "维护课程里的 Agent 页面时，不能只追求术语完整，还要让读者知道下一次出问题该打开哪个文件、看哪个符号、读哪条消息、改哪个边界。源码课的价值正在这里：把抽象概念变成可复查证据，把运行现象变成可解释路径，把设计取舍变成团队可以讨论和测试的维护动作。",
-            "学习者如果能在没有导师提示的情况下完成三件事，就说明本课达标：第一，画出运行时数据从入口到节点再到结果的路径；第二，指出哪个结构化字段决定下一步控制流；第三，为一个失败案例选择合理的日志、测试和修复位置。记住名词只是开始，能用名词定位问题才是 C 级源码课的目标。",
+            "评审 create_agent 调用时，先画参数到图组件的映射：model 进入 model 节点，tools 进入 ToolNode 与 model→tools 条件边，middleware 进入图节点或 wrapper 链，context_schema 进入 Runtime.context，response_format 进入结构化输出策略。缺少这张映射，就很容易把构图问题误修成 prompt 问题。",
+            "第二步检查边：当前 factory.py 使用 _make_model_to_tools_edge 决定从 loop_exit_node 去 tools、回 model 或 END，而不是简单套用 prebuilt tools_condition。这个 helper 会看最新 AIMessage、已完成 ToolMessage、structured_output_tools 和 jump_to，因此比教学图里的二分路由更贴近真实实现。",
+            "第三步检查状态：messages 是否由 add_messages 合并，structured_response 是否有清晰写入路径，中间件新增字段是否有 reader 和 reducer。第四步检查退出条件：无工具、只有结构化输出工具、有 after_model hook、有 return_direct 工具时，图的出口可能不同，不能只凭“传了 tools”判断路径。",
         ],
     )
 
     + _section(
-        "收束提醒",
+        "factory.py helper 路径图",
         [
-            "读完本课后，请把源码符号、运行 trace、错误策略和测试样例连成一条线。只会说概念说明理解还停在表层；能用概念解释一次真实调用为什么进入这个节点、为什么写入这个消息、为什么选择这个错误边界，才算把 Agent 内部机制转化成工程能力。",
-        ],
-    )
-
-    + _section(
-        "定位口诀",
-        [
-            "先看入口，再看状态；先看结构化字段，再看自然语言；先看边界，再看实现。这个顺序能避免把构图问题误判成模型问题，把权限问题误判成提示问题，把可恢复错误误判成系统崩溃。",
+            "真实源码阅读可以按 helper 分层：create_agent 负责宽入口、schema 合并、节点注册和 compile；_make_model_to_tools_edge 负责模型输出后的条件路由；_chain_model_call_handlers 负责把 wrap_model_call 做成外到内的 handler 栈；_chain_tool_call_wrappers 负责把 wrap_tool_call 做成工具执行边界。",
+            "结构化输出不要只联想到 BaseChatModel.with_structured_output。create_agent 先把裸 schema 包成 AutoStrategy，也接受显式 ProviderStrategy 或 ToolStrategy；之后根据模型能力与策略决定是 provider 原生结构化响应，还是把 schema 作为结构化输出工具参与循环。这个区别会影响 tools 节点、structured_output_tools 和错误恢复。",
+            "如果源码评审发现页面写了不存在的内部类名，应优先回到 factory.py 找当前符号：函数定义、helper 名、条件边和 source map 必须能在仓库中复查。教学可以简化流程，但不能把简化伪代码写成真实源码符号。",
         ],
     )
 
@@ -425,13 +425,13 @@ LESSON_28_CREATE_AGENT = (
             "把参数映射成节点和边，是理解本页最重要的练习。遇到 create_agent 行为异常时，先画图，再读 trace，最后才改提示。只要能画出入口、model、ToolNode、条件边、messages reducer 和最终 structured_response，构图结果就从黑盒变成了可维护设计。",
         ],
     )
-    + shell.version_note("本课聚焦 LangChain v1 的 create_agent 构图模型。_AgentBuilder 是内部符号，细节可能随版本重构；但 create_agent 把参数映射到 StateGraph、ToolNode、add_messages 和条件边的思路，是读 Agent 源码时最稳定的主线。")
+    + shell.version_note("本课聚焦 LangChain v1 的 create_agent 构图模型。当前源码没有独立构建器类；create_agent 在 factory.py 内联组装 StateGraph，并通过 _make_model_to_tools_edge、_chain_model_call_handlers、_chain_tool_call_wrappers 等 helper 管理关键边和 wrapper 链。")
     + _points(
         [
             "create_agent 是声明式工厂，核心工作是把参数编成 StateGraph。",
-            "_AgentBuilder 负责归一化输入并决定 state、节点、边、middleware 与输出格式路径。",
+            "create_agent 在 factory.py 内联归一化输入，并决定 state、节点、边、middleware 与输出格式路径。",
             "add_messages 让节点返回增量消息，图运行时负责合并消息历史。",
-            "ToolNode 与 tools_condition 构成 model/tool loop；是否进入工具由 AIMessage.tool_calls 决定。",
+            "ToolNode 与 _make_model_to_tools_edge 构成 create_agent 的真实 model/tool 路由；是否进入工具由 AIMessage.tool_calls 和已完成 ToolMessage 决定。",
         ]
     )
 )
@@ -502,12 +502,12 @@ LESSON_29_MIDDLEWARE = (
             continue
         next_handler = handler
 
-        def handler(request, runtime, mw=mw, next_handler=next_handler):
-            return mw.wrap_model_call(request, runtime, next_handler)
+        def handler(request, mw=mw, next_handler=next_handler):
+            return mw.wrap_model_call(request, next_handler)
 
     return handler
 """,
-        "真实实现要处理同步/异步、类型化请求、响应对象和错误传播。核心思想是 wrapper 拿到 next_handler，所以它可以先做检查，再调用内层，也可以重试多次、替换请求、短路返回或把异常转换成更友好的错误。",
+        "真实实现要处理同步/异步、类型化请求、响应对象和错误传播；runtime 等上下文放在 request 或 request.runtime 对象上，而不是作为第三个位置参数随意传入。核心思想是 wrapper 拿到 next_handler，所以它可以先做检查，再调用内层，也可以重试多次、替换请求、短路返回或把异常转换成更友好的错误。",
     )
     + _section(
         "为什么 before/after 和 wrap 不是同一种东西",
@@ -608,24 +608,20 @@ LESSON_29_MIDDLEWARE = (
     )
 
     + _section(
-        "最后一遍：把概念落到维护动作",
+        "Hook 顺序与 wrapper 嵌套排障",
         [
-            "维护课程里的 Agent 页面时，不能只追求术语完整，还要让读者知道下一次出问题该打开哪个文件、看哪个符号、读哪条消息、改哪个边界。源码课的价值正在这里：把抽象概念变成可复查证据，把运行现象变成可解释路径，把设计取舍变成团队可以讨论和测试的维护动作。",
-            "学习者如果能在没有导师提示的情况下完成三件事，就说明本课达标：第一，画出运行时数据从入口到节点再到结果的路径；第二，指出哪个结构化字段决定下一步控制流；第三，为一个失败案例选择合理的日志、测试和修复位置。记住名词只是开始，能用名词定位问题才是 C 级源码课的目标。",
+            "调试 middleware 时先把执行顺序画成两层：状态 hook 是图上的节点，wrapper 是调用边界外的洋葱。before_model 和 after_model 的证据应出现在 state update、checkpoint 或 stream 事件中；wrap_model_call 和 wrap_tool_call 的证据应体现为 handler 调用次数、异常传播、短路或重试。",
+            "wrapper 顺序必须用外层、内层语言描述。外层先看到 request，最后看到 response；内层最接近真实模型或工具。审计包住重试会记录一次整体调用，重试包住审计会记录每次尝试。两者都可能正确，但必须符合团队想要的观测粒度。",
+            "排障时不要把 runtime 当成第三个随手添加的位置参数。真实 wrap_model_call 的概念是 request 加 handler，runtime/context/config 应从 request 或 request.runtime 侧读取。签名讲错会让读者写出不能挂进真实中间件链的伪代码。",
         ],
     )
 
     + _section(
-        "收束提醒",
+        "状态钩子 vs wrapper 钩子选择表",
         [
-            "读完本课后，请把源码符号、运行 trace、错误策略和测试样例连成一条线。只会说概念说明理解还停在表层；能用概念解释一次真实调用为什么进入这个节点、为什么写入这个消息、为什么选择这个错误边界，才算把 Agent 内部机制转化成工程能力。",
-        ],
-    )
-
-    + _section(
-        "定位口诀",
-        [
-            "先看入口，再看状态；先看结构化字段，再看自然语言；先看边界，再看实现。这个顺序能避免把构图问题误判成模型问题，把权限问题误判成提示问题，把可恢复错误误判成系统崩溃。",
+            "如果逻辑要产生可持久化状态更新，例如追加安全提示、记录审查结果、设置 jump_to，优先用 before/after hook，因为图能看见它的输入输出。若逻辑要决定是否执行一次调用、执行几次、是否换模型、是否捕获异常，优先用 wrapper，因为它需要 handler 控制权。",
+            "工具权限通常横跨两类 hook：before_model 可以投影非敏感身份摘要，让模型知道业务场景；wrap_tool_call 才真正守住副作用工具执行前的权限、租户、金额和人审。把权限全部放在 prompt 或 after_agent，安全语义都会太晚。",
+            "测试也要按类别拆开。状态 hook 测它返回的增量 state 是否被 reducer 合并；wrapper 测 fake handler 被调用几次、收到什么 request、异常是否被转换。只测最终回答通过，无法发现 wrapper 顺序反了或状态 hook 原地修改输入的问题。",
         ],
     )
     + shell.version_note("本课使用 LangChain v1 AgentMiddleware 的概念性源码锚点。具体内置中间件名称和文件可能随版本扩展，但状态钩子编进图、wrap 钩子组合 handler、HITL 守副作用边界，是阅读 middleware 系统的稳定心智模型。")
@@ -642,7 +638,7 @@ LESSON_29_MIDDLEWARE = (
 
 LESSON_30_RUNTIME_CONTEXT = (
     r"""
-<p class="lead">Runtime Context 解决的是一个很具体的问题：Agent 运行时需要知道当前用户、租户、权限、连接、请求 id、地区等信息，但这些信息不一定应该进入对话消息，也不应该让模型随意看到。LangChain v1 的 <span class="mono">context_schema</span>、LangGraph 的 <span class="mono">Runtime</span>、工具侧的 <span class="mono">ToolRuntime</span>，把“给代码用的运行时上下文”和“给模型看的消息状态”分开；<span class="mono">response_format</span> 与 <span class="mono">with_structured_output</span> 则把最终回答收束为结构化结果。本课追踪 <span class="mono">context={'user_id':'u_123','tenant':'acme'}</span> 如何进入 prompt、工具和结构化响应。</p>
+<p class="lead">Runtime Context 解决的是一个很具体的问题：Agent 运行时需要知道当前用户、租户、权限、连接、请求 id、地区等信息，但这些信息不一定应该进入对话消息，也不应该让模型随意看到。LangChain v1 的 <span class="mono">context_schema</span>、LangGraph 的 <span class="mono">Runtime</span>、工具侧的 <span class="mono">ToolRuntime</span>，把“给代码用的运行时上下文”和“给模型看的消息状态”分开；<span class="mono">response_format</span> 则通过 <span class="mono">AutoStrategy</span>、<span class="mono">ProviderStrategy</span> 或 <span class="mono">ToolStrategy</span> 把最终回答收束为结构化结果。本课追踪 <span class="mono">context={'user_id':'u_123','tenant':'acme'}</span> 如何进入 prompt、工具和结构化响应。</p>
 """
     + _analogy("把 Runtime Context 想成餐厅后厨的订单小票背面信息。顾客菜单上写的是“少辣牛肉面”，这是给厨师理解需求的内容；收银系统还知道会员号、门店、优惠券、过敏记录和支付渠道，这些不是都要念给顾客听，也不该贴在菜名里。服务员需要这些信息来查会员价，后厨需要过敏信息来避免花生，经理需要订单号做追踪。context_schema 就是规定小票背面有哪些字段、谁能读、字段类型是什么。")
     + shell.lesson_map(
@@ -652,7 +648,7 @@ LESSON_30_RUNTIME_CONTEXT = (
             ("Runtime", "图运行时携带 context、store、stream_writer、config 等执行环境", "source"),
             ("ToolRuntime", "工具函数通过运行时对象读取上下文，而不是让模型把秘密填进参数", "now"),
             ("prompt 注入", "只有确实需要模型知道的非敏感摘要才进入系统提示或 messages", "now"),
-            ("response_format", "最终回答可通过 with_structured_output 变成可校验结构", "after"),
+            ("response_format", "最终回答通过 AutoStrategy/ProviderStrategy/ToolStrategy 选择结构化输出路径", "after"),
         ],
     )
     + r"""
@@ -663,8 +659,9 @@ LESSON_30_RUNTIME_CONTEXT = (
         [
             {"file": "libs/langchain_v1/langchain/agents/factory.py", "symbol": "create_agent", "role": "接收 context_schema 和 response_format，把它们纳入 Agent 图与模型调用策略", "direction": "用户声明上下文类型与最终输出类型"},
             {"file": "libs/langgraph/langgraph/runtime.py", "symbol": "Runtime", "role": "图执行期间的运行时对象，携带 context、store、stream_writer、config 等环境", "direction": "节点和中间件可读取当前调用上下文"},
-            {"file": "libs/core/langchain_core/tools/base.py", "symbol": "ToolRuntime", "role": "工具侧运行时注入对象，让工具安全读取 context、config 或 store", "direction": "工具执行时避免让模型传入敏感运行时字段"},
-            {"file": "libs/core/langchain_core/language_models/chat_models.py", "symbol": "with_structured_output", "role": "把聊天模型包装成按 schema 返回结构化对象的 runnable", "direction": "response_format 需要结构化最终结果时使用"},
+            {"file": "libs/langchain_v1/langchain/tools/tool_node.py", "symbol": "ToolRuntime", "role": "LangChain v1 面向用户的 ToolRuntime re-export；真实定义来自 LangGraph prebuilt ToolNode", "direction": "工具执行时避免让模型传入敏感运行时字段"},
+            {"file": "libs/prebuilt/langgraph/prebuilt/tool_node.py", "symbol": "ToolRuntime", "role": "ToolRuntime 的 LangGraph prebuilt 定义，承载 context、state、config、store、stream_writer、tool_call_id 等", "direction": "ToolNode 执行工具时注入"},
+            {"file": "libs/langchain_v1/langchain/agents/structured_output.py", "symbol": "AutoStrategy / ProviderStrategy / ToolStrategy", "role": "定义 create_agent 的结构化响应策略：自动选择、provider 原生结构化输出或以工具调用承载 schema", "direction": "response_format 通过策略进入最终 structured_response 路径"},
             {"file": "libs/langgraph/langgraph/graph/state.py", "symbol": "StateGraph", "role": "承载 messages、structured_response 等 state，并把 runtime context 传入节点", "direction": "Agent 图把上下文与状态分开管理"},
         ]
     )
@@ -677,7 +674,7 @@ LESSON_30_RUNTIME_CONTEXT = (
             ("before_model 读取上下文", "中间件或 prompt builder 读取 tenant，决定注入“你正在服务 acme 租户”这类非敏感提示；user_id 不直接展示给模型。", "system_prompt += tenant label"),
             ("模型提出业务工具请求", "模型只请求 get_orders(status='open')，不需要自己填 user_id 或 tenant，因为这些由工具 runtime 补齐。", "AIMessage.tool_calls"),
             ("工具通过 ToolRuntime 查上下文", "工具函数读取 runtime.context.user_id 和 tenant，按租户隔离查询数据库。模型从未看到连接串或内部权限。", "query tenant='acme', user_id='u_123'"),
-            ("结构化最终响应", "response_format 要求最终输出 {answer, order_count, next_action}；模型通过 with_structured_output 或对应策略写回 structured_response。", "state.structured_response=Answer(...)"),
+            ("结构化最终响应", "response_format 要求最终输出 {answer, order_count, next_action}；create_agent 按 AutoStrategy、ProviderStrategy 或 ToolStrategy 的策略写回 structured_response。", "state.structured_response=Answer(...)"),
         ]
     )
     + r"""
@@ -730,7 +727,7 @@ result = agent.invoke(
     + _section(
         "结构化响应为什么属于最终契约",
         [
-            "response_format 不是简单美化输出，而是把 Agent 最终结果变成应用可以依赖的契约。客服页面可能需要 answer 文本、confidence、next_action、ticket_id；后端需要明确字段，而不是从一段自然语言里再用正则提取。with_structured_output 或等价策略把“模型应该按 schema 回答”放进模型调用路径，并把结果写回 structured_response。",
+            "response_format 不是简单美化输出，而是把 Agent 最终结果变成应用可以依赖的契约。客服页面可能需要 answer 文本、confidence、next_action、ticket_id；后端需要明确字段，而不是从一段自然语言里再用正则提取。create_agent 会把裸 schema 包成 AutoStrategy，也允许显式 ProviderStrategy 或 ToolStrategy；策略决定是走 provider 原生结构化输出，还是用结构化输出工具把结果写回 structured_response。",
             "结构化响应也能减少工具循环后的歧义。模型读完 ToolMessage 后，如果只写一段话，应用很难知道是否需要展示按钮、是否需要升级人工、是否应该写数据库。schema 让这些决策字段显式化。当然，schema 不会自动保证事实正确；它保证的是形状可校验，事实仍要靠工具结果和业务验证。",
             "要注意 response_format 和 ToolMessage 的职责不同。ToolMessage 是循环中间的工具观察，可能有很多条；structured_response 是循环结束后的最终产物，通常只有一个。前者帮助模型继续推理，后者帮助应用消费结果。混淆二者会导致工具结果被当成最终 API 响应，或者最终响应又被错误追加进工具观察。",
         ],
@@ -818,32 +815,28 @@ result = agent.invoke(
     )
 
     + _section(
-        "最后一遍：把概念落到维护动作",
+        "Runtime Context 安全运营检查",
         [
-            "维护课程里的 Agent 页面时，不能只追求术语完整，还要让读者知道下一次出问题该打开哪个文件、看哪个符号、读哪条消息、改哪个边界。源码课的价值正在这里：把抽象概念变成可复查证据，把运行现象变成可解释路径，把设计取舍变成团队可以讨论和测试的维护动作。",
-            "学习者如果能在没有导师提示的情况下完成三件事，就说明本课达标：第一，画出运行时数据从入口到节点再到结果的路径；第二，指出哪个结构化字段决定下一步控制流；第三，为一个失败案例选择合理的日志、测试和修复位置。记住名词只是开始，能用名词定位问题才是 C 级源码课的目标。",
+            "上线前先给 context_schema 做字段分级：模型可见摘要、工具可见权限、只进审计不进普通日志、绝不记录的秘密。user_id、tenant、role、auth_scope 可以作为可信运行时字段，但不应让模型从用户消息里填写；token、连接串、内部风控标签默认不应进入 messages。",
+            "每个工具都要检查参数列表：业务查询条件由模型提供，安全边界字段由 ToolRuntime 或 Runtime.context 注入。若工具签名里出现 tenant、user_id、api_key，要明确它是否真是业务参数；如果只是权限字段，就应该移出模型可控参数。",
+            "日志策略要分别处理 messages、context、tool args、ToolMessage、structured_response。能追踪不等于能明文记录。多租户系统尤其要测试相同 messages 搭配不同 context 时，工具只返回对应租户数据，并且用户在消息里伪造身份不会改变查询范围。",
         ],
     )
 
     + _section(
-        "收束提醒",
+        "结构化响应字段来源核查",
         [
-            "读完本课后，请把源码符号、运行 trace、错误策略和测试样例连成一条线。只会说概念说明理解还停在表层；能用概念解释一次真实调用为什么进入这个节点、为什么写入这个消息、为什么选择这个错误边界，才算把 Agent 内部机制转化成工程能力。",
+            "response_format 字段必须能追到事实来源。answer 可以来自模型综合，order_count 应来自订单工具，needs_human 可能来自规则或中间件，ticket_id 应来自写入工具或应用层包装。若 schema 要求某字段但没有任何工具、规则或上下文提供事实，模型只会在结构化外壳里编造。",
+            "策略选择也要说清楚：AutoStrategy 表示让 create_agent 根据模型能力自动选择；ProviderStrategy 倾向 provider 原生结构化输出；ToolStrategy 把 schema 作为工具调用路径处理。三者都属于 response_format 机制，不应简单说 create_agent 直接调用 with_structured_output。",
+            "结构化输出失败时按顺序排查：模型是否看到工具事实，字段描述是否清楚，schema 是否过度嵌套，策略是否适合当前模型，错误是否应回填给模型重试。直接把 schema 放宽成任意 dict 虽然容易通过，却会丢掉应用真正需要的契约。",
         ],
     )
-
-    + _section(
-        "定位口诀",
-        [
-            "先看入口，再看状态；先看结构化字段，再看自然语言；先看边界，再看实现。这个顺序能避免把构图问题误判成模型问题，把权限问题误判成提示问题，把可恢复错误误判成系统崩溃。",
-        ],
-    )
-    + shell.version_note("本课按 LangChain v1 Agent 的 context_schema/response_format 与 LangGraph Runtime 心智模型讲解。不同版本中 Runtime、ToolRuntime 的具体导入路径可能调整；但 context 与 state 分离、工具通过 runtime 读安全字段、最终响应用 schema 收束，是稳定设计原则。")
+    + shell.version_note("本课按 LangChain v1 Agent 的 context_schema/response_format 与 LangGraph Runtime 心智模型讲解。ToolRuntime 的用户侧导入可经 langchain.tools re-export，真实定义在 LangGraph prebuilt tool_node；结构化响应由 AutoStrategy、ProviderStrategy、ToolStrategy 管理。")
     + _points(
         [
             "context_schema 描述给代码用的运行时环境，不应默认进入 messages。",
             "Runtime/ToolRuntime 让节点、中间件和工具读取可信上下文，避免模型伪造安全字段。",
-            "response_format/with_structured_output 把最终结果变成应用可校验契约。",
+            "response_format 配合 AutoStrategy、ProviderStrategy 或 ToolStrategy，把最终结果变成应用可校验契约。",
             "上下文、消息状态、工具观察、结构化响应各有职责，混在一起会带来泄漏和调试困难。",
         ]
     )
@@ -875,7 +868,7 @@ LESSON_31_CONTROL_ERRORS = (
             {"file": "libs/langgraph/langgraph/pregel/main.py", "symbol": "Pregel.stream", "role": "编译图的流式执行入口，按步骤推进任务、检查限制、产出事件或错误", "direction": "Agent 图 invoke/stream 最终进入的执行循环"},
             {"file": "libs/core/langchain_core/runnables/retry.py", "symbol": "RunnableRetry", "role": "Runnable 级重试包装器，适合短暂网络、限流、可重试模型错误", "direction": "包住模型、链或其他 Runnable 调用"},
             {"file": "libs/core/langchain_core/runnables/fallbacks.py", "symbol": "RunnableWithFallbacks", "role": "Runnable 级 fallback 包装器，主组件失败时切换备用组件", "direction": "为模型或子链提供降级路径"},
-            {"file": "libs/langgraph/langgraph/prebuilt/tool_node.py", "symbol": "ToolNode", "role": "工具执行错误边界，可按策略抛错或生成错误 ToolMessage", "direction": "位于工具调用阶段，决定模型能否看到错误观察"},
+            {"file": "libs/prebuilt/langgraph/prebuilt/tool_node.py", "symbol": "ToolNode", "role": "工具执行错误边界，可按策略抛错或生成错误 ToolMessage", "direction": "位于工具调用阶段，决定模型能否看到错误观察"},
         ]
     )
     + r"""
@@ -1030,24 +1023,20 @@ raise GraphRecursionError("graph did not finish before recursion_limit")
     )
 
     + _section(
-        "最后一遍：把概念落到维护动作",
+        "Retry、fallback 与工具错误矩阵",
         [
-            "维护课程里的 Agent 页面时，不能只追求术语完整，还要让读者知道下一次出问题该打开哪个文件、看哪个符号、读哪条消息、改哪个边界。源码课的价值正在这里：把抽象概念变成可复查证据，把运行现象变成可解释路径，把设计取舍变成团队可以讨论和测试的维护动作。",
-            "学习者如果能在没有导师提示的情况下完成三件事，就说明本课达标：第一，画出运行时数据从入口到节点再到结果的路径；第二，指出哪个结构化字段决定下一步控制流；第三，为一个失败案例选择合理的日志、测试和修复位置。记住名词只是开始，能用名词定位问题才是 C 级源码课的目标。",
+            "把错误先按来源和风险分类：模型 429、模型结构化失败、只读工具无结果、写入工具超时、权限不足、图递归超限。模型 429 可以有限 retry；主模型不可用可以 fallback；搜索无结果适合脱敏 ToolMessage；权限不足和危险副作用失败通常应抛出或 interrupt。",
+            "矩阵里还要写可观测字段：retry 次数、fallback 使用率、原始错误类型、备用路径、tool_call_id、操作 id、是否有副作用、是否需要人工补偿。没有这些字段，fallback 会变成静默降级，ToolMessage 会变成模型看不懂的日志片段。",
+            "ToolMessage 错误只适合模型能安全处理的可恢复问题，例如订单号不存在、搜索无结果、用户输入格式错误。内部栈、权限策略、支付状态不一致和可能泄漏秘密的错误不应交给模型解释；这些属于应用层、中间件或人工流程。",
         ],
     )
 
     + _section(
-        "收束提醒",
+        "递归预算、幂等性与收尾策略",
         [
-            "读完本课后，请把源码符号、运行 trace、错误策略和测试样例连成一条线。只会说概念说明理解还停在表层；能用概念解释一次真实调用为什么进入这个节点、为什么写入这个消息、为什么选择这个错误边界，才算把 Agent 内部机制转化成工程能力。",
-        ],
-    )
-
-    + _section(
-        "定位口诀",
-        [
-            "先看入口，再看状态；先看结构化字段，再看自然语言；先看边界，再看实现。这个顺序能避免把构图问题误判成模型问题，把权限问题误判成提示问题，把可恢复错误误判成系统崩溃。",
+            "recursion_limit 是硬保险丝，软预算是体验策略。硬保险丝触发 GraphRecursionError 后应记录最后几轮 AIMessage.tool_calls、ToolMessage、步数、模型调用次数和参数摘要；软预算可以在接近上限时让模型总结已有事实、请求用户补充或转人工。",
+            "副作用工具必须先设计幂等键和状态查询，再谈 retry。send_email、refund_order、charge_card 在超时后可能已经执行，自动重试可能造成真实损失。安全实现应记录操作 id，恢复时查询状态，重复请求时由中间件或工具层拦截。",
+            "用户收尾也要分层：可恢复输入问题给用户明确下一步；系统故障给安全、诚实、不过度暴露的提示；危险副作用不确定时告诉用户已转人工或正在核验。控制策略的目标不是永不失败，而是失败有限、可见、可恢复且不扩大损失。",
         ],
     )
     + shell.version_note("本课把 LangGraph 的 GraphRecursionError/Pregel.stream 与 LangChain Core 的 RunnableRetry/RunnableWithFallbacks、LangGraph prebuilt ToolNode 放在一起讲。不同版本的异常类路径和配置名可能微调；但硬上限、可恢复重试、可观测 fallback、工具错误策略和副作用幂等性，是生产 Agent 不变的控制原则。")

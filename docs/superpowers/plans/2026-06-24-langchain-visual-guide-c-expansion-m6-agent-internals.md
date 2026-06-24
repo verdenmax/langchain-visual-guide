@@ -58,7 +58,7 @@ Move any remaining legacy Agent/RAG group labels to non-colliding migration labe
 
 ```python
     "07-agents-intro.html": "model node · tools node · tool_calls · loop termination",
-    "13-agent-internals.html": "create_agent · StateGraph · tools_condition · ToolNode",
+    "13-agent-internals.html": "create_agent · StateGraph · _make_model_to_tools_edge · ToolNode",
     "18-custom-middleware.html": "AgentMiddleware · before/after/wrap hooks · dynamic prompt",
     "19-runtime-context.html": "context_schema · Runtime · response_format · structured response",
     "35-agent-control-errors.html": "recursion_limit · tool errors · fallback/retry · safe control",
@@ -104,8 +104,8 @@ Every lesson must include `lead`, `lesson_map`, `source_map`, `state_flow` or `c
 
 Cover model/tool loop. Source rows:
 - `libs/langchain_v1/langchain/agents/factory.py :: create_agent`
-- `libs/langgraph/langgraph/prebuilt/tool_node.py :: ToolNode`
-- `libs/langgraph/langgraph/prebuilt/tool_node.py :: tools_condition`
+- `libs/prebuilt/langgraph/prebuilt/tool_node.py :: ToolNode`
+- `libs/prebuilt/langgraph/prebuilt/tool_node.py :: tools_condition`
 - `libs/core/langchain_core/messages/ai.py :: AIMessage.tool_calls`
 - `libs/core/langchain_core/messages/tool.py :: ToolMessage`
 
@@ -113,14 +113,16 @@ Trace user question -> model node -> tool_calls -> tools node -> ToolMessage -> 
 
 - [ ] **Step 2: Write `LESSON_28_CREATE_AGENT`**
 
-Cover `create_agent` building StateGraph. Source rows:
+Cover `create_agent` building StateGraph inline in `factory.py` (do not require or mention fabricated builder classes). Source rows:
 - `libs/langchain_v1/langchain/agents/factory.py :: create_agent`
-- `libs/langchain_v1/langchain/agents/factory.py :: _AgentBuilder`
+- `libs/langchain_v1/langchain/agents/factory.py :: _make_model_to_tools_edge`
+- `libs/langchain_v1/langchain/agents/factory.py :: _chain_model_call_handlers`
+- `libs/langchain_v1/langchain/agents/factory.py :: _chain_tool_call_wrappers`
 - `libs/langgraph/langgraph/graph/state.py :: StateGraph`
-- `libs/langgraph/langgraph/prebuilt/tool_node.py :: ToolNode`
+- `libs/prebuilt/langgraph/prebuilt/tool_node.py :: ToolNode`
 - `libs/langgraph/langgraph/graph/message.py :: add_messages`
 
-Trace parameters into model/tools/middleware/response_format/checkpointer graph pieces.
+Trace parameters into model/tools/middleware/response_format/checkpointer graph pieces, including the real `_make_model_to_tools_edge` model-to-tools route instead of `tools_condition`.
 
 - [ ] **Step 3: Write `LESSON_29_MIDDLEWARE`**
 
@@ -135,11 +137,12 @@ Trace before_model, wrap_model_call, after_model, wrap_tool_call, after_agent.
 
 - [ ] **Step 4: Write `LESSON_30_RUNTIME_CONTEXT`**
 
-Cover `context_schema`, Runtime, response_format/structured response. Source rows:
+Cover `context_schema`, Runtime, response_format/structured response strategies. Source rows:
 - `libs/langchain_v1/langchain/agents/factory.py :: create_agent`
 - `libs/langgraph/langgraph/runtime.py :: Runtime`
-- `libs/langchain_v1/langchain/tools/tool_node.py :: ToolRuntime`
-- `libs/core/langchain_core/language_models/chat_models.py :: with_structured_output`
+- `libs/langchain_v1/langchain/tools/tool_node.py :: ToolRuntime` (user-facing re-export)
+- `libs/prebuilt/langgraph/prebuilt/tool_node.py :: ToolRuntime` (true LangGraph prebuilt definition)
+- `libs/langchain_v1/langchain/agents/structured_output.py :: AutoStrategy / ProviderStrategy / ToolStrategy`
 - `libs/langgraph/langgraph/graph/state.py :: StateGraph`
 
 Trace `context={"user_id": "u_123", "tenant": "acme"}` into prompt/tool node and structured final response.
@@ -151,7 +154,7 @@ Cover recursion limits, tool/model errors, fallback/retry, safe side effects. So
 - `libs/langgraph/langgraph/pregel/main.py :: Pregel.stream`
 - `libs/core/langchain_core/runnables/retry.py :: RunnableRetry`
 - `libs/core/langchain_core/runnables/fallbacks.py :: RunnableWithFallbacks`
-- `libs/langgraph/langgraph/prebuilt/tool_node.py :: ToolNode`
+- `libs/prebuilt/langgraph/prebuilt/tool_node.py :: ToolNode`
 
 Trace runaway tool loop stopped by recursion_limit; tool error surfaced vs converted to ToolMessage.
 
