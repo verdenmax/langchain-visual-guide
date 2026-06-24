@@ -417,40 +417,40 @@ model.invoke(messages, config={&quot;callbacks&quot;: [PrintingHandler()]})</pre
 <div class="quiz">
   <div class="qn">1. stream 中的 chunk 与最终 <code>AIMessage</code> 是什么关系？</div>
   <ol class="opts">
-    <li>chunk 就是已经完成的最终消息，不能再合并</li>
     <li>chunk 是增量片段，通常需要合并后才得到完整消息和最终元数据</li>
+    <li>chunk 就是已经完成的最终消息，不能再合并</li>
     <li>chunk 只用于日志，不会给 UI 使用</li>
     <li>最终消息会自动执行所有 chunk 中的工具</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。流式输出让用户更早看到增量，但 chunk 边界不等于完整语义边界。最终消息仍是更稳定的结果对象。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。流式输出让用户更早看到增量，但 chunk 边界不等于完整语义边界。最终消息仍是更稳定的结果对象。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">2. callbacks 与 middleware 的边界更接近哪种描述？</div>
   <ol class="opts">
-    <li>callbacks 偏观察事件，middleware 偏改变或包裹运行行为</li>
-    <li>二者完全等价，没有设计边界</li>
-    <li>二者都只能在页面层工作</li>
     <li>callbacks 负责业务权限，middleware 只能打印 token</li>
+    <li>二者完全等价，没有设计边界</li>
+    <li>callbacks 偏观察事件，middleware 偏改变或包裹运行行为</li>
+    <li>二者都只能在页面层工作</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。callbacks 适合 tracing、日志和 token 事件；middleware 更适合拦截、限流、重试或注入策略。混用会模糊责任。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。callbacks 适合 tracing、日志和 token 事件；middleware 更适合拦截、限流、重试或注入策略。混用会模糊责任。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">3. 为什么需要 <code>astream_events</code> 这类事件流，而不只看最终文本？</div>
   <ol class="opts">
-    <li>事件流只包含最终答案，没有中间过程</li>
     <li>事件流能展示链、模型、工具等内部步骤的 start/stream/end/error，支撑细粒度 UI 和排错</li>
     <li>事件流会提高模型准确率</li>
     <li>事件流会替代所有业务日志和数据库</li>
+    <li>事件流只包含最终答案，没有中间过程</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。复杂链路中，最终文本不足以解释发生了什么。事件流把内部运行过程变成可观察证据。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。复杂链路中，最终文本不足以解释发生了什么。事件流把内部运行过程变成可观察证据。</div></div></div>
   </details>
 </div>
 <div class="card spark">

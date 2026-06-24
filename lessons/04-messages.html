@@ -426,26 +426,26 @@ def _convert_to_message(item):
   <div class="qn">2. <code>AIMessage.tool_calls</code> 和 <code>ToolMessage</code> 的边界是什么？</div>
   <ol class="opts">
     <li><code>tool_calls</code> 保存工具返回值，<code>ToolMessage</code> 保存用户输入</li>
-    <li>二者都是工具定义 schema，可以互换</li>
     <li><code>ToolMessage</code> 表示模型打算调用工具，但还没执行</li>
     <li><code>tool_calls</code> 是模型提出的调用请求，<code>ToolMessage</code> 是程序执行后的观察</li>
+    <li>二者都是工具定义 schema，可以互换</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。模型只提出意图；应用负责校验、执行并追加 ToolMessage。把结果误塞进 tool_calls 或普通文本，会破坏工具回合的证据链。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。模型只提出意图；应用负责校验、执行并追加 ToolMessage。把结果误塞进 tool_calls 或普通文本，会破坏工具回合的证据链。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">3. <code>usage_metadata</code> 最适合承担哪类责任？</div>
   <ol class="opts">
-    <li>记录 token 用量、成本分析和调试观察</li>
-    <li>保存用户权限和业务主状态</li>
     <li>决定订单是否付款成功</li>
+    <li>记录 token 用量、成本分析和调试观察</li>
     <li>替代 <code>tool_call_id</code> 做工具配对</li>
+    <li>保存用户权限和业务主状态</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。usage_metadata 是观测数据，不是业务事实。它适合进日志、指标和 trace，不应驱动领域状态变更。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。usage_metadata 是观测数据，不是业务事实。它适合进日志、指标和 trace，不应驱动领域状态变更。</div></div></div>
   </details>
 </div>
 <div class="card spark">

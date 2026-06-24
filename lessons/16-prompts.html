@@ -431,25 +431,25 @@ prompt = ChatPromptTemplate.from_messages([
   <ol class="opts">
     <li>把所有历史都改成 SystemMessage</li>
     <li>让模型无法看到用户输入</li>
-    <li>保留每条历史消息的角色、工具调用和元数据结构</li>
     <li>让历史永远不会超出上下文窗口</li>
+    <li>保留每条历史消息的角色、工具调用和元数据结构</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。消息列表是结构化上下文。压平成字符串会丢失角色和 tool_call_id，影响多轮、工具回合和裁剪策略。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。消息列表是结构化上下文。压平成字符串会丢失角色和 tool_call_id，影响多轮、工具回合和裁剪策略。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">3. partial variables 最适合解决什么问题？</div>
   <ol class="opts">
-    <li>把稳定但重复的变量预先绑定到 prompt，调用时只传剩余动态输入</li>
-    <li>替代所有 runtime config</li>
-    <li>把模型输出提前写死</li>
     <li>让用户输入绕过模板校验</li>
+    <li>替代所有 runtime config</li>
+    <li>把稳定但重复的变量预先绑定到 prompt，调用时只传剩余动态输入</li>
+    <li>把模型输出提前写死</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。partial 把固定上下文或格式说明预先填入模板，减少调用端重复，同时保留剩余变量的显式输入边界。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。partial 把固定上下文或格式说明预先填入模板，减少调用端重复，同时保留剩余变量的显式输入边界。</div></div></div>
   </details>
 </div>
 <div class="card spark">

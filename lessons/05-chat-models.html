@@ -428,27 +428,27 @@ class BaseChatModel:
 <div class="quiz">
   <div class="qn">2. <code>model.invoke(...)</code> 的标准返回类型是什么？</div>
   <ol class="opts">
-    <li><code>AIMessage</code>，其中可能包含 content、tool_calls、usage_metadata 等字段</li>
     <li>裸字符串，因为下游只需要文本</li>
+    <li><code>AIMessage</code>，其中可能包含 content、tool_calls、usage_metadata 等字段</li>
     <li>总是 JSON dict，和工具 schema 一样</li>
     <li>provider SDK 的原始响应对象</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。invoke 的统一输出是 AIMessage。想要字符串可再接 StrOutputParser；直接假设裸字符串会丢掉工具调用和元数据。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。invoke 的统一输出是 AIMessage。想要字符串可再接 StrOutputParser；直接假设裸字符串会丢掉工具调用和元数据。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">3. <code>bind_tools</code> 对聊天模型做了什么？</div>
   <ol class="opts">
     <li>保证模型一定会调用某个工具</li>
-    <li>立即调用所有工具并把结果写入数据库</li>
     <li>把工具函数转换成 prompt 字符串后删除 schema</li>
     <li>把工具 schema 绑定到模型请求上，让模型可以返回 tool_calls，但不执行工具</li>
+    <li>立即调用所有工具并把结果写入数据库</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。bind_tools 改变的是模型可见的工具说明和 provider 请求格式；真实执行仍由 Agent、图节点或你的业务代码完成。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。bind_tools 改变的是模型可见的工具说明和 provider 请求格式；真实执行仍由 Agent、图节点或你的业务代码完成。</div></div></div>
   </details>
 </div>
 <div class="card spark">

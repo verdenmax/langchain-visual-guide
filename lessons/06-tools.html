@@ -410,14 +410,14 @@ def lookup_order(order_id: str) -&gt; str:
 <div class="quiz">
   <div class="qn">1. 工具的 schema 与工具执行之间的关系是什么？</div>
   <ol class="opts">
-    <li>schema 告诉模型可填哪些参数；执行是应用校验参数后调用真实函数</li>
     <li>schema 一生成，工具就会自动执行</li>
     <li>schema 只给人类看，模型不会读取</li>
     <li>执行结果应该写回 schema，供下次复用</li>
+    <li>schema 告诉模型可填哪些参数；执行是应用校验参数后调用真实函数</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。schema 是模型可见接口，执行是程序控制的副作用边界。把二者分开，才能审批、限流、记录和处理错误。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。schema 是模型可见接口，执行是程序控制的副作用边界。把二者分开，才能审批、限流、记录和处理错误。</div></div></div>
   </details>
 </div>
 <div class="quiz">
@@ -436,14 +436,14 @@ def lookup_order(order_id: str) -&gt; str:
 <div class="quiz">
   <div class="qn">3. 为什么 <code>ToolMessage.tool_call_id</code> 必须和原始 tool call id 配对？</div>
   <ol class="opts">
-    <li>让模型和 trace 知道哪条工具观察对应哪次请求，尤其支持并行、失败和重试</li>
+    <li>让工具名更短</li>
     <li>让 ToolMessage 可以替代 AIMessage</li>
     <li>让 token 计费更便宜</li>
-    <li>让工具名更短</li>
+    <li>让模型和 trace 知道哪条工具观察对应哪次请求，尤其支持并行、失败和重试</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。tool_call_id 是工具回合的连接键。缺它时，多工具场景中的观察结果会失去归属，错误恢复也难以审计。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。tool_call_id 是工具回合的连接键。缺它时，多工具场景中的观察结果会失去归属，错误恢复也难以审计。</div></div></div>
   </details>
 </div>
 <div class="card spark">
