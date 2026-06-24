@@ -9,6 +9,7 @@ import part03_runnable_lcel
 import part04_langgraph_model
 import part05_langgraph_engine
 import part06_agent_internals
+import part07_rag_memory
 import part3
 import part4
 import part5
@@ -49,10 +50,14 @@ CONTENT = {
     "18-custom-middleware.html": part06_agent_internals.LESSON_29_MIDDLEWARE,
     "19-runtime-context.html": part06_agent_internals.LESSON_30_RUNTIME_CONTEXT,
     "35-agent-control-errors.html": part06_agent_internals.LESSON_31_CONTROL_ERRORS,
+    "17-rag.html": part07_rag_memory.LESSON_32_RAG_FLOW,
+    "36-documents-splitters.html": part07_rag_memory.LESSON_33_DOCUMENTS_SPLITTERS,
+    "37-embeddings-vectorstores.html": part07_rag_memory.LESSON_34_EMBEDDINGS_VECTORSTORES,
+    "38-retrievers-rerankers.html": part07_rag_memory.LESSON_35_RETRIEVERS_RERANKERS,
+    "39-memory-conversation-state.html": part07_rag_memory.LESSON_36_MEMORY_STATE,
     "11-chat-internals.html": part3.LESSON_10,
     "12-tool-internals.html": part3.LESSON_11,
     "15-contributing.html": part4.LESSON_14,
-    "17-rag.html": part5.LESSON_16,
     "20-capstone.html": part5.LESSON_CAP,
     "21-langchain-vs-autogen.html": part6.LESSON_CMP,
     "22-ai-stack.html": part6.LESSON_STACK,

@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>42 · 全栈坐标系：从 LangChain 缩放到整个生态 — LangChain 图解教程</title>
-<meta name="description" content="迁移中 · 生态旧版｜全栈坐标系：从 LangChain 缩放到整个生态：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>36 · 记忆、会话历史与状态 — LangChain 图解教程</title>
+<meta name="description" content="第七部分 · RAG 与记忆｜记忆、会话历史与状态：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="42 · 全栈坐标系：从 LangChain 缩放到整个生态 — LangChain 图解教程">
-<meta property="og:description" content="迁移中 · 生态旧版｜全栈坐标系：从 LangChain 缩放到整个生态：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="36 · 记忆、会话历史与状态 — LangChain 图解教程">
+<meta property="og:description" content="第七部分 · RAG 与记忆｜记忆、会话历史与状态：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="42 · 全栈坐标系：从 LangChain 缩放到整个生态 — LangChain 图解教程">
-<meta name="twitter:description" content="迁移中 · 生态旧版｜全栈坐标系：从 LangChain 缩放到整个生态：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="36 · 记忆、会话历史与状态 — LangChain 图解教程">
+<meta name="twitter:description" content="第七部分 · RAG 与记忆｜记忆、会话历史与状态：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -288,241 +288,18 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">迁移中 · 生态旧版</span>
-    <span class="pill">42 / 44</span>
+    <span class="pill">第七部分 · RAG 与记忆</span>
+    <span class="pill">36 / 44</span>
   </div>
-  <div class="progress"><span style="width:95%"></span></div>
+  <div class="progress"><span style="width:81%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">迁移中 · 生态旧版</div>
-    <h1>全栈坐标系：从 LangChain 缩放到整个生态</h1>
+    <div class="part">第七部分 · RAG 与记忆</div>
+    <h1>记忆、会话历史与状态</h1>
   </div>
-
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-你已经把 <strong>LangChain 这"一个点"</strong>学透了。现在把镜头一路<strong>拉远</strong>——
-先看它在"Agent 编排层"里的<strong>邻居</strong>，再看<strong>整个 AI 全栈 7 层</strong>，
-最后回答一个最实用的问题：<strong>你，到底站在坐标系的哪里？</strong>
-</p>
-
-<div class="card analogy">
-  <div class="tag">🗺️ 一句话类比：地图缩放</div>
-  学一个框架就像盯着一条街看。本课做三次<strong>缩放（Zoom out）</strong>：
-  <strong>某条街</strong>（LangChain）→ <strong>整个城区</strong>（Agent 编排层的几大流派）→
-  <strong>整张城市地图</strong>（AI 全栈 7 层）。看清坐标，你就再也不会把一个名词"放错层"。
-</div>
-
-<div class="card warn">
-  <div class="tag">⚠️ 先纠正一个常见误解</div>
-  很多人以为 <strong>LangChain / AutoGen 是"最底层的框架"</strong>。<strong>不是。</strong>
-  它们同处<strong>很上面的一层</strong>——<strong>Agent 编排 / 应用框架层（L7）</strong>。
-  下面还压着模型、推理、训练、芯片好几层。看完这张图你就有体感了。
-</div>
-
-<h2>🔍 缩放 ①：Agent 编排层，内部还分 5 大流派</h2>
-<p>LangChain 和 AutoGen 不是"上下级"，而是<strong>同一层的邻居</strong>。这一层（把模型变成"会用工具、能干活的 Agent"）内部，按<strong>"默认重心"</strong>大致分成 5 种流派：</p>
-
-<table class="t">
-  <tr><th>流派</th><th>核心心智</th><th>代表项目</th><th>什么时候选它</th></tr>
-  <tr>
-    <td><strong>① 图 / 工作流型</strong></td>
-    <td>你画一张<strong>状态图</strong>，数据顺着你定的路线流——确定、可控</td>
-    <td class="mono">LangChain + LangGraph</td>
-    <td>RAG、可控工作流、带审批的工具 Agent</td>
-  </tr>
-  <tr>
-    <td><strong>② 多 Agent 协作型</strong></td>
-    <td>多个 Agent <strong>分工 / 对话</strong>协作，行为更自治、涌现</td>
-    <td class="mono">AutoGen · CrewAI</td>
-    <td>多角色协作、头脑风暴、研究类任务</td>
-  </tr>
-  <tr>
-    <td><strong>③ 数据 / RAG 型</strong></td>
-    <td>以<strong>"喂数据 / 建索引 / 查询"</strong>为一等公民</td>
-    <td class="mono">LlamaIndex · Haystack</td>
-    <td>重知识库、文档问答、企业检索</td>
-  </tr>
-  <tr>
-    <td><strong>④ 轻量 / 类型化</strong></td>
-    <td><strong>薄封装</strong>，贴近原生 API，靠类型系统约束</td>
-    <td class="mono">Pydantic AI · OpenAI Agents SDK · Google ADK · Semantic Kernel*</td>
-    <td>想要"少魔法、可控、好调试"的小而稳</td>
-  </tr>
-  <tr>
-    <td><strong>⑤ 程序化 / 自动优化</strong></td>
-    <td>把"写提示词"变成<strong>"编译 + 自动优化"</strong></td>
-    <td class="mono">DSPy</td>
-    <td>想让提示词/流程被数据自动调优，而非手写</td>
-  </tr>
-</table>
-<p style="color:var(--faint);font-size:.8rem;margin-top:-.6rem">* Semantic Kernel（微软）偏<strong>企业级编排</strong>，比同组其他几个"重"一些；归到这里是因为它同样强调<strong>强类型 + 贴近原生 SDK</strong>。</p>
-
-<div class="card detail">
-  <div class="tag">🔬 别把"流派"当"壁垒"</div>
-  这些边界是<strong>"默认重心"而非"能不能"</strong>：LangChain 用 LangGraph 也能做多 Agent；
-  AutoGen 也能跑单 Agent；大家都能接 <strong>MCP</strong> 工具、都能做 RAG。
-  它们也都<strong>建在更底层的东西之上</strong>（模型 SDK、协议、推理服务）——这正是下一次缩放要看的。
-</div>
-
-<h2>🔍 缩放 ②：整个 AI 全栈，7 层 + 1 条横切带</h2>
-<p>把镜头拉到最远。从你点的"调用一次模型"往下追，会一路穿过 7 层。
-<strong>越上层越接近用户，越下层越接近硅片</strong>：</p>
-
-<div class="layers">
-  <div class="layer l-app">
-    <div class="lh"><span class="badge">L7</span><span class="name">编排 + 应用</span><span style="margin-left:auto;font-size:.78rem;font-weight:700;color:var(--accent-ink)">📍 你在这里</span></div>
-    <div class="ld">把模型变成<strong>会用工具、能干活的产品</strong>。<span class="mono">LangChain/LangGraph · AutoGen · LlamaIndex</span>；低代码 <span class="mono">Dify/Coze</span>；以及各种最终 App。</div>
-  </div>
-  <div class="layer l-main">
-    <div class="lh"><span class="badge">L6</span><span class="name">检索 / 记忆</span></div>
-    <div class="ld">给模型补<strong>外部知识与长期记忆</strong>（RAG 的底座）。向量库 <span class="mono">Chroma/Qdrant/Milvus/pgvector</span>；嵌入 <span class="mono">BGE</span>；记忆 <span class="mono">Mem0/Zep</span>。</div>
-  </div>
-  <div class="layer l-main">
-    <div class="lh"><span class="badge">L5</span><span class="name">推理 / 服务</span></div>
-    <div class="ld">让训练好的模型<strong>高效跑起来、对外提供 API</strong>。<span class="mono">vLLM · SGLang · TensorRT-LLM · llama.cpp · Ollama</span>。</div>
-  </div>
-  <div class="layer l-part">
-    <div class="lh"><span class="badge">L4</span><span class="name">模型（权重）</span></div>
-    <div class="ld"><strong>智能本身</strong>。闭源 <span class="mono">GPT · Claude · Gemini</span>；开源 <span class="mono">Llama · Qwen · DeepSeek · Mistral</span>。</div>
-  </div>
-  <div class="layer l-part">
-    <div class="lh"><span class="badge">L3</span><span class="name">训练 / 微调</span></div>
-    <div class="ld">把<strong>数据 + 算力炼成模型</strong>。<span class="mono">Megatron-LM · DeepSpeed · FSDP</span>；微调 <span class="mono">LoRA/PEFT · TRL</span>。</div>
-  </div>
-  <div class="layer l-core">
-    <div class="lh"><span class="badge">L2</span><span class="name">基础设施 / 算力框架</span></div>
-    <div class="ld">把<strong>硬件变成可编程算力</strong>。<span class="mono">CUDA · PyTorch · JAX · Triton · Ray · Kubernetes</span>。</div>
-  </div>
-  <div class="layer l-core">
-    <div class="lh"><span class="badge">L1</span><span class="name">硬件 / 芯片</span></div>
-    <div class="ld"><strong>算力地基</strong>。<span class="mono">NVIDIA GPU(H100) · Google TPU · 华为昇腾 · AMD · 推理芯片 Groq</span>。</div>
-  </div>
-</div>
-<p style="text-align:center;color:var(--faint);font-size:.82rem;margin-top:-.5rem">↑ 越上层越接近用户　·　越下层越接近硅片 ↓</p>
-
-<table class="t">
-  <tr><th>层</th><th>一句话作用</th><th>代表项目</th></tr>
-  <tr><td><strong>L7 编排 + 应用</strong></td><td>把模型变成会用工具、能干活的产品</td><td class="mono">LangChain/LangGraph · AutoGen · LlamaIndex · Dify/Coze</td></tr>
-  <tr><td><strong>L6 检索 / 记忆</strong></td><td>给模型补外部知识与记忆（RAG 底座）</td><td class="mono">向量库 Chroma/Qdrant/Milvus/pgvector · 嵌入 BGE · 记忆 Mem0/Zep</td></tr>
-  <tr><td><strong>L5 推理 / 服务</strong></td><td>让模型高效跑起来、对外提供 API</td><td class="mono">vLLM · SGLang · TensorRT-LLM · llama.cpp · Ollama</td></tr>
-  <tr><td><strong>L4 模型</strong></td><td>智能本身（一堆权重）</td><td class="mono">GPT/Claude/Gemini · Llama/Qwen/DeepSeek</td></tr>
-  <tr><td><strong>L3 训练 / 微调</strong></td><td>把数据 + 算力炼成模型</td><td class="mono">Megatron-LM · DeepSpeed · LoRA/PEFT · TRL</td></tr>
-  <tr><td><strong>L2 基础设施</strong></td><td>把硬件变成可编程算力</td><td class="mono">CUDA · PyTorch · JAX · Ray · K8s</td></tr>
-  <tr><td><strong>L1 硬件</strong></td><td>算力地基</td><td class="mono">NVIDIA GPU · TPU · 昇腾 · AMD</td></tr>
-  <tr><td><strong>┄ 横切带 ┄</strong><br><span style="color:var(--muted);font-weight:400">贯穿 L4–L7</span></td><td>评测 / 可观测 / 安全护栏</td><td class="mono">LangSmith · Langfuse · Ragas · Guardrails · OpenTelemetry</td></tr>
-</table>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点：两条河 + 一个残酷事实</div>
-  <ul>
-    <li><strong>两条河</strong>：L1→L4 是<strong>"训练侧"</strong>（少数大厂把模型炼出来），L4→L7 是<strong>"应用侧"</strong>（所有人用模型造东西）。<strong>L4 模型是两条河的交汇口。</strong></li>
-    <li><strong>残酷但解放人的事实</strong>：99% 的应用开发者，<strong>一辈子只在 L4 以上工作</strong>——你不需要自己训模型。但<strong>懂下面几层</strong>能帮你做对选型：为什么慢（L5）、为什么答不准（L6）、本地还是 API（L4/L5）。</li>
-    <li><strong>没有银弹，只有坐标</strong>：每个火爆的新名词，先问一句"它在第几层？"——你就不会被营销词淹没。</li>
-  </ul>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 顺手澄清两个被叫混的协议</div>
-  <ul>
-    <li><span class="mono">MCP</span> = <strong>Model Context Protocol</strong>（Anthropic，2024 年 11 月开源）：标准化"Agent ↔ 工具/数据源"的接法，横跨 L6/L7。<strong>不是</strong>"多 Agent 通信协议"。</li>
-    <li><span class="mono">A2A</span> = <strong>Agent2Agent</strong>（Google，2025 年提出）：标准化"Agent ↔ Agent"的协作。</li>
-    <li>一句话记：<strong>MCP 管"Agent 连工具"，A2A 管"Agent 连 Agent"。</strong></li>
-  </ul>
-</div>
-
-<h2>🔍 缩放 ③：所以，你站在哪里？</h2>
-<p>把这张图当"问诊表"。下面三个最实用的问题，帮你<strong>定位自己、定位瓶颈、定位下一步</strong>：</p>
-
-<div class="vflow">
-  <div class="step"><div class="num">1</div><div class="sc">
-    <h4>我该自己训模型吗？</h4>
-    <p><strong>基本不用。</strong>L3/L4 交给大厂（成本以百万美元计）。你的主场是 <strong>L5 以上</strong>：调用、检索、编排。</p>
-  </div></div>
-  <div class="step"><div class="num">2</div><div class="sc">
-    <h4>我的瓶颈在第几层？</h4>
-    <p>响应<strong>慢 / 贵</strong> → 看 <strong>L5 推理</strong>；答<strong>不准 / 缺知识</strong> → 看 <strong>L6 检索</strong>；流程<strong>乱 / 不可控</strong> → 看 <strong>L7 编排</strong>（你已经在学）。</p>
-  </div></div>
-  <div class="step"><div class="num">3</div><div class="sc">
-    <h4>下一步往哪学？</h4>
-    <p>从 L7 往下探<strong>紧挨着的两层</strong>投入产出比最高：<strong>L5 推理服务</strong> 与 <strong>L6 向量检索</strong>。
-    具体读哪些项目、什么顺序 → <strong>下一课</strong>给你一张学习地图。</p>
-    <p class="mono">下一课 · 隔壁层学习地图</p>
-  </div></div>
-</div>
-
-<div class="card key">
-  <div class="tag">✅ 本课要点</div>
-  <ul>
-    <li><strong>LangChain / AutoGen 都在 L7 编排层</strong>，不是"最底层"——它们之上是 App，之下还有 6 层。</li>
-    <li>全栈 7 层（自上而下）：<strong>编排+应用 → 检索/记忆 → 推理/服务 → 模型 → 训练 → 基础设施 → 硬件</strong>，外加一条横切带（评测/可观测/安全）。</li>
-    <li><strong>Megatron 在 L3（训练）</strong>，<strong>向量数据库在 L6（检索）</strong>——它们和 LangChain 隔着好几层，别再混为一谈。</li>
-    <li>编排层内部还分 <strong>5 大流派</strong>（图/多Agent/RAG/轻量/程序化），LangChain 属"图/工作流型"。</li>
-    <li>学会"缩放看坐标"：遇到任何新名词，先问 <strong>"它在第几层？"</strong></li>
-  </ul>
-</div>
-<div class="selftest">
-<h2>🧪 自测 · 想一想为什么这么设计</h2>
-<div class="quiz">
-  <div class="qn">1. 课里反复纠正“LangChain/AutoGen 不是最底层，它们在 L7 编排层”。把“认清自己在第几层”当成核心能力，图什么？</div>
-  <ol class="opts">
-    <li>没用</li>
-    <li>坐标感：知道一个东西在哪一层，就知道它解决什么、依赖什么、和谁是邻居——不会把概念放错位置</li>
-    <li>显得有层次</li>
-    <li>记住更多名词</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。分层是一张“坐标系”。能给任何技术定位，你就能快速理解它的职责与边界——这比记住孤立名词有用得多。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">2. 课里教你遇到新名词“先问它在第几层”。这个习惯的价值是？</div>
-  <ol class="opts">
-    <li>没价值</li>
-    <li>用一个稳定的坐标系去消化层出不穷的新技术，避免被营销词淹没、能快速判断它和你的关系</li>
-    <li>装专业</li>
-    <li>让你显得懂</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。技术名词爆炸，但分层坐标相对稳定。“先定位再判断”是应对信息过载的认知工具。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">3. 全栈分成“训练侧(L1-L4)”和“应用侧(L4-L7)”两条河，L4 模型是交汇口。这种划分帮你认清了什么？</div>
-  <ol class="opts">
-    <li>河流地理</li>
-    <li>应用更重要</li>
-    <li>训练更重要</li>
-    <li>99% 应用开发者只在 L4 以上工作（不需自己训模型），认清这点能让你把精力放对地方</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。分清“造模型”和“用模型”两条路，你就知道自己该深耕哪侧、哪些层可以“交给大厂”。坐标系帮你做技术取舍。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. 把“横切带（评测/可观测/安全）”画成贯穿多层的独立一条，而不是塞进某一层。为什么？</div>
-  <ol class="opts">
-    <li>这些是“每一层都需要”的横切关注点，独立出来才能表达“它不属于某层、而是贯穿全栈”</li>
-    <li>画着好看</li>
-    <li>它们不重要</li>
-    <li>凑数</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。和回调/config 的“横切”思想一致——可观测/安全不是某层专属，而是贯穿性的。画成独立带子是为了表达这种正交性。</div></div></div>
-  </details>
-</div>
-<div class="card spark">
-  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
-  <ul>
-    <li>“遇到新名词先问它在第几层”。最近哪个火热的 AI 名词让你困惑过？试着把它放进这张 7 层图里，看看它到底解决哪层的问题。</li>
-    <li>课里说“应用开发者一辈子只在 L4 以上工作”。你认同吗？什么情况下，一个应用工程师值得往下深入到 L5/L3 甚至 L1？</li>
-  </ul>
-</div>
-</div>
-  <div class="footnav"><a class="prev" href="21-langchain-vs-autogen.html"><div class="dir">← 上一课</div><div class="ttl">横向对比：LangChain vs AutoGen</div></a><a class="next" href="23-learning-map.html"><div class="dir">下一课 →</div><div class="ttl">隔壁层学习地图：L5 推理 · L6 向量检索</div></a></div>
+<p class="lead">M7 临时页面：Task 2 会替换为完整 C-level lesson。</p>
+  <div class="footnav"><a class="prev" href="38-retrievers-rerankers.html"><div class="dir">← 上一课</div><div class="ttl">Retriever、压缩与 Rerank</div></a><a class="next" href="11-chat-internals.html"><div class="dir">下一课 →</div><div class="ttl">聊天模型内部</div></a></div>
 </div>
 
 </body></html>

@@ -49,6 +49,11 @@ C_LEVEL_PAGES = {
     "18-custom-middleware.html": {"min_cjk": 4500, "min_visual": 5},
     "19-runtime-context.html": {"min_cjk": 4500, "min_visual": 5},
     "35-agent-control-errors.html": {"min_cjk": 4500, "min_visual": 5},
+    "17-rag.html": {"min_cjk": 4500, "min_visual": 5},
+    "36-documents-splitters.html": {"min_cjk": 4500, "min_visual": 5},
+    "37-embeddings-vectorstores.html": {"min_cjk": 4500, "min_visual": 5},
+    "38-retrievers-rerankers.html": {"min_cjk": 4500, "min_visual": 5},
+    "39-memory-conversation-state.html": {"min_cjk": 4500, "min_visual": 5},
 }
 
 RE_SCRIPT_STYLE = re.compile(r"<(script|style)\b.*?</\1>", re.I | re.S)
