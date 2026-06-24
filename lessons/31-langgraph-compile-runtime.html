@@ -298,7 +298,108 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
     <div class="part">第四部分 · LangGraph 心智模型</div>
     <h1>compile 与 Runtime</h1>
   </div>
-  <p class="lead">M4 临时页面：Task 2 会替换为完整 C-level lesson。</p>
+  
+<p class="lead">StateGraph 在 add_node、add_edge 阶段还只是建造者；compile 才把图纸变成可运行的 Runnable runtime。编译会校验图结构，创建 channel，包装节点，接入 runtime context 和 checkpointer，并产出 CompiledStateGraph。之后 invoke、stream、batch 才真正执行 Pregel 风格的节点调度。本课把 compile 和 invoke 分清：compile 不跑模型，不调工具；它像把剧本、舞台、灯光和安全规则装配好，演出发生在运行阶段。</p>
+<div class="card analogy"><div class="tag">🧩 生活类比</div>把 StateGraph.compile 想成剧院彩排前的舞台装配：剧本检查有没有缺场，演员入口出口是否连通，道具柜按清单摆好，灯光控制台接线完成，录像系统准备记录。装配完成后，剧院还没有演出；只有观众入场并调用 invoke，演员才按场次上台。checkpointer 像录像机，runtime context 像当天演出单，CompiledStateGraph 像已经装配好的整座舞台。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：从 builder 到 Runnable runtime</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">建造阶段</div><div class="mn-desc">StateGraph 收集 schema、节点、边和配置，但不执行节点</div></div><div class="map-node now"><div class="mn-label">编译阶段</div><div class="mn-desc">compile 校验结构、创建 channel、包装节点、接入 checkpointer</div></div><div class="map-node now"><div class="mn-label">运行阶段</div><div class="mn-desc">invoke/stream/batch 进入 Pregel runtime，按步骤调度节点</div></div><div class="map-node source"><div class="mn-label">上下文</div><div class="mn-desc">Runtime 向节点提供 context、store、stream_writer 等环境能力</div></div><div class="map-node after"><div class="mn-label">持久化</div><div class="mn-desc">BaseCheckpointSaver 在运行时保存和恢复 state snapshot</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>compile/runtime 的源码阅读要把“建图对象”和“运行对象”分开。下面的文件 + 符号名覆盖了编译入口、编译产物、Pregel 执行、运行时上下文和 checkpoint 接口。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">langgraph/graph/state.py</td><td class="mono">StateGraph.compile</td><td>把 builder 校验并转换为 CompiledStateGraph，可传入 checkpointer、interrupt、debug 等选项</td><td>用户完成节点边定义后调用</td></tr><tr><td class="mono">langgraph/graph/state.py</td><td class="mono">CompiledStateGraph</td><td>编译后的状态图，继承/组合 Pregel 能力并实现 Runnable 调用面</td><td>调用者对它 invoke、stream、batch</td></tr><tr><td class="mono">langgraph/pregel/main.py</td><td class="mono">Pregel</td><td>底层图执行运行时，按步骤计划、执行节点、提交 channel 更新</td><td>CompiledStateGraph 的运行核心</td></tr><tr><td class="mono">langgraph/runtime.py</td><td class="mono">Runtime</td><td>节点运行时对象，暴露 context、store、stream_writer 等非 state 能力</td><td>运行阶段注入节点，不属于 compile 执行</td></tr><tr><td class="mono">langgraph/checkpoint/base/__init__.py</td><td class="mono">BaseCheckpointSaver</td><td>checkpoint 抽象接口，保存和读取线程/步骤状态</td><td>invoke/stream 时通过 config 中 thread_id 等信息定位</td></tr></table>
+<h2>调用图：build graph -> compile -> invoke -> run nodes -> produce state</h2>
+<div class="flow call-graph"><div class="node hl"><div class="nt">builder</div><div class="nd">StateGraph(State) + add_node/add_edge</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">compile</div><div class="nd">validate graph, create channels, wrap nodes</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">compiled</div><div class="nd">CompiledStateGraph as Runnable</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">invoke/stream</div><div class="nd">Pregel runtime schedules steps with Runtime context</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">final state</div><div class="nd">channels merge updates, optional checkpoint saved</div></div></div>
+<h2>Trace：编译和运行各做什么</h2>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. build</td><td>StateGraph(State)</td><td>注册 model/tools 节点，添加 START、条件边和回边</td><td>builder 持有图纸，不执行任何节点</td></tr><tr><td>2. compile</td><td>builder + checkpointer?</td><td>校验节点名和边，创建 channels，包装节点为运行时任务</td><td>CompiledStateGraph</td></tr><tr><td>3. invoke</td><td>{&#x27;messages&#x27;: [...]} + config</td><td>Pregel 运行时初始化 state、runtime context、checkpoint 配置</td><td>第一个 step 准备调度</td></tr><tr><td>4. run nodes</td><td>当前可运行节点集合</td><td>执行节点，收集 partial updates，提交到 channel</td><td>下一步 state 可见</td></tr><tr><td>5. finish</td><td>到达 END 或无后继</td><td>保存 checkpoint，按 output_schema 整理结果</td><td>invoke 返回最终 state；stream 可逐步吐事件</td></tr></table>
+<h2>简化源码走读：compile 不等于执行</h2>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">langgraph/graph/state.py :: StateGraph.compile</span><span class="ln">简化版</span></div><pre>builder = StateGraph(State)
+builder.add_node(&#x27;model&#x27;, call_model)
+builder.add_edge(START, &#x27;model&#x27;)
+
+compiled = builder.compile(checkpointer=saver)
+# no model call has happened yet
+
+result = compiled.invoke(
+    {&#x27;messages&#x27;: [HumanMessage(&#x27;hi&#x27;)]},
+    config={&#x27;configurable&#x27;: {&#x27;thread_id&#x27;: &#x27;t1&#x27;}},
+)
+</pre><div class="cw-note">教学版强调时间线：compile 返回可运行对象，但不会调用 call_model；invoke 才根据输入和 config 开始调度。checkpointer 也通常在运行时按 thread_id 读写，而不是 compile 时保存业务状态。</div></div>
+<h2>Compile 阶段的责任</h2>
+<h3>一、Builder 是可变图纸</h3><p>StateGraph builder 阶段适合逐步添加节点、边、schema、入口和条件路由。它像一张还在绘制的图纸，可以继续修改。这个阶段的对象不应该被拿去处理用户请求，因为它还没有完成校验、通道创建和运行时包装。把 builder 和 compiled graph 混用，是很多初学者理解混乱的来源。</p><h3>二、compile 做结构校验</h3><p>编译会检查边引用的节点是否存在、START/END 使用是否合理、条件路径是否可解析、schema/channel 是否能建立。校验不是形式主义，它把一部分错误从用户请求时提前到启动时。一个节点名拼错，如果等线上第一个请求走到该分支才爆炸，代价就太高。compile 的价值之一，就是让图尽早失败。</p><h3>三、compile 创建 channel</h3><p>State schema 中的每个 key 会在编译前后被解析为运行时 channel。普通字段可能是 LastValue，Annotated reducer 可能是 BinaryOperatorAggregate，消息字段可能使用 add_messages。没有 channel，节点返回的 partial update 就没有地方落地，也没有合并规则。compile 把类型合同变成运行容器。</p><h3>四、compile 包装节点</h3><p>用户写的函数、Runnable 或工具节点，需要被包装成运行时可以调度的任务。包装层负责传递 config、runtime、输入 state，收集返回值，处理错误和回调。你在节点函数里看到的是简单签名，Pregel 运行时看到的是可计划、可执行、可记录的节点任务。</p><h3>五、CompiledStateGraph 是 Runnable</h3><p>编译产物最重要的工程特性是可运行。它继承或实现 Runnable 调用面，所以可以 invoke、ainvoke、stream、astream、batch，也能被更外层 LangChain 组件组合。对调用者来说，它像一个组件；对内部来说，它是一整张状态图。这种外部统一、内部复杂的封装，是 LangChain/LangGraph 分层的关键。</p><h3>六、Pregel 运行时按步骤推进</h3><p>invoke 之后，Pregel 风格运行时会计划当前哪些节点可运行，执行它们，收集更新，提交到 channel，再进入下一步。并行节点本步写入通常下一步才稳定可见。这种步骤化模型让执行可复现，也让 checkpoint 可以在步骤边界保存状态。compile 只是准备这个运行机器，真正推进发生在 invoke/stream。</p><h3>七、Runtime context 不是 state</h3><p>Runtime 给节点提供 context、store、stream_writer 等能力。context 是本次运行的环境，例如用户、租户、权限；store 可能是外部长期存储；stream_writer 用于输出自定义流事件。它们帮助节点运行，但不自动成为 state。只有节点显式返回的 key 才进入 state 合并和 checkpoint。</p><h3>八、checkpointer 是运行时钩子</h3><p>BaseCheckpointSaver 抽象的是保存和读取状态快照的能力。编译时你可以把 checkpointer 接到图上，但真正保存哪条线程、哪一步状态，要等运行时 config 提供 thread_id 等可配置项。忘记 thread_id 时，checkpointer 可能不知道把状态归档到哪里；多个用户共享 thread_id 时，状态可能串线。</p><h3>九、compile 不会跑模型</h3><p>这句话值得重复：compile 不执行节点、不调用模型、不调工具、不产生业务答案。它最多验证节点存在、包装调用结构。任何“我 compile 了为什么没有结果”的疑问，都是把构建期和运行期混在一起。结果来自 compiled.invoke 或 compiled.stream，而不是 builder.compile。</p><h3>十、compile 后再改 builder 要小心</h3><p>编译产物是根据当时 builder 的图纸生成的。之后你再对 builder add_node/add_edge，旧 compiled graph 不一定会自动更新。正确做法是把图定义集中完成，再 compile 一次并把产物作为应用依赖注入；如果确实要改图，重新 compile 并替换运行对象。不要让线上请求同时使用多个你自己都分不清版本的 compiled graph。</p><h3>十一、stream 和 invoke 共用运行结构</h3><p>stream 不是另一套图，它只是以增量方式暴露运行过程或结果。底层仍然是编译后的图、同一组 channel、同一组节点和边。理解这一点能避免为流式输出写重复业务流程：先让 invoke 正确，再决定 stream_mode、事件粒度和前端消费方式。</p><h3>十二、batch 是多次运行，不是共享 state</h3><p>对 compiled graph batch 多个输入时，每个输入都应该有自己的运行配置和状态边界。除非你显式使用同一个 thread_id 或外部 store，否则不要期待 batch 元素共享同一份 state。把 batch 当成“并发处理多次 invoke”更安全；把它当成“一个大图同时处理所有用户”容易引发状态串扰。</p><h3>十三、最小心智模型</h3><p>build 阶段画图纸，compile 阶段装配机器，invoke/stream 阶段开机运行，checkpointer 在运行边界录像，Runtime context 提供当天环境。CompiledStateGraph 对外像 Runnable，对内像 Pregel 状态机。只要把这条时间线记住，compile、runtime、checkpoint 的多数坑都能提前避开。</p>
+<h2>扩展复盘：把构建期和运行期分开管理</h2>
+<p>在真实服务里，compile 通常发生在应用启动或依赖初始化阶段，而不是每个请求里。启动时构建 StateGraph，注册节点和边，注入模型、工具、checkpointer，调用 compile 得到可复用的 CompiledStateGraph。请求到来时，只调用 compiled.invoke 或 stream，并传入本次输入和 config。这样可以把结构错误提前暴露，也避免每次请求重复装配图。</p>
+<p>运行期最重要的是隔离会话。带 checkpointer 的图必须认真设计 thread_id：它可以来自会话 id、用户 id 加业务会话 id、工单 id，或其他稳定且不串线的标识。不能用固定字符串 demo 处理所有用户，也不能把容易碰撞的临时值当线程标识。thread_id 的选择本质上是状态归属设计，错了就会出现用户看到别人历史、恢复到错误步骤等严重问题。</p>
+<p>compile 后的对象应当被视为不可变运行资产。虽然 builder 可能还能继续 add_node，但旧 compiled graph 不会神奇吸收新图纸。团队协作中最好把图定义封装成一个工厂函数，返回 compiled graph；修改图结构后重新运行测试和构建，部署新产物。不要在请求处理过程中动态修改全局 builder，否则同一进程里可能同时存在多个结构版本，问题很难复现。</p>
+<p>stream、invoke、batch 的选择属于运行接口选择，不应改变图的业务语义。先用 invoke 验证最终 state 正确，再打开 stream 观察中间事件；先用单个输入验证 thread_id 和 checkpoint，再用 batch 做评测或批处理。不要为了前端想看流式输出，就在节点里写另一套业务逻辑。编译图的价值之一，就是同一运行结构可以暴露多种调用形态。</p>
+<p>Runtime context 也要在运行期清晰注入。用户权限、租户配置、实验开关这些值应该随请求传入，而不是硬编码在节点闭包里。这样同一个 compiled graph 可以服务多个用户和环境，测试也能构造不同 context 检查行为。相反，如果把这些运行信息写进全局变量，图看起来能跑，却失去了可复现和可隔离的基础。</p>
+<p>最后，验证 compile/runtime 相关问题时，要按时间线排查：builder 是否含有正确节点边；compile 是否成功创建产物；invoke 输入是否符合 input_schema；config 是否含 thread_id；节点是否收到预期 context；checkpoint 是否在步骤边界保存；输出是否被 output_schema 过滤。按这条链路逐步定位，比盲目怀疑模型或工具可靠得多。</p>
+<h2>案例推演：一次带 checkpoint 的运行时间线</h2>
+<p>应用启动时，服务创建 StateGraph，注册 model、tools、human_review、finalize 等节点，添加边和条件边，然后调用 compile(checkpointer=saver)。这一步如果节点名拼错、边指向不存在的节点、schema reducer 无法解析，应该直接启动失败。此时没有任何用户消息进入图，也没有模型调用发生。compile 的输出是一个可复用的 compiled graph，可以放进应用容器供请求处理函数使用。</p>
+<p>用户发来第一条消息时，请求处理函数构造输入 {'messages': [HumanMessage(...)]}，同时构造 config {'configurable': {'thread_id': session_id}}。session_id 必须能唯一代表这段对话或工单。compiled.invoke 接收输入后，Pregel runtime 初始化 channels，读取或创建该 thread 的 checkpoint，注入 runtime context，然后从 START 的后继节点开始执行。模型调用、工具调用、路由判断都发生在这个阶段。</p>
+<p>每个 step 结束时，节点返回的 partial update 会提交到 channel，合并后的 state 可能被 checkpointer 保存。这样当工具调用后需要人审，图可以暂停；人类批准后，再用同一个 thread_id 恢复，运行时能找到之前的 messages、tool_attempts 和等待状态。没有 thread_id，checkpointer 就像录像机没有磁带标签，无法可靠知道该接哪一段。</p>
+<p>如果服务改版增加了一个 fraud_check 节点，必须重新 compile 并部署新 compiled graph。旧 compiled graph 不会自动拥有新节点。对于已经存在的 checkpoint，还要考虑状态兼容：旧 checkpoint 里没有 fraud_flags，新 schema 是否提供默认值？路由是否能处理缺失 key？这说明 compile/runtime 不是孤立 API，而是和版本迁移、持久化兼容一起考虑的工程问题。</p>
+<p>stream 模式下，时间线不变，只是运行过程中的事件或状态片段被逐步交给调用者。前端看到 token、节点事件或中间状态，不代表图用了另一套逻辑。为了避免前后端理解偏差，后端应该明确 stream_mode 输出的是消息、values、updates 还是自定义事件。否则前端可能把中间 update 当最终答案，或漏掉最后的 END 状态。</p>
+<p>排查 checkpoint 问题时，按固定顺序看：config 是否带 thread_id；thread_id 是否对每个用户唯一；checkpointer 是否真的传给 compile；节点是否把需要恢复的数据写入 state 而不是 context；恢复时 input 是否和线程状态兼容；output_schema 是否隐藏了你想看的调试 key。按时间线排查，比反复修改节点逻辑更有效。</p>
+<h2>进一步练习：运行时配置的安全清单</h2>
+<p>上线前可以为 compiled graph 写一张运行时配置清单。第一项是 thread_id 来源：它是否稳定、唯一、不可被用户随意伪造，是否区分环境和租户。第二项是 context：user_id、tenant_id、permissions 是否每次请求都显式传入，节点是否避免从全局变量读取这些值。第三项是 checkpointer：保存位置、保留时间、加密和清理策略是否满足业务要求。</p>
+<p>第二组清单关注调用方式。invoke 用于普通请求，stream 用于需要中间事件的交互，batch 用于评测或批处理。三者应共享同一个 compiled graph 和业务语义，只改变结果暴露方式。若你发现 stream 路径和 invoke 路径调用了不同节点或不同 prompt，就要警惕逻辑分叉。调用方式可以不同，状态机不应随意变成两套。</p>
+<p>第三组清单关注版本。编译产物对应哪份图定义？部署后旧 checkpoint 是否还能被新 schema 读取？新增 key 是否有默认处理？删除节点后，是否还有旧线程停在那个节点附近？这些问题在无状态链里不明显，但在有 checkpoint 的图里非常重要。状态一旦持久化，图结构就和数据迁移产生了关系。</p>
+<p>最后，运行时排障要保存足够但不过量的信息。trace 需要看到节点名、路由结果、state update 摘要、thread_id 和错误类型；不应随意泄漏密钥、完整隐私数据或不可公开的工具响应。Runtime context、RunnableConfig metadata、checkpoint 内容各有边界。边界清楚，既能调试，也能保护用户数据。</p>
+<p>补充检查：compile/runtime 的测试最好包含一个“不会发生”的断言，例如只调用 compile 时节点计数器保持为零，只有 invoke 后计数器才增加。再加一个 checkpoint 配置测试：同一 thread_id 能恢复历史，不同 thread_id 彼此隔离，缺失 thread_id 时给出明确错误或退化策略。这样的测试能防止团队把构建期、运行期和持久化边界混在一起。</p>
+<p>部署时还要记录 compiled graph 的版本。运行日志中保留图版本、thread_id、入口 schema 版本和关键路由结果，能帮助你把用户报告的问题对应到具体图结构。如果没有这些信息，checkpoint 里的状态可能来自旧图，当前代码却按新图解释，排查会非常困难。版本信息不是课程细节，而是有状态运行系统的基本卫生。</p>
+<p>实战复盘时，还要把这节课的概念和前后课程连起来。状态字段会影响节点能否独立测试，节点返回的 partial update 会影响 reducer 是否有机会工作，reducer 的结果又会影响 compile 后运行时每一步看到的 state。任何一层含糊，后面几层都会变得难解释。因此不要把本课当成孤立 API 记忆，而要把它放进“schema 定义合同、节点产生更新、边选择去向、channel 合并更新、runtime 推进步骤”的连续链路里理解。</p>
+<p>写完图以后，建议做一次人工演练：拿一条具体用户输入，从 START 开始逐步写下当前 state、运行节点、返回 update、合并结果、下一条边。演练过程中只要出现“这里大概会怎样”“这个字段应该有吧”“这个分支应该不会走吧”，就说明设计还有隐含假设。把这些假设改成明确的 state key、路由条件、reducer 或测试用例，图才会从能跑的 demo 变成能维护的工程资产。</p>
+<p>还有一个经验是优先优化可解释性，而不是优先压缩代码行数。LangGraph 项目里，少写几行代码不一定更好；让每个节点、每条边、每个 state key 都能被命名和追踪，通常更重要。复杂 Agent 的主要成本不是首次实现，而是线上排障、规则调整、工具替换和版本迁移。清楚的图结构会在这些时刻不断回本。</p>
+<p>如果你需要向同事解释本课，可以用一句话收束：这不是在学习某个函数参数，而是在学习如何把不确定的模型行为包进确定的工程边界。模型可以生成不同文本，但图要明确哪些状态被保存，哪些节点能运行，哪些边能跳转，哪些更新能合并，哪些条件会停止。这个边界越清楚，AI 应用越接近可靠软件系统。</p>
+<h2>常见误解与边界情况</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：compile 会执行图并得到答案</div><div class="pf-correct">正确：compile 只校验和装配；invoke/stream/batch 才运行节点。</div></div><div class="pitfall"><div class="pf-wrong">误解：compile 后继续改 builder，旧 compiled graph 会自动变</div><div class="pf-correct">正确：编译产物反映编译当刻的图；修改 builder 后应重新 compile 并替换产物。</div></div><div class="pitfall"><div class="pf-wrong">误解：用了 checkpointer 不需要 thread_id</div><div class="pf-correct">正确：运行时通常需要 config.configurable.thread_id 等信息定位会话状态。</div></div><div class="pitfall"><div class="pf-wrong">误解：runtime context 就是 state 的另一个名字</div><div class="pf-correct">正确：context 是环境输入，state 是可演化、可合并、可 checkpoint 的业务数据。</div></div></div>
+<h2>小实验</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 观察 compile 和 invoke 的分界</div><ol><li>写一个节点，在函数体第一行打印或记录 &#x27;model called&#x27;；只执行 builder.compile()，确认没有打印。</li><li>对 compiled.invoke({&#x27;messages&#x27;: [...]}) 运行一次，确认节点此时才执行。</li><li>接入内存 checkpointer，先不传 thread_id 观察错误或不可恢复行为，再传 {&#x27;configurable&#x27;: {&#x27;thread_id&#x27;: &#x27;demo&#x27;}}。</li><li>compile 后给 builder 再添加一个节点，但不重新 compile，解释为什么旧 compiled graph 不会包含新节点。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>本课锚定 StateGraph.compile、CompiledStateGraph、Pregel、Runtime、BaseCheckpointSaver。不同版本可能调整 checkpointer 配置细节或 runtime 参数形状，但“builder/compile/runtime 三阶段”和“编译产物是 Runnable”是稳定心智模型。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>compile 把 StateGraph builder 转成可运行 CompiledStateGraph，但不执行节点。</li><li>编译阶段负责校验、channel 创建、节点包装和 checkpointer/runtime 钩子装配。</li><li>invoke/stream/batch 才进入 Pregel 运行时，按步骤执行节点并合并 state。</li><li>Runtime context 是运行环境，不是会自动 checkpoint 的业务 state。</li><li>使用 checkpointer 时要正确提供 thread_id 等配置；修改 builder 后应重新 compile。</li></ul></div><div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. <code>StateGraph.compile()</code> 和 <code>compiled.invoke()</code> 的关系，哪项正确？</div>
+  <ol class="opts">
+    <li>二者完全等价，只是名字不同</li>
+    <li>compile 负责校验和装配运行时；invoke 才真正执行节点</li>
+    <li>invoke 只能在 compile 前调用</li>
+    <li>compile 会调用模型并返回最终答案</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。compile 把 builder 变成 CompiledStateGraph；运行发生在 invoke/stream/batch。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. Runtime context 与 state 的区别是什么？</div>
+  <ol class="opts">
+    <li>二者没有区别</li>
+    <li>context 是运行环境输入；state 是会被节点更新、合并并可能 checkpoint 的业务数据</li>
+    <li>context 会自动通过 add_messages 合并</li>
+    <li>state 只能保存 user_id，context 只能保存 messages</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。Runtime 向节点提供 context、store、stream_writer 等环境能力；只有 state key 的 partial update 才进入图状态合并。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 使用 checkpointer 运行会话型图时，为什么常需要在 config 中提供 thread_id？</div>
+  <ol class="opts">
+    <li>thread_id 用来选择 HTML 模板</li>
+    <li>thread_id 会让模型跳过工具调用</li>
+    <li>thread_id 会改变 Python 类型检查结果</li>
+    <li>thread_id 通常用于定位保存/恢复哪一条会话线程的 checkpoint</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。checkpointer 需要知道状态属于哪条线程/会话。缺失或复用错误 thread_id 都可能导致无法恢复或状态串线。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>按时间线写出 build graph -> compile -> invoke -> run nodes -> produce state 每一步的输入、输出和不会发生的事情。</li>
+    <li>给一个带 checkpointer 的客服图设计 config：thread_id 从哪里来？如何避免不同用户共享 thread_id？恢复时应检查哪些 state？</li>
+  </ul>
+</div>
+</div>
   <div class="footnav"><a class="prev" href="30-langgraph-reducers-channels.html"><div class="dir">← 上一课</div><div class="ttl">Reducer 与 Channel</div></a><a class="next" href="07-agents-intro.html"><div class="dir">下一课 →</div><div class="ttl">Agent 入门</div></a></div>
 </div>
 

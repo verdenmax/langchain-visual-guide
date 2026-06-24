@@ -1324,59 +1324,214 @@ QUIZZES = {
         ],
     },
 
-    # ===== 第七部分 · 深入 LangGraph ===========================================
+    # ===== 第四部分 · LangGraph 心智模型 ======================================
     "24-langgraph-mental-model.html": {
         "mcq": [
             {
-                "q": "课里说“LCEL 是 DAG、不能转圈，所以不够”。LangGraph 用“状态图”补上的最关键能力是？",
+                "q": "为什么工具型 Agent 用纯 LCEL 链会别扭，而 LangGraph 更合适？",
                 "opts": [
-                    "更快",
-                    "环(cycle)：Agent 要反复“想→调工具→再想”，DAG 表达不了“绕回去”，状态图天然能画环",
-                    "更省内存",
-                    "更好看",
+                    "因为 LangGraph 只能生成更漂亮的流程图",
+                    "因为 Agent 需要在模型、工具和模型之间循环，并把 messages 等状态持续带到下一步",
+                    "因为 LCEL 不能调用任何模型",
+                    "因为 LangGraph 会自动让模型更聪明",
                 ],
                 "answer": 1,
-                "why": "DAG 适合直线管道，但 Agent 本质是带环的循环。这一条“能不能转圈”的差别，正是需要 LangGraph 的根本理由。",
+                "why": "LCEL 擅长无环数据流；工具 Agent 的核心是状态 + 条件路由 + 回边。LangGraph 把这些隐式 while 逻辑变成显式状态图。",
             },
             {
-                "q": "StateGraph 是“建造者”，必须 <code>compile()</code> 才能跑。把“定义”和“执行”分成两阶段，图什么？",
+                "q": "LangGraph 节点返回 <code>{'messages': [AIMessage(...)]}</code> 而不是整份 state，最重要的原因是什么？",
                 "opts": [
-                    "多此一举",
-                    "定义期可以校验图(连通性/键合法)、把图纸编译成优化过的可执行体，执行期才高效运行——和编译器一个思路",
-                    "让代码更长",
-                    "没意图",
+                    "partial update 让运行时知道该节点写了哪个 key，并交给 reducer/channel 合并",
+                    "这样可以避免写 Python 字典",
+                    "这样节点就不能被测试",
+                    "这样会跳过所有回调",
                 ],
-                "answer": 1,
-                "why": "“先定义、再编译、后执行”让框架有机会在编译期做检查和优化。这是把“构建”与“运行”解耦的经典收益。",
+                "answer": 0,
+                "why": "节点契约是 state -> partial state。返回增量能保持写入目标清晰，让 add_messages 等 reducer 处理合并。",
             },
             {
-                "q": "节点签名是 <code>state → 部分 state</code>（只返回增量），由 reducer 负责合并。这种“节点只管自己产出”好处是？",
+                "q": "LangChain v1 的 <code>create_agent</code> 与 LangGraph 更准确的关系是？",
                 "opts": [
-                    "代码短",
-                    "节点高度解耦、易测试：每个节点不需要知道全局历史怎么拼，只关心自己这步产出什么",
-                    "运行更快",
-                    "防止出错",
+                    "create_agent 完全绕过 LangGraph，只使用字符串拼接",
+                    "LangGraph 只负责前端可视化，不参与运行",
+                    "create_agent 是高层便利入口，底层 Agent 循环、状态和持久化能力建立在 LangGraph 上",
+                    "二者只能二选一，不能同时出现",
                 ],
-                "answer": 1,
-                "why": "节点不操心“怎么并进全局状态”（交给 reducer），于是各节点独立、可单独推理和测试。解耦是图模型的核心红利。",
-            },
-            {
-                "q": "课里强调“LangChain 组装、LangGraph 运行”，且 CompiledStateGraph 还是个 Runnable。这种分工 + 兼容图什么？",
-                "opts": [
-                    "蹭热度",
-                    "职责清晰(高层便利 vs 底层引擎)又无缝衔接：图编译出来仍是 Runnable，第 10 课的一切对它都成立",
-                    "让它更复杂",
-                    "没意义",
-                ],
-                "answer": 1,
-                "why": "高层(LangChain)负责好用、底层(LangGraph)负责能力，且产物兼容 Runnable 抽象——分层 + 统一抽象在这里再次合流。",
+                "answer": 2,
+                "why": "LangChain 提供易用 API，LangGraph 提供状态图运行时。高层 Agent 入口常把用户配置组装成可运行的 LangGraph 图。",
             },
         ],
         "open": [
-            "“DAG 不能转圈，所以要状态图”。哪些“本质是循环/带反馈”的问题用纯 DAG 会很别扭？反过来，哪些问题用图反而是杀鸡用牛刀？",
-            "“先定义、再 compile、后执行”和编译器很像。这种“两阶段（构建期 vs 运行期）”的设计你还在哪些系统里见过？它通常换来了什么？",
+            "选择一条已有 LCEL 链，指出从哪一步开始需要变成图：哪些数据要进入 state？哪些步骤会成为节点？哪条边会回到旧节点？",
+            "为工具循环写一个终止策略：除了“没有 tool_calls 就 END”，还需要哪些最大轮数、错误状态或人审分支来防止无限循环？",
         ],
     },
+    "28-langgraph-state-schema.html": {
+        "mcq": [
+            {
+                "q": "下列哪项最适合放进 <code>context_schema</code>，而不是普通 state？",
+                "opts": [
+                    "会被 add_messages 合并的聊天历史",
+                    "模型刚生成的最终回答",
+                    "本次运行的 user_id、tenant_id、权限范围等环境信息",
+                    "工具节点返回的 ToolMessage",
+                ],
+                "answer": 2,
+                "why": "context 是运行环境，state 是会随节点演化并可能 checkpoint 的业务数据。用户、租户、权限通常属于 context。",
+            },
+            {
+                "q": "一个 list 字段希望累积多个节点返回的日志，schema 中最容易漏掉什么？",
+                "opts": [
+                    "给这个字段声明 reducer，否则默认可能按 LastValue 覆盖",
+                    "把所有节点改成同步函数",
+                    "删除 output_schema",
+                    "把日志写进 context",
+                ],
+                "answer": 0,
+                "why": "list 类型不等于 append 语义。需要用 Annotated 或等价方式声明 reducer，运行时才知道怎样合并多次更新。",
+            },
+            {
+                "q": "节点收到 state 后，推荐的更新方式是什么？",
+                "opts": [
+                    "原地修改 state，然后返回 None",
+                    "把 context 复制进 state 的每个 key",
+                    "总是返回整份 state，覆盖所有旧值",
+                    "把 state 当只读输入，只返回本节点产生的 partial update",
+                ],
+                "answer": 3,
+                "why": "partial update 能让运行时精确记录写入和调用 reducer；原地修改或整份覆盖都会削弱可追踪性。",
+            },
+        ],
+        "open": [
+            "为一个“订单客服 Agent”选择 state keys：messages、order_id、tool_attempts、retrieved_docs、final_answer、needs_human 中哪些需要 reducer？哪些应只做内部私有 state？",
+            "你发现某节点执行了 <code>state['messages'].append(msg)</code> 后偶发丢历史。请写出调试步骤，并说明如何改成 partial update + reducer。",
+        ],
+    },
+    "29-langgraph-nodes-edges.html": {
+        "mcq": [
+            {
+                "q": "StateGraph 中一个普通业务节点最核心的契约是什么？",
+                "opts": [
+                    "读取 state，执行一步业务，返回 dict 形式的 partial state",
+                    "只能返回字符串",
+                    "必须决定整张图的下一跳",
+                    "必须直接写数据库作为唯一输出",
+                ],
+                "answer": 0,
+                "why": "节点做状态更新，不负责所有控制流。下一跳通常由普通边或条件边表达。",
+            },
+            {
+                "q": "<code>add_conditional_edges</code> 的路由函数返回值最需要满足什么？",
+                "opts": [
+                    "必须是模型自然语言解释",
+                    "必须是 True 或 False，不能是别的类型",
+                    "必须能解析成有效节点名、END，或 path_map 中的键",
+                    "必须返回完整 state",
+                ],
+                "answer": 2,
+                "why": "条件边的输出是控制流目的地。返回值和节点名/path_map 不一致，就无法可靠调度下一步。",
+            },
+            {
+                "q": "START 和 END 在图里代表什么？",
+                "opts": [
+                    "START 是第一个模型节点，END 是最后一个工具节点",
+                    "START/END 是虚拟边界：入口和运行完成标记",
+                    "START/END 是必须由用户实现的两个函数",
+                    "START/END 只用于画图，不影响执行",
+                ],
+                "answer": 1,
+                "why": "START 标出初始输入进入哪条边，END 标出图运行完成；它们不是普通业务节点。",
+            },
+        ],
+        "open": [
+            "写一个 <code>route_tools(state)</code> 的设计：它如何检查最后一条消息？返回哪些节点名或 END？如何处理消息为空或 tool_calls 重复？",
+            "某图路径是 model -> tools -> model，线上出现无限循环。请列出你会检查的 state key、路由条件、最大轮数和错误分支。",
+        ],
+    },
+    "30-langgraph-reducers-channels.html": {
+        "mcq": [
+            {
+                "q": "没有显式 reducer 的普通 state key，最接近哪种语义？",
+                "opts": [
+                    "每次都自动 append",
+                    "自动按 JSON diff 合并",
+                    "LastValue：新值覆盖旧值，适合当前值/最终值",
+                    "自动写入外部数据库",
+                ],
+                "answer": 2,
+                "why": "默认覆盖适合 final_answer 等单值字段；需要累积或 fan-in 合并时必须声明 reducer。",
+            },
+            {
+                "q": "<code>add_messages</code> 合并消息列表时，遇到相同 message id 通常意味着什么？",
+                "opts": [
+                    "按 id 替换旧消息，而不是无条件追加一条重复消息",
+                    "抛弃所有消息",
+                    "把 id 改成随机数",
+                    "停止整张图",
+                ],
+                "answer": 0,
+                "why": "add_messages 的关键是追加新 id、替换旧 id。手动设置重复 id 时要知道自己是在更新。",
+            },
+            {
+                "q": "两个并行分支都写 <code>notes</code>，你希望下游看到两边结果，最合理的做法是？",
+                "opts": [
+                    "让两个节点都返回整份 state",
+                    "给 notes 设计明确 reducer，或让两个分支写不同 key 后再汇总",
+                    "把 notes 放进 runtime context",
+                    "依赖哪个分支最后完成就用哪个",
+                ],
+                "answer": 1,
+                "why": "并行 fan-in 需要明确合并法律。没有 reducer 时，覆盖或冲突都可能让结果不可解释。",
+            },
+        ],
+        "open": [
+            "为这些 key 选择合并语义并说明理由：final_answer、messages、retrieved_docs、risk_scores、audit_events。哪些用 LastValue？哪些需要 reducer？",
+            "如果两条 AIMessage 使用同一个 id，add_messages 会发生什么？这对流式修正有何好处？对手写消息 id 有何风险？",
+        ],
+    },
+    "31-langgraph-compile-runtime.html": {
+        "mcq": [
+            {
+                "q": "<code>StateGraph.compile()</code> 和 <code>compiled.invoke()</code> 的关系，哪项正确？",
+                "opts": [
+                    "compile 负责校验和装配运行时；invoke 才真正执行节点",
+                    "compile 会调用模型并返回最终答案",
+                    "invoke 只能在 compile 前调用",
+                    "二者完全等价，只是名字不同",
+                ],
+                "answer": 0,
+                "why": "compile 把 builder 变成 CompiledStateGraph；运行发生在 invoke/stream/batch。",
+            },
+            {
+                "q": "Runtime context 与 state 的区别是什么？",
+                "opts": [
+                    "二者没有区别",
+                    "context 是运行环境输入；state 是会被节点更新、合并并可能 checkpoint 的业务数据",
+                    "state 只能保存 user_id，context 只能保存 messages",
+                    "context 会自动通过 add_messages 合并",
+                ],
+                "answer": 1,
+                "why": "Runtime 向节点提供 context、store、stream_writer 等环境能力；只有 state key 的 partial update 才进入图状态合并。",
+            },
+            {
+                "q": "使用 checkpointer 运行会话型图时，为什么常需要在 config 中提供 thread_id？",
+                "opts": [
+                    "thread_id 用来选择 HTML 模板",
+                    "thread_id 会让模型跳过工具调用",
+                    "thread_id 通常用于定位保存/恢复哪一条会话线程的 checkpoint",
+                    "thread_id 会改变 Python 类型检查结果",
+                ],
+                "answer": 2,
+                "why": "checkpointer 需要知道状态属于哪条线程/会话。缺失或复用错误 thread_id 都可能导致无法恢复或状态串线。",
+            },
+        ],
+        "open": [
+            "按时间线写出 build graph -> compile -> invoke -> run nodes -> produce state 每一步的输入、输出和不会发生的事情。",
+            "给一个带 checkpointer 的客服图设计 config：thread_id 从哪里来？如何避免不同用户共享 thread_id？恢复时应检查哪些 state？",
+        ],
+    },
+
+    # ===== 第七部分 · 深入 LangGraph ===========================================
     "25-langgraph-pregel-engine.html": {
         "mcq": [
             {
