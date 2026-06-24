@@ -140,7 +140,7 @@ Cover `interrupt`, `Command`, human-in-the-loop, `goto`, update/resume. Source r
 - `langgraph/pregel/main.py :: Pregel.stream`
 - `langgraph/graph/state.py :: CompiledStateGraph`
 
-Trace approval workflow: node interrupts, caller returns `Command(resume=...)`, graph continues.
+Trace approval workflow: node interrupts, caller returns `Command(resume={"approved": True, "comment": "ok"})`, graph continues.
 
 - [ ] **Step 5: Write `LESSON_26_TIME_TRAVEL`**
 
