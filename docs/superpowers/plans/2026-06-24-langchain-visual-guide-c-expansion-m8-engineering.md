@@ -137,7 +137,7 @@ Trace: user issue -> prompt/context -> retrieve order docs -> tool action -> mid
 
 - [ ] **Step 5: Replace quizzes**
 
-Each page has 3 MCQ + 2 open prompts:
+Each page has 3 MCQ + 2 open prompts (the testing page adds a 4th MCQ for the `bind_tools` fake distinction):
 
 | Page | MCQ themes | Open prompt themes |
 | --- | --- | --- |

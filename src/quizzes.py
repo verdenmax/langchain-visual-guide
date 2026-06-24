@@ -898,23 +898,23 @@ QUIZZES = {
             {
                 "q": "测试 <code>create_agent(model, tools=[...])</code> 的工具循环时，fake 模型最关键要实现什么？",
                 "opts": [
-                    "只返回普通字符串，不返回消息对象",
                     "实现 <code>bind_tools</code>，并能按脚本返回带 <code>tool_calls</code> 的 <code>AIMessage</code>",
+                    "只返回普通字符串，不返回消息对象",
                     "直接执行生产数据库查询",
                     "跳过 <code>ToolMessage.tool_call_id</code> 配对",
                 ],
-                "answer": 1,
+                "answer": 0,
                 "why": "create_agent 会把工具 schema 绑定到模型；fake 不支持 bind_tools 时，测试在进入 Agent 循环前就会失败。",
             },
             {
                 "q": "确定性工具在测试中应该避免什么？",
                 "opts": [
-                    "明确的输入输出 fixture",
                     "真实网络、当前时间、随机数或生产副作用",
+                    "明确的输入输出 fixture",
                     "受控错误分支",
                     "通过 <code>@tool</code> 暴露 schema",
                 ],
-                "answer": 1,
+                "answer": 0,
                 "why": "这些因素会让测试慢且不可复现。单元测试工具应只依赖 fixtures，并把错误也做成确定分支。",
             },
             {

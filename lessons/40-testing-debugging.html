@@ -360,26 +360,26 @@ assert result[&quot;messages&quot;][-1].tool_calls == []
   <div class="qn">2. 测试 <code>create_agent(model, tools=[...])</code> 的工具循环时，fake 模型最关键要实现什么？</div>
   <ol class="opts">
     <li>跳过 <code>ToolMessage.tool_call_id</code> 配对</li>
-    <li>实现 <code>bind_tools</code>，并能按脚本返回带 <code>tool_calls</code> 的 <code>AIMessage</code></li>
     <li>只返回普通字符串，不返回消息对象</li>
+    <li>实现 <code>bind_tools</code>，并能按脚本返回带 <code>tool_calls</code> 的 <code>AIMessage</code></li>
     <li>直接执行生产数据库查询</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。create_agent 会把工具 schema 绑定到模型；fake 不支持 bind_tools 时，测试在进入 Agent 循环前就会失败。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。create_agent 会把工具 schema 绑定到模型；fake 不支持 bind_tools 时，测试在进入 Agent 循环前就会失败。</div></div></div>
   </details>
 </div>
 <div class="quiz">
   <div class="qn">3. 确定性工具在测试中应该避免什么？</div>
   <ol class="opts">
     <li>受控错误分支</li>
-    <li>真实网络、当前时间、随机数或生产副作用</li>
-    <li>通过 <code>@tool</code> 暴露 schema</li>
     <li>明确的输入输出 fixture</li>
+    <li>通过 <code>@tool</code> 暴露 schema</li>
+    <li>真实网络、当前时间、随机数或生产副作用</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。这些因素会让测试慢且不可复现。单元测试工具应只依赖 fixtures，并把错误也做成确定分支。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。这些因素会让测试慢且不可复现。单元测试工具应只依赖 fixtures，并把错误也做成确定分支。</div></div></div>
   </details>
 </div>
 <div class="quiz">
