@@ -12,7 +12,7 @@
 ![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 ![Language](https://img.shields.io/badge/docs-%E4%B8%AD%E6%96%87-orange.svg)
 
-> 🚧 **C 级扩充中**：本教程正在从旧版 27 课扩展为约 45-55 课的中文成书级深挖版本。新版本强调更多图、worked-example trace、真实源码入口、简化伪代码和自测练习。第一到第八部分现在都是 C 级批次：全局地图、用户 API 基础、Runnable 与 LCEL、LangGraph 心智模型、LangGraph 执行引擎、Agent 内部、RAG 与记忆、工程化与实战；后续部分会按 Part 分批迁移。
+> ✅ **C 级成书化版本**：本教程已从旧版 27 课重编为 **9 个 Part、46 课**的中文成书级深挖版本，强调更多图、worked-example trace、真实源码入口、简化伪代码和自测练习。九个 Part 全部为 C 级：全局地图、用户 API 基础、Runnable 与 LCEL、LangGraph 心智模型、LangGraph 执行引擎、Agent 内部、RAG 与记忆、工程化与实战、生态与速查。
 
 一套面向**完全新手**的可视化（HTML 图解）教程，带你从零开始理解
 [LangChain](https://github.com/langchain-ai/langchain) 这个项目——既有**宏观全景**，也有**细节源码**，
@@ -43,9 +43,9 @@ python -m http.server 8000
 # 然后访问 http://localhost:8000/
 ```
 
-## 📚 教程结构（C 级扩充中 · M1-M7 已完成 · M8 审阅中 · 当前 46 课）
+## 📚 教程结构（C 级成书版 · 9 个 Part · 46 课）
 
-> M8 后当前站点有 46 个 HTML 课程页面，并保留兼容旧链接的文件名，同时继续扩展到约 45-55 课。第一到第八部分都是新版 C 级批次；其余页面仍按旧版/迁移中结构保留。
+> 当前站点有 46 个 HTML 课程页面（9 个 Part 全部为新版 C 级批次），并保留兼容旧链接的文件名；后续可在 45-55 课目标内继续按需加深。
 
 ### 第一部分 · 全局地图（M1，新版 C 级）
 1. `01-what-is-langchain.html` **LangChain 是什么** — 解决什么问题 · 核心心智模型
@@ -103,13 +103,13 @@ python -m http.server 8000
 39. `41-observability-ci.html` **观测、CI、PDF 与发布** — callbacks · run tree · 构建检查 · Pages/PDF
 40. `20-capstone.html` **端到端客服 Agent 工程化** — prompts + RAG + 工具 + 中间件 + 可回归发布
 
-### 旧版 / 迁移中页面
-41. `11-chat-internals.html` **聊天模型内部** — `BaseChatModel` 调用链
-42. `12-tool-internals.html` **工具调用内部** — 函数 → JSON Schema → `tool_calls`
-43. `21-langchain-vs-autogen.html` **LangChain vs AutoGen** — 图/管道 vs 多 Agent 对话
-44. `22-ai-stack.html` **AI 全栈坐标系** — Agent 编排 5 流派 · AI 全栈 7 层
-45. `23-learning-map.html` **隔壁层学习地图** — L5 推理 · L6 向量检索
-46. `27-glossary.html` **术语表 · 概念索引** — 全书术语一句话查
+### 第九部分 · 生态与速查（M9，新版 C 级）
+41. `11-chat-internals.html` **ChatModel Provider 内部** — `BaseChatModel` · provider adapter · payload/response 归一化
+42. `12-tool-internals.html` **Tool Schema 与执行内部** — `BaseTool` · `args_schema` · `convert_to_openai_tool` · `ToolMessage`
+43. `21-langchain-vs-autogen.html` **LangChain、LangGraph 与多 Agent 生态** — 图/管道 vs 多 Agent 对话
+44. `22-ai-stack.html` **AI 全栈、MCP 与 A2A** — Agent 编排流派 · AI 全栈分层 · MCP/A2A
+45. `23-learning-map.html` **后续学习地图** — L5 推理 · L6 向量检索 · 进阶路线
+46. `27-glossary.html` **术语表与源码索引** — 全书术语一句话查 + 源码定位
 
 ## 🎨 每页包含
 
@@ -126,7 +126,7 @@ python -m http.server 8000
 langchain-visual-guide/
 ├── index.html              ← 入口（目录页），从这里开始
 ├── print.html              ← 生成的单页打印 / PDF 源（可由 build_print.py 重建）
-├── lessons/                ← 46 课图解页面（C 级扩充中，M1-M7 已完成，M8 审阅中）
+├── lessons/                ← 46 课图解页面（C 级成书版 · 9 个 Part）
 │   ├── 01-what-is-langchain.html
 │   ├── 02-monorepo.html
 │   ├── 03-lifecycle.html
@@ -179,7 +179,8 @@ langchain-visual-guide/
 │   ├── part06_agent_internals.py  新版 Part 6（M6 Agent 内部）
 │   ├── part07_rag_memory.py  新版 Part 7（M7 RAG 与记忆）
 │   ├── part08_engineering.py  新版 Part 8（M8 工程化与实战）
-│   ├── part2.py … part7.py 旧版 / 迁移中课程内容
+│   ├── part09_ecosystem_reference.py  新版 Part 9（M9 生态与速查）
+│   ├── part1.py … part7.py 旧版（保留兼容，registry 已不再引用）
 │   ├── registry.py         课程 → 内容 的统一映射
 │   ├── build.py            站点构建（→ index.html + lessons/）
 │   ├── build_print.py      PDF 构建（→ print.html，折叠全展开）

@@ -13,8 +13,8 @@
 | M5 | Part 5 LangGraph execution engine | Done | `2026-06-23-langchain-visual-guide-c-expansion-m5-langgraph-engine.md` |
 | M6 | Part 6 Agent internals | Done | `2026-06-24-langchain-visual-guide-c-expansion-m6-agent-internals.md` |
 | M7 | Part 7 RAG and memory | Done | `2026-06-24-langchain-visual-guide-c-expansion-m7-rag-memory.md` |
-| M8 | Part 8 engineering, testing, debugging, contribution, migration | In review | `2026-06-24-langchain-visual-guide-c-expansion-m8-engineering.md` |
-| M9 | Part 9 ecosystem comparison, glossary, print/PDF/README final polish, including remaining legacy 27-lesson references and final PDF/README count polish | Not started | Plan pending after M8 review |
+| M8 | Part 8 engineering, testing, debugging, contribution, migration | Done | `2026-06-24-langchain-visual-guide-c-expansion-m8-engineering.md` |
+| M9 | Part 9 ecosystem comparison, glossary, print/PDF/README final polish, including remaining legacy 27-lesson references and final PDF/README count polish | Done | `2026-06-24-langchain-visual-guide-c-expansion-m9-ecosystem-glossary.md` |
 
 ## Per-milestone rule
 
