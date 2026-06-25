@@ -14,6 +14,8 @@ printed but do not fail the build. Checks performed on every lesson + index:
 * nav prev/next chain matches shell.PAGES order
 * no stale counts / wording (e.g. "全 20 课", "六个钩子")
 * index TOC lists every page and shows the correct lesson/part counts
+* every CSS class used in a page body has a rule in shell.CSS (guards silent
+  style fallbacks, e.g. ``card keypoints`` when only ``.card.key`` is defined)
 * (WARN only) every lesson has a "本课要点" and a "card analogy"
 """
 import os
@@ -43,6 +45,22 @@ PRE_INLINE = ("span", "strong", "b", "em", "u", "a")
 # Reference pages exempt from the "needs analogy / 本课要点" soft checks.
 SOFT_EXEMPT = {"27-glossary.html"}
 
+# CSS class names that have a rule in shell.CSS (e.g. ".foo", ".a.b"). The regex
+# only matches a dot followed by a letter, so numeric fragments (".5rem", ".06")
+# and pseudo-elements (no dot) are ignored.
+DEFINED_CSS_CLASSES = set(re.findall(r"\.([A-Za-z][\w-]*)", shell.CSS))
+
+# Classes intentionally used in HTML without their own CSS rule, because the
+# element also carries a fully-styled base class (semantic markers) or the class
+# is purely a JS/data hook. Add here ONLY with a clear reason — this whitelist is
+# what lets the "undefined CSS class" guard catch real fallback bugs (a card
+# variant that was never styled) while allowing deliberate markers.
+ALLOWED_UNDEFINED_CLASSES = {
+    "call-graph",  # always on a ".flow" element; semantic marker for density check
+    "state-flow",  # always on a ".vflow" element; semantic marker
+    "prev",        # footnav back-link; styled by ".footnav a" (only ".next" overrides)
+}
+
 issues = []  # (severity, file, message)
 
 
@@ -61,6 +79,25 @@ def check_stale(name, html):
     for bad in STALE:
         if bad in html:
             add("ERR", name, f"stale text: {bad!r}")
+
+
+def check_classes(name, html):
+    """Flag any class used in the page body that has no rule in shell.CSS.
+
+    Guards against silent style fallbacks (e.g. ``card keypoints`` when only
+    ``.card.key`` is defined). Only the body is scanned (the inlined <style> is
+    skipped). Deliberate markers / JS hooks belong in ALLOWED_UNDEFINED_CLASSES.
+    """
+    body = html.split("</style>", 1)[-1]
+    attrs = re.findall(r'class="([^"]*)"', body) + re.findall(r"class='([^']*)'", body)
+    seen = set()
+    for attr in attrs:
+        for cls in attr.split():
+            if cls in seen or cls in DEFINED_CSS_CLASSES or cls in ALLOWED_UNDEFINED_CLASSES:
+                continue
+            seen.add(cls)
+            add("ERR", name, f"undefined CSS class .{cls} (used in HTML but no rule in "
+                             "shell.CSS; add a rule or whitelist it in ALLOWED_UNDEFINED_CLASSES)")
 
 
 def check_lesson(fname, html):
@@ -84,6 +121,7 @@ def check_lesson(fname, html):
             add("WARN", fname, "no analogy card")
 
     check_stale(fname, html)
+    check_classes(fname, html)
 
     # unescaped '<' inside <pre>
     for pre in re.findall(r"<pre[^>]*>(.*?)</pre>", html, re.S):
@@ -120,6 +158,7 @@ def main():
     index_path = os.path.join(ROOT, shell.INDEX_FILE)
     idx = open(index_path, encoding="utf-8").read()
     check_stale("index.html", idx)
+    check_classes("index.html", idx)
     for fname, title, _part in PAGES:
         if fname not in idx:
             add("ERR", "index.html", f"TOC missing entry {fname}")
