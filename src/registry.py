@@ -12,9 +12,6 @@ import part06_agent_internals
 import part07_rag_memory
 import part08_engineering
 import part09_ecosystem_reference
-import part4
-import part5
-import part7
 
 # Ordered to match shell.PAGES. Filename -> content HTML string.
 CONTENT = {

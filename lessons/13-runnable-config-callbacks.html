@@ -20,7 +20,7 @@
   --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
   --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
   --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
-  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6; --teal: #0d9488; --teal-soft: #d3f3f0;
   --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
   --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
   --radius: 14px;
@@ -31,7 +31,7 @@
     --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
     --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
     --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
-    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a; --teal: #2dd4bf; --teal-soft: #123f3b;
     --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
@@ -181,6 +181,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 .layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
 .layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
 .layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+.layer.l-graph { border-left: 4px solid var(--teal); } .layer.l-graph .badge { background: var(--teal-soft); color: var(--teal); }
 
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
@@ -325,7 +326,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 
 <h2>callbacks：观察事件，而不是改业务数据</h2>
 <p>CallbackManager 负责把运行事件分发给 handler。典型事件包括 chain start/end/error、LLM start/new_token/end/error、tool start/end/error、retriever start/end 等。handler 可以打印日志、更新进度条、把事件发送到 LangSmith、统计 token、度量耗时。它们应当是“旁路观察者”：看到输入输出、记录必要信息、在错误时留下证据。不要把关键业务逻辑写在 callback 里，例如“on_chain_end 时扣库存”或“on_llm_new_token 时修改订单状态”。回调可能被禁用、替换、采样或因观测系统故障而失败，业务正确性不能依赖它。</p>
-<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. 父入口</td><td>chain.invoke(input, config={&#x27;tags&#x27;:[&#x27;demo&#x27;]})</td><td>ensure_config 标准化配置，CallbackManager 创建父 run</td><td>parent run_id=A</td></tr><tr><td>2. prompt 子 run</td><td>父 config + run_name=&#x27;prompt&#x27;</td><td>patch_config 派生 child callbacks，触发 on_chain_start/end</td><td>child run parent=A</td></tr><tr><td>3. model 子 run</td><td>消息 + 继承 tags/metadata</td><td>on_llm_start、on_llm_new_token、on_llm_end 记录模型事件</td><td>AIMessage + token/metadata</td></tr><tr><td>4. parser 子 run</td><td>AIMessage</td><td>解析成功触发 end；失败触发 error</td><td>结构化结果或异常</td></tr><tr><td>5. tracer 汇总</td><td>所有事件</td><td>BaseTracer 保存父子关系、时间线、错误</td><td>LangSmith / 本地 trace 中的 run tree</td></tr></table>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. 父入口</td><td>chain.invoke(input, config={&#x27;tags&#x27;:[&#x27;demo&#x27;]})</td><td>ensure_config 标准化配置，CallbackManager 创建父 run</td><td>parent run_id=A</td></tr><tr><td>2. prompt 子 run</td><td>父 config + run_name=&#x27;prompt&#x27;</td><td>patch_config 派生 child callbacks，触发 on_chain_start/end</td><td>child run parent=A</td></tr><tr><td>3. model 子 run</td><td>消息 + 继承 tags/metadata</td><td>on_llm_start、on_llm_end 记录模型事件（streaming 时才有 on_llm_new_token）</td><td>AIMessage + token/metadata</td></tr><tr><td>4. parser 子 run</td><td>AIMessage</td><td>解析成功触发 end；失败触发 error</td><td>结构化结果或异常</td></tr><tr><td>5. tracer 汇总</td><td>所有事件</td><td>BaseTracer 保存父子关系、时间线、错误</td><td>LangSmith / 本地 trace 中的 run tree</td></tr></table>
 <h2>简化源码走读：配置进入、子配置派生、事件上报</h2>
 <p>真实 Runnable.invoke 的实现会比这里复杂得多，尤其要处理泛型、contextvars、schema、streaming、异步和异常。伪代码只保留可观察性主线：标准化配置、创建 manager、触发 start/end/error、给子步骤派生 callbacks。</p>
 <div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/core/langchain_core/runnables/base.py + config.py :: Runnable.invoke with config/callbacks</span><span class="ln">简化版</span></div><pre>def invoke(self, input, config=None):
@@ -392,7 +393,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <p>对大型团队来说，可观测字段还应有生命周期：谁能新增字段，谁能查看字段，字段保留多久，何时删除。没有生命周期的日志会越积越多，既增加成本，也增加泄漏风险。把这些规则和 RunnableConfig 一起设计，才能让 tracing 在项目变大后仍然可信。</p>
 <p>如果某个字段既影响权限又进入 metadata，要特别小心：权限判断必须在业务层完成，metadata 只能记录已脱敏、已授权的观测副本。把同一个值的业务用途和观测用途分开，是避免越权和泄漏的基本习惯。配置设计越早规范，后期排查和合规成本越低。</p>
 <p>安全的观测永远是选择性记录，而不是完整复制运行现场。记录越克制，证据越可信；字段越规范，协作越轻松。观测要帮助定位问题，也要尊重数据边界和用户信任：少记秘密，多记结构，问题才好查。安全观测不是一次性整理，而是长期纪律，它同时保护用户数据、团队效率和系统可信度。</p>
-<div class="card keypoints">
+<div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
     <li>RunnableConfig 传播运行控制与观测信息，不承载业务状态。</li>

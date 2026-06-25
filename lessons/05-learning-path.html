@@ -20,7 +20,7 @@
   --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
   --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
   --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
-  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6; --teal: #0d9488; --teal-soft: #d3f3f0;
   --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
   --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
   --radius: 14px;
@@ -31,7 +31,7 @@
     --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
     --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
     --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
-    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a; --teal: #2dd4bf; --teal-soft: #123f3b;
     --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
@@ -181,6 +181,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 .layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
 .layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
 .layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+.layer.l-graph { border-left: 4px solid var(--teal); } .layer.l-graph .badge { background: var(--teal-soft); color: var(--teal); }
 
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
@@ -320,7 +321,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="tag">🔬 源码入口 · 文件 + 符号名</div>
   本课关注“怎么做实验”。真实模型输出不稳定、网络和计费也会干扰学习，所以我们优先使用 fake model、内存 checkpointer、RunnableConfig 和 tracer，让实验可重复、可观察、低成本。
 </div>
-<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/language_models/fake_chat_models.py</td><td class="mono">GenericFakeChatModel</td><td>用预设消息或生成器模拟聊天模型，避免真实 API 的随机性和费用。</td><td>实验替身 -&gt; BaseChatModel 协议</td></tr><tr><td class="mono">langchain-ai/langgraph/libs/checkpoint/langgraph/checkpoint/memory/__init__.py</td><td class="mono">InMemorySaver</td><td>内存 checkpoint，用于本地验证 LangGraph 状态保存和恢复。</td><td>Graph runtime -&gt; checkpoint storage</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/config.py</td><td class="mono">RunnableConfig</td><td>传递 tags、metadata、callbacks、configurable 等运行时配置。</td><td>调用者 -&gt; Runnable 链路</td></tr><tr><td class="mono">libs/core/langchain_core/tracers/</td><td class="mono">tracers</td><td>收集 run、事件、输入输出和错误，支撑可观测调试。</td><td>Callbacks -&gt; trace records</td></tr><tr><td class="mono">libs/core/langchain_core/callbacks/manager.py</td><td class="mono">CallbackManager</td><td>把回调事件分发给 tracer、日志器或自定义 handler。</td><td>Runnable execution -&gt; observers</td></tr></table>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/language_models/fake_chat_models.py</td><td class="mono">GenericFakeChatModel</td><td>用预设消息或生成器模拟聊天模型，避免真实 API 的随机性和费用。</td><td>实验替身 -&gt; BaseChatModel 协议</td></tr><tr><td class="mono">langchain-ai/langgraph/libs/checkpoint/langgraph/checkpoint/memory/__init__.py</td><td class="mono">InMemorySaver</td><td>内存 checkpoint，用于本地验证 LangGraph 状态保存和恢复。</td><td>Graph runtime -&gt; checkpoint storage</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/config.py</td><td class="mono">RunnableConfig</td><td>传递 tags、metadata、callbacks、configurable 等运行时配置。</td><td>调用者 -&gt; Runnable 链路</td></tr><tr><td class="mono">libs/core/langchain_core/tracers/base.py</td><td class="mono">BaseTracer</td><td>收集 run、事件、输入输出和错误，支撑可观测调试。</td><td>Callbacks -&gt; trace records</td></tr><tr><td class="mono">libs/core/langchain_core/callbacks/manager.py</td><td class="mono">CallbackManager</td><td>把回调事件分发给 tracer、日志器或自定义 handler。</td><td>Runnable execution -&gt; observers</td></tr></table>
 <h2>确定性 fake-model 实验</h2>
 <p>学习早期尽量不要依赖真实模型判断框架行为。真实模型会受 temperature、上下文、服务端版本和网络重试影响，同一个 prompt 可能得到不同结果。框架行为实验需要可重复，因此应该用 fake model 固定输出，再观察消息、工具、状态和回调是否按预期变化。</p>
 <div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">experiments/fake_agent_trace.py :: deterministic_fake_model</span><span class="ln">简化版</span></div><pre>from langchain_core.language_models.fake_chat_models import GenericFakeChatModel

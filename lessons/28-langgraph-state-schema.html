@@ -20,7 +20,7 @@
   --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
   --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
   --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
-  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6; --teal: #0d9488; --teal-soft: #d3f3f0;
   --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
   --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
   --radius: 14px;
@@ -31,7 +31,7 @@
     --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
     --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
     --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
-    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a; --teal: #2dd4bf; --teal-soft: #123f3b;
     --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
@@ -181,6 +181,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 .layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
 .layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
 .layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+.layer.l-graph { border-left: 4px solid var(--teal); } .layer.l-graph .badge { background: var(--teal-soft); color: var(--teal); }
 
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
@@ -354,7 +355,7 @@ class StateGraph:
 <h2>常见误解与边界情况</h2>
 <div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：节点可以直接 append state[&#x27;messages&#x27;]</div><div class="pf-correct">正确：把 state 当只读输入；返回 partial update，让 add_messages 记录和合并更新。</div></div><div class="pitfall"><div class="pf-wrong">误解：返回整份 state 更保险</div><div class="pf-correct">正确：返回整份 state 会制造覆盖和噪声；节点应只返回自己产生的 key。</div></div><div class="pitfall"><div class="pf-wrong">误解：context 和 state 都是 dict，随便放</div><div class="pf-correct">正确：context 是运行环境，state 是业务演化数据；混用会破坏 checkpoint 和可读性。</div></div><div class="pitfall"><div class="pf-wrong">误解：list 字段天然会累积</div><div class="pf-correct">正确：没有 reducer 的字段默认通常是 LastValue 覆盖；累积列表要显式声明 reducer。</div></div></div>
 <h2>小实验</h2>
-<div class="card lab"><div class="tag">🧪 小实验 · 为客服图设计 State schema</div><ol><li>列出入口需要的 key：用户问题、已有 messages、可能的订单号。</li><li>列出内部 key：retrieved_docs、tool_attempts、needs_human、draft_answer，并标注哪些只在内部使用。</li><li>判断每个 key 的合并语义：messages 用 add_messages，tool_attempts 可以累加，final_answer 用覆盖。</li><li>把 user_id、tenant_id、permissions 放入 context_schema，再解释为什么它们不应作为普通 state 历史保存。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>本课使用的 StateGraph.__init__、_get_channels、_get_channel、Runtime、add_messages 是理解 v1 时代 LangGraph state contract 的稳定入口。具体 schema 参数名可能演进，但 state/context 分离、partial update 和 reducer 合并这三条规则应优先记住。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>State schema 是图的合同，定义 state key、类型和合并语义。</li><li>TypedDict、Pydantic、dataclass 都可表达 schema，选择取决于校验和可读性需求。</li><li>context_schema 描述运行环境，不应和会 checkpoint 的业务 state 混淆。</li><li>节点返回 partial update；list 累积必须显式声明 reducer，例如 add_messages。</li><li>原地修改 state 和返回整份 state 都会削弱可追踪、可并行和可恢复能力。</li></ul></div><div class="selftest">
+<div class="card lab"><div class="tag">🧪 小实验 · 为客服图设计 State schema</div><ol><li>列出入口需要的 key：用户问题、已有 messages、可能的订单号。</li><li>列出内部 key：retrieved_docs、tool_attempts、needs_human、draft_answer，并标注哪些只在内部使用。</li><li>判断每个 key 的合并语义：messages 用 add_messages，tool_attempts 可以累加，final_answer 用覆盖。</li><li>把 user_id、tenant_id、permissions 放入 context_schema，再解释为什么它们不应作为普通 state 历史保存。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>本课使用的 StateGraph.__init__、_get_channels、_get_channel、Runtime、add_messages 是理解 v1 时代 LangGraph state contract 的稳定入口。具体 schema 参数名可能演进，但 state/context 分离、partial update 和 reducer 合并这三条规则应优先记住。</div><div class="card key"><div class="tag">✅ 本课要点</div><ul><li>State schema 是图的合同，定义 state key、类型和合并语义。</li><li>TypedDict、Pydantic、dataclass 都可表达 schema，选择取决于校验和可读性需求。</li><li>context_schema 描述运行环境，不应和会 checkpoint 的业务 state 混淆。</li><li>节点返回 partial update；list 累积必须显式声明 reducer，例如 add_messages。</li><li>原地修改 state 和返回整份 state 都会削弱可追踪、可并行和可恢复能力。</li></ul></div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
   <div class="qn">1. 下列哪项最适合放进 <code>context_schema</code>，而不是普通 state？</div>

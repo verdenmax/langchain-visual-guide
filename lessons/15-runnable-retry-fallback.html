@@ -20,7 +20,7 @@
   --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
   --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
   --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
-  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6; --teal: #0d9488; --teal-soft: #d3f3f0;
   --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
   --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
   --radius: 14px;
@@ -31,7 +31,7 @@
     --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
     --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
     --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
-    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a; --teal: #2dd4bf; --teal-soft: #123f3b;
     --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
@@ -181,6 +181,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 .layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
 .layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
 .layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+.layer.l-graph { border-left: 4px solid var(--teal); } .layer.l-graph .badge { background: var(--teal-soft); color: var(--teal); }
 
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
@@ -349,7 +350,7 @@ class RunnableWithFallbacks(Runnable):
             except self.exceptions_to_handle as exc:
                 errors.append(exc)
                 input = self.maybe_add_exception(input, exc)
-        raise errors[-1]
+        raise errors[0]  # 真实实现抛首个被捕获的异常 first_error
 </pre><div class="cw-note">包装器自己也是 Runnable，所以可以包单个模型、包 parser、包整条 chain，并继续被外层 LCEL 组合。</div></div>
 <h2>Parser repair 与 provider fallback：别混成一类</h2>
 <p>模型调用失败和解析失败是两类问题。Provider 失败时，换模型或重试网络可能有效；解析失败时，provider 其实已经返回了内容，只是内容不满足 schema。此时常见策略是 repair：把原始输出、schema 要求和错误信息交给一个修复链，让它重写为合法结构。repair 仍要有限次数，且要保留 raw output 以便审计。不要把 parser 错误一概交给 provider fallback，否则你可能换了三个模型，却没有告诉模型“具体哪里不符合 schema”。</p>
@@ -395,7 +396,7 @@ class RunnableWithFallbacks(Runnable):
 <p>用户不关心你用了几次 retry 或哪个 provider fallback，但会感受到延迟、答案质量和失败提示。过多重试可能让页面长时间转圈；过宽 fallback 可能给出质量明显下降的答案；过度暴露错误又会让用户困惑。因此稳健策略要和体验一起设计：什么时候快速失败，什么时候静默降级，什么时候提示“正在使用备用路径”，什么时候转人工。</p>
 <p>一个实用做法是给每条链设定总时间预算。预算内可以进行一次短退避重试和一次同能力 fallback；超出预算就返回明确降级结果或请求稍后再试。这样系统不会为了追求成功而无限消耗用户耐心。trace 中记录预算消耗，也能帮助你判断是模型慢、检索慢，还是 fallback 过多。</p>
 <p>稳健链最终服务的是可信度。用户可以接受系统偶尔失败，但很难接受系统悄悄给出不可靠结果。有限补救、清晰降级、保持 schema、保留证据，才是 retry 和 fallback 真正要达成的目标。</p>
-<div class="card keypoints">
+<div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
     <li>with_retry 适合短暂、可重复、有限的失败，不适合编程错误或非幂等副作用。</li>

@@ -17,7 +17,7 @@ def _analogy(text):
 
 def _points(items):
     lis = "".join(f"<li>{item}</li>" for item in items)
-    return f'<div class="card keypoints"><div class="tag">✅ 本课要点</div><ul>{lis}</ul></div>'
+    return f'<div class="card key"><div class="tag">✅ 本课要点</div><ul>{lis}</ul></div>'
 
 
 def _table(headers, rows, klass="t"):
@@ -253,14 +253,15 @@ class SearchOrderTool(BaseTool):
     description = "查询订单物流状态"
     args_schema = SearchOrderArgs
 
+    def _run(self, order_id: str) -> str:
+        return f"订单 {order_id}：运输中"   # 真实实现会查数据库
+
 # 去程：给模型看的说明，不执行函数
 provider_tool = convert_to_openai_tool(SearchOrderTool())
 
-# 回程：模型已经请求调用后，才校验并执行
-call = {"name": "search_order", "args": {"order_id": "42"}, "id": "call_1"}
-args = SearchOrderArgs.model_validate(call["args"])
-result = search_order(**args.model_dump())
-message = ToolMessage(content=str(result), tool_call_id="call_1")
+# 回程：模型请求调用后，BaseTool.invoke 内部用 args_schema 校验参数、执行 _run、再产出 ToolMessage
+call = {"name": "search_order", "args": {"order_id": "42"}, "id": "call_1", "type": "tool_call"}
+message = SearchOrderTool().invoke(call)
 """,
         "code_note": "真实 ToolNode 还会处理多个工具调用、并发、状态注入、store 注入、同步/异步、错误策略和返回格式。伪码强调两个边界：schema 转换只是让模型知道工具怎么叫，执行阶段才真正校验参数并产生 ToolMessage。",
         "sections": [
@@ -499,8 +500,8 @@ LESSON_44_AI_STACK_PROTOCOLS = _build_lesson(
             {"file": "libs/langchain_v1/langchain/agents/factory.py", "symbol": "create_agent", "role": "框架 API：把模型、工具、middleware、response_format 组装成 Agent 运行图", "direction": "应用进程内编排，不等同于跨进程协议"},
             {"file": "libs/langgraph/langgraph/graph/state.py", "symbol": "StateGraph", "role": "框架 API：定义状态、节点、边和编译图", "direction": "用于内部控制流和状态管理"},
             {"file": "libs/core/langchain_core/tools/base.py", "symbol": "BaseTool", "role": "框架工具契约：Python 工具对象、args_schema、执行结果", "direction": "可由框架本地执行，也可桥接到外部工具协议"},
-            {"file": "协议层概念", "symbol": "MCP", "role": "工具/上下文协议：常用于把工具、资源、提示等能力标准化暴露给 AI 客户端", "direction": "跨进程/跨产品边界，规格会演进"},
-            {"file": "协议层概念", "symbol": "A2A", "role": "agent-to-agent 协作协议：常用于 agent 发现、任务委托、状态同步和结果交付", "direction": "连接多个 agent 系统，而不是替代框架内部 API"},
+            {"file": "协议层概念", "symbol": "MCP", "role": "工具/上下文协议（源自 Anthropic）：常用于把工具、资源、提示等能力标准化暴露给 AI 客户端", "direction": "跨进程/跨产品边界，规格会演进"},
+            {"file": "协议层概念", "symbol": "A2A", "role": "agent-to-agent 协作协议（源自 Google）：常用于 agent 发现、任务委托、状态同步和结果交付", "direction": "连接多个 agent 系统，而不是替代框架内部 API"},
             {"file": "libs/core/langchain_core/retrievers.py", "symbol": "BaseRetriever", "role": "数据/RAG 框架契约：query -> documents，可桥接向量库、搜索和外部数据服务", "direction": "位于应用编排与数据底座之间"},
         ],
         "flow_title": "状态流：一次跨层 AI 请求",
@@ -631,14 +632,14 @@ LESSON_45_LEARNING_MAP = _build_lesson(
             ("评测观测", "把 trace、数据集、回归、成本、错误分类接成质量闭环", "source"),
             ("协议贡献", "学习 MCP/A2A 边界，阅读源码并贡献小而可验证的改动", "after"),
         ],
-        "source_intro": "本课 source rows 指向课程内已经验证的锚点与上游主要符号。学习地图不是让你一次读完所有源码，而是告诉你每条支线从哪个已知概念出发，如何用小实验建立反馈。",
+        "source_intro": "下面给出各学习支线在 LangChain 源码里的入口锚点（文件 + 符号名）。学习地图不是让你一次读完所有源码，而是告诉你每条支线从哪个已知符号出发，再用小实验建立反馈。",
         "sources": [
-            {"file": "08-runnable.html", "symbol": "Runnable", "role": "所有组件可组合的应用层协议", "direction": "后续学习任何框架时先问它的可组合契约是什么"},
-            {"file": "11-chat-internals.html", "symbol": "BaseChatModel / provider adapter", "role": "模型 API 适配层", "direction": "下探推理引擎前先分清 provider API 与 serving engine"},
-            {"file": "37-embeddings-vectorstores.html", "symbol": "Embeddings / VectorStore", "role": "向量化与索引入口", "direction": "进入 ANN、HNSW、过滤、混合检索和向量数据库"},
-            {"file": "38-retrievers-rerankers.html", "symbol": "BaseRetriever", "role": "query -> documents 的检索契约", "direction": "学习召回、rerank、压缩和 RAG 评估"},
-            {"file": "41-observability-ci.html", "symbol": "callbacks / run tree / CI", "role": "观测、回归和发布守卫", "direction": "进入 eval、dataset、trace、成本和质量门"},
-            {"file": "15-contributing.html", "symbol": "build/check loop", "role": "源码调试与贡献流程", "direction": "把学习转成可复查实验和小 PR"},
+            {"file": "libs/core/langchain_core/runnables/base.py", "symbol": "Runnable", "role": "所有组件可组合的应用层协议", "direction": "后续学习任何框架时先问它的可组合契约是什么"},
+            {"file": "libs/core/langchain_core/language_models/chat_models.py", "symbol": "BaseChatModel", "role": "模型 API 适配层基类", "direction": "下探推理引擎前先分清 provider API 与 serving engine"},
+            {"file": "libs/core/langchain_core/vectorstores/base.py", "symbol": "VectorStore", "role": "向量化与索引入口", "direction": "进入 ANN、HNSW、过滤、混合检索和向量数据库"},
+            {"file": "libs/core/langchain_core/retrievers.py", "symbol": "BaseRetriever", "role": "query -> documents 的检索契约", "direction": "学习召回、rerank、压缩和 RAG 评估"},
+            {"file": "libs/core/langchain_core/callbacks/base.py", "symbol": "BaseCallbackHandler", "role": "观测与回调入口", "direction": "进入 eval、dataset、trace、成本和质量门"},
+            {"file": "libs/core/langchain_core/tracers/base.py", "symbol": "BaseTracer", "role": "trace 收集，支撑源码调试与回归", "direction": "把学习转成可复查实验和小 PR"},
         ],
         "flow_title": "状态流：四阶段后续学习计划",
         "flow_steps": [

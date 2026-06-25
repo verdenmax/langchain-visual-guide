@@ -20,7 +20,7 @@
   --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
   --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
   --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
-  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6; --teal: #0d9488; --teal-soft: #d3f3f0;
   --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
   --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
   --radius: 14px;
@@ -31,7 +31,7 @@
     --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
     --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
     --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
-    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a; --teal: #2dd4bf; --teal-soft: #123f3b;
     --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
@@ -181,6 +181,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 .layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
 .layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
 .layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+.layer.l-graph { border-left: 4px solid var(--teal); } .layer.l-graph .badge { background: var(--teal-soft); color: var(--teal); }
 
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
@@ -356,6 +357,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <h2>深入拆解：把 Runnable 当成运行时边界</h2>
 <p>学习 Runnable 时，最容易低估的是“边界”二字。一个组件只要承诺自己是 Runnable，就等于承诺调用者可以用统一方式给它输入、拿它输出、给它配置、观察它运行、把它接入更大的组合。这个边界让上层代码不必关心内部是字符串模板、HTTP 模型、向量检索、工具适配器还是一整张图。边界越稳定，系统越能扩展；边界越含糊，链路越容易靠隐式约定维持。Runnable 的设计选择是把“执行”变成公共协议，把“实现细节”关在组件内部。</p>
 <p>这也是为什么 input/output 契约必须被严肃对待。统一入口不会自动修复错误数据形状，只会让错误在清晰位置暴露。Prompt 报缺变量，说明上游没有提供模板需要的键；parser 报解析失败，说明模型输出没有满足解析器承诺；batch 中某个元素失败，说明那一项输入或外部依赖出现问题。把这些错误归咎于“Runnable 太抽象”是不准确的。抽象只负责把调用形状统一，真实的业务契约仍由每个组件定义和维护。</p>
+<p>把 Runnable 和“普通 Python 函数”对照，更能看清它多做了什么。普通函数只有一种调用形态 f(x)，没有统一的异步、流式、批量入口，也没有内建的配置传播和回调观测；要把若干函数串成可观测、可重试、可并行的链路，你得自己发明一套约定。Runnable 把这套约定标准化：任何遵守协议的组件，调用者都能用同一心智模型 invoke/stream/batch，用同一 config 注入 callbacks 和 tags，用同一运行树结构定位问题。代价是组件作者要遵守协议、实现合理的默认行为；收益是整条链路成为可组合的标准件，而不是一堆只能在特定上下文里侥幸工作的临时函数。</p>
 <h3>同步、异步、流式、批量的同构性</h3>
 <p>Runnable 的多个执行入口看似复杂，其实是在回答同一个问题的四种运行形态：单次同步、单次异步、增量输出、多输入集合。它们同构的意思是：你不需要为 prompt 学一套 batch，为 model 学另一套 stream，为 parser 学第三套 async。只要组件遵守 Runnable，调用者就能先用统一心智模型尝试，再根据组件能力理解性能差异。默认 stream 可能只是 yield 最终结果，原生模型 stream 才会逐 token；默认 batch 可能只是并发多次 invoke，原生批量接口才可能合并请求。协议给你可预期的入口，不承诺每个实现都拥有同样优化。</p>
 <p>在生产里，这种同构性直接影响工程组织。后端服务可以把任意链暴露成“单次调用接口”，前端可以在支持流式时切换到 stream，离线评测可以用 batch 跑样本集，异步 Web 框架可以使用 ainvoke 避免阻塞事件循环。你复用的是同一条链，而不是为四种运行方式各写一份业务流程。代价是必须理解默认实现的边界：如果底层 provider 不支持真正流式，你只能拿到一个最终 chunk；如果工具内部是阻塞 I/O，ainvoke 也不等于无限扩容。</p>
@@ -376,50 +378,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <p>如果你以后读到某个新组件，不妨先问四个问题：它的 invoke 输入是什么？输出是什么？config 会如何影响它？它失败时抛什么异常？只要这四个问题回答清楚，你就能判断它能否接进现有链，能否并行，能否重试，能否被 trace。这个阅读习惯比记 API 更重要，因为版本会变，协议思维更稳定。</p>
 
 
-<h2>组合前先写形状注释</h2>
-<p>在团队项目里，建议在复杂 LCEL 链旁边保留简短的形状注释，不是解释语法，而是解释每一步的数据形状。例如：输入是 question 字典；检索后得到 context 和 question；prompt 后得到消息；model 后得到 AIMessage；parser 后得到 Answer。真正容易出错的是形状对不上，而不是大家不知道模型会生成答案。</p>
-<p>形状注释还能帮助评审。评审者看到 dict 出现在链中，会立刻检查它是否表示并行映射；看到 lambda，会追问它是否应该命名；看到 parser，会检查它前面是不是模型输出；看到 passthrough，会确认原始输入是否真的需要保留。LCEL 的语法很短，短语法需要更强的结构意识，否则一行优雅代码可能隐藏很多隐式约定。</p>
-<h2>把长链拆成可测试单元</h2>
-<p>Sequence 的闭包性允许你把长链切成小 Runnable。每个小 Runnable 都能单独 invoke，这给测试带来很大便利。你可以用假 retriever 测 prompt 输入形状，用假 model 输出测 parser，用固定样本测 format_docs，而不必每次都真实调用 provider。这样测试更快、更稳定，也更容易定位失败。长链的端到端测试仍然需要，但不应该替代每段契约测试。</p>
-<p>拆分的粒度可以按责任来定：一个子链负责把用户问题变成 prompt 变量，一个子链负责模型生成，一个子链负责解析和校验。不要按技术层机械拆成很多无意义步骤，也不要把多个责任塞进一个巨大 lambda。好的子链名字应该能回答“它把什么变成什么”。例如 build_rag_inputs、generate_answer_message、parse_answer 都比 step1、helper 清楚。</p>
-<h2>LCEL 与普通 Python 的协作方式</h2>
-<p>有些开发者担心 LCEL 会把 Python 代码变成难调试的 DSL。实际更健康的看法是：LCEL 负责描述可观察的运行结构，Python 函数负责表达局部确定性逻辑。格式化文档、裁剪字符串、转换字段、构造引用编号，这些都可以先写成普通函数并配单元测试，再通过 RunnableLambda 接进链。这样既保留 Python 的清晰和测试便利，又获得 Runnable 的配置、追踪和组合能力。</p>
-<p>反过来，如果你把所有逻辑都塞进一个普通函数，外层只看到一个 RunnableLambda，那么 LangChain 的运行树就失去细节。trace 只能告诉你“lambda 失败了”，不知道是检索、模型、解析还是格式化失败。判断是否使用 LCEL 的标准不是“语法是否更短”，而是“这一步是否值得作为可观察、可替换、可配置的节点出现”。值得，就把它显式放进链；不值得，就留在普通函数里。</p>
-
-
-<h2>并行结构的测试策略</h2>
-<p>测试 RunnableParallel 时，不要只测最终答案。先测汇合字典是否包含下游需要的全部键，再测每个键的值是否符合契约。对于 RAG，至少要断言 context 是字符串或文档列表的约定格式，question 没有被检索器覆盖，引用编号和文档 ID 能对应。很多线上错误不是模型答错，而是 prompt 收到的变量缺失、为空或格式不对。并行汇合处是最适合加测试的边界。</p>
-<p>Branch 的测试则要覆盖每个谓词路径和默认路径。每个样例都应说明为什么会走这条路，而不是只断言返回结果。比如“包含代码块的问题走代码解释链”“带 image 字段的输入走多模态链”“都不匹配时走通用问答链”。如果谓词依赖模型分类，就要用假分类器或固定输出测试路由，不要让测试被真实模型随机性影响。路由逻辑越清晰，生产问题越容易复现。</p>
-<h2>性能与并发的现实边界</h2>
-<p>Parallel 能降低延迟，但不是免费午餐。多个分支可能同时占用模型额度、数据库连接、向量库 QPS、线程池和内存。max_concurrency 可以限制批量和并行压力，但你仍然需要理解外部系统的容量。一个本地 demo 中并行三路很快，到了生产多租户流量下可能触发限流。设计并行链时，要把“理论并发”翻译成“实际依赖能承受的并发”。</p>
-<p>并发还会影响观测。多个分支日志交错出现，如果没有 run_id、parent_run_id 和清晰 run_name，就很难拼回时间线。使用 Parallel 时更应该给关键分支命名，例如 retrieve_context、pass_question、classify_intent。这样当某个分支慢或失败时，trace 能直接显示责任，而不是让你在一堆匿名 Runnable 中猜测。</p>
-<h2>从 LCEL 过渡到 LangGraph 的信号</h2>
-<p>Parallel 和 Branch 能表达很多数据流，但当你开始需要循环、长期状态、多轮人工审批、复杂重入、节点间条件跳转和持久化时，LCEL 可能不再是最合适的层。一个信号是：你开始把一个巨大 dict 当状态在很多 Runnable 之间传来传去，并不断 assign 新字段；另一个信号是：分支结果还要回到前面步骤形成循环。此时 LangGraph 的显式状态、节点和边会更清楚。</p>
-<p>这并不意味着 Parallel 和 Branch 只适合简单场景。它们是链式编排中非常重要的中层抽象：比手写并发和 if/else 更可观察，比完整图更轻量。关键是选择合适复杂度。确定的 RAG fan-out、简单意图路由、独立特征并行计算，用 LCEL 很合适；需要可恢复状态机时，再升级到图。好的架构不是只用一种工具，而是在复杂度上逐层递进。</p>
-
-
-<h2>观测数据的最小披露原则</h2>
-<p>配置和回调最容易在“为了调试”时越界。最小披露原则要求你只记录完成观测目标所需的信息。如果目标是统计延迟，不需要记录完整 prompt；如果目标是分析检索质量，可能只需要文档 ID、分数和集合名；如果目标是排查 parser 错误，可以记录 schema 名称、错误字段和输出长度，而不是完整用户内容。每多记录一个字段，就多一个泄漏面、多一份合规责任、多一个未来需要清理的数据副本。</p>
-<p>实践中可以把 metadata 分成三类。第一类是安全低敏字段，例如环境、功能名、版本、模型名、非敏感实验组。第二类是受控字段，例如内部请求 ID、租户哈希、文档集合 ID，需要访问权限和保留周期。第三类是禁止字段，例如密钥、token、密码、完整身份证件、完整私有文档、系统提示原文。把分类写进团队规范，比依赖每个开发者临时判断更可靠。</p>
-<h2>回调失败时业务应该怎样</h2>
-<p>观测系统也会失败：网络断开、LangSmith 不可用、日志服务限流、handler 自己抛异常。业务链不应该因为非关键观测失败而错误扣款或返回错误答案；但也不应该完全无视观测失败。常见做法是把观测 handler 做成尽量不抛出业务异常的旁路，失败时记录本地告警或指标，同时不改变主链输出。对于强审计场景，则应把审计写入设计成显式业务步骤，而不是普通 callback。</p>
-<p>这再次说明 callbacks 的边界：它们适合观察，不适合承诺业务事实。如果某个行业要求“没有审计记录就不能完成交易”，那审计写入必须是交易流程的一部分，有明确输入、输出、重试和失败策略。然后 callback 可以观察审计步骤是否成功。不要把合规要求隐藏在可选 handler 里。</p>
-<h2>让 trace 服务于学习和协作</h2>
-<p>好的 run tree 不只是排障工具，也是团队沟通工具。新人可以通过 trace 理解一条链包含哪些步骤；产品经理可以看到一次请求为什么慢；安全同学可以检查 metadata 是否越界；评测同学可以对比不同实验组的错误率。为了让 trace 可读，开发者需要主动命名关键节点，保持 tags 体系稳定，避免匿名 lambda 泛滥，避免把无结构大文本塞进 metadata。</p>
-<p>在课程学习中，你可以把每条链都当成“会生成运行树的程序”。写完链后，不只看最终答案，还要看 trace 是否解释得清楚：父子关系是否正确，prompt、model、parser 是否分别出现，错误是否落在预期节点，tags 是否继承，metadata 是否安全。如果 trace 自己都看不懂，说明链的结构或命名还需要整理。</p>
-
-
-<h2>设计稳健链的检查清单</h2>
-<p>第一，列失败点：输入校验、prompt 渲染、retriever、model、parser、tool、数据库、外部 API。第二，给每个失败点分类：临时失败、确定失败、格式失败、权限失败、副作用失败。第三，为每类失败选择策略：有限 retry、provider fallback、parser repair、缓存降级、人工接管或直接失败。第四，定义观测：每次尝试如何命名，错误如何记录，fallback 是否打 tag，最终响应是否标注降级。这个清单比先写 with_retry 更重要。</p>
-<p>第五，检查契约：重试前后输出是否等价，fallback 输出是否和主链同 schema，repair 是否会改变业务语义。第六，检查安全：异常信息是否包含密钥或私有内容，exception_key 是否会把敏感堆栈交给模型，metadata 是否记录了不该记录的字段。第七，检查上限：最大重试次数、总超时、最大 repair 次数、fallback 层级都应有限。没有上限的“稳健性”其实是另一种不可控。</p>
-<h2>把错误暴露给谁</h2>
-<p>同一个错误对不同对象有不同表达。开发者需要完整异常类型和 trace；用户需要可理解的降级说明；业务系统需要结构化状态码；安全审计需要知道是否涉及敏感数据；评测系统需要标记这次样本是否走了 fallback。不要把 provider 的原始堆栈直接展示给用户，也不要只给开发者一个“抱歉失败”。稳健链应该把内部错误翻译成多个层级的输出，各层拿到自己需要的信息。</p>
-<p>例如主模型超时、备用模型成功时，用户可以正常得到答案，界面不必显示内部故障；但 metadata 或响应头可以带一个非敏感的 degraded 标记，trace 中记录 primary timeout 和 fallback model。parser repair 成功时，用户看到结构化结果，开发者能看到 raw output 和 repair 次数。全部 fallback 失败时，用户得到明确失败消息，系统保留完整诊断证据。这样既不恐吓用户，也不欺骗自己。</p>
-<h2>何时不要 fallback</h2>
-<p>不是所有失败都应该 fallback。权限不足不应 fallback 到“无权限也回答”的链；安全策略拦截不应 fallback 到更宽松模型；schema 代表强业务约束时，不应 fallback 到无校验字符串；用户输入缺必填字段时，不应让模型猜。Fallback 的前提是备用路径仍在业务允许范围内。如果备用路径降低了安全、合规或事实要求，就应该明确失败或请求人工处理。</p>
-<p>这点在 Agent 和工具场景尤其重要。模型调用失败可以换 provider，但工具权限失败不能换一个绕过权限的工具；解析失败可以 repair，但不能把校验字段删掉；检索失败可以用缓存，但不能返回用户无权访问的缓存内容。稳健性必须服从业务边界。工程上能恢复，不代表产品和安全上允许恢复。</p>
-
-<div class="card keypoints">
+<div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
     <li>Runnable 是统一执行协议，不只是 LCEL 管道里的一个节点。</li>

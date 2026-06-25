@@ -20,7 +20,7 @@
   --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
   --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
   --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
-  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6; --teal: #0d9488; --teal-soft: #d3f3f0;
   --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
   --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
   --radius: 14px;
@@ -31,7 +31,7 @@
     --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
     --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
     --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
-    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a; --teal: #2dd4bf; --teal-soft: #123f3b;
     --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
@@ -181,6 +181,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 .layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
 .layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
 .layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+.layer.l-graph { border-left: 4px solid var(--teal); } .layer.l-graph .badge { background: var(--teal-soft); color: var(--teal); }
 
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
@@ -327,18 +328,19 @@ LangChain 是什么？一句话：它是把大语言模型接进应用的<strong
 <table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">Runnable</td><td>所有可调用组件的统一协议，规定 invoke、stream、batch、config 等行为。</td><td>上层链、模型、图都依赖它。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/base.py</td><td class="mono">BaseMessage</td><td>所有 System/Human/AI/Tool 消息的公共基类，承载 content、metadata、id。</td><td>模型输入输出围绕它标准化。</td></tr><tr><td class="mono">libs/langchain_v1/langchain/chat_models/base.py</td><td class="mono">init_chat_model</td><td>便捷工厂，根据 provider:model 字符串实例化聊天模型。</td><td>用户入口向 partner 包分发。</td></tr><tr><td class="mono">libs/langchain_v1/langchain/agents/factory.py</td><td class="mono">create_agent</td><td>把模型、工具、中间件组装成 Agent 图。</td><td>高层 API 调用 LangGraph。</td></tr><tr><td class="mono">langchain-ai/langgraph/libs/langgraph/langgraph/graph/state.py</td><td class="mono">StateGraph</td><td>定义共享状态、节点、边并 compile 成可执行图。</td><td>Agent 循环的执行底座。</td></tr></table>
 <h2>代码走读：手写模型 + 工具循环</h2>
 <p>为了理解 LangChain 在自动化什么，先看一个极简手写循环。它和真实源码不逐行相同，但职责顺序一致：模型先看消息，若返回 tool_calls，程序执行工具，把结果追加为 ToolMessage，再让模型继续。LangChain 的价值不是“发明循环”，而是把循环里的类型转换、schema、回调、错误处理、并行工具、持久化都标准化。</p>
-<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">conceptual_agent_loop.py :: model_tool_loop</span><span class="ln">简化版</span></div><pre>messages = [HumanMessage(&quot;订单 A100 现在到哪了？&quot;)]
-model = init_chat_model(&quot;openai:gpt-5.1&quot;).bind_tools([get_order_status])
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">conceptual_agent_loop.py :: model_tool_loop</span><span class="ln">简化版</span></div><pre>def model_tool_loop(user_text):
+    messages = [HumanMessage(user_text)]
+    model = init_chat_model(&quot;openai:gpt-5.1&quot;).bind_tools([get_order_status])
 
-while True:
-    ai = model.invoke(messages)          # 标准消息进入统一模型接口
-    messages.append(ai)                  # AIMessage 可能包含 tool_calls
-    if not ai.tool_calls:
-        return ai.content                # 没有工具请求，循环结束
+    while True:
+        ai = model.invoke(messages)          # 标准消息进入统一模型接口
+        messages.append(ai)                  # AIMessage 可能包含 tool_calls
+        if not ai.tool_calls:
+            return ai.content                # 没有工具请求，循环结束
 
-    for call in ai.tool_calls:
-        result = run_tool(call[&quot;name&quot;], call[&quot;args&quot;])
-        messages.append(ToolMessage(result, tool_call_id=call[&quot;id&quot;]))</pre><div class="cw-note">真实 create_agent 会把这段 while 循环编译成 LangGraph 状态图；这里保留骨架，帮助你看清职责边界。</div></div>
+        for call in ai.tool_calls:
+            result = run_tool(call[&quot;name&quot;], call[&quot;args&quot;])
+            messages.append(ToolMessage(result, tool_call_id=call[&quot;id&quot;]))</pre><div class="cw-note">真实 create_agent 会把这段 while 循环编译成 LangGraph 状态图；这里保留骨架，帮助你看清职责边界。</div></div>
 <h2>例子追踪：查询订单状态</h2>
 <p>假设用户问“订单 A100 现在到哪了”。这个例子小，但包含完整边界：语言理解交给模型，真实订单状态交给业务工具，循环调度交给框架，最终话术仍由模型组织。只看最终输出会误以为模型“知道订单”；看 trace 才知道它只是请求了工具。</p>
 <table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1 用户输入</td><td>订单 A100 现在到哪了？</td><td>框架把字符串包装成 HumanMessage，并放入 messages 状态。</td><td>[HumanMessage]</td></tr><tr><td>2 第一次模型调用</td><td>messages + tool schema</td><td>模型判断需要查业务系统，返回带 get_order_status 的 AIMessage.tool_calls。</td><td>AIMessage(tool_calls=[...])</td></tr><tr><td>3 工具执行</td><td>order_id=A100</td><td>程序而不是模型调用订单 API，拿到“已到上海分拨中心”。</td><td>ToolMessage</td></tr><tr><td>4 回灌观察</td><td>原消息 + AIMessage + ToolMessage</td><td>循环把工具结果加入上下文，再次调用模型。</td><td>更新后的 messages</td></tr><tr><td>5 最终回复</td><td>模型看到工具结果</td><td>模型组织自然语言回答，并且不再请求工具。</td><td>AIMessage(content=...)</td></tr></table>
@@ -367,7 +369,7 @@ while True:
 <h2>边界排错清单</h2>
 <p>当一个 LangChain 应用表现异常时，可以按固定清单排查。先看输入边界：用户输入有没有被转换成正确消息，系统消息有没有被误当成人类消息，工具结果有没有以工具消息形式回到上下文。再看模型边界：模型是否真的支持你绑定的工具、结构化输出或多模态块，温度和停止词是否让输出提前结束。然后看工具边界：工具描述是否清楚，参数 schema 是否能表达必填字段，真实执行是否被权限、网络或数据质量影响。最后看图边界：状态是否被 reducer 正确合并，条件边是否把流程送到预期节点，checkpoint 是否使用了正确 thread id。</p>
 <p>这份清单的价值在于避免“把所有问题都归因于模型”。模型当然可能回答差，但框架应用更多失败来自边界错配：工具返回了字符串却没有作为 ToolMessage 回灌，retriever 找到了无关文档，config 没把回调传下去，provider wrapper 不支持某个参数，或者业务代码把状态覆盖了。边界排错让每个猜测都能落到一个可验证位置。</p>
-<p>从学习角度看，第一课并不是要求你马上读懂所有源码，而是给后面二十八课提供坐标。遇到消息，想 BaseMessage；遇到模型，想 BaseChatModel 和 provider wrapper；遇到组合，想 Runnable；遇到循环，想 StateGraph；遇到可观测性，想 callbacks 和 config。坐标越稳，新 API 越不容易让你迷路。</p>
+<p>从学习角度看，第一课并不是要求你马上读懂所有源码，而是给后续各课提供坐标。遇到消息，想 BaseMessage；遇到模型，想 BaseChatModel 和 provider wrapper；遇到组合，想 Runnable；遇到循环，想 StateGraph；遇到可观测性，想 callbacks 和 config。坐标越稳，新 API 越不容易让你迷路。</p>
 <p>最终你要形成一种工程直觉：LangChain 最擅长管理“连接处”。模型与业务工具的连接、统一消息与厂商格式的连接、同步调用与流式事件的连接、一次调用与多步状态图的连接。连接处最容易出错，也最值得框架标准化。把连接处看清楚，你就能判断什么时候应该相信框架默认，什么时候应该下探源码，什么时候应该在自己的业务层再加一道边界。</p>
 <p>还有一个很实用的判断：凡是需要长期维护、多人协作、跨环境运行的代码，都应该优先选择清晰边界；凡是一次性、单人、可丢弃的脚本，则可以接受更直接的写法。LangChain 的抽象在前一种场景里价值更大，因为它让不同开发者围绕同一套消息、工具、配置和追踪语言交流。团队里有人负责工具安全，有人负责模型选择，有人负责图状态，有人负责业务体验，如果没有共同协议，每个人都会发明自己的中间格式，系统很快分裂。框架的作用之一，就是给团队提供共同词汇和共同接口。</p>
 <p>因此，本课的核心不是让你记住所有名词，而是建立“谁拥有哪一层”的判断。模型拥有生成能力，工具拥有真实动作，业务代码拥有目标和约束，LangChain 拥有编排和标准化，LangGraph 拥有状态图执行。每当你想修改一段代码，先问它属于哪一层；每当你想解释一个 bug，先问证据停在哪一层。这个习惯会贯穿整本教程。</p>

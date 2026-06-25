@@ -17,7 +17,7 @@ def _section(title, paragraphs):
 
 def _points(items):
     lis = "".join(f"<li>{item}</li>" for item in items)
-    return f'<div class="card keypoints"><div class="tag">✅ 本课要点</div><ul>{lis}</ul></div>'
+    return f'<div class="card key"><div class="tag">✅ 本课要点</div><ul>{lis}</ul></div>'
 
 
 def _analogy(text):
@@ -58,9 +58,9 @@ LESSON_22_PREGEL = (
     + shell.state_flow(
         [
             ("Plan：订阅关系选任务", "运行时查看上一超步已经提交的 channel 版本。某个节点订阅的输入 channel 发生变化，且该节点没有被中断或等待，prepare_next_tasks 就为它创建内部 PregelExecutableTask；对外的 StateSnapshot/debug 事件再把执行结果投影成 PregelTask。", "visible channels: messages@v3 -> task:model"),
-            ("Execution：任务读稳定快照", "PregelRunner 让本批任务读取同一份已提交状态。任务可以并行运行，看到的是上一步结果，而不是同批其他任务刚产生的半成品。", "model reads messages@v3, tools reads tool_calls@v1"),
-            ("Buffer：写入先进入暂存区", "节点返回 partial state 或 ChannelWrite 后，写入被记录为 task writes。此时 channel 当前值尚未改变，因此并行任务之间不会互相污染。", "writes=[('messages', AIMessage), ('next', 'tools')]"),
-            ("Update：统一合并写入", "所有任务结束后 apply_writes 按 channel/reducer 规则合并写入，更新 channel 版本，并把 checkpoint 所需信息整理好。", "messages@v4, next@v2"),
+            ("Execution：任务读稳定快照", "PregelRunner 让本批任务读取同一份已提交状态。任务可以并行运行，看到的是上一步结果，而不是同批其他任务刚产生的半成品。", "model reads messages@v3"),
+            ("Buffer：写入先进入暂存区", "节点返回 partial state 或 ChannelWrite 后，写入被记录为 task writes。此时 channel 当前值尚未改变，因此并行任务之间不会互相污染。", "writes=[('messages', AIMessage), ('branch', 'tools')]"),
+            ("Update：统一合并写入", "所有任务结束后 apply_writes 按 channel/reducer 规则合并写入，更新 channel 版本，并把 checkpoint 所需信息整理好。", "messages@v4, branch@v2"),
             ("下一步：新版本触发新计划", "下一轮 Plan 才能看到 v4/v2。调试输出把 step n 的 tasks 与 step n+1 的可见状态分开，避免误判。", "prepare_next_tasks(channels@new_versions)"),
         ]
     )
@@ -796,7 +796,7 @@ LESSON_26_TIME_TRAVEL = (
             ("StateSnapshot", "对某个 checkpoint 的可读视图，包含 values、next、tasks、config、metadata", "now"),
             ("History", "get_state_history 按线程列出过去 checkpoint，支持倒查执行轨迹", "source"),
             ("Replay", "用指定 checkpoint_id 作为 config，从旧状态重放后续路径", "now"),
-            ("Fork", "在旧 checkpoint 基础上 update 或 bulk_update_state，进入新 namespace 做实验", "now"),
+            ("Fork", "对历史 checkpoint_id 调用 update_state/bulk_update_state，在同一线程内派生分叉；或另起 thread 隔离实验", "now"),
             ("Debug", "map_debug_tasks 把任务事件映射成可读调试信息，帮助定位坏步骤", "after"),
         ],
     )
@@ -821,7 +821,7 @@ LESSON_26_TIME_TRAVEL = (
             ("发现坏答案", "用户说最终回答引用了错误订单状态。先不要改 prompt，先固定 thread_id 和最终 checkpoint。", "thread_id='case-9'"),
             ("列出历史", "调用 get_state_history，倒序查看每个 StateSnapshot 的 values、next、tasks 和 metadata。", "snapshots=[step5, step4, step3...]"),
             ("定位可疑步", "发现 step=3 工具返回 status='cancelled'，但 step=4 model 回答成 shipped。", "checkpoint_id='step3'"),
-            ("重放或分叉", "从 step=3 checkpoint replay，或在新 namespace 中把工具结果改成更完整结构后继续。", "checkpoint_ns='debug-run-1'"),
+            ("重放或分叉", "从 step=3 checkpoint replay，或对该历史 checkpoint_id 调用 update_state 把工具结果改成更完整结构后继续。", "fork from checkpoint_id"),
             ("比较结果", "对比主线与分叉的 writes、next 和最终 answer，判断错误来自工具数据、路由还是模型解释。", "diff snapshots"),
         ]
     )
@@ -833,7 +833,7 @@ LESSON_26_TIME_TRAVEL = (
             {"step": "1. final snapshot", "input": "answer='订单已发货' 但用户实际已取消", "action": "记录 thread_id、checkpoint_id、模型版本和输入", "output": "可复现实验起点"},
             {"step": "2. history scan", "input": "get_state_history(config)", "action": "查看每个 snapshot 的 values['messages']、next、tasks、metadata.writes", "output": "发现工具消息写入 status='cancelled'"},
             {"step": "3. pick checkpoint", "input": "checkpoint before final model", "action": "选择工具结果已写入、最终模型尚未回答的 checkpoint", "output": "最佳 replay 起点"},
-            {"step": "4. fork", "input": "同一 checkpoint + 新 namespace", "action": "bulk/update state 增加 normalized_status='cancelled' 或替换提示输入", "output": "debug 分支，不覆盖主线"},
+            {"step": "4. fork", "input": "历史 checkpoint_id（同一 thread）", "action": "对该 checkpoint_id 调用 update_state/bulk_update_state 增加 normalized_status='cancelled' 或替换提示输入", "output": "以该检查点为 parent 的分叉，不覆盖主线"},
             {"step": "5. compare", "input": "主线与分支 snapshots", "action": "比较 route、writes、answer", "output": "确认错误是模型没正确解释工具结果，而非工具返回错误"},
         ]
     )
@@ -914,7 +914,7 @@ LESSON_26_TIME_TRAVEL = (
 """
     + shell.pitfall_grid(
         [
-            ("时间旅行就是把历史改掉", "历史用于审计；实验应从 checkpoint 分叉到新 namespace 或明确产生新 checkpoint。"),
+            ("时间旅行就是把历史改掉", "历史用于审计；实验应对历史 checkpoint_id 调用 update_state 派生分叉，或另起 thread 隔离。"),
             ("StateSnapshot 只看 values", "还要看 next、tasks、config、metadata，才能解释控制流和写入来源。"),
             ("replay 一定逐 token 相同", "LLM/provider/外部工具可能非确定；要记录参数和外部响应，并区分确定性验证与修复实验。"),
             ("坏答案一定是 prompt 问题", "先沿 history 找到错误首次出现的 step，可能是工具、reducer、路由或状态覆盖导致。"),

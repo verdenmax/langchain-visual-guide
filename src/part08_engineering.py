@@ -17,7 +17,7 @@ def _analogy(text):
 
 def _points(items):
     lis = "".join(f"<li>{item}</li>" for item in items)
-    return f'<div class="card keypoints"><div class="tag">✅ 本课要点</div><ul>{lis}</ul></div>'
+    return f'<div class="card key"><div class="tag">✅ 本课要点</div><ul>{lis}</ul></div>'
 
 
 def _build_lesson(d):
@@ -61,8 +61,8 @@ LESSON_37_LOCAL_DEV = _build_lesson(
         ],
         "source_intro": "下面的 source map 特意使用当前已验证路径。LangChain 主仓当前没有根目录 pyproject；包级配置在 libs/langchain_v1/pyproject.toml 与 libs/core/pyproject.toml，LangGraph 在独立 langchain-ai/langgraph 仓库的 libs/langgraph/pyproject.toml。本教程自己的工程守卫则在 src/build.py、src/check_* 和 .github/workflows/ci.yml。",
         "sources": [
-            {"file": "langchain/libs/langchain_v1/pyproject.toml", "symbol": "[project] / [dependency-groups] / [tool.uv.sources]", "role": "声明 langchain v1 包名、依赖、测试/类型/lint 组和 editable 本地源码来源", "direction": "确定 create_agent 等高层入口属于哪个包以及本地开发依赖如何连线"},
-            {"file": "langchain/libs/core/pyproject.toml", "symbol": "langchain-core package", "role": "声明核心协议包，包含 Runnable、消息、工具、回调等稳定契约", "direction": "上层包和 partner 包依赖它，贡献时要特别关注兼容性"},
+            {"file": "libs/langchain_v1/pyproject.toml", "symbol": "[project] / [dependency-groups] / [tool.uv.sources]", "role": "声明 langchain v1 包名、依赖、测试/类型/lint 组和 editable 本地源码来源", "direction": "确定 create_agent 等高层入口属于哪个包以及本地开发依赖如何连线"},
+            {"file": "libs/core/pyproject.toml", "symbol": "langchain-core package", "role": "声明核心协议包，包含 Runnable、消息、工具、回调等稳定契约", "direction": "上层包和 partner 包依赖它，贡献时要特别关注兼容性"},
             {"file": "langgraph/libs/langgraph/pyproject.toml", "symbol": "langgraph package", "role": "声明图运行时包和 langgraph-checkpoint/prebuilt/sdk 等 editable 来源", "direction": "Agent 循环、checkpoint 和图执行相关问题要回到独立 LangGraph 仓库核验"},
             {"file": "src/build.py", "symbol": "build", "role": "本教程把 registry.CONTENT 与 quizzes.render 组合成 lessons 与 index", "direction": "修改课程内容后必须重新生成站点 HTML"},
             {"file": "src/check_html.py", "symbol": "check_lesson / check_stale", "role": "检查结构、导航、陈旧文案、要点卡和类比卡", "direction": "本地和 CI 都用它防止生成 HTML 结构回归"},
@@ -95,7 +95,7 @@ run("cd src && python check_links.py")
 run("cd src && python check_html.py")
 run("cd src && python check_content_density.py")
 
-assert git_diff("index.html", "lessons/", "print.html").is_committed()
+assert git_diff("index.html", "lessons/").is_committed()
 """,
         "code_note": "真实 LangChain 包开发会使用包级 uv/pytest/ruff/mypy；本教程是静态站点，所以贡献循环强调 build、print、链接、结构和密度。共同原则相同：源码改动必须有可复现检查，生成物必须与源码同步。",
         "sections": [
@@ -120,7 +120,7 @@ assert git_diff("index.html", "lessons/", "print.html").is_committed()
                 "小 PR 还保护贡献者自己。若一次同时改包布局、API 行为、文档和大量快照，任何 CI 失败都难定位。把环境修复、行为修复、文档更新、生成物同步分成可审计步骤，回滚也更容易。工程化贡献的核心不是让改动显得大，而是让因果链短。",
             ]),
             ("本教程的生成物也是源代码责任", [
-                "很多静态站点把 HTML 当产物不提交，本仓库相反：index.html、lessons/ 和 print.html 都是需要随 src 同步的发布内容。CI 会重新运行 build，并用 git diff 检查提交的 HTML 是否过期。这意味着改 src/part08_engineering.py 或 src/quizzes.py 后，未重新生成就提交，属于不完整变更。",
+                "很多静态站点把 HTML 当产物不提交，本仓库相反：index.html 和 lessons/ 是需要随 src 同步提交的发布内容，CI 会重新运行 build，并用 git diff 检查这两者是否过期（print.html 在 CI/deploy 都会用 build_print.py 重建，但不纳入漂移检查，部署时用于生成 PDF）。这意味着改 src/part08_engineering.py 或 src/quizzes.py 后，未重新生成 index.html/lessons 就提交，属于不完整变更。",
                 "生成物同步不是形式主义。读者直接打开 index.html 或 GitHub Pages 时看到的是 HTML，不是 Python 源。若源码和 HTML 漂移，reviewer 看源觉得正确，用户却读到旧页面。CI 的 diff gate 把这种风险提前暴露，等价于软件项目里检查编译产物或 API schema 是否随源更新。",
             ]),
             ("常见误解与边界情况：环境问题不是业务问题", [
@@ -171,7 +171,7 @@ assert git_diff("index.html", "lessons/", "print.html").is_committed()
             ("先跑全量测试才专业", "先跑最小相关测试，定位清楚后再扩大到包级和 CI 级检查。"),
             ("编辑源码就等于运行源码", "必须确认 editable 环境和 module.__file__，否则可能运行旧 wheel。"),
             ("行号是最精确引用", "行号随版本漂移；教学和 PR 说明优先使用文件 + 符号名。"),
-            ("生成 HTML 是 CI 的事", "本仓库要求提交生成 HTML/PDF 源，CI 只验证没有漂移。"),
+            ("生成 HTML 是 CI 的事", "本仓库要求提交生成的 index.html 与 lessons/，CI 验证它们没有漂移（print.html / PDF 在 deploy 时重建，不在漂移门内）。"),
         ],
         "lab_title": "定位一个 API 并准备小 PR",
         "lab_steps": [
@@ -207,12 +207,12 @@ LESSON_38_TESTING_DEBUGGING = _build_lesson(
         ],
         "source_intro": "测试课的 source map 选择运行契约和测试替身。GenericFakeChatModel 在 langchain-core，适合无工具绑定的固定消息、token 与 callback 测试；LangChain v1 的单测还提供 tests.unit_tests.agents.model.FakeToolCallingModel，专门给 create_agent + tools 场景使用，因为它实现 bind_tools。AIMessage、Runnable、create_agent 和 InMemorySaver 则帮助你把失败定位到消息结构、可运行接口、Agent 工厂或图状态。",
         "sources": [
-            {"file": "langchain/libs/core/langchain_core/language_models/fake_chat_models.py", "symbol": "GenericFakeChatModel", "role": "按迭代器返回预设 AIMessage 或字符串，并支持 token callback 测试；它不是工具绑定 fake", "direction": "用于无工具模型测试、stream/token/callback 断言，不直接承担 create_agent(tools=...) 循环"},
-            {"file": "langchain/libs/langchain_v1/tests/unit_tests/agents/model.py", "symbol": "FakeToolCallingModel", "role": "LangChain v1 单测中的工具调用 fake，提供 bind_tools 并按脚本吐出 tool_calls/最终消息", "direction": "测试 create_agent + tools 的模型循环时，可参照这种 test fake，而不是把 GenericFakeChatModel 当工具模型"},
-            {"file": "langchain/libs/core/langchain_core/messages/ai.py", "symbol": "AIMessage", "role": "承载模型内容、tool_calls、usage 和附加字段", "direction": "Fake 模型输出它，Agent 条件边和 ToolNode 读取它"},
-            {"file": "langchain/libs/core/langchain_core/runnables/base.py", "symbol": "Runnable", "role": "统一 invoke/ainvoke/stream/batch/config，使组件可单独测试", "direction": "prompt、model、tool wrapper、graph 都遵守该契约"},
+            {"file": "libs/core/langchain_core/language_models/fake_chat_models.py", "symbol": "GenericFakeChatModel", "role": "按迭代器返回预设 AIMessage 或字符串，并支持 token callback 测试；它不是工具绑定 fake", "direction": "用于无工具模型测试、stream/token/callback 断言，不直接承担 create_agent(tools=...) 循环"},
+            {"file": "libs/langchain_v1/tests/unit_tests/agents/model.py", "symbol": "FakeToolCallingModel", "role": "LangChain v1 单测中的工具调用 fake，提供 bind_tools 并按脚本吐出 tool_calls/最终消息", "direction": "测试 create_agent + tools 的模型循环时，可参照这种 test fake，而不是把 GenericFakeChatModel 当工具模型"},
+            {"file": "libs/core/langchain_core/messages/ai.py", "symbol": "AIMessage", "role": "承载模型内容、tool_calls、usage 和附加字段", "direction": "Fake 模型输出它，Agent 条件边和 ToolNode 读取它"},
+            {"file": "libs/core/langchain_core/runnables/base.py", "symbol": "Runnable", "role": "统一 invoke/ainvoke/stream/batch/config，使组件可单独测试", "direction": "prompt、model、tool wrapper、graph 都遵守该契约"},
             {"file": "langgraph/libs/checkpoint/langgraph/checkpoint/memory/__init__.py", "symbol": "InMemorySaver", "role": "测试和本地调试用的内存 checkpoint 保存器", "direction": "create_agent/graph 运行时按 thread_id 保存和恢复状态"},
-            {"file": "langchain/libs/langchain_v1/langchain/agents/factory.py", "symbol": "create_agent", "role": "把模型、工具、中间件、checkpointer、response_format 组装成 Agent 图", "direction": "端到端测试入口，同时把内部节点暴露为可追踪运行"},
+            {"file": "libs/langchain_v1/langchain/agents/factory.py", "symbol": "create_agent", "role": "把模型、工具、中间件、checkpointer、response_format 组装成 Agent 图", "direction": "端到端测试入口，同时把内部节点暴露为可追踪运行"},
         ],
         "flow_title": "状态流：用假模型、工具和 checkpointer 跑一次确定性测试",
         "flow_kind": "state_flow",
@@ -227,7 +227,7 @@ LESSON_38_TESTING_DEBUGGING = _build_lesson(
             {"step": "1. arrange fake", "input": "两个预设 AIMessage：先请求 search_order，后回答用户", "action": "ToolCallingFakeModel/FakeToolCallingModel 保存脚本并在 bind_tools 后依次取消息", "output": "模型行为完全可预测，且 Agent 工厂不会因缺少 bind_tools 失败"},
             {"step": "2. arrange tool", "input": "内存字典 {'A1': '已发货'}", "action": "@tool 函数只查 fixture，不访问网络、不读当前时间", "output": "ToolMessage 内容固定"},
             {"step": "3. invoke agent", "input": "messages=[HumanMessage('查 A1')] + config.thread_id", "action": "Agent 进入 model -> tools -> model 循环", "output": "状态中出现 AIMessage.tool_calls 与 ToolMessage"},
-            {"step": "4. assert state", "input": "result['messages'] 或 state snapshot", "action": "断言工具名、参数、tool_call_id、最终 structured_response", "output": "测试锁住结构，不锁死自然语言措辞"},
+            {"step": "4. assert state", "input": "result['messages'] 或 state snapshot", "action": "断言工具名、参数、tool_call_id（若配置了 response_format 才有 structured_response）", "output": "测试锁住结构，不锁死自然语言措辞"},
             {"step": "5. regression", "input": "曾经失败的消息序列", "action": "加入测试集，确保以后 refactor 不破坏", "output": "同类 bug 被自动捕获"},
         ],
         "code_path": "tests/unit_tests/agents/test_customer_agent.py",
@@ -395,8 +395,8 @@ LESSON_39_OBSERVABILITY_CI = _build_lesson(
         ],
         "source_intro": "本课把上游可观测性接口和本仓库 CI 守卫放在同一张图里。BaseCallbackHandler 与 BaseTracer 来自 langchain-core；check_html、check_links、check_content_density 和 ci.yml 来自当前教程仓库，路径已经按当前版本验证。",
         "sources": [
-            {"file": "langchain/libs/core/langchain_core/callbacks/base.py", "symbol": "BaseCallbackHandler", "role": "定义 on_chain_start、on_llm_start、on_tool_end、on_error 等观察钩子", "direction": "运行时事件从 Runnable/模型/工具向 callback 管理器传播"},
-            {"file": "langchain/libs/core/langchain_core/tracers/base.py", "symbol": "BaseTracer", "role": "把 callback 事件组织成 run 对象和父子关系", "direction": "为 LangSmith 风格 run tree、耗时分析和错误定位提供基础"},
+            {"file": "libs/core/langchain_core/callbacks/base.py", "symbol": "BaseCallbackHandler", "role": "定义 on_chain_start、on_llm_start、on_tool_end、on_error 等观察钩子", "direction": "运行时事件从 Runnable/模型/工具向 callback 管理器传播"},
+            {"file": "libs/core/langchain_core/tracers/base.py", "symbol": "BaseTracer", "role": "把 callback 事件组织成 run 对象和父子关系", "direction": "为 LangSmith 风格 run tree、耗时分析和错误定位提供基础"},
             {"file": "src/check_html.py", "symbol": "main / check_lesson", "role": "检查生成 HTML 的结构、导航、陈旧文案和要点卡", "direction": "build 后运行，失败表示页面结构或一致性回归"},
             {"file": "src/check_links.py", "symbol": "check", "role": "扫描 index 与 lessons 中的相对 href，确认内部链接存在", "direction": "防止重排课程后留下死链"},
             {"file": "src/check_content_density.py", "symbol": "main / check_page", "role": "检查 C-level 页面原始内容的 CJK 密度和语义组件", "direction": "防止新增课程退化为空页或缺少 trace/source/lab"},
@@ -556,11 +556,11 @@ LESSON_40_CAPSTONE = _build_lesson(
         ],
         "source_intro": "Capstone 的 source map 覆盖装配入口、提示模板、工具转换、检索契约和中间件。所有路径按当前 LangChain/LangGraph 仓库核验；这些符号共同支撑一个客服 Agent 从用户问题到结构化结果的完整路径。",
         "sources": [
-            {"file": "langchain/libs/langchain_v1/langchain/agents/factory.py", "symbol": "create_agent", "role": "高层装配入口，把模型、工具、中间件、context_schema、response_format 组成 Agent", "direction": "Capstone 主入口，返回可 invoke/stream 的图"},
-            {"file": "langchain/libs/core/langchain_core/prompts/chat.py", "symbol": "ChatPromptTemplate", "role": "把系统规则、历史、资料和用户问题渲染成聊天消息", "direction": "模型调用前明确证据、语气和输出要求"},
-            {"file": "langchain/libs/core/langchain_core/tools/convert.py", "symbol": "tool", "role": "把 Python 函数或 Runnable 转成带 schema 的工具", "direction": "订单查询、工单创建、政策检索等动作通过它暴露给模型"},
-            {"file": "langchain/libs/core/langchain_core/retrievers.py", "symbol": "BaseRetriever", "role": "定义 query 到 Document 列表的检索 Runnable 契约", "direction": "客服知识库和政策资料的证据来源"},
-            {"file": "langchain/libs/langchain_v1/langchain/agents/middleware/types.py", "symbol": "AgentMiddleware", "role": "定义 before/after/wrap hooks 和运行时干预点", "direction": "读取 context、拦截敏感工具、注入动态提示或审计"},
+            {"file": "libs/langchain_v1/langchain/agents/factory.py", "symbol": "create_agent", "role": "高层装配入口，把模型、工具、中间件、context_schema、response_format 组成 Agent", "direction": "Capstone 主入口，返回可 invoke/stream 的图"},
+            {"file": "libs/core/langchain_core/prompts/chat.py", "symbol": "ChatPromptTemplate", "role": "把系统规则、历史、资料和用户问题渲染成聊天消息", "direction": "模型调用前明确证据、语气和输出要求"},
+            {"file": "libs/core/langchain_core/tools/convert.py", "symbol": "tool", "role": "把 Python 函数或 Runnable 转成带 schema 的工具", "direction": "订单查询、工单创建、政策检索等动作通过它暴露给模型"},
+            {"file": "libs/core/langchain_core/retrievers.py", "symbol": "BaseRetriever", "role": "定义 query 到 Document 列表的检索 Runnable 契约", "direction": "客服知识库和政策资料的证据来源"},
+            {"file": "libs/langchain_v1/langchain/agents/middleware/types.py", "symbol": "AgentMiddleware", "role": "定义 before/after/wrap hooks 和运行时干预点", "direction": "读取 context、拦截敏感工具、注入动态提示或审计"},
         ],
         "flow_title": "状态流：一次客服问题如何穿过 Agent",
         "flow_kind": "state_flow",
@@ -578,7 +578,7 @@ LESSON_40_CAPSTONE = _build_lesson(
             {"step": "2. retrieve docs", "input": "query='晚到 退款 政策'", "action": "BaseRetriever 返回政策 Document，格式化为带 source 的 context", "output": "引用候选 policy#late-delivery"},
             {"step": "3. order tool", "input": "tool_call search_order(order_id='A1')", "action": "工具用 runtime user_id 校验订单归属并返回物流状态", "output": "ToolMessage：已发货但超预计时间"},
             {"step": "4. guard", "input": "模型想发起 refund(order_id='A1')", "action": "AgentMiddleware 检查金额、权限和政策，必要时改为创建人工工单", "output": "允许预检，阻止直接退款"},
-            {"step": "5. structured", "input": "资料、工具观察、guard 结果", "action": "模型输出结构化客服结果", "output": "answer + citations + next_action='create_ticket' + needs_human=True"},
+            {"step": "5. structured", "input": "资料、工具观察、guard 结果", "action": "模型输出结构化客服结果", "output": "answer + citations + next_action='create_ticket'（建工单交人工跟进）+ needs_human=True"},
             {"step": "6. regression", "input": "Fake 消息脚本和 fixture", "action": "测试断言检索、工具、guard、结构字段", "output": "未来改 prompt 或 middleware 时自动防回归"},
         ],
         "code_path": "app/customer_agent.py",

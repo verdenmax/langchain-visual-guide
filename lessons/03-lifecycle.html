@@ -20,7 +20,7 @@
   --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
   --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
   --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
-  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6; --teal: #0d9488; --teal-soft: #d3f3f0;
   --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
   --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
   --radius: 14px;
@@ -31,7 +31,7 @@
     --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
     --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
     --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
-    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a; --teal: #2dd4bf; --teal-soft: #123f3b;
     --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
@@ -181,6 +181,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 .layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
 .layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
 .layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+.layer.l-graph { border-left: 4px solid var(--teal); } .layer.l-graph .badge { background: var(--teal-soft); color: var(--teal); }
 
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
@@ -312,7 +313,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="tag">📮 生活类比 · 寄一封跨国快递</div>
   你把一句中文写在纸上交给快递员，不代表它原样飞到对方手里。快递公司会把它装进标准信封、贴面单、合并运输配置、扫描揽收和转运节点、交给国际承运商、到目的国再拆包投递。<span class="mono">invoke</span> 也是这样：用户输入只是寄件动作，真正的系统会一路做包装、登记、转运、解析和回执。调试时不能只问“最后回了什么”，还要看每个扫描点是否正常。
 </div>
-<div class="lesson-map"><div class="lm-title">🗺️ 一次 invoke 的六个检查点</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">输入</div><div class="mn-desc">字符串、PromptValue、消息列表都先进入统一入口</div></div><div class="map-node now"><div class="mn-label">消息</div><div class="mn-desc">convert_to_messages 把输入收敛为 BaseMessage 列表</div></div><div class="map-node source"><div class="mn-label">配置</div><div class="mn-desc">ensure_config 合并 tags、metadata、callbacks、run_id</div></div><div class="map-node source"><div class="mn-label">回调</div><div class="mn-desc">on_chat_model_start / end / error 形成可观测生命周期</div></div><div class="map-node after"><div class="mn-label">provider</div><div class="mn-desc">wrapper 翻译 payload 并调用厂商 SDK</div></div><div class="map-node after"><div class="mn-label">输出</div><div class="mn-desc">原始响应被解析回 AIMessage</div></div></div></div>
+<div class="lesson-map"><div class="lm-title">🗺️ 一次 invoke 的六个检查点</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">输入</div><div class="mn-desc">字符串、PromptValue、消息列表都先进入统一入口</div></div><div class="map-node now"><div class="mn-label">消息</div><div class="mn-desc">convert_to_messages 把输入收敛为 BaseMessage 列表</div></div><div class="map-node source"><div class="mn-label">配置</div><div class="mn-desc">ensure_config 合并 tags、metadata、callbacks、run_id</div></div><div class="map-node source"><div class="mn-label">回调</div><div class="mn-desc">on_chat_model_start → on_llm_end / on_llm_error 形成可观测生命周期</div></div><div class="map-node after"><div class="mn-label">provider</div><div class="mn-desc">wrapper 翻译 payload 并调用厂商 SDK</div></div><div class="map-node after"><div class="mn-label">输出</div><div class="mn-desc">原始响应被解析回 AIMessage</div></div></div></div>
 <h2>状态流：同一份请求如何变形</h2>
 <p>下面的 state flow 把“写一句欢迎语”沿着调用链拆开。重点不是背函数名，而是记住每一步的输入输出类型。类型一旦错位，错误位置通常也就暴露了：字符串无法变消息，说明卡在标准化；callbacks 没触发，说明 config 或 manager 没传下去；usage 缺失，说明 provider 响应解析没收集到。</p>
 <div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>用户输入</h4><p>你的代码传入一个普通字符串。入口宽，允许字符串、消息、PromptValue。</p><div class="mono">&quot;写一句欢迎语&quot;</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>消息标准化</h4><p>字符串被包装为 HumanMessage，消息列表成为模型统一输入。</p><div class="mono">[HumanMessage(content=&quot;写一句欢迎语&quot;)]</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>配置合并</h4><p>运行时 config 与默认 config 合并，tags、metadata、callbacks、run_name 继续向下传。</p><div class="mono">RunnableConfig</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>回调启动</h4><p>CallbackManager 记录一次 chat model run，追踪器、日志器、LangSmith 都可挂在这里。</p><div class="mono">on_chat_model_start</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>厂商请求</h4><p>provider wrapper 把标准消息翻译成 OpenAI、Anthropic 或本地模型需要的 payload。</p><div class="mono">{messages: ..., model: ...}</div></div></div><div class="step"><div class="num">6</div><div class="sc"><h4>响应归一</h4><p>厂商原始响应被解析成 AIMessage，内容、tool_calls、usage_metadata 回到统一结构。</p><div class="mono">AIMessage(content=...)</div></div></div></div>
@@ -320,7 +321,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   <div class="tag">🔬 源码入口 · 文件 + 符号名</div>
   追 <span class="mono">invoke</span> 时，先从基类看公共流程，再跳到具体 provider 看差异。不要一开始就陷进某个 SDK 的参数海里；先确认统一入口做了哪些事情，哪些事情才交给子类实现。
 </div>
-<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/language_models/chat_models.py</td><td class="mono">BaseChatModel.invoke</td><td>聊天模型统一同步入口，负责把输入收敛到 chat prompt/messages 并调用生成流程。</td><td>用户调用进入基类公共流程。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/utils.py</td><td class="mono">convert_to_messages</td><td>把字符串、元组、dict、BaseMessage 等输入转换成标准消息列表。</td><td>入口标准化依赖它。</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/config.py</td><td class="mono">ensure_config</td><td>合并和补齐 RunnableConfig，确保 callbacks、tags、metadata 等字段存在。</td><td>Runnable 调用链向下传播配置。</td></tr><tr><td class="mono">libs/core/langchain_core/callbacks/manager.py</td><td class="mono">CallbackManagerForLLMRun</td><td>管理 on_llm_start/on_llm_end/on_llm_error 等生命周期事件。</td><td>模型执行时向观察者发事件。</td></tr><tr><td class="mono">libs/partners/openai/langchain_openai/chat_models/base.py</td><td class="mono">ChatOpenAI._generate</td><td>OpenAI provider wrapper，把标准消息转 payload 并解析响应。</td><td>基类模板方法下沉到具体厂商。</td></tr><tr><td class="mono">libs/partners/anthropic/langchain_anthropic/chat_models.py</td><td class="mono">ChatAnthropic._generate</td><td>Anthropic provider wrapper，处理该厂商的消息块、工具和流式差异。</td><td>与 OpenAI wrapper 平级替换。</td></tr></table>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/language_models/chat_models.py</td><td class="mono">BaseChatModel.invoke</td><td>聊天模型统一同步入口，负责把输入收敛到 chat prompt/messages 并调用生成流程。</td><td>用户调用进入基类公共流程。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/utils.py</td><td class="mono">convert_to_messages</td><td>把字符串、元组、dict、BaseMessage 等输入转换成标准消息列表。</td><td>入口标准化依赖它。</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/config.py</td><td class="mono">ensure_config</td><td>合并和补齐 RunnableConfig，确保 callbacks、tags、metadata 等字段存在。</td><td>Runnable 调用链向下传播配置。</td></tr><tr><td class="mono">libs/core/langchain_core/callbacks/manager.py</td><td class="mono">CallbackManagerForLLMRun</td><td>管理 on_llm_new_token / on_llm_end / on_llm_error 等生命周期事件（on_chat_model_start 由 CallbackManager 触发）。</td><td>模型执行时向观察者发事件。</td></tr><tr><td class="mono">libs/partners/openai/langchain_openai/chat_models/base.py</td><td class="mono">ChatOpenAI._generate</td><td>OpenAI provider wrapper，把标准消息转 payload 并解析响应。</td><td>基类模板方法下沉到具体厂商。</td></tr><tr><td class="mono">libs/partners/anthropic/langchain_anthropic/chat_models.py</td><td class="mono">ChatAnthropic._generate</td><td>Anthropic provider wrapper，处理该厂商的消息块、工具和流式差异。</td><td>与 OpenAI wrapper 平级替换。</td></tr></table>
 <h2>简化伪代码：invoke 的骨架</h2>
 <p>真实源码要处理更多分支：缓存、rate limiter、stream fallback、stop words、structured output、错误包装、异步版本等。这里压缩成一条骨架，帮助你看到“公共流程在基类，厂商差异在子类”的模板方法模式。</p>
 <div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">langchain_core/language_models/chat_models.py :: BaseChatModel.invoke</span><span class="ln">简化版</span></div><pre>def invoke(self, input, config=None, *, stop=None, **kwargs):

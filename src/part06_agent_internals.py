@@ -17,12 +17,12 @@ def _analogy(text):
 
 def _points(items):
     lis = "".join(f"<li>{item}</li>" for item in items)
-    return f'<div class="card keypoints"><div class="tag">✅ 本课要点</div><ul>{lis}</ul></div>'
+    return f'<div class="card key"><div class="tag">✅ 本课要点</div><ul>{lis}</ul></div>'
 
 
 LESSON_27_AGENT_LOOP = (
     r"""
-<p class="lead">Agent 循环的最小骨架不是“模型会自己调用函数”，而是一条很朴素的状态机：用户消息先进入 model 节点，模型返回 <span class="mono">AIMessage</span>；如果这条消息带有 <span class="mono">tool_calls</span>，图就转到 tools 节点；工具执行后把结果包装成 <span class="mono">ToolMessage</span> 追加回消息历史；model 再读到这条观察结果并决定继续调用工具还是给出最终回答。本课把这个 model/tool loop 拆成可追踪的节点、消息和终止条件，重点看 <span class="mono">create_agent</span>、<span class="mono">ToolNode</span>、<span class="mono">tools_condition</span>、<span class="mono">AIMessage.tool_calls</span> 与 <span class="mono">ToolMessage</span> 如何配合。</p>
+<p class="lead">Agent 循环的最小骨架不是“模型会自己调用函数”，而是一条很朴素的状态机：用户消息先进入 model 节点，模型返回 <span class="mono">AIMessage</span>；如果这条消息带有 <span class="mono">tool_calls</span>，图就转到 tools 节点；工具执行后把结果包装成 <span class="mono">ToolMessage</span> 追加回消息历史；model 再读到这条观察结果并决定继续调用工具还是给出最终回答。本课把这个 model/tool loop 拆成可追踪的节点、消息和终止条件，重点看 <span class="mono">create_agent</span>、<span class="mono">ToolNode</span>、<span class="mono">_make_model_to_tools_edge</span>、<span class="mono">AIMessage.tool_calls</span> 与 <span class="mono">ToolMessage</span> 如何配合。</p>
 """
     + _analogy("把 Agent 想成一个接线员，而工具像仓库、订单系统和日历。用户问“我的包裹什么时候到”，接线员先听问题，发现自己没有实时物流数据，于是写一张工单：调用查物流工具，参数是订单号。仓库同事处理工单并把结果贴回工单系统，这张回执就是 ToolMessage。接线员重新阅读完整工单记录，才能回答用户。真正的循环不是接线员脑内神秘发生的，而是“提出工具请求、收到工具回执、再判断是否足够回答”的外部化流程。")
     + shell.lesson_map(
@@ -30,7 +30,7 @@ LESSON_27_AGENT_LOOP = (
         [
             ("用户输入", "HumanMessage 进入 messages 状态，成为 model 节点本轮可见的上下文", "before"),
             ("模型节点", "模型读取历史、系统提示和工具说明，输出 AIMessage；是否继续由 tool_calls 决定", "now"),
-            ("条件边", "tools_condition 检查最新 AIMessage.tool_calls，决定跳到 tools 还是结束", "now"),
+            ("条件边", "_make_model_to_tools_edge 检查最新 AIMessage.tool_calls，决定跳到 tools 还是结束", "now"),
             ("工具节点", "ToolNode 按 tool_calls 找到工具、执行参数、生成 ToolMessage 观察结果", "source"),
             ("回到模型", "ToolMessage 追加进 messages，模型用观察结果组织最终回答或继续调用工具", "after"),
         ],
@@ -43,7 +43,7 @@ LESSON_27_AGENT_LOOP = (
         [
             {"file": "libs/langchain_v1/langchain/agents/factory.py", "symbol": "create_agent", "role": "高层 Agent 工厂，把模型、工具、提示、中间件和上下文组装成可运行图", "direction": "用户调用入口，内部把循环交给 LangGraph 编排"},
             {"file": "libs/prebuilt/langgraph/prebuilt/tool_node.py", "symbol": "ToolNode", "role": "预置工具节点，读取 AIMessage.tool_calls，执行匹配工具并返回 ToolMessage", "direction": "位于 model -> tools -> model 的 tools 阶段"},
-            {"file": "libs/prebuilt/langgraph/prebuilt/tool_node.py", "symbol": "tools_condition", "role": "条件路由函数，检查最新 AIMessage 是否还有工具调用", "direction": "model 节点之后决定下一跳是 tools 还是 END"},
+            {"file": "libs/langchain_v1/langchain/agents/factory.py", "symbol": "_make_model_to_tools_edge", "role": "create_agent 的 model→tools 条件边 helper，检查最新 AIMessage 是否还有工具调用", "direction": "model 节点之后决定下一跳是 tools 还是 END"},
             {"file": "libs/core/langchain_core/messages/ai.py", "symbol": "AIMessage.tool_calls", "role": "模型请求调用工具的结构化字段，包含 name、args、id 等信息", "direction": "由模型节点写入，供条件边和 ToolNode 读取"},
             {"file": "libs/core/langchain_core/messages/tool.py", "symbol": "ToolMessage", "role": "工具执行结果消息，用 tool_call_id 与原始请求配对", "direction": "由 ToolNode 写回 messages，下一轮 model 读取"},
         ]
@@ -55,7 +55,7 @@ LESSON_27_AGENT_LOOP = (
         [
             ("用户问题进入 messages", "用户问“北京明天会下雨吗，顺便给我一句出门建议”。状态里只有 HumanMessage，模型还没有事实数据。", "messages=[HumanMessage(...)]"),
             ("model 节点产出工具请求", "模型看到可用天气工具，返回 AIMessage(content='', tool_calls=[{name:'get_weather', args:{city:'北京', date:'明天'}, id:'call_1'}])。", "AIMessage.tool_calls -> call_1"),
-            ("tools_condition 选择 tools", "条件边只看最新 AIMessage 是否有 tool_calls；有就跳到 tools 节点，没有就结束。", "route='tools'"),
+            ("_make_model_to_tools_edge 选择 tools", "条件边只看最新 AIMessage 是否有 tool_calls；有就跳到 tools 节点，没有就结束。", "route='tools'"),
             ("ToolNode 执行并写回观察", "ToolNode 根据 name 找到 get_weather，传入 args，得到天气数据，并构造 ToolMessage(tool_call_id='call_1', content='小雨，12℃')。", "messages += ToolMessage"),
             ("model 再读观察并终止", "模型读到 ToolMessage 后组织自然语言回答；这次 AIMessage 没有 tool_calls，条件边路由到 END。", "AIMessage(content='明天小雨...')"),
         ]
@@ -67,7 +67,7 @@ LESSON_27_AGENT_LOOP = (
         [
             {"step": "1. user question", "input": "HumanMessage: 查订单 42 的物流并告诉我是否需要联系仓库", "action": "图把消息追加到 messages，唤醒 model 节点", "output": "messages 包含用户问题"},
             {"step": "2. model node", "input": "messages + 工具说明 search_order(order_id)", "action": "模型没有直接编造物流，而是产出 AIMessage.tool_calls=[search_order({'order_id':'42'})]", "output": "最新 AIMessage 带 tool_calls"},
-            {"step": "3. condition", "input": "latest AIMessage.tool_calls 非空", "action": "tools_condition 返回 tools 分支", "output": "下一步执行 ToolNode"},
+            {"step": "3. condition", "input": "latest AIMessage.tool_calls 非空", "action": "_make_model_to_tools_edge 返回 tools 分支", "output": "下一步执行 ToolNode"},
             {"step": "4. tools node", "input": "tool_call id=call_order_42, name=search_order, args={'order_id':'42'}", "action": "ToolNode 查找工具、执行函数、捕获结果", "output": "ToolMessage(tool_call_id='call_order_42', content='已出库，预计明天到')"},
             {"step": "5. final model", "input": "完整历史：用户问题 + 工具请求 + 工具结果", "action": "模型综合观察，返回不含 tool_calls 的最终 AIMessage", "output": "条件边结束，用户收到回答"},
         ]
@@ -81,14 +81,14 @@ LESSON_27_AGENT_LOOP = (
         """state = {"messages": [user_message]}
 
 while True:  # 教学版；真实实现是 StateGraph 条件边
-    ai = model.invoke(state["messages"], tools=tool_schemas)
+    ai = model.bind_tools(tool_schemas).invoke(state["messages"])
     state["messages"] = add_messages(state["messages"], [ai])
 
     if not ai.tool_calls:
         return ai
 
-    tool_messages = ToolNode(tools).invoke({"messages": state["messages"]})
-    state["messages"] = add_messages(state["messages"], tool_messages)
+    tool_result = ToolNode(tools).invoke({"messages": state["messages"]})
+    state["messages"] = add_messages(state["messages"], tool_result["messages"])
 """,
         "真实 create_agent 不一定写成 Python while；它把 model 节点、tools 节点和条件边编进 StateGraph。教学版保留了核心语义：AIMessage.tool_calls 是请求，ToolMessage 是观察，messages reducer 负责把每轮增量接回历史。",
     )
@@ -204,7 +204,7 @@ while True:  # 教学版；真实实现是 StateGraph 条件边
             "这张表也适合写成测试夹具：给假模型固定输出 tool_calls，给假工具固定返回 ToolMessage，断言第二轮模型收到配对观察后停止。测试目标不是某句回答，而是循环结构确实按请求、观察、再判断的顺序推进。",
         ],
     )
-    + shell.version_note("本课按 LangChain v1 Agent 与 LangGraph prebuilt ToolNode 的心智模型讲解。具体模块行号会随版本移动，但 create_agent、ToolNode、tools_condition、AIMessage.tool_calls、ToolMessage 这组源码锚点是阅读 Agent 循环的稳定入口。")
+    + shell.version_note("本课按 LangChain v1 Agent 与 LangGraph prebuilt ToolNode 的心智模型讲解。具体模块行号会随版本移动，但 create_agent、ToolNode、_make_model_to_tools_edge、AIMessage.tool_calls、ToolMessage 这组源码锚点是阅读 Agent 循环的稳定入口。")
     + _points(
         [
             "Agent loop 的核心是 model 节点、tools 条件分支、ToolNode 和回到 model 的消息闭环。",
@@ -462,7 +462,7 @@ LESSON_29_MIDDLEWARE = (
             {"file": "libs/langchain_v1/langchain/agents/factory.py", "symbol": "_chain_model_call_handlers", "role": "把多个 wrap_model_call 组合成嵌套 handler 链", "direction": "model 节点内部调用模型前后经过这条链"},
             {"file": "libs/langchain_v1/langchain/agents/factory.py", "symbol": "_chain_tool_call_wrappers", "role": "把多个 wrap_tool_call 组合到 ToolNode/工具执行路径周围", "direction": "每次工具调用会经过 wrapper 栈"},
             {"file": "libs/langchain_v1/langchain/agents/middleware/model_call_limit.py", "symbol": "ModelCallLimitMiddleware", "role": "内置模型调用次数限制，用软上限保护 Agent 不无限思考", "direction": "通常在模型调用前后统计并阻止超限"},
-            {"file": "libs/langchain_v1/langchain/agents/middleware/human_in_the_loop.py", "symbol": "HumanInTheLoopMiddleware", "role": "内置人在回路中间件，在敏感工具或动作前 interrupt 等待人工批准", "direction": "常包住工具调用或在工具前插入审批边界"},
+            {"file": "libs/langchain_v1/langchain/agents/middleware/human_in_the_loop.py", "symbol": "HumanInTheLoopMiddleware", "role": "内置人在回路中间件，在敏感工具或动作前 interrupt 等待人工批准", "direction": "用 after_model 钩子检查模型刚产出的 tool_calls，工具执行前 interrupt 等待批准"},
         ]
     )
     + r"""
@@ -485,7 +485,7 @@ LESSON_29_MIDDLEWARE = (
             {"step": "1. before_model", "input": "state.messages + runtime.context", "action": "GuardMiddleware 检查用户身份、追加安全提示或阻止模型调用", "output": "更新后的 state 进入 model 节点"},
             {"step": "2. wrap_model_call", "input": "ModelRequest + handler", "action": "Limit/Retry/Router wrapper 记录次数，必要时换模型或重试 handler", "output": "AIMessage 或异常"},
             {"step": "3. after_model", "input": "AIMessage(tool_calls=...)", "action": "检查工具调用是否越权、是否需要把某些 tool_calls 改走人工审批", "output": "保留或修改后的模型结果"},
-            {"step": "4. wrap_tool_call", "input": "ToolCall(name='refund', args=...) + handler", "action": "HumanInTheLoopMiddleware interrupt 等待批准；通过后才调用真实工具", "output": "ToolMessage 或拒绝消息"},
+            {"step": "4. wrap_tool_call", "input": "ToolCall(name='refund', args=...) + handler", "action": "权限/脱敏/重试 wrapper：校验调用方权限、对参数脱敏或捕获工具异常转成 ToolMessage，再调用 handler 执行真实工具", "output": "ToolMessage 或错误消息"},
             {"step": "5. after_agent", "input": "最终 state 和 structured_response", "action": "写审计日志、统计 token、记录最终状态摘要", "output": "调用结束后的可观察副作用"},
         ]
     )
@@ -921,7 +921,7 @@ raise GraphRecursionError("graph did not finish before recursion_limit")
         [
             "recursion_limit 常被误解成“让 Agent 最多思考 N 轮”的正常控制手段。更准确地说，它是图执行的保险丝：当业务终止条件没有让图结束时，硬上限保证系统不会无限消耗 token、工具费用和外部资源。正常终止仍应来自模型不再输出 tool_calls，或你的图状态满足明确完成条件。",
             "保险丝触发时，不应该简单把上限调大。先看 trace：模型为什么一直调用同一个工具？工具结果是否缺少模型需要的信息？ToolMessage 是否丢了 tool_call_id？提示是否要求必须查到某个不存在的事实？中间件是否每轮都追加新消息导致模型误以为还没完成？把这些根因找出来，比盲目从 25 调到 100 更可靠。",
-            "当然，业务可以有软上限。ModelCallLimitMiddleware 这类中间件可以在模型调用次数接近预算时引导模型总结当前信息、请求用户补充或转人工。软上限负责用户体验，recursion_limit 负责绝对安全。两者分层，才不会把友好收尾和硬失败混成一件事。",
+            "当然，业务可以有软上限。一个自定义中间件可以在模型调用次数接近预算时引导模型总结当前信息、请求用户补充或转人工；而内置的 ModelCallLimitMiddleware 行为更简单——到达 thread_limit/run_limit 后按 exit_behavior 注入一条「已达上限」AI 消息收尾（end）或抛 ModelCallLimitExceededError（error）。软上限负责用户体验，recursion_limit 负责绝对安全。两者分层，才不会把友好收尾和硬失败混成一件事。",
         ],
     )
     + _section(

@@ -20,7 +20,7 @@
   --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
   --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
   --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
-  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6; --teal: #0d9488; --teal-soft: #d3f3f0;
   --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
   --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
   --radius: 14px;
@@ -31,7 +31,7 @@
     --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
     --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
     --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
-    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a; --teal: #2dd4bf; --teal-soft: #123f3b;
     --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
@@ -181,6 +181,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 .layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
 .layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
 .layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+.layer.l-graph { border-left: 4px solid var(--teal); } .layer.l-graph .badge { background: var(--teal-soft); color: var(--teal); }
 
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
@@ -340,7 +341,7 @@ def lookup_order(order_id: str) -&gt; str:
     return read_order_status(order_id)</pre><div class="cw-note">这是教学伪代码：真实实现还会校验 docstring、过滤注入参数、支持 async 和更丰富的返回格式。</div></div>
 <h2>例子追踪：天气 / 订单查询工具调用</h2>
 <p>这个 trace 把 id、arguments、执行结果和 ToolMessage 明确分开。模型返回的 arguments 需要校验，不能直接信任；执行结果需要绑定 tool_call_id，不能只把字符串塞进对话。</p>
-<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1 定义工具</td><td>def get_weather(city: str) -&gt; str</td><td>@tool 读取函数名、docstring、类型标注。</td><td>BaseTool(name=&#x27;get_weather&#x27;, args_schema=...)</td></tr><tr><td>2 绑定模型</td><td>model.bind_tools([get_weather])</td><td>工具 schema 被转换为 provider 支持的 tool 描述。</td><td>请求 payload 包含工具名称、说明和参数结构</td></tr><tr><td>3 模型请求</td><td>用户问：杭州明天天气？</td><td>模型返回 tool_calls。</td><td>{&#x27;id&#x27;:&#x27;call_weather_1&#x27;,&#x27;name&#x27;:&#x27;get_weather&#x27;,&#x27;args&#x27;:{&#x27;city&#x27;:&#x27;杭州&#x27;}}</td></tr><tr><td>4 程序执行</td><td>call_weather_1 / city=杭州</td><td>执行器校验参数、调用天气服务、捕获可预期错误。</td><td>多云，22 到 28 度</td></tr><tr><td>5 回灌观察</td><td>结果 + call_weather_1</td><td>包装 ToolMessage 并追加到 messages。</td><td>ToolMessage(content=&#x27;多云...&#x27;, tool_call_id=&#x27;call_weather_1&#x27;)</td></tr></table>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1 定义工具</td><td>def get_weather(city: str) -&gt; str</td><td>@tool 读取函数名、docstring（示例省略，真实工具必须写）、类型标注。</td><td>BaseTool(name=&#x27;get_weather&#x27;, args_schema=...)</td></tr><tr><td>2 绑定模型</td><td>model.bind_tools([get_weather])</td><td>工具 schema 被转换为 provider 支持的 tool 描述。</td><td>请求 payload 包含工具名称、说明和参数结构</td></tr><tr><td>3 模型请求</td><td>用户问：杭州明天天气？</td><td>模型返回 tool_calls。</td><td>{&#x27;id&#x27;:&#x27;call_weather_1&#x27;,&#x27;name&#x27;:&#x27;get_weather&#x27;,&#x27;args&#x27;:{&#x27;city&#x27;:&#x27;杭州&#x27;}}</td></tr><tr><td>4 程序执行</td><td>call_weather_1 / city=杭州</td><td>执行器校验参数、调用天气服务、捕获可预期错误。</td><td>多云，22 到 28 度</td></tr><tr><td>5 回灌观察</td><td>结果 + call_weather_1</td><td>包装 ToolMessage 并追加到 messages。</td><td>ToolMessage(content=&#x27;多云...&#x27;, tool_call_id=&#x27;call_weather_1&#x27;)</td></tr></table>
 <h2>docstring 是 prompt contract，不是随便写的注释</h2>
 <p>工具描述会进入模型上下文，直接影响模型何时调用工具、如何填参数、是否理解边界。一个好 docstring 应该说明工具做什么、什么时候用、参数含义、返回内容和限制。例如“查询订单状态”不如“根据内部订单号查询当前物流状态；不能查询退款进度；order_id 必须是形如 A123 的订单号”。描述越清楚，模型越少猜。</p>
 <p>docstring 不是安全控制。即使你写“不要删除数据”，模型仍可能在错误上下文里请求危险参数。安全必须在执行层完成：权限检查、参数白名单、幂等键、人工确认、审计日志、速率限制和回滚策略。工具描述帮助模型选择，执行器负责保护现实世界。</p>

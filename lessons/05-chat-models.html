@@ -20,7 +20,7 @@
   --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
   --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
   --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
-  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6; --teal: #0d9488; --teal-soft: #d3f3f0;
   --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
   --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
   --radius: 14px;
@@ -31,7 +31,7 @@
     --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
     --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
     --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
-    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a; --teal: #2dd4bf; --teal-soft: #123f3b;
     --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
   }
@@ -181,6 +181,7 @@ pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb {
 .layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
 .layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
 .layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+.layer.l-graph { border-left: 4px solid var(--teal); } .layer.l-graph .badge { background: var(--teal-soft); color: var(--teal); }
 
 /* two-column compare */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
@@ -322,7 +323,7 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
 <div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>模型字符串</h4><p>例如 openai:gpt-5.1 或 anthropic:claude-sonnet-4-5，前缀决定 provider，后半段决定模型名。</p><div class="mono">provider:model</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>provider 包查找</h4><p>init_chat_model 解析前缀，检查可选依赖，找到 ChatOpenAI 或 ChatAnthropic。</p><div class="mono">init_chat_model(...)</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>wrapper 初始化</h4><p>统一参数和 provider-specific kwargs 被保存到模型对象。</p><div class="mono">BaseChatModel subclass</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>消息转换</h4><p>invoke 前用 _convert_input 得到 PromptValue；消息序列分支才规范化为 BaseMessage 列表。</p><div class="mono">convert input</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>provider 请求</h4><p>wrapper 翻译 role/content/tools/config，调用厂商 SDK。</p><div class="mono">SDK request</div></div></div><div class="step"><div class="num">6</div><div class="sc"><h4>AIMessage</h4><p>响应被解析为 content、tool_calls、response_metadata、usage_metadata。</p><div class="mono">AIMessage</div></div></div></div>
 <h2>代码走读：简化版 init_chat_model + invoke</h2>
 <p>真实代码会处理更多 provider、可选依赖、声明式配置、回调和缓存。这里保留两条关键路径：构造时把 provider 字符串映射到 wrapper；调用时先把输入转成 <span class="mono">PromptValue</span>，再从 <span class="mono">RunnableConfig</span> 中取 callbacks、tags、metadata、run_name、run_id 传给 <span class="mono">generate_prompt</span>，最后返回标准 <span class="mono">AIMessage</span>。</p>
-<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/langchain_v1/langchain/chat_models/base.py :: init_chat_model / BaseChatModel.invoke</span><span class="ln">简化版</span></div><pre>def init_chat_model(model, **kwargs):
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/langchain_v1/langchain/chat_models/base.py + libs/core/langchain_core/language_models/chat_models.py :: init_chat_model / BaseChatModel.invoke</span><span class="ln">简化版</span></div><pre>def init_chat_model(model, **kwargs):
     provider, model_name = parse_provider(model)
     if provider == &quot;openai&quot;:
         return ChatOpenAI(model=model_name, **kwargs)

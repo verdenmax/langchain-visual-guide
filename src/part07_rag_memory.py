@@ -17,7 +17,7 @@ def _analogy(text):
 
 def _points(items):
     lis = "".join(f"<li>{item}</li>" for item in items)
-    return f'<div class="card keypoints"><div class="tag">✅ 本课要点</div><ul>{lis}</ul></div>'
+    return f'<div class="card key"><div class="tag">✅ 本课要点</div><ul>{lis}</ul></div>'
 
 
 def _detail_sections(d):
@@ -250,7 +250,7 @@ LESSON_33_DOCUMENTS_SPLITTERS = _build_lesson(
             {"step": "5. propagate", "input": "父 metadata", "action": "复制 source/page/权限，并加入 chunk_index", "output": "可进入索引的 chunks"},
         ],
         "code_path": "libs/text-splitters/langchain_text_splitters/base.py",
-        "code_symbol": "TextSplitter.create_documents",
+        "code_symbol": "TextSplitter.split_documents",
         "code": """docs = loader.load()
 chunks = splitter.split_documents(docs)
 
@@ -450,7 +450,7 @@ for doc in docs:
             ]),
             ("过滤、混合检索和重排", [
                 "向量相似度只说明语义接近，不说明权限正确、时间有效或类型匹配。metadata filter 应在搜索时限制 tenant、language、doc_type、version 或 effective_date。过滤太晚会浪费候选名额，甚至把无权内容交给后续模型。过滤太严则可能漏召回，所以要用评测集观察每个 filter 的影响。",
-                "纯向量检索对数字、代码符号、专有名词和精确短语不总是稳定。很多系统会加入 BM25 或关键词过滤形成 hybrid retrieval，再用 reranker 精排。VectorStoreRetriever 提供的是统一入口，不意味着底层只能做单一向量近邻。课程把这一层放在 M7，是为了让你看到 embeddings 是基础，但不是检索质量的全部。",
+                "纯向量检索对数字、代码符号、专有名词和精确短语不总是稳定。很多系统会加入 BM25 或关键词过滤形成 hybrid retrieval，再用 reranker 精排。VectorStoreRetriever 提供的是统一入口，不意味着底层只能做单一向量近邻。课程把这一层放在第 7 部分（RAG 与记忆），是为了让你看到 embeddings 是基础，但不是检索质量的全部。",
             ]),
             ("排查 stale index 的顺序", [
                 "当用户看到旧答案，先确认返回 Document 的 metadata：source_id 是谁，version 是不是最新，embedding_model 是否当前，index_time 是否晚于文档更新时间。再检查查询是否命中旧命名空间，是否有缓存，cleanup 是否真的删除旧 ids。很多 stale 问题不是模型幻觉，而是索引里确实还躺着旧块。",

@@ -222,7 +222,7 @@ r"""
 <p>真实代码会处理更多 provider、可选依赖、声明式配置、回调和缓存。这里保留两条关键路径：构造时把 provider 字符串映射到 wrapper；调用时先把输入转成 <span class="mono">PromptValue</span>，再从 <span class="mono">RunnableConfig</span> 中取 callbacks、tags、metadata、run_name、run_id 传给 <span class="mono">generate_prompt</span>，最后返回标准 <span class="mono">AIMessage</span>。</p>
 """,
 shell.code_walkthrough(
-    "libs/langchain_v1/langchain/chat_models/base.py",
+    "libs/langchain_v1/langchain/chat_models/base.py + libs/core/langchain_core/language_models/chat_models.py",
     "init_chat_model / BaseChatModel.invoke",
     '''def init_chat_model(model, **kwargs):
     provider, model_name = parse_provider(model)
@@ -419,7 +419,7 @@ r"""
 <p>这个 trace 把 id、arguments、执行结果和 ToolMessage 明确分开。模型返回的 arguments 需要校验，不能直接信任；执行结果需要绑定 tool_call_id，不能只把字符串塞进对话。</p>
 """,
 shell.trace_table([
-    {"step": "1 定义工具", "input": "def get_weather(city: str) -> str", "action": "@tool 读取函数名、docstring、类型标注。", "output": "BaseTool(name='get_weather', args_schema=...)"},
+    {"step": "1 定义工具", "input": "def get_weather(city: str) -> str", "action": "@tool 读取函数名、docstring（示例省略，真实工具必须写）、类型标注。", "output": "BaseTool(name='get_weather', args_schema=...)"},
     {"step": "2 绑定模型", "input": "model.bind_tools([get_weather])", "action": "工具 schema 被转换为 provider 支持的 tool 描述。", "output": "请求 payload 包含工具名称、说明和参数结构"},
     {"step": "3 模型请求", "input": "用户问：杭州明天天气？", "action": "模型返回 tool_calls。", "output": "{'id':'call_weather_1','name':'get_weather','args':{'city':'杭州'}}"},
     {"step": "4 程序执行", "input": "call_weather_1 / city=杭州", "action": "执行器校验参数、调用天气服务、捕获可预期错误。", "output": "多云，22 到 28 度"},
@@ -834,7 +834,7 @@ r"""
 """,
 shell.pitfall_grid([
     ("用几个正则就能稳定解析模型输出。", "正则适合简单辅助，不适合作为关键业务契约；应优先使用 JSON/Pydantic/structured output。"),
-    ("模型说是 JSON 就可以直接信任。", "必须由 parser 和验证代码实际解析； malformed JSON 应失败或修复。"),
+    ("模型说是 JSON 就可以直接信任。", "必须由 parser 和验证代码实际解析；格式非法的 JSON 应失败或修复。"),
     ("parser 和 tool call 是一回事。", "parser 解析数据；tool call 请求执行工具，涉及 tool_call_id、权限和 ToolMessage。"),
     ("解析失败时返回空对象更健壮。", "吞掉 parse errors 会让坏数据流向下游，应记录并进入修复、重试或中断。"),
     ("schema 写在 prompt 里就够了。", "schema 必须由代码验证，否则只是模型参考文档。"),

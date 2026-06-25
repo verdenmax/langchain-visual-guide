@@ -13,7 +13,7 @@ def _h3(title, text):
 
 def _points(items):
     lis = "".join(f"<li>{item}</li>" for item in items)
-    return f'<div class="card keypoints"><div class="tag">✅ 本课要点</div><ul>{lis}</ul></div>'
+    return f'<div class="card key"><div class="tag">✅ 本课要点</div><ul>{lis}</ul></div>'
 
 
 def _analogy(text):
@@ -390,7 +390,7 @@ def route_tools(state):
     + _h3("七、工具循环为什么适合条件边", "模型是否调用工具，是运行时才知道的事。prompt、用户问题、模型能力、工具结果都会影响最后一条 AIMessage。条件边把这个运行时决策显式化：route_tools 只看最后消息，有 tool_calls 去 tools，没有就 END。这样模型节点不用知道工具节点怎么连，工具节点也不用知道什么时候结束。")
     + _h3("八、无限循环通常来自边而不是模型", "模型可能不断请求工具，但真正让图无限跑的是边允许它一直回到 model，且路由没有终止策略。解决办法不是只骂模型，而是给图加结构约束：最大工具轮数、错误计数、已调用同一工具同一参数的检测、无新信息时 END、人审节点或 recursion_limit。循环是图能力，终止是图责任。")
     + _h3("九、路由返回值要和路径映射一致", "add_conditional_edges 可以让 route 返回真实节点名，也可以通过 path_map 把业务标签映射到节点。无论哪种方式，返回值都必须可解析。常见错误是 route 返回 'tool'，实际节点叫 'tools'；或者返回 True/False，却没有提供 {True: 'tools', False: END} 映射。把路由返回类型写窄、测试覆盖每个分支，能减少这类低级错误。")
-    + _h3("十、节点返回非 dict 的问题", "StateGraph 节点应返回符合 state 更新语义的 mapping。返回字符串、AIMessage 本体、list 或 None，通常会让运行时不知道写哪个 state key。即使只有一个 messages 字段，也要返回 {'messages': [message]}。这种冗余是有价值的，因为它让写入目标显式，reducer 也能按 key 工作。")
+    + _h3("十、节点返回非 dict 的问题", "StateGraph 节点应返回符合 state 更新语义的 mapping。返回字符串、AIMessage 本体或 list，通常会让运行时不知道写哪个 state key（返回 None 是合法的，表示本节点不更新状态）。即使只有一个 messages 字段，也要返回 {'messages': [message]}。这种冗余是有价值的，因为它让写入目标显式，reducer 也能按 key 工作。")
     + _h3("十一、边把架构意图写出来", "从代码审查角度看，边比节点更能暴露系统设计。节点里是一段实现，边展示实现之间的控制关系。START -> model -> route -> tools -> model 说明这是工具 Agent；retrieve -> grade -> answer/rewriter 说明这是带质量评估的 RAG；human_review -> approve/reject 说明有人审分支。读图先读边，往往比先读节点内部更快理解系统。")
     + _h3("十二、测试节点和路由要分开", "节点测试关注给定 state 时返回什么 partial update；路由测试关注给定 state 时返回哪个节点名或 END。不要把模型调用、工具执行和路由判断混在一个黑盒测试里，否则失败时不知道是模型输出、工具副作用还是路由拼写错。把责任拆开，是 LangGraph 可测试性的主要来源。")
     + _h3("十三、最小心智模型", "节点是工位，边是传送带，条件边是分拣器，START/END 是收发货口。工位只贴自己新增的标签，分拣器只读标签决定方向，传送带不加工货物。只要这三个责任不混，复杂图也能保持清楚；一旦节点开始偷偷路由、路由开始偷偷写状态，图就会失去可解释性。")
@@ -453,7 +453,7 @@ def route_tools(state):
 
 LESSON_20_REDUCERS_CHANNELS = (
     r"""
-<p class="lead">Reducer 和 channel 是 LangGraph 状态系统的地下管道：上层看到的是 state key，底层真正决定“多个更新怎样合并”的是 channel。普通字段默认像 LastValue，新值覆盖旧值；消息列表常用 Annotated[list[AnyMessage], add_messages]，让新消息追加或按 id 替换；并行分支同时写同一 key 时，是否冲突、能否合并、顺序是否重要，都取决于 reducer。本课把 reducer 当成状态键的合并法律来读。</p>
+<p class="lead">Reducer 和 channel 是 LangGraph 状态系统的地下管道：上层看到的是 state key，底层真正决定“多个更新怎样合并”的是 channel。普通字段默认像 LastValue，新值覆盖旧值；消息列表常用 Annotated[list[AnyMessage], add_messages]，让新消息追加或按 id 替换；并行分支同时写同一 key 时，是否冲突、能否合并、顺序是否重要，都取决于 reducer。本课把 reducer 当成状态键的合并法则来读。</p>
 """
     + _analogy("把每个 state key 想成一条收件通道。LastValue 像白板，后来的人擦掉前面的字；Topic 像公告栏，可以收集多张便签；BinaryOperatorAggregate 像会计账本，每笔收入按加法汇总；add_messages 像聊天记录管理员，看到新 id 就追加，看到旧 id 就更新那条记录。你不能只说“我要写 messages”，还要说“这条通道收到多份更新时按什么规矩办”。")
     + shell.lesson_map(
@@ -526,25 +526,25 @@ channels['answer'].update(['最终答案'])
         "教学版展示字段到通道的映射：messages 因 Annotated reducer 变成聚合语义；answer 没有 reducer，所以是覆盖语义。真实实现还会处理 managed value、类型校验和多轮更新。",
     )
     + r"""
-<h2>Reducer 是每个 key 的合并法律</h2>
+<h2>Reducer 是每个 key 的合并法则</h2>
 """
     + _h3("一、默认覆盖适合单值事实", "LastValue 并不是坏设计。很多 state key 的正确语义就是“当前值”：final_answer、current_node_label、selected_tool、approval_status、error_message。对这些字段，追加历史反而会让下游困惑。默认覆盖的价值是简单、明确、节省存储。问题出在你把需要累积的字段也交给默认覆盖。")
     + _h3("二、列表不会因为是列表就自动追加", "Python 类型是 list 只说明值的形状，不说明更新语义。一个 list 字段可能表示“当前候选文档列表”，每次检索都覆盖；也可能表示“所有已执行工具记录”，每次都追加。只有业务知道哪个语义正确，所以 schema 必须通过 Annotated reducer 讲清楚。不要期待运行时从 list 推断你想 append。")
     + _h3("三、add_messages 的 id 语义", "聊天历史不是简单字符串数组。AIMessage、HumanMessage、ToolMessage 可能带 id、tool_call_id、metadata、usage。add_messages 让新消息在 id 不重复时追加，在 id 重复时替换旧消息。这支持流式修正、工具结果回填和消息去重。代价是你必须小心手动设置 id：重复 id 会被认为是更新而非新消息。")
-    + _h3("四、并行分支让 reducer 变得必要", "在单线流程里，覆盖和追加的差异已经重要；在并行 fan-in 里，它会变成正确性问题。两个节点同一轮写同一个 key，如果没有合并法律，运行时不能凭空决定谁赢。你要么让它们写不同 key，要么为共享 key 声明交换律、结合律良好的 reducer，要么改图结构避免同轮冲突。")
+    + _h3("四、并行分支让 reducer 变得必要", "在单线流程里，覆盖和追加的差异已经重要；在并行 fan-in 里，它会变成正确性问题。两个节点同一轮写同一个 key，如果没有合并法则，运行时不能凭空决定谁赢。你要么让它们写不同 key，要么为共享 key 声明交换律、结合律良好的 reducer，要么改图结构避免同轮冲突。")
     + _h3("五、BinaryOperatorAggregate 的直觉", "二元聚合通道像 reduce：拿旧值和新值，用一个函数合成更新后的值。operator.add 可以拼 list 或加数字，自定义函数可以合并 dict、去重文档、取最大分数。选择 reducer 时要问：多次更新的顺序是否影响结果？重复执行是否安全？空值是什么？错误输入怎样处理？这些问题决定图是否可复现。")
     + _h3("六、Topic 适合多生产者收集", "Topic 可以理解为一个收集多条更新的通道，适合发布/订阅或多分支产物汇集的场景。它和 LastValue 的差别在于：LastValue 关注最终单值，Topic 关注一批更新。实际使用时仍要看具体 API 和配置，但心智上可以把它放在“多值通道”这一格。")
-    + _h3("七、Reducer 要纯，不要做 I/O", "Reducer 可能在运行时合并多个节点更新，也可能在重放、恢复、测试中被调用。它应该是纯函数：给定旧值和新值，返回合并值。不要在 reducer 里写数据库、发请求、读时钟、生成随机数或记录业务审计。副作用属于节点；reducer 属于状态合并法律。法律不能每次执行都变。")
+    + _h3("七、Reducer 要纯，不要做 I/O", "Reducer 可能在运行时合并多个节点更新，也可能在重放、恢复、测试中被调用。它应该是纯函数：给定旧值和新值，返回合并值。不要在 reducer 里写数据库、发请求、读时钟、生成随机数或记录业务审计。副作用属于节点；reducer 属于状态合并法则。法则不能每次执行都变。")
     + _h3("八、非交换 reducer 的风险", "并行更新时，顺序可能由运行时调度、节点名或实现细节决定。如果 reducer 不满足交换律，例如字符串拼接、列表拼接带顺序语义、按先后选择赢家，你就要确认这个顺序是否被框架保证，是否对业务重要。风险高的做法是让并行分支产出带排序键的结构，下游再按规则排序，而不是让 reducer 隐式依赖调度顺序。")
     + _h3("九、去重和替换要写进语义", "很多业务列表不是单纯追加，而是“按文档 id 去重”“按工具调用 id 替换”“按最高分保留”。add_messages 给聊天消息提供了现成 id 语义；其他领域你可能需要自定义 reducer。自定义时不要只考虑 happy path，也要考虑重复更新、失败重试、同一节点重跑和 checkpoint 恢复后再次合并。")
     + _h3("十、channel 是 reducer 的运行时形态", "上层写 Annotated reducer，底层用 channel 存储当前值、接收更新、决定可见性。理解 channel 能帮助你解释为什么本轮并行节点看不到彼此刚写的值，为什么合并结果下一轮才稳定可见，为什么 compile 阶段要根据 schema 创建通道。Reducer 是语义，channel 是执行容器。")
     + _h3("十一、冲突不总是坏事", "如果两个并行节点同时写 final_answer，报冲突可能比随机覆盖更好。冲突暴露了设计不清：到底谁有权决定最终答案？是否应该先写 candidate_answers，再由 judge 节点选择？不要为了让检查通过给所有 key 都加 list append reducer。正确的 reducer 应反映业务语义，不是消音器。")
     + _h3("十二、设计 reducer 的问题清单", "每个 state key 都问五个问题：这个值是当前值还是历史？多个节点会不会同轮写？重复更新应该追加、替换、去重还是覆盖？顺序是否重要？重试和恢复会不会导致重复？如果回答不出来，先不要写复杂图。Reducer 设计是状态图可靠性的核心。")
-    + _h3("十三、最小心智模型", "State key 只是门牌号，channel 才是收件规则。LastValue 擦白板，Topic 收便签，BinaryOperatorAggregate 做折叠，add_messages 管聊天记录。节点只负责投递 partial update；通道负责按法律收件。法律选错，图看起来能跑，状态却会悄悄丢失、重复或乱序。")
+    + _h3("十三、最小心智模型", "State key 只是门牌号，channel 才是收件规则。LastValue 擦白板，Topic 收便签，BinaryOperatorAggregate 做折叠，add_messages 管聊天记录。节点只负责投递 partial update；通道负责按法则收件。法则选错，图看起来能跑，状态却会悄悄丢失、重复或乱序。")
     + r"""
 <h2>扩展复盘：为每个 key 写合并说明</h2>
 <p>Reducer 设计最实用的文档方式，是在 schema 旁边为每个 key 写一句合并说明。final_answer：后写覆盖前写，因为只有一个最终答案。messages：用 add_messages，因为聊天历史要追加，同时允许按 id 修正。retrieved_docs：按文档 id 去重并保留最高分，因为多个检索分支可能找到同一篇文档。audit_events：只追加不可修改，因为审计记录要保留事实。这样的说明能让后来的人知道 reducer 不是随手选的。</p>
-<p>并行 fan-in 是检验 reducer 的压力测试。顺序执行时，很多错误会被最后一次覆盖掩盖；并行执行时，两个更新同时到来，通道必须做出明确裁决。没有 reducer 的共享 key 可能报冲突；不合适的 reducer 可能悄悄吞掉一个分支；依赖顺序的 reducer 可能在不同运行中产生不同结果。设计图时，凡是看到两个节点可能同轮写同一 key，就应该停下来讨论合并法律。</p>
+<p>并行 fan-in 是检验 reducer 的压力测试。顺序执行时，很多错误会被最后一次覆盖掩盖；并行执行时，两个更新同时到来，通道必须做出明确裁决。没有 reducer 的共享 key 可能报冲突；不合适的 reducer 可能悄悄吞掉一个分支；依赖顺序的 reducer 可能在不同运行中产生不同结果。设计图时，凡是看到两个节点可能同轮写同一 key，就应该停下来讨论合并法则。</p>
 <p>幂等性也很重要。节点失败重试、人工恢复、checkpoint 重放都可能让同一逻辑更新再次出现。add_messages 通过 id 替换减少重复；自定义 reducer 也可以用 event_id、document_id、tool_call_id 去重。如果 reducer 只是盲目 list 拼接，恢复一次就多一条审计，重试一次就多一个候选文档，下游会越来越难判断真实状态。</p>
 <p>有些 key 不该被合并，而应该被拆开。比如两个并行节点都想写 final_answer，这不是缺少 reducer，而是职责冲突。更好的设计是让它们写 candidate_answers，随后由 judge 节点选择 final_answer。Reducer 不是万能胶；它只能表达合理的合并语义，不能弥补架构上“谁负责最终决定”没有说清的问题。</p>
 <p>非交换、非结合的 reducer 不是不能用，但要非常显式。列表拼接如果只是为了展示日志，顺序也许不关键；如果顺序影响模型答案，就应该给每条记录带 rank、source、created_step，然后由下游排序。字符串拼接、取第一个、取最后一个这类 reducer 在并行场景尤其危险，因为读者很难从业务上解释为什么某个分支赢了。</p>
@@ -562,7 +562,7 @@ channels['answer'].update(['最终答案'])
 <p>对于 LastValue 字段，也要写“同时写入”的设计测试或结构评审。比如 final_answer 不应该被两个并行节点同时写；如果确实可能出现，就让它们写 candidate_answers，再由 judge 节点写 final_answer。这个测试不是为了让 LastValue 通过，而是为了证明图结构避免了冲突。冲突被提前发现，说明 channel 设计在保护你。</p>
 <p>最后，给 reducer 写一句人类可读的业务解释。比如“risk_scores 按来源合并，因为每个评估器代表不同维度”“audit_events 按 event_id 去重追加，因为重试不应制造假审计”“messages 按 id 替换，因为流式或工具回填可能修正旧消息”。这些解释能帮助未来维护者判断是否可以改 reducer，而不是只看到一个神秘函数名。</p>
 <p>补充检查：为每个 reducer 写出“旧值、新值、结果”的三列表格，至少覆盖空旧值、正常追加、重复更新、并行两份更新和错误输入。表格比文字更容易暴露歧义：同一个文档重复出现是替换还是保留两份，同一个审计事件重试出现是忽略还是追加，同一个风险分数来源重复出现是取最大还是取最新，都应该在实现前说清。</p>
-<p>Reducer 的收束点是合并法律，而不是数据类型技巧。一个好法律要说明是否满足交换律、结合律和幂等性；如果不满足，就要说明运行时顺序从哪里来，业务是否接受。并行 fan-in 里，无法解释顺序的 reducer 会让同样输入在不同调度下产生不同状态，这比显式冲突更危险。</p>
+<p>Reducer 的收束点是合并法则，而不是数据类型技巧。一个好法则要说明是否满足交换律、结合律和幂等性；如果不满足，就要说明运行时顺序从哪里来，业务是否接受。并行 fan-in 里，无法解释顺序的 reducer 会让同样输入在不同调度下产生不同状态，这比显式冲突更危险。</p>
 <p>消息列表还要特别记住 id 语义。add_messages 不是无脑 append：新 id 追加，相同 id 替换。这个能力让流式修正和工具回填更自然，也让手写 message id 变成风险点。测试里要同时覆盖“不同 id 追加”和“相同 id 替换”，否则你可能把修正消息误当成新消息，或把新消息误覆盖掉。</p>
 <p>选择 reducer 时，先问业务再写代码：final_answer 是当前值，通常覆盖；audit_events 是事实历史，通常追加且不可改；retrieved_docs 可能要按 document_id 去重并排序；risk_scores 可能按来源合并。把这些语义写在 schema 旁边，fan-in 才能可复现，checkpoint 重放才不会制造重复或丢失。</p>
 <h2>常见误解与边界情况</h2>
