@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>05 · 聊天模型 — LangChain 图解教程</title>
-<meta name="description" content="第二部分 · 用户视角｜聊天模型：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>07 · 聊天模型 — LangChain 图解教程</title>
+<meta name="description" content="第二部分 · 用户 API 基础｜聊天模型：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="05 · 聊天模型 — LangChain 图解教程">
-<meta property="og:description" content="第二部分 · 用户视角｜聊天模型：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="07 · 聊天模型 — LangChain 图解教程">
+<meta property="og:description" content="第二部分 · 用户 API 基础｜聊天模型：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="05 · 聊天模型 — LangChain 图解教程">
-<meta name="twitter:description" content="第二部分 · 用户视角｜聊天模型：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="07 · 聊天模型 — LangChain 图解教程">
+<meta name="twitter:description" content="第二部分 · 用户 API 基础｜聊天模型：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -256,400 +256,211 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
 </style>
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第二部分 · 用户视角</span>
-    <span class="pill">05 / 27</span>
+    <span class="pill">第二部分 · 用户 API 基础</span>
+    <span class="pill">07 / 46</span>
   </div>
-  <div class="progress"><span style="width:18%"></span></div>
+  <div class="progress"><span style="width:15%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第二部分 · 用户视角</div>
+    <div class="part">第二部分 · 用户 API 基础</div>
     <h1>聊天模型</h1>
   </div>
-  
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-聊天模型（Chat Model）是你<strong>最常打交道的对象</strong>：喂给它一串消息，它还你一条 <span class="inline">AIMessage</span>。
-LangChain 的杀手锏是——<strong>所有厂商的模型，用法一模一样</strong>。
-</p>
+
+<p class="lead">聊天模型把不同厂商的对话式 API 包装在 <span class="mono">BaseChatModel</span> 后面，让上层用同一套 <span class="mono">invoke</span>、<span class="mono">stream</span>、<span class="mono">batch</span>、异步变体和工具绑定接口工作。你选择 <span class="mono">openai:gpt-5.1</span> 或 <span class="mono">anthropic:claude-sonnet-4-5</span> 时，业务消息和下游解析代码不应该跟着大改；变化应集中在模型构造和 provider wrapper。</p>
 
 <div class="card analogy">
-  <div class="tag">🔁 生活类比</div>
-  就像<strong>万能遥控器</strong>：电视、空调、音响牌子各不相同，但遥控器上的"开机/音量+"按钮是统一的。
-  <span class="mono">init_chat_model</span> 就是这只万能遥控器，按钮（<span class="mono">invoke</span>/<span class="mono">stream</span>）永远一样，
-  换设备只改一个型号字符串。
+  <div class="tag">☎️ 生活类比 · 多运营商电话交换机</div>
+  聊天模型像公司电话交换机。员工只拨统一内线号码，说同一种通话礼仪；交换机根据号码前缀选择移动、电信或海外线路，把内部格式翻译成运营商协议，再把对方回音转成公司熟悉的记录。你不应该在每个业务部门都直接接运营商裸线，否则换线路时整栋楼都要改线。
 </div>
 
-<h2>一行代码拿到任意模型</h2>
-<p>核心入口是 <span class="inline">init_chat_model</span>，用 <span class="inline">"厂商:型号"</span> 的字符串指定模型：</p>
+<h2>本课地图：模型对象是 Runnable，不是厂商客户端本身</h2>
+<p>很多初学者把 <span class="mono">ChatOpenAI</span> 当作 OpenAI SDK 客户端，把 <span class="mono">ChatAnthropic</span> 当作 Anthropic SDK 客户端。更准确的说法是：它们是 LangChain 的聊天模型 wrapper，实现 <span class="mono">BaseChatModel</span> 和 Runnable 协议，内部才调用厂商 SDK。这个区别决定了返回值是 <span class="mono">AIMessage</span>，配置通过 <span class="mono">RunnableConfig</span> 传播，工具绑定通过统一 schema 进入 provider。</p>
+<div class="lesson-map"><div class="lm-title">🗺️ 聊天模型的稳定路径</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">模型字符串</div><div class="mn-desc">用户用 provider:model 或显式类选择底层模型</div></div><div class="map-node now"><div class="mn-label">工厂初始化</div><div class="mn-desc">init_chat_model 根据前缀查找 partner 包并构造 wrapper</div></div><div class="map-node now"><div class="mn-label">统一调用</div><div class="mn-desc">BaseChatModel 暴露 invoke/stream/batch/async 等 Runnable 行为</div></div><div class="map-node source"><div class="mn-label">厂商请求</div><div class="mn-desc">ChatOpenAI、ChatAnthropic 等 wrapper 翻译消息和参数</div></div><div class="map-node after"><div class="mn-label">统一输出</div><div class="mn-desc">上层拿到 AIMessage、chunks、metadata 和 tool_calls</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>读模型源码时建议按“高层入口、抽象基类、配置传播、具体厂商”四层走。不要从某个 provider 的 HTTP payload 一头扎进去，否则容易把通用契约和厂商细节混在一起。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/langchain_v1/langchain/chat_models/base.py</td><td class="mono">init_chat_model</td><td>用户友好的模型工厂，解析 provider:model 字符串并实例化对应聊天模型。</td><td>从应用配置进入 partner wrapper。</td></tr><tr><td class="mono">libs/core/langchain_core/language_models/chat_models.py</td><td class="mono">BaseChatModel</td><td>聊天模型抽象基类，定义输入转换、invoke、stream、batch、工具绑定和结构化输出等公共行为。</td><td>具体 provider wrapper 继承并实现底层生成。</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/config.py</td><td class="mono">RunnableConfig</td><td>携带 tags、metadata、callbacks、run_name、max_concurrency 等运行配置。</td><td>从上层 Runnable 调用向模型和子调用传播。</td></tr><tr><td class="mono">libs/partners/openai/langchain_openai/chat_models/base.py</td><td class="mono">ChatOpenAI</td><td>OpenAI 聊天模型 wrapper，负责参数映射、消息转换、工具调用和响应解析。</td><td>实现 BaseChatModel 并调用 OpenAI SDK。</td></tr><tr><td class="mono">libs/partners/anthropic/langchain_anthropic/chat_models.py</td><td class="mono">ChatAnthropic</td><td>Anthropic 聊天模型 wrapper，处理 Anthropic 消息格式、流式 chunk 和工具调用差异。</td><td>实现 BaseChatModel 并调用 Anthropic SDK。</td></tr></table>
+<h2>状态流：从模型字符串到 AIMessage</h2>
+<p>下面的状态流展示为什么“换模型只改配置”在理想情况下可行。上层构造消息列表，模型工厂选 wrapper，wrapper 负责把标准消息变成 provider 请求，响应再被包装回 <span class="mono">AIMessage</span>。如果你把 provider 原始响应穿透到业务层，这条稳定路径就会被打破。</p>
+<div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>模型字符串</h4><p>例如 openai:gpt-5.1 或 anthropic:claude-sonnet-4-5，前缀决定 provider，后半段决定模型名。</p><div class="mono">provider:model</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>provider 包查找</h4><p>init_chat_model 解析前缀，检查可选依赖，找到 ChatOpenAI 或 ChatAnthropic。</p><div class="mono">init_chat_model(...)</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>wrapper 初始化</h4><p>统一参数和 provider-specific kwargs 被保存到模型对象。</p><div class="mono">BaseChatModel subclass</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>消息转换</h4><p>invoke 前用 _convert_input 得到 PromptValue；消息序列分支才规范化为 BaseMessage 列表。</p><div class="mono">convert input</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>provider 请求</h4><p>wrapper 翻译 role/content/tools/config，调用厂商 SDK。</p><div class="mono">SDK request</div></div></div><div class="step"><div class="num">6</div><div class="sc"><h4>AIMessage</h4><p>响应被解析为 content、tool_calls、response_metadata、usage_metadata。</p><div class="mono">AIMessage</div></div></div></div>
+<h2>代码走读：简化版 init_chat_model + invoke</h2>
+<p>真实代码会处理更多 provider、可选依赖、声明式配置、回调和缓存。这里保留两条关键路径：构造时把 provider 字符串映射到 wrapper；调用时先把输入转成 <span class="mono">PromptValue</span>，再从 <span class="mono">RunnableConfig</span> 中取 callbacks、tags、metadata、run_name、run_id 传给 <span class="mono">generate_prompt</span>，最后返回标准 <span class="mono">AIMessage</span>。</p>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/langchain_v1/langchain/chat_models/base.py :: init_chat_model / BaseChatModel.invoke</span><span class="ln">简化版</span></div><pre>def init_chat_model(model, **kwargs):
+    provider, model_name = parse_provider(model)
+    if provider == &quot;openai&quot;:
+        return ChatOpenAI(model=model_name, **kwargs)
+    if provider == &quot;anthropic&quot;:
+        return ChatAnthropic(model=model_name, **kwargs)
+    raise ValueError(&quot;unknown chat model provider&quot;)
 
-<pre class="code"><span class="kw">from</span> langchain.chat_models <span class="kw">import</span> init_chat_model
+class BaseChatModel:
+    def invoke(self, input, config=None, **kwargs):
+        prompt_value = self._convert_input(input)
+        config = ensure_config(config)
+        result = self.generate_prompt(
+            [prompt_value],
+            callbacks=config.get(&quot;callbacks&quot;),
+            tags=config.get(&quot;tags&quot;),
+            metadata=config.get(&quot;metadata&quot;),
+            run_name=config.get(&quot;run_name&quot;),
+            run_id=config.get(&quot;run_id&quot;),
+            **kwargs,
+        )
+        return result.generations[0][0].message</pre><div class="cw-note">这是教学伪代码：真实 BaseChatModel 还会经过 callback manager、缓存、批量生成、stream 适配和错误处理；这里强调 invoke 传给 generate_prompt 的是 PromptValue 列表和展开后的运行配置。</div></div>
+<h2>切换 provider 的追踪：业务消息不变</h2>
+<p>假设你的客服链只依赖消息和 <span class="mono">AIMessage</span>。当配置从 OpenAI 切到 Anthropic 时，变化应该集中在初始化层；prompt、工具 schema、输出解析器和下游 Runnable 仍面对同一种消息契约。下面的 trace 展示稳定部分和变化部分。</p>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1 初始配置</td><td>openai:gpt-5.1</td><td>init_chat_model 选择 ChatOpenAI。</td><td>model 是 BaseChatModel wrapper</td></tr><tr><td>2 调用链</td><td>[SystemMessage, HumanMessage]</td><td>业务代码调用 model.invoke(messages)。</td><td>AIMessage(content=..., response_metadata=...)</td></tr><tr><td>3 切换配置</td><td>anthropic:claude-sonnet-4-5</td><td>同一工厂选择 ChatAnthropic。</td><td>另一个 BaseChatModel wrapper</td></tr><tr><td>4 下游不变</td><td>相同 messages / parser / Runnable</td><td>调用代码仍读取 AIMessage.content 或 tool_calls。</td><td>业务层无需处理 Anthropic 原始响应</td></tr><tr><td>5 差异隔离</td><td>provider-specific kwargs</td><td>只在模型构造处处理特殊参数和能力差异。</td><td>爆炸半径被限制在适配层</td></tr></table>
+<h2>invoke、stream、batch 与异步变体</h2>
+<p><span class="mono">invoke</span> 是最容易理解的入口：给一个输入，返回一个完整 <span class="mono">AIMessage</span>。输入可以是字符串、消息列表、PromptValue 等，模型会做转换。不要期待返回裸字符串；如果只想要字符串，后面接 <span class="mono">StrOutputParser</span>。保留 AIMessage 的好处是你能读到 tool_calls、usage_metadata、response_metadata 和 id。</p>
+<p><span class="mono">stream</span> 返回逐步产生的 chunk，适合 UI 逐字显示、实时日志或早期反馈。它不保证总耗时更短，只是让第一个 token 更早到达。chunk 不是最终消息，通常需要框架或你自己的逻辑合并。对于工具调用、结构化输出和多模态块，流式 chunk 的边界可能比普通文本复杂。</p>
+<p><span class="mono">batch</span> 接收多个输入并返回多个结果，重点是批量调用同一个 Runnable。它不是“让模型并行执行工具”的意思；工具并行属于 Agent / tool execution 层。batch 是否真正并发、并发度多少、错误如何返回，受 RunnableConfig 的 <span class="mono">max_concurrency</span> 和具体实现影响。</p>
+<p>异步变体如 <span class="mono">ainvoke</span>、<span class="mono">astream</span>、<span class="mono">abatch</span> 让模型调用与 async 应用配合。C 级使用时要注意不要在同步 Web 框架里硬塞事件循环，也不要在 async 服务里调用阻塞同步接口。选择同步还是异步，应由你的运行时决定，而不是由模型名字决定。</p>
 
-model = init_chat_model(<span class="st">"openai:gpt-5.1"</span>)        <span class="cm"># OpenAI</span>
-<span class="cm"># model = init_chat_model("anthropic:claude-sonnet-4-5")  # 换厂商只改这里</span>
-</pre>
+<h2>bind_tools：把工具 schema 交给模型，而不是执行工具</h2>
+<p><span class="mono">bind_tools</span> 返回一个绑定了工具 schema 的模型 Runnable。它把工具名称、描述、参数结构翻译成 provider 能理解的 tool/function calling 格式，让模型可以在 <span class="mono">AIMessage.tool_calls</span> 中提出请求。但它不执行工具，也不保证模型一定调用工具。执行仍然发生在 Agent 循环、LangGraph 节点或你的业务代码里。</p>
+<p>这条边界能避免很多误会。模型 wrapper 的职责是“让 provider 知道有哪些工具可选，并把返回的工具意图解析出来”；工具执行器的职责是“验证参数、检查权限、调用真实代码、生成 ToolMessage”。把这两件事混在一起，会让安全审计和错误处理变得模糊。</p>
 
-<table class="t">
-  <tr><th>前缀写法</th><th>实际用到的集成包</th></tr>
-  <tr><td class="mono">"openai:gpt-5.1"</td><td class="mono">langchain-openai</td></tr>
-  <tr><td class="mono">"anthropic:claude-sonnet-4-5"</td><td class="mono">langchain-anthropic</td></tr>
-  <tr><td class="mono">"ollama:llama3"</td><td class="mono">langchain-ollama</td></tr>
-</table>
+<h2>模型 kwargs、retry、fallback 与配置传播</h2>
+<p>模型构造参数分两类：通用参数和 provider-specific 参数。通用参数如 temperature、timeout、max_tokens 更容易跨 provider；特殊参数如某厂商的 reasoning、response_format、top_k 或 cache_control 可能只对一个 wrapper 有意义。可移植应用应把特殊参数集中在模型创建处，避免在业务链各处散落。</p>
+<p>重试和 fallback 通常通过 Runnable 能力组合，而不是在每个业务函数里手写。你可以把模型包上 retry 策略，或在一个 provider 失败时 fallback 到另一个 provider。但 fallback 不是免费午餐：不同模型支持的工具、上下文长度、结构化输出和安全策略可能不同。可靠 fallback 需要用相同消息契约、相近能力集合和明确的失败条件。</p>
+<p><span class="mono">RunnableConfig</span> 承载 tags、metadata、callbacks、run_name、max_concurrency 等运行信息。它不是 prompt 内容，也不是模型参数的垃圾桶。tags 和 metadata 用于追踪与筛选；callbacks 用于观察事件；max_concurrency 影响并发调度。把 config 当成业务输入会导致调用链难以理解。</p>
 
-<div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应</div>
-  <ul>
-    <li><span class="mono">init_chat_model</span> 在 <span class="mono">langchain_v1/langchain/chat_models/base.py</span>。
-      它解析前缀、按需导入对应 partner 包、返回一个 <span class="mono">BaseChatModel</span> 实例。</li>
-    <li>返回的对象类型（如 <span class="mono">ChatOpenAI</span>）来自<strong>集成层</strong>，但都实现了<strong>地基层</strong>
-      <span class="mono">core/language_models/chat_models.py</span> 里的 <span class="mono">BaseChatModel</span> 接口。</li>
-  </ul>
-</div>
+<h2>模型对象与 provider client 的边界</h2>
+<p>如果你需要使用厂商 SDK 的极端新功能，而 wrapper 尚未支持，可以在一小块 adapter 代码里直接调用 SDK。但要知道这会绕过 LangChain 的统一消息、回调、trace、重试和输出类型。更稳的策略是先判断是否能通过 wrapper 的 provider-specific kwargs 暴露；不能时再封装自定义 Runnable，让裸 SDK 只出现在边界层。</p>
+<p>反过来，不要为了“更底层可控”在应用各处直接创建 provider client。这样会让 API key、timeout、日志、重试、消息转换和错误处理重复出现。聊天模型 wrapper 的价值，就是把这些胶水收口，并让它们服从 Runnable 组合。</p>
 
-<h2>三种调用方式：invoke / stream / batch</h2>
-<p>拿到模型后，有三种跑法。它们其实来自更底层的 <strong>Runnable 接口</strong>（第 8 课会揭晓）：</p>
+<h2>从 C 级视角调试模型调用</h2>
+<p>当模型调用失败时，先定位失败发生在哪一层。构造阶段报错，多半是 provider 前缀、依赖安装、认证或参数名问题；调用前报错，多半是输入消息无法转换；provider 返回错误，可能是模型名、权限、上下文长度或工具 schema 不被支持；返回后下游崩溃，可能是把 AIMessage 当字符串、把 tool_calls 当文本或假设 metadata 字段跨 provider 一致。</p>
+<p>调试输出建议包含模型类名、模型名、消息类型摘要、返回消息类型、usage 和 response metadata。不要只打印最终内容，因为最终内容掩盖了最关键的边界信息。一次好的 trace 应能回答：用了哪个 wrapper？输入是什么消息？provider 返回什么结构？上层读取了哪个字段？</p>
 
-<div class="cols">
-  <div class="col">
-    <h4>🟢 invoke：一问一答</h4>
-    <pre class="code" style="margin:.4rem 0">resp = model.invoke(
-  <span class="st">"北京天气怎么样？"</span>
-)
-print(resp.content)
-<span class="cm"># 返回一条完整 AIMessage</span></pre>
-  </div>
-  <div class="col">
-    <h4>🔵 stream：逐字流式</h4>
-    <pre class="code" style="margin:.4rem 0"><span class="kw">for</span> chunk <span class="kw">in</span> model.stream(
-    <span class="st">"讲个故事"</span>):
-  print(chunk.content, end=<span class="st">""</span>)
-<span class="cm"># 一块块吐 AIMessageChunk</span></pre>
-  </div>
-</div>
-<pre class="code"><span class="cm"># batch：一次并发跑多个输入</span>
-answers = model.batch([<span class="st">"北京天气？"</span>, <span class="st">"上海天气？"</span>, <span class="st">"广州天气？"</span>])
-</pre>
+<h2>C 级排错清单：模型层先定位哪一段</h2>
+<p>聊天模型故障通常分为构造失败、输入失败、provider 失败、解析失败和下游误用。构造失败要看模型字符串、可选依赖、环境变量、provider 前缀和 kwargs；输入失败要看传入的是字符串、PromptValue 还是消息列表，以及是否有无法转换的 dict；provider 失败要看 HTTP 状态、权限、模型名、上下文长度和工具能力；解析失败要看 AIMessage 的真实内容；下游误用则常见于把 AIMessage 当字符串。</p>
+<p>如果同一段链在 fake model 下正常、真实 provider 下失败，问题多半在 provider wrapper、认证、参数或模型能力。如果真实 provider 返回正常 AIMessage，但 parser 失败，问题在输出契约或 prompt，而不是模型构造。如果 OpenAI 能调用工具、Anthropic 切换后不能，先确认该 wrapper 是否支持同样工具 schema、参数名是否被翻译、特殊 kwargs 是否仍适用。不要把 provider 能力差异误判为 LangChain 抽象失效。</p>
+<p>排查流式问题时也要分层。stream 没有 token 可能是 provider 不支持、模型 wrapper 回退、网络缓冲、callback 阻塞或上游 prompt 还没完成；batch 慢可能是 max_concurrency 太低、provider 限速或你误以为 batch 会并行工具；async 卡住可能是同步函数阻塞事件循环。每个症状都要落到接口语义，而不是笼统说“模型慢”。</p>
+<h2>可移植模型配置的设计</h2>
+<p>生产项目最好把模型选择集中在一个工厂或配置层。业务链只接收 BaseChatModel 或 Runnable，不直接导入 ChatOpenAI、ChatAnthropic。这样 provider 切换时，你只修改配置层和少量能力适配。若某个业务必须使用 provider 专有参数，应在工厂里明确命名，例如 create_reasoning_model 或 create_fast_chat_model，而不是让每个调用点传一堆神秘 kwargs。</p>
+<p>配置层还应记录模型能力：是否支持工具调用、是否支持 JSON schema、最大上下文、是否支持 streaming、是否允许图像输入、成本等级和降级模型。这样 fallback 不是盲目替换字符串，而是从能力相近的候选中选择。C 级工程关注的不是“能不能跑一次”，而是“当主模型失败、限速或升级时，系统如何保持可解释”。</p>
+<p>重试策略也要谨慎。网络超时、429 限速和 5xx 可以重试；参数错误、权限错误、上下文过长通常不应原样重试。对流式调用，已经向用户输出部分内容后再重试会造成重复文本，需要 UI 和运行状态配合。对工具调用，重试模型可能生成不同 tool_call_id，执行器要避免重复副作用。模型层的 retry 不是简单装饰器，而是和消息、工具、UI、成本共同设计。</p>
+<h2>测试聊天模型边界</h2>
+<p>大多数模型层单元测试不应依赖真实 provider。可以使用 fake chat model 固定返回 AIMessage，验证 prompt、parser、工具执行器和下游字段读取。集成测试再少量覆盖真实 wrapper：构造成功、简单 invoke 返回 AIMessage、metadata 可打印、工具 schema 能被接受。这样既控制成本，又能在 provider 变化时快速发现适配问题。</p>
+<p>测试还应覆盖“切换模型不改下游”。给同一组消息分别传入两个 fake wrapper，断言下游只读取 AIMessage.content、tool_calls 或标准 metadata，不读取 provider 原始字段。若测试发现业务代码需要 response_metadata 里的私有字段才能工作，说明抽象边界已经泄漏，应把这段逻辑移到 provider adapter 或显式能力分支。</p>
+<p>日志方面，建议每次模型调用记录模型类名、模型名、run id、输入消息数量、是否绑定工具、输出类型、finish_reason、token 用量和耗时。不要默认记录完整 prompt；需要排查时再按权限和脱敏策略打开。一个成熟的模型调用层应该既能保护隐私，又能让工程师快速判断失败发生在哪个边界。</p>
+<p>最后，把模型 wrapper 看作“可替换但不完全等价”的组件。LangChain 统一调用形状，不抹平所有能力差异。优秀设计会最大化通用路径，最小化专有路径，并把专有路径命名、集中、测试。这样你既能享受抽象带来的迁移能力，也不会对 provider 差异抱有不现实期待。</p>
 
-<div class="card macro">
-  <div class="tag">🌍 宏观理解：输入很灵活，输出很统一</div>
-  <ul>
-    <li><strong>输入</strong>可以偷懒：传<strong>字符串</strong>（自动当成 HumanMessage）、传<strong>消息列表</strong>、
-      或传 <span class="mono">[("system","..."),("human","...")]</span> 这样的元组列表。</li>
-    <li><strong>输出</strong>永远统一：<span class="mono">invoke</span> → 一条 <span class="mono">AIMessage</span>；
-      <span class="mono">stream</span> → 一串 <span class="mono">AIMessageChunk</span>。</li>
-    <li><strong>异步版</strong>同样齐全：<span class="mono">ainvoke</span> / <span class="mono">astream</span> / <span class="mono">abatch</span>。</li>
-  </ul>
-</div>
 
-<h2>给模型装上工具：bind_tools</h2>
-<p>聊天模型本身不会执行工具，但可以被告知"你有哪些工具可用"。这一步叫 <span class="inline">bind_tools</span>，
-是通往 Agent 的关键一跳：</p>
-<pre class="code">model_with_tools = model.bind_tools([get_weather])
-resp = model_with_tools.invoke(<span class="st">"北京天气怎么样？"</span>)
-print(resp.tool_calls)   <span class="cm"># 模型会在这里"请求"调用 get_weather</span>
-</pre>
+<h2>课堂复盘：把模型调用写成可替换端口</h2>
+<p>一个成熟项目通常不会让业务代码到处写 <span class="mono">ChatOpenAI(...)</span>。更好的形状是：配置层决定 provider 和模型名，基础设施层构造 BaseChatModel，应用层只依赖 Runnable 行为。这样订单客服、知识库问答和总结任务都可以接收“一个聊天模型端口”，而不是硬绑定某个厂商。端口不是为了抽象而抽象，而是为了把认证、参数、重试、fallback 和观测集中管理。</p>
+<p>当你审查模型调用代码时，可以问四个问题：第一，下游是否只依赖 AIMessage 的标准字段；第二，provider-specific kwargs 是否集中在构造层；第三，RunnableConfig 的 tags、metadata、callbacks 是否能传到模型；第四，测试是否能用 fake model 替代真实 provider。如果四个问题都能回答，说明模型边界比较健康。</p>
+<p>模型切换也要有预期管理。LangChain 统一接口，但不同模型的推理风格、工具支持、上下文长度和结构化输出能力仍可能不同。所谓稳定不是“输出永远一样”，而是“变化发生在明确边界，可观测、可测试、可回滚”。这就是 BaseChatModel 对应用架构的价值。</p>
 
-<h2>进阶：让模型直接吐出"结构化数据"</h2>
-<p>除了自由文本，你常常想让模型返回<strong>固定结构的数据</strong>（如 JSON / 对象）。
-用 <span class="inline">with_structured_output</span> 绑定一个 schema，模型输出就会被解析成该类型：</p>
-<pre class="code"><span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel
+<h2>延伸练习：为模型工厂写一份能力表</h2>
+<p>可以为每个可选模型维护一份小能力表：provider、模型名、是否支持工具、是否支持结构化输出、是否支持 streaming、上下文长度、默认 timeout、成本等级、推荐用途和 fallback 目标。业务代码不直接判断字符串，而是询问能力。这样新增模型时，你会被迫思考它能不能替代当前模型，而不是只看名字是否更强。</p>
+<p>能力表还能帮助测试。针对支持工具的模型跑工具 schema 冒烟测试，针对支持 streaming 的模型跑 chunk 合并测试，针对结构化输出模型跑 parser 测试。不同能力对应不同测试，而不是所有模型都跑同一套模糊端到端。模型抽象越统一，能力差异越需要显式记录。</p>
+<p>最后，把模型调用成本也纳入设计。usage_metadata 可以进入指标系统，按功能、用户组和模型版本统计。成本异常常常提示 prompt 过长、history 裁剪失败或重试过多。模型 wrapper 给你统一 metadata，应用要把它转化为运维信号，而不是只在调试时看一眼。</p>
 
-<span class="kw">class</span> <span class="fn">Weather</span>(BaseModel):
-    city: str
-    temp_c: float
+<h2>最后检查：把概念落到一次真实调用</h2>
+<p>完成本课后，请把概念重新放回一次真实调用中验证：输入从哪里来，经过哪个对象标准化，运行时配置如何传播，输出由谁解释，错误在哪里被看见，哪些信息进入 trace，哪些信息进入业务状态。只要能沿着这条线讲清楚，说明你掌握的不是 API 片段，而是可维护的系统边界。</p>
+<p>这也是 C 级课程反复强调的学习方法：每个抽象都要回答“它统一什么、它不负责什么、它失败时看什么证据”。抽象不是为了隐藏一切，而是为了让变化集中、证据清楚、责任可定位。后续课程继续读源码时，请始终用这三个问题检查自己的理解。</p>
 
-structured = model.with_structured_output(Weather)
-result = structured.invoke(<span class="st">"北京现在 25 度"</span>)
-<span class="cm"># result 直接是 Weather(city="北京", temp_c=25.0)，不是字符串</span>
-</pre>
-<div class="card detail">
-  <div class="tag">🔬 代码对应</div>
-  <span class="mono">with_structured_output</span> 定义在 <span class="mono">core/language_models/chat_models.py</span>，
-  与 <span class="mono">bind_tools</span> 相邻。它底层常借助"工具调用 / JSON 模式"来强制模型产出符合 schema 的结果。
-</div>
-
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入三个常见疑问。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> invoke / stream / batch 该用哪个 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 场景对照</div>
-      <div class="a">
-<pre class="code">invoke  → 一问一答，要完整结果（最常用）
-stream  → 聊天 UI 打字机效果，边生成边显示
-batch   → 一批互不相关的输入，并发处理省时间
-a*      → 上面三个的异步版（FastAPI 等异步框架里用）</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 什么时候用异步版（a*）</div>
-      <div class="a">当代码跑在 <strong>asyncio 事件循环</strong>里（FastAPI、aiohttp、聊天机器人等），用
-        <span class="mono">await model.ainvoke(...)</span> 能在等模型返回时<strong>不阻塞</strong>其它请求，单机扛更多并发；
-        普通脚本或同步框架用同步版即可。<pre class="code"><span class="kw">resp</span> = <span class="kw">await</span> model.ainvoke(<span class="st">"你好"</span>)   <span class="cm"># 必须在 async def 内</span></pre></div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么有这么多</div>
-      <div class="a">不同场景对"延迟感受"和"吞吐"诉求不同：用户等单个回答看重<strong>首字延迟</strong>（stream），
-        后台批处理看重<strong>总吞吐</strong>（batch）。一套接口覆盖全部，省得你换 API。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">它们其实都来自底层 <strong>Runnable</strong> 接口（第 8 课），所以<strong>任何</strong> LangChain 组件
-        （链、Agent）都自带这四类跑法，学一次处处通用。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> init_chat_model 的"厂商:型号"是怎么解析的 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 两种等价写法</div>
-      <div class="a">
-<pre class="code"><span class="cm"># 写法 1：前缀内联</span>
-init_chat_model(<span class="st">"anthropic:claude-sonnet-4-5"</span>)
-
-<span class="cm"># 写法 2：分开传（适合 provider 来自配置/环境变量）</span>
-init_chat_model(<span class="st">"claude-sonnet-4-5"</span>, model_provider=<span class="st">"anthropic"</span>)</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 它在背后做了什么</div>
-      <div class="a">解析前缀 → 推断 provider → <strong>按需导入</strong>对应 partner 包（如 <span class="mono">langchain-anthropic</span>）→
-        实例化具体模型类（<span class="mono">ChatAnthropic</span>）→ 返回一个 <span class="mono">BaseChatModel</span>。
-        所以你<strong>必须先安装</strong>对应 partner 包。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点 & 🔀 其他方案</div>
-      <div class="a">优点：一行切换厂商、provider 可动态化。其他方案：直接 <span class="mono">from langchain_openai import ChatOpenAI</span>
-        手动实例化（更显式，但换厂商要改 import）。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> 自由文本 vs 结构化输出，何时用哪个 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 对比</div>
-      <div class="a">需要"念给人听"的回答 → 用普通 <span class="mono">invoke</span>（拿 <span class="mono">.content</span>）；
-        需要"喂给程序"的数据（写库、调用下游 API）→ 用 <span class="mono">with_structured_output</span> 拿到对象。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">直接让模型"输出 JSON"很脆——它可能多写解释、少个引号导致解析失败。
-        <span class="mono">with_structured_output</span> 用 schema 约束 + 自动解析，把这种不确定性收敛掉。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点 & 🔀 其他方案</div>
-      <div class="a">优点：拿到的是已校验的强类型对象，省去手写解析与容错。
-        其他方案：自己写 prompt 要求输出 JSON + <span class="mono">json.loads</span>（易碎）；或用 output parser 手动解析。</div>
-    </div>
-  </div>
-</details>
-
-<h2>🎚️ 进阶专题：参数、缓存、重试、限流</h2>
-<p>同一个模型，行为可以被大量参数和"包装器"调节：控制随机性、固定默认参数、省钱（缓存）、
-抗抖动（重试）、防超额（限流）。这些是把 demo 变成生产应用的关键开关。</p>
-
-<table class="t">
-  <tr><th>目的</th><th>手段</th></tr>
-  <tr><td>控制输出（随机性/长度）</td><td class="mono">init 时传 temperature / max_tokens 等</td></tr>
-  <tr><td>固定默认调用参数</td><td class="mono">model.bind(stop=..., ...)</td></tr>
-  <tr><td>重复问题不重复请求</td><td class="mono">缓存（cache）</td></tr>
-  <tr><td>偶发错误自动重试</td><td class="mono">model.with_retry()</td></tr>
-  <tr><td>控制请求速率，防 429</td><td class="mono">InMemoryRateLimiter</td></tr>
-</table>
-
-<h2>🔍 调用控制 · 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，逐个吃透每个开关。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 调输出：temperature 等参数 + .bind 固定默认 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 两种设定方式</div>
-      <div class="a">
-<pre class="code"><span class="cm"># 1) 实例化时设定（影响这个模型的所有调用）</span>
-model = init_chat_model(<span class="st">"openai:gpt-5.1"</span>, temperature=0)  <span class="cm"># 0=更确定</span>
-
-<span class="cm"># 2) .bind 固定某些默认调用参数，返回一个新 Runnable</span>
-strict = model.bind(stop=[<span class="st">"\n\n"</span>])   <span class="cm"># 之后每次调用都带上这个 stop</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ temperature 是什么 / bind 有何用</div>
-      <div class="a"><span class="mono">temperature</span> 控制随机性：低=稳定可复现（适合抽取/分类），高=有创意（适合头脑风暴）。
-        <span class="mono">.bind</span> 把"每次都要传的参数"<strong>预先绑死</strong>，省得每次调用重复写，且产物仍是 Runnable 可继续组合。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">实例级设定影响全局、bind 级设定可派生多个"预设版本"模型（如一个严格版、一个发散版），互不影响。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> 省钱与抗抖动：缓存 + with_retry <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">
-<pre class="code"><span class="cm"># 缓存：相同输入直接返回上次结果，不再请求（省钱省时间）</span>
-<span class="kw">from</span> langchain_core.globals <span class="kw">import</span> set_llm_cache
-<span class="kw">from</span> langchain_core.caches <span class="kw">import</span> InMemoryCache
-set_llm_cache(InMemoryCache())
-
-<span class="cm"># 重试：偶发错误（429/超时）自动重试，返回一个带重试的 Runnable</span>
-robust = model.with_retry(stop_after_attempt=3)</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 它们解决什么</div>
-      <div class="a">缓存命中时<strong>根本不发请求</strong>（呼应第 11 课的 <span class="mono">_generate_with_cache</span>），重复问答零成本；
-        <span class="mono">with_retry</span> 是 Runnable 通用能力，用指数退避吸收瞬时故障。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">缓存与重试都是"包一层"就生效，业务代码不变；<span class="mono">with_retry</span> 对任何 Runnable（不止模型）都适用。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> 防超额：用限流器控制请求速率 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">
-<pre class="code"><span class="kw">from</span> langchain_core.rate_limiters <span class="kw">import</span> InMemoryRateLimiter
-
-limiter = InMemoryRateLimiter(requests_per_second=2)   <span class="cm"># 每秒最多 2 次</span>
-model = init_chat_model(<span class="st">"openai:gpt-5.1"</span>, rate_limiter=limiter)</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">厂商有 RPM/TPM 配额，<span class="mono">batch</span> 或高并发场景很容易触发 <strong>429 Too Many Requests</strong>。
-        限流器在客户端<strong>主动节流</strong>，从源头避免被拒。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 代码对应 & 🔀 其他方案</div>
-      <div class="a"><span class="mono">InMemoryRateLimiter</span> 在 <span class="mono">core/rate_limiters.py</span>（进程内限流）。
-        其他方案：分布式部署时用基于 Redis 的限流；或在网关层统一限流。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">4</span> with_structured_output 的"策略"：include_raw 与 method <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 include_raw：同时拿到原始消息与解析结果</div>
-      <div class="a">
-<pre class="code">structured = model.with_structured_output(Weather, include_raw=True)
-structured.invoke(<span class="st">"北京 25 度"</span>)
-<span class="cm"># → {"raw": AIMessage(...), "parsed": Weather(...), "parsing_error": None}</span></pre>
-        默认只返回 <span class="mono">parsed</span>；<span class="mono">include_raw=True</span> 还给你原始 AIMessage 和解析错误，便于排查。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ method：用什么机制约束输出</div>
-      <div class="a">各 partner 的 <span class="mono">with_structured_output</span> 常接受 <span class="mono">method=</span>：
-        <span class="mono">"function_calling"</span>（借工具调用）/ <span class="mono">"json_mode"</span> / <span class="mono">"json_schema"</span>。
-        这决定了可靠性与模型支持度——是结构化输出"成不成"的关键旋钮。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 在 Agent 里：三种策略</div>
-      <div class="a"><span class="mono">response_format</span>（第 7 课）底层用
-        <span class="mono">ToolStrategy</span> / <span class="mono">ProviderStrategy</span> /
-        <span class="mono">AutoStrategy</span>（自动选）三种策略都在 <span class="mono">structured_output.py</span>。核心签名在 <span class="mono">chat_models.py</span>。</div>
-    </div>
-  </div>
-</details>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li>invoke/stream/batch <strong>来自底层 Runnable</strong>，所有组件通用，学一次处处可用。</li>
-    <li>缓存 / 重试 / 限流都是<strong>"包一层"</strong>就生效，业务代码零改动。</li>
-  </ul>
-</div>
-
+<h2>模型层补充提醒</h2>
+<p>如果一个模型包装器让你必须在业务层到处判断 provider，说明抽象边界已经变薄。应把差异收回构造层、适配层或能力表，让业务链继续面对消息、Runnable 和 AIMessage。</p>
+<p>模型边界越集中，升级越安全，排错越直接。</p>
+<h2>常见误解</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：ChatOpenAI 就是 OpenAI SDK 客户端。</div><div class="pf-correct">正确：它是实现 BaseChatModel/Runnable 的 LangChain wrapper，内部才调用厂商 SDK。</div></div><div class="pitfall"><div class="pf-wrong">误解：invoke 返回字符串。</div><div class="pf-correct">正确：聊天模型 invoke 返回 AIMessage；要字符串可接 StrOutputParser 或读取 content。</div></div><div class="pitfall"><div class="pf-wrong">误解：batch 等于让模型自动并行调用工具。</div><div class="pf-correct">正确：batch 是批量处理多个输入；工具并行属于工具执行或 Agent 编排层。</div></div><div class="pitfall"><div class="pf-wrong">误解：provider-specific kwargs 可以到处传。</div><div class="pf-correct">正确：特殊参数应集中在模型初始化边界，否则 provider 切换会污染业务层。</div></div><div class="pitfall"><div class="pf-wrong">误解：fallback 只要换另一个模型名就安全。</div><div class="pf-correct">正确：fallback 需要能力、工具 schema、输出契约和错误条件都可兼容。</div></div></div>
+<h2>小实验：用假模型观察类名与 metadata</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 确定性模型的模型边界</div><ol><li>使用 FakeListChatModel 或项目已有 deterministic fake model，构造一个固定返回 AIMessage 的模型。</li><li>打印 model.__class__.__name__，确认你拿到的是 LangChain 模型 wrapper，而不是 provider 原始 client。</li><li>调用 invoke([HumanMessage(content=&#x27;ping&#x27;)])，打印 type(result)、result.content、result.response_metadata。</li><li>把下游改成读取 result.content，再接 StrOutputParser 对比两种写法的边界差异。</li><li>如果有两个 fake/provider wrapper，切换构造处，确认消息输入和下游读取代码保持不变。</li></ol></div>
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li><span class="mono">init_chat_model("厂商:型号")</span> 一行拿到任意厂商模型，用法完全统一。</li>
-    <li>三种跑法：<strong>invoke</strong>（一次）/<strong>stream</strong>（流式）/<strong>batch</strong>（批量），均有 async 版。</li>
-    <li>输入灵活（字符串/消息/元组），输出统一（AIMessage / AIMessageChunk）。</li>
-    <li>行为可调：<strong>temperature/bind</strong>（控输出）、<strong>缓存</strong>（省钱）、<strong>with_retry</strong>（抗抖动）、<strong>限流器</strong>（防 429）。</li>
-    <li><span class="mono">bind_tools</span> 让模型"知道"有哪些工具——下一课正式认识工具。</li>
+    <li><span class="mono">BaseChatModel</span> 把 provider API 包成 Runnable，统一 invoke、stream、batch、async 和 config 传播。</li>
+    <li><span class="mono">init_chat_model</span> 是配置入口；<span class="mono">ChatOpenAI</span>、<span class="mono">ChatAnthropic</span> 是具体厂商 wrapper。</li>
+    <li>聊天模型返回 <span class="mono">AIMessage</span>，不是裸字符串；工具绑定产生工具意图，不执行真实工具。</li>
+    <li>通用能力写在消息和 Runnable 契约上，provider-specific 参数隔离在初始化边界。</li>
   </ul>
 </div>
-<div class="selftest">
+<div class="card version"><div class="tag">📌 版本锚点</div>本课以 LangChain v1 的 init_chat_model、BaseChatModel 和 partner wrapper 分层为锚点。不同版本的模型名、可选依赖和 provider 参数会变化，但“高层工厂 → BaseChatModel → partner wrapper → AIMessage”的阅读路径保持稳定。</div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. <code>init_chat_model('厂商:型号')</code> 把“换模型”做成改一行字符串。为了这个体验，框架在背后承担了什么？</div>
+  <div class="qn">1. 聊天模型 wrapper 与 provider 原生 SDK 的边界，最准确的说法是？</div>
   <ol class="opts">
-    <li>限制你只能用大厂</li>
-    <li>什么都没做</li>
-    <li>让模型变慢</li>
-    <li>把各厂商千差万别的 SDK/参数/认证统一适配到同一套接口背后——复杂度被收进框架，留给你的是简单</li>
+    <li>wrapper 只负责保存 API key，不处理消息转换</li>
+    <li>wrapper 实现 LangChain 的 Runnable/消息契约，内部才调用 provider SDK</li>
+    <li>业务代码应该读取 provider 原始 HTTP 响应来保持灵活</li>
+    <li>wrapper 就是 provider SDK 的别名，不改变输入输出</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。“你这边一行、框架那边一堆适配”。简单的使用面背后是被吸收的复杂度——这正是好抽象的标志。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。边界在 wrapper：上层面对 BaseChatModel、RunnableConfig 和 AIMessage；provider SDK、payload 差异和响应解析应被隔离在适配层。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. <code>invoke / stream / batch</code> 共用一套接口、还都有 async 版。为什么不为每种场景设计不同的 API？</div>
+  <div class="qn">2. <code>model.invoke(...)</code> 的标准返回类型是什么？</div>
   <ol class="opts">
-    <li>偷懒</li>
-    <li>同一个模型对象覆盖“要完整结果/打字机效果/批量吞吐/异步并发”四类需求，你不必换 API、心智负担最小</li>
-    <li>厂商规定</li>
-    <li>这样更慢</li>
+    <li>裸字符串，因为下游只需要文本</li>
+    <li><code>AIMessage</code>，其中可能包含 content、tool_calls、usage_metadata 等字段</li>
+    <li>总是 JSON dict，和工具 schema 一样</li>
+    <li>provider SDK 的原始响应对象</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。一套接口、多种执行语义，是 Runnable 抽象的红利（第 8 课）——换场景只换方法名，不换世界观。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。invoke 的统一输出是 AIMessage。想要字符串可再接 StrOutputParser；直接假设裸字符串会丢掉工具调用和元数据。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 模型行为可调：temperature、缓存、<code>with_retry</code>、限流器…都做成“可叠加的配置/包装”而非写死。好处是？</div>
+  <div class="qn">3. <code>bind_tools</code> 对聊天模型做了什么？</div>
   <ol class="opts">
-    <li>让代码更长</li>
-    <li>横切关注点（省钱/抗抖动/防 429）与“调用模型”本身解耦，可按需组合、随时增减，核心逻辑不变</li>
-    <li>强制你全用上</li>
-    <li>配置项多显得专业</li>
+    <li>保证模型一定会调用某个工具</li>
+    <li>把工具函数转换成 prompt 字符串后删除 schema</li>
+    <li>把工具 schema 绑定到模型请求上，让模型可以返回 tool_calls，但不执行工具</li>
+    <li>立即调用所有工具并把结果写入数据库</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把“重试/缓存/限流”做成可插拔包装，是“关注点分离”——你像搭积木一样按需加固，而不是把这些塞进业务代码。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. 输入很灵活（字符串/消息/元组），输出却很统一（<code>AIMessage</code>）。这种“入口宽、出口窄”的设计意图是？</div>
-  <ol class="opts">
-    <li>故意不一致</li>
-    <li>为了少写代码</li>
-    <li>入口宽 = 怎么顺手怎么传；出口统一 = 下游永远拿到同一种结构，可稳定衔接解析器/工具/Agent</li>
-    <li>没什么意图</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。“宽进严出”——容忍多样输入降低门槛，收敛统一输出保证可组合性。两头的设计各有目的。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。bind_tools 改变的是模型可见的工具说明和 provider 请求格式；真实执行仍由 Agent、图节点或你的业务代码完成。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>“把复杂度收进框架、只给用户一行”是好抽象，但有时你需要某厂商的独特参数。当统一接口“漏掉”了你要的特性，框架一般留了什么后门？这种“通用 vs 专有”的张力你怎么平衡？</li>
-    <li>缓存能省钱、但可能返回过时结果；重试能抗抖动、但可能放大重复请求。给“省钱”和“稳定”各举一个<strong>会反噬</strong>的场景。</li>
+    <li>设计一次从 OpenAI 切到 Anthropic 的改动：哪些代码应该只改模型构造或配置，哪些业务链、parser、工具执行代码不应该跟着改？</li>
+    <li>检查一个模型配置对象：列出通用参数、provider-specific 参数、RunnableConfig 中的 tags/metadata/callbacks，并说明各自应该在哪一层使用。</li>
   </ul>
 </div>
 </div>

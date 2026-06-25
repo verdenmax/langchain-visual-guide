@@ -3,16 +3,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>10 · 输出解析器 Output Parsers — LangChain 图解教程</title>
-<meta name="description" content="第三部分 · 内部源码｜输出解析器 Output Parsers：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="description" content="第二部分 · 用户 API 基础｜输出解析器 Output Parsers：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
 <meta property="og:title" content="10 · 输出解析器 Output Parsers — LangChain 图解教程">
-<meta property="og:description" content="第三部分 · 内部源码｜输出解析器 Output Parsers：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:description" content="第二部分 · 用户 API 基础｜输出解析器 Output Parsers：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="10 · 输出解析器 Output Parsers — LangChain 图解教程">
-<meta name="twitter:description" content="第三部分 · 内部源码｜输出解析器 Output Parsers：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:description" content="第二部分 · 用户 API 基础｜输出解析器 Output Parsers：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -256,222 +256,218 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
 </style>
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第三部分 · 内部源码</span>
-    <span class="pill">10 / 27</span>
+    <span class="pill">第二部分 · 用户 API 基础</span>
+    <span class="pill">10 / 46</span>
   </div>
-  <div class="progress"><span style="width:37%"></span></div>
+  <div class="progress"><span style="width:21%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第三部分 · 内部源码</div>
+    <div class="part">第二部分 · 用户 API 基础</div>
     <h1>输出解析器 Output Parsers</h1>
   </div>
-  
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-第 8、9 课你反复见到 <span class="inline">prompt | model | parser</span> 这条链，但 <strong>parser（输出解析器）</strong>一直没讲。
-它负责把模型吐出的"一段文本"变成<strong>程序能直接用的结构化数据</strong>——这是 LCEL 链里缺失的第三块拼图。
-</p>
+
+<p class="lead">输出解析器把模型生成的文本或消息变成应用能依赖的数据契约。模型擅长生成，但应用需要稳定类型：字符串、JSON dict、Pydantic 对象、列表或业务命令。<span class="mono">StrOutputParser</span>、<span class="mono">JsonOutputParser</span> 和 <span class="mono">BaseOutputParser</span> 让 <span class="mono">prompt | model | parser</span> 成为清晰链路；解析失败应被看见、验证、修复，而不是被吞掉。</p>
 
 <div class="card analogy">
-  <div class="tag">🧾 生活类比</div>
-  模型像一位<strong>口述答案的专家</strong>：它说得很好，但说出来的是"一段话"。
-  输出解析器就是旁边的<strong>速记员</strong>：把这段口述<strong>整理成表格/卡片/JSON</strong>，让后面的程序能直接录入、计算、入库。
+  <div class="tag">🧾 生活类比 · 海关申报单</div>
+  模型输出像旅客口头描述“我带了点东西”，解析器像海关把口头描述填进标准申报单：物品名称、数量、金额、是否需要检查。口头描述可以很流畅，但系统入库必须是字段明确的表。填错了不能假装没事，要退回补充或人工检查。
 </div>
 
-<h2>为什么需要它</h2>
-<p>模型 <span class="inline">invoke</span> 返回的是 <span class="inline">AIMessage</span>，其 <span class="inline">.content</span> 是<strong>字符串</strong>。
-但你的程序往往需要的是 <strong>纯文本 / 字典 / 强类型对象</strong>。解析器就站在链的末尾，完成这"最后一步翻译"。</p>
+<h2>本课地图：从生成文本到应用数据</h2>
+<p>解析器的核心任务不是让模型“更聪明”，而是让应用边界更清楚。prompt 说明期望格式，模型生成候选输出，parser 把输出转成类型化结果，验证层检查业务约束，失败时进入修复或重试。没有解析器，应用很容易靠正则和字符串包含判断支撑关键流程，后期会非常脆弱。</p>
+<div class="lesson-map"><div class="lm-title">🗺️ 解析器的责任边界</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">Prompt</div><div class="mn-desc">要求模型输出某种格式或结构</div></div><div class="map-node now"><div class="mn-label">Model</div><div class="mn-desc">返回 AIMessage 或文本，可能包含格式错误</div></div><div class="map-node now"><div class="mn-label">Parser</div><div class="mn-desc">把文本 / 消息解析成字符串、dict、对象等契约</div></div><div class="map-node source"><div class="mn-label">Validation</div><div class="mn-desc">检查类型、必填字段、业务规则和可恢复错误</div></div><div class="map-node after"><div class="mn-label">Repair</div><div class="mn-desc">失败时重试、修复 prompt、人工介入或中断</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>输出解析要同时看普通 parser、JSON parser、抽象基类、模型结构化输出和 RunnableSequence。这样你能区分“parser 在模型之后解析”和“with_structured_output 让模型 wrapper 使用 provider 原生结构化能力”。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/output_parsers/string.py</td><td class="mono">StrOutputParser</td><td>从模型结果中提取字符串内容，是最简单的模型后处理 parser。</td><td>常接在聊天模型之后输出纯文本。</td></tr><tr><td class="mono">libs/core/langchain_core/output_parsers/json.py</td><td class="mono">JsonOutputParser</td><td>解析 JSON 文本为 Python 数据结构，并支持部分流式解析场景。</td><td>模型文本进入结构化应用数据。</td></tr><tr><td class="mono">libs/core/langchain_core/output_parsers/base.py</td><td class="mono">BaseOutputParser</td><td>解析器公共基类，定义 parse、parse_result、invoke 等接口。</td><td>具体 parser 继承并作为 Runnable 使用。</td></tr><tr><td class="mono">libs/core/langchain_core/language_models/chat_models.py</td><td class="mono">with_structured_output</td><td>聊天模型的结构化输出便捷接口，可结合 schema / provider 能力返回结构化结果。</td><td>模型 wrapper 层提供 parser 的替代或补充路径。</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">RunnableSequence</td><td>由 prompt | model | parser 组成的顺序 Runnable，负责把上一步输出传给下一步。</td><td>解析器进入链式组合。</td></tr></table>
+<h2>流程：prompt → model → parser → typed result → validation / repair</h2>
+<div class="flow call-graph"><div class="node hl"><div class="nt">prompt</div><div class="nd">说明输出契约，例如必须返回 JSON</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">model</div><div class="nd">生成 AIMessage 或文本，可能不完全合规</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">parser</div><div class="nd">解析内容，失败时抛出可观察错误</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">typed result</div><div class="nd">dict / str / Pydantic 对象进入应用</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">validation / repair</div><div class="nd">业务校验、重试、修复提示或人工处理</div></div></div>
+<h2>代码走读：简化版 parser.invoke 与 JSON 解析</h2>
+<p>真实 parser 要处理 Generation、ChatGeneration、partial parsing、异常包装和流式事件。下面的伪代码突出两个边界：先从模型输出中取文本，再由具体 parser 解析；解析失败应该抛出带上下文的异常，而不是返回空 dict。</p>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/core/langchain_core/output_parsers/base.py :: BaseOutputParser / JsonOutputParser</span><span class="ln">简化版</span></div><pre>class BaseOutputParser(Runnable):
+    def invoke(self, input, config=None):
+        if isinstance(input, BaseMessage):
+            text = input.content
+        else:
+            text = str(input)
+        return self.parse(text)
 
-<div class="flow">
-  <div class="node">prompt</div><div class="arrow">→</div>
-  <div class="node">model</div><div class="arrow">→</div>
-  <div class="node">AIMessage<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">.content 是字符串</span></div>
-  <div class="arrow">→</div>
-  <div class="node hl">parser<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">→ str / dict / 对象</span></div>
-</div>
+class JsonOutputParser(BaseOutputParser):
+    def parse(self, text):
+        try:
+            return json.loads(extract_json(text))
+        except JSONDecodeError as exc:
+            raise OutputParserException(
+                &quot;model output is not valid JSON&quot;,
+                llm_output=text,
+            ) from exc
 
-<h2>三个最常用的解析器</h2>
-<table class="t">
-  <tr><th>解析器</th><th>把输出变成</th><th>典型场景</th></tr>
-  <tr><td class="mono">StrOutputParser</td><td>纯字符串（取 <span class="mono">.content</span>）</td><td>几乎每条链的结尾</td></tr>
-  <tr><td class="mono">JsonOutputParser</td><td>dict（支持流式增量）</td><td>要 JSON 结果</td></tr>
-  <tr><td class="mono">PydanticOutputParser</td><td>pydantic 对象 + 校验</td><td>强类型结构化数据</td></tr>
-</table>
+chain = prompt | model | JsonOutputParser()</pre><div class="cw-note">这是教学伪代码：真实 JsonOutputParser 还支持 markdown JSON 块、partial 解析和更细的异常信息。</div></div>
+<h2>例子追踪：坏 JSON、验证错误与修复</h2>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1 模型原始输出</td><td>```json {&#x27;answer&#x27;:&#x27;是&#x27;, &#x27;score&#x27;: 0.9,} ```</td><td>输出看起来像 JSON，但用了单引号和尾逗号。</td><td>raw text</td></tr><tr><td>2 parser 解析</td><td>raw text</td><td>JsonOutputParser 尝试提取并 json.loads。</td><td>OutputParserException</td></tr><tr><td>3 修复提示</td><td>错误信息 + 原始输出 + schema</td><td>可选择让模型只修复格式，不重新编造事实。</td><td>{&quot;answer&quot;:&quot;是&quot;,&quot;score&quot;:0.9}</td></tr><tr><td>4 dict 结果</td><td>合法 JSON 文本</td><td>parser 返回 dict。</td><td>{&#x27;answer&#x27;:&#x27;是&#x27;,&#x27;score&#x27;:0.9}</td></tr><tr><td>5 业务验证</td><td>score=0.9</td><td>验证字段范围、必填字段和业务含义。</td><td>通过或进入人工复核</td></tr></table>
+<h2>Parser 与 structured output 的区别</h2>
+<p>普通 parser 通常在模型生成之后运行：模型输出文本或消息，parser 再解析。<span class="mono">with_structured_output</span> 则常常利用模型 wrapper 和 provider 原生能力，把 schema 传给模型，让 provider 尽量按结构返回。两者都服务于数据契约，但失败模式不同。parser 更通用，structured output 可能更稳定却更依赖 provider 支持。</p>
+<p>不要把二者看成互斥。你可以优先用 provider 原生结构化输出，再在应用层做 Pydantic 验证；也可以在不支持原生结构化的模型后接 JsonOutputParser。关键是让边界显式：模型被要求输出什么，parser 解析什么，业务验证什么，失败如何处理。</p>
 
-<pre class="code"><span class="kw">from</span> langchain_core.output_parsers <span class="kw">import</span> StrOutputParser
+<h2>Pydantic schema：类型契约与业务契约</h2>
+<p>Pydantic schema 能表达字段名、类型、描述、默认值和范围，是结构化输出的重要工具。它既能指导模型，也能验证结果。例如客服分类可以要求 <span class="mono">category</span> 是枚举，<span class="mono">confidence</span> 在 0 到 1 之间，<span class="mono">reason</span> 是短字符串。模型输出不符合时，应用应明确失败。</p>
+<p>但 schema 不是业务正确性的全部。模型返回 <span class="mono">category='refund'</span> 且格式合法，不代表用户真的有退款资格；返回 <span class="mono">confidence=0.99</span> 不代表事实准确。结构验证保证“像不像一张表”，业务验证保证“这张表能不能用于动作”。两层都需要。</p>
 
-chain = prompt | model | StrOutputParser()
-text: str = chain.invoke({<span class="st">"q"</span>: <span class="st">"你好"</span>})   <span class="cm"># 直接拿到字符串，而不是 AIMessage</span>
-</pre>
+<h2>partial / streaming parse 的价值与限制</h2>
+<p>流式输出时，parser 可能尝试 partial parse，让 UI 更早展示部分结构。例如 JSON 对象逐步生成时，可以在字段完整后更新界面。但 partial 结果不是最终契约，不能过早触发副作用。只有最终解析和验证通过后，才应执行写数据库、发邮件或扣款等动作。</p>
+<p>partial parse 还会遇到边界问题：字符串尚未闭合、数组尚未结束、模型中途改字段名。UI 可以乐观显示“正在生成”，业务层必须等待稳定结果。把流式体验和业务提交分开，是解析器用于生产的关键。</p>
 
-<div class="card key">
-  <div class="tag">🔑 核心认知</div>
-  <strong>解析器也是 Runnable</strong>（第 8 课）。所以它能用 <span class="inline">|</span> 接在 model 后面，
-  成为链的最后一环——这就是 <span class="inline">prompt | model | parser</span> 三段式的由来。
-</div>
+<h2>失败处理：看见错误，而不是藏起错误</h2>
+<p>解析失败是正常工程事件，不是异常羞耻。模型可能输出解释文字、markdown 包裹、尾逗号、缺字段或多字段。好的链路会记录原始输出、parser 名称、schema、错误原因和 run id，然后决定修复、重试、降级或人工处理。坏链路会捕获异常返回 <span class="mono">{}</span>，让下游在更远处以奇怪方式失败。</p>
+<p>修复 prompt 也要小心。修复任务应要求“只把以下输出改成合法 JSON，不要改变事实”，并把原始输出和错误放进去。否则模型可能在修复时重新回答问题，导致事实漂移。更可靠的做法是限制修复次数，并在多次失败后中断，而不是无限让模型自我修复。</p>
 
-<h2>闭环技巧：get_format_instructions</h2>
-<p>解析器还能<strong>反过来生成提示</strong>：告诉模型"请按这个格式输出"，再由它自己解析回来，形成闭环：</p>
-<pre class="code"><span class="kw">from</span> langchain_core.output_parsers <span class="kw">import</span> PydanticOutputParser
-parser = PydanticOutputParser(pydantic_object=Weather)
+<h2>正则解析为什么危险</h2>
+<p>正则可以提取简单字段，但作为主解析策略很脆。模型多一个空格、换一种引号、先解释后给答案，正则就可能误匹配。尤其在金额、权限、分类、动作命令等关键场景，正则“看起来能用”会制造隐性风险。JSON parser、Pydantic 验证或 provider structured output 更适合作为稳定边界。</p>
+<p>这不是说正则永远不能用。它可以作为预处理、日志提取或非关键提示，但不应成为业务契约的唯一守门人。如果你发现正则越来越长，说明输出契约应该升级为结构化 schema。</p>
 
-prompt = ChatPromptTemplate.from_messages([
-    (<span class="st">"system"</span>, <span class="st">"{format_instructions}"</span>),   <span class="cm"># ← 把格式说明塞进提示</span>
-    (<span class="st">"human"</span>, <span class="st">"{q}"</span>),
-]).partial(format_instructions=parser.get_format_instructions())
+<h2>Parser 与 tool call 的边界</h2>
+<p>工具调用也是结构化输出的一种，但语义不同。tool call 表示模型请求程序执行某个工具；parser 表示程序把模型输出解释为应用数据。不要用 JSON parser 解析一个“请执行退款”的文本后直接退款，除非你已经建立了等价的权限和审计边界。工具调用路径天然带有 tool_call_id、工具 schema 和 ToolMessage 回灌，更适合真实动作。</p>
+<p>如果只是分类、摘要、抽取字段，parser 很合适；如果要触发外部系统，工具或图节点更清晰。C 级设计要问：这个结构化结果是“数据”还是“动作请求”？数据可以进入 parser，动作请求通常需要工具边界。</p>
 
-chain = prompt | model | parser   <span class="cm"># 模型按要求输出 → parser 解析成 Weather 对象</span>
-</pre>
+<h2>Schema 不是文档而已</h2>
+<p>有些项目把 JSON schema 写在 prompt 里，却不在代码里验证。这样 schema 只是一段愿望，模型一旦偏离，下游仍会接受坏数据。真正的数据契约必须由代码执行：parser 解析，Pydantic 或业务函数验证，失败时阻断。文档能指导模型，验证才能保护应用。</p>
+<p>反过来，只验证不提示也不理想。prompt 应清楚告诉模型目标格式，parser 应严格执行，错误处理应反馈可修复信息。提示、解析、验证、修复是一套闭环，不是任意挑一个环节。</p>
 
-<h2>🔬 实现细节与亮点</h2>
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/output_parsers/base.py</span><span class="ln">BaseOutputParser 是 Runnable</span></div>
-<pre><span class="kw">class</span> <span class="fn">BaseOutputParser</span>(..., Runnable[..., T]):
-    <span class="kw">def</span> <span class="fn">invoke</span>(self, input, config=None):
-        <span class="cm"># 取出 AIMessage.content，交给 parse()</span>
-        <span class="kw">return</span> self.parse(input.content <span class="kw">if</span> isinstance(input, BaseMessage) <span class="kw">else</span> input)
-    <span class="kw">def</span> <span class="fn">parse</span>(self, text: str) -> T: ...          <span class="cm"># 子类实现：文本 → 结构化</span>
-    <span class="kw">def</span> <span class="fn">get_format_instructions</span>(self) -> str: ...  <span class="cm"># 反向：生成格式说明</span>
-</pre>
-</div>
+<h2>在 RunnableSequence 中定位错误</h2>
+<p><span class="mono">prompt | model | parser</span> 失败时，要知道错误来自哪一段。prompt 失败通常是变量缺失；model 失败可能是 provider 错误；parser 失败说明模型返回了不符合契约的内容；验证失败说明结构合法但业务不接受。把所有错误都写成“LLM 调用失败”会浪费排查时间。</p>
+<p>RunnableSequence 的好处是每段可以单独 invoke。调试时先运行 prompt 看消息，再用 fake model 给 parser 喂固定坏输出，最后接真实模型。这样你能在不消耗模型调用的情况下复现解析边界，符合可测试的工程习惯。</p>
 
-<div class="card detail">
-  <div class="tag">🔬 继承体系</div>
-  <ul>
-    <li><span class="mono">BaseOutputParser</span>（<span class="mono">base.py</span>）是 Runnable，<span class="mono">invoke</span> → <span class="mono">parse</span>。</li>
-    <li><span class="mono">StrOutputParser</span>（<span class="mono">string.py</span>）最简单：直接返回文本。</li>
-    <li><span class="mono">JsonOutputParser</span>（<span class="mono">json.py</span>）继承 <span class="mono">BaseCumulativeTransformOutputParser</span>——
-      <strong>支持流式</strong>：边接收边解析出"部分 JSON"。</li>
-    <li><span class="mono">PydanticOutputParser</span>（<span class="mono">pydantic.py</span>）在 Json 之上再做<strong>pydantic 校验</strong>。</li>
-  </ul>
-</div>
+<h2>C 级排错清单：解析失败时看哪些证据</h2>
+<p>解析失败时先保存原始模型输出。没有原始输出，就无法判断是模型没有遵守格式、parser 提取逻辑太窄、prompt 示例误导，还是下游验证过严。原始输出应和 run id、模型名、prompt 版本、parser 名称、schema 版本一起记录。只记录“JSON 解析失败”没有行动价值；记录失败文本和契约，才能改 prompt 或 parser。</p>
+<p>第二步区分语法错误、结构错误和业务错误。语法错误是 JSON 不合法；结构错误是合法 JSON 但缺字段或类型错；业务错误是字段都合法但业务不接受，例如金额超过权限。三类错误的处理不同：语法错误可修复格式，结构错误可要求补字段，业务错误通常要拒绝或人工处理。把它们都叫 parse error，会让修复策略混乱。</p>
+<p>第三步确认 parser 输入到底是什么。聊天模型返回 AIMessage，StrOutputParser 读取 content；某些 structured output 可能已经返回对象；工具调用结果可能在 tool_calls 而不是 content。如果你把 AIMessage 直接传给 json.loads，或把包含 markdown 解释的 content 当纯 JSON，错误就来自边界误解。每个 parser 都应有明确输入类型预期。</p>
+<h2>结构化输出的设计原则</h2>
+<p>输出 schema 应尽量小而明确。只要求应用马上需要的字段，不要让模型一次返回十几个“以后可能用”的字段。字段越多，缺失和不一致概率越高，验证和修复成本越大。比如分类任务只需要 category、confidence、reason，就不要再要求 full_analysis、alternative_categories、debug_prompt，除非产品真的使用它们。</p>
+<p>字段描述要写给模型看。<span class="mono">score</span> 不如 <span class="mono">confidence: 0 到 1 之间，表示分类置信度</span>；<span class="mono">action</span> 应说明允许枚举和含义。好的 schema 既是解析契约，也是模型生成指南。若字段名来自内部数据库缩写，模型容易误解，parser 即使成功也可能得到语义错误数据。</p>
+<p>枚举比自由文本更稳定。若业务只接受 refund、shipping、product、other 四类，就用枚举或明确校验，而不是让模型自由写“物流问题”“快递相关”“运输”。自由文本适合 explanation，不适合作为路由键。路由、权限、动作类型这类字段应尽量封闭。</p>
+<h2>修复链的边界</h2>
+<p>自动修复不是让模型重新回答问题，而是让它把已有输出改成契约要求的形状。修复 prompt 应包含原始输出、错误原因、schema，并明确“不要添加新事实，不要改变语义，只修复格式”。如果原始输出缺少必要事实，修复不应编造字段，而应失败或请求重试主任务。</p>
+<p>修复次数要有限。一次修复失败后，可以再尝试一次；多次失败通常说明 prompt、模型能力或 schema 设计有问题。无限修复会浪费 token，还可能让模型逐步偏离事实。生产链应记录修复次数，并把多次失败的样本纳入评估集。</p>
+<p>对于高风险动作，解析成功也不等于可执行。模型返回 <span class="mono">{"action":"refund","amount":100}</span> 只是一个结构化建议；真正退款还需要工具权限、订单状态、人工确认或业务规则。解析器把文本变数据，不把数据变授权。这个边界和工具课的边界是一致的。</p>
+<h2>评估解析质量</h2>
+<p>解析器质量不能只看成功率，还要看错误是否被正确拒绝。评估集应包含合法输出、坏 JSON、缺字段、字段类型错、枚举越界、模型解释混入 JSON、恶意注入和边界业务值。一个 parser 如果对坏数据过于宽松，短期看成功率高，长期会把错误送入业务层。</p>
+<p>还要评估 schema 与 prompt 是否一致。Prompt 要求字段叫 <span class="mono">answer</span>，Pydantic 模型要求 <span class="mono">final_answer</span>，模型会无所适从。示例输出必须和 parser 完全一致，尤其是引号、数组、可选字段和枚举大小写。很多“模型不稳定”其实是契约前后不一致。</p>
+<p>最后，把解析器放在 RunnableSequence 中单独测试。给 parser 喂固定字符串，不需要模型；给 prompt 喂输入，不需要 parser；给整条链使用 fake model，不需要网络。这样你能精确知道失败属于哪一层。C 级工程不是迷信端到端，而是在端到端之外建立可定位的小边界。</p>
+<p>当解析稳定后，应用代码就可以依赖类型化结果，而不是到处写 if "yes" in text。越早把自然语言收束成数据契约，后面的业务逻辑越普通、越可测、越安全。这就是 output parser 的真正价值。</p>
 
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li><strong>解析器是 Runnable</strong>：所以无缝拼进链，且自动获得 stream/batch/async——这是 <span class="mono">prompt|model|parser</span> 能成立的根基。</li>
-    <li><strong>get_format_instructions 形成闭环</strong>：同一个 parser 既<strong>告诉模型怎么输出</strong>，又<strong>负责把输出解析回来</strong>，提示与解析两端由一个对象统一保证。</li>
-    <li><strong>流式可增量解析</strong>：<span class="mono">JsonOutputParser</span> 能在 JSON 还没输出完时就给出"部分结果"，适合实时 UI。</li>
-  </ul>
-</div>
 
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，吃透解析器的取舍。</p>
+<h2>课堂复盘：解析器让 AI 输出回到普通软件工程</h2>
+<p>没有解析器时，模型输出停留在自然语言世界，业务代码只能用字符串猜测。加上 parser 后，输出变成 dict、对象或明确错误，后续就能使用普通软件工程方法：类型检查、字段校验、单元测试、错误分支、版本迁移和监控。解析器的价值不在于复杂，而在于把不稳定文本尽早收束成可验证边界。</p>
+<p>选择解析策略时要看风险。普通展示文本用 StrOutputParser 足够；抽取字段用 JsonOutputParser 或 Pydantic；路由和动作建议使用枚举和严格验证；真实副作用不要只靠 parser，应转入工具或图节点。越接近业务决策，契约越要严格，失败越要显式。宽松解析适合探索，不适合生产关键路径。</p>
+<p>解析器还提供评估抓手。你可以统计解析失败率、修复成功率、字段缺失率、业务验证失败率，并按模型、prompt 版本、用户场景分组。这样的指标比“感觉模型不稳定”更可行动。模型输出仍然可能随机，但 parser 把随机性挡在边界外，让应用只接收通过契约的数据。</p>
 
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 输出解析器 vs with_structured_output，怎么选 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 两条路线</div>
-      <div class="a"><strong>解析器路线</strong>：模型<strong>自由输出文本</strong> → 事后用 parser 解析（靠提示 + 解析，<strong>任何模型都能用</strong>）。
-        <strong>with_structured_output 路线</strong>（第 5 课）：用工具调用 / JSON 模式<strong>强约束</strong>模型输出（更可靠，但需模型支持）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 各自适合</div>
-      <div class="a">模型不支持工具/JSON 模式，或想要更灵活的后处理 → 用<strong>解析器</strong>；
-        要"几乎不会解析失败"的强保证、且模型支持 → 用 <span class="mono">with_structured_output</span>。
-        二者背后都离不开 schema 约束的思想。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 关系</div>
-      <div class="a">其实 <span class="mono">with_structured_output</span> 内部也用到 tool/JSON 解析器（第 12 课）。解析器是更底层、更通用的一层。</div>
-    </div>
-  </div>
-</details>
+<h2>延伸练习：把解析结果当作外部输入再验证</h2>
+<p>模型生成的数据虽然来自你的系统内部调用，但安全上应按外部输入处理。它可能缺字段、越界、包含注入文本，也可能与业务事实不一致。解析成功只是第一关，后续仍要做业务验证、权限检查和幂等控制。尤其当解析结果会驱动工具或数据库写入时，必须像处理用户提交表单一样严格。</p>
+<p>解析器也需要版本意识。Schema 字段改名后，旧 trace、旧缓存、旧评估样本可能仍使用旧格式。可以在结果中加入 schema_version，或在链配置里记录 parser 版本。这样回放和排错时能知道当时使用哪份契约。没有版本，结构化输出一旦演进，历史数据会难以解释。</p>
 
-<details class="accordion">
-  <summary><span class="badge-num">2</span> 为什么几乎每条链结尾都有 StrOutputParser <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">❓ 不加会怎样</div>
-      <div class="a">不加，链的输出是 <span class="mono">AIMessage</span>（还要 <span class="mono">.content</span> 取文本）。
-        加上 <span class="mono">StrOutputParser()</span>，链<strong>直接产出干净的字符串</strong>，下游（打印、拼接、再喂下一步）更顺手。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 还有一个好处</div>
-      <div class="a"><span class="mono">StrOutputParser</span> 对<strong>流式</strong>友好：逐 token 产出纯文本块，正好做打字机效果（第 14 课）。</div>
-    </div>
-  </div>
-</details>
-
+<h2>最后检查：把概念落到一次真实调用</h2>
+<p>完成本课后，请把概念重新放回一次真实调用中验证：输入从哪里来，经过哪个对象标准化，运行时配置如何传播，输出由谁解释，错误在哪里被看见，哪些信息进入 trace，哪些信息进入业务状态。只要能沿着这条线讲清楚，说明你掌握的不是 API 片段，而是可维护的系统边界。</p>
+<p>这也是 C 级课程反复强调的学习方法：每个抽象都要回答“它统一什么、它不负责什么、它失败时看什么证据”。抽象不是为了隐藏一切，而是为了让变化集中、证据清楚、责任可定位。后续课程继续读源码时，请始终用这三个问题检查自己的理解。</p>
+<h2>常见误解</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：用几个正则就能稳定解析模型输出。</div><div class="pf-correct">正确：正则适合简单辅助，不适合作为关键业务契约；应优先使用 JSON/Pydantic/structured output。</div></div><div class="pitfall"><div class="pf-wrong">误解：模型说是 JSON 就可以直接信任。</div><div class="pf-correct">正确：必须由 parser 和验证代码实际解析； malformed JSON 应失败或修复。</div></div><div class="pitfall"><div class="pf-wrong">误解：parser 和 tool call 是一回事。</div><div class="pf-correct">正确：parser 解析数据；tool call 请求执行工具，涉及 tool_call_id、权限和 ToolMessage。</div></div><div class="pitfall"><div class="pf-wrong">误解：解析失败时返回空对象更健壮。</div><div class="pf-correct">正确：吞掉 parse errors 会让坏数据流向下游，应记录并进入修复、重试或中断。</div></div><div class="pitfall"><div class="pf-wrong">误解：schema 写在 prompt 里就够了。</div><div class="pf-correct">正确：schema 必须由代码验证，否则只是模型参考文档。</div></div></div>
+<h2>小实验：故意破坏 JSON 并观察错误</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 让 parser 先失败再修复</div><ol><li>准备 JsonOutputParser，并给它输入 &quot;{&#x27;answer&#x27;: &#x27;ok&#x27;,}&quot; 这样的坏 JSON。</li><li>确认 parser 抛出解析异常，而不是返回空 dict。</li><li>把坏输出改成合法 JSON：{&quot;answer&quot;:&quot;ok&quot;}，确认返回 Python dict。</li><li>再加一个 Pydantic 模型，要求 answer 和 confidence 字段，观察缺字段的验证错误。</li><li>设计一个修复 prompt，只要求修复 JSON 格式，不允许改变原始事实。</li></ol></div>
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li>输出解析器是 <span class="mono">prompt | model | parser</span> 的<strong>第三块拼图</strong>：把模型输出的文本变成 str / dict / 对象。</li>
-    <li>三个常用：<span class="mono">StrOutputParser</span>（文本）/<span class="mono">JsonOutputParser</span>（dict，可流式）/<span class="mono">PydanticOutputParser</span>（强类型）。</li>
-    <li>解析器<strong>也是 Runnable</strong>；<span class="mono">get_format_instructions</span> 让"提示↔解析"闭环。</li>
-    <li>与 <span class="mono">with_structured_output</span> 互补：解析器更通用，结构化输出更强约束。</li>
-    <li>下一课：深入<strong>聊天模型内部</strong>，看 <span class="mono">invoke</span> 的完整调用链。</li>
+    <li>解析器把模型输出转成应用数据契约，是 prompt 与业务代码之间的类型边界。</li>
+    <li>parser、structured output、Pydantic 验证可以组合使用，但失败模式和 provider 依赖不同。</li>
+    <li>解析失败必须可观察、可修复或可中断，不能静默吞掉。</li>
+    <li>数据解析和动作执行要分开；真实副作用更适合工具 / 图节点边界。</li>
   </ul>
 </div>
-<div class="selftest">
+<div class="card version"><div class="tag">📌 版本锚点</div>本课以 langchain_core.output_parsers、BaseChatModel.with_structured_output 和 RunnableSequence 为锚点。具体 parser 能力会扩展，但“模型输出不等于应用数据，必须解析与验证”的原则长期不变。</div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. 输出解析器也被设计成一个 Runnable，能拼在 <code>prompt | model | parser</code> 末尾。这个“解析也是链的一环”好处是？</div>
+  <div class="qn">1. 输出解析器和 <code>with_structured_output</code> 的核心区别是什么？</div>
   <ol class="opts">
-    <li>让解析更准</li>
-    <li>解析作为管道最后一节，和提示、模型无缝衔接、可流式、可复用——而不是调用后另写一段解析代码</li>
-    <li>减少 token</li>
-    <li>凑数</li>
+    <li>解析器解析模型文本；结构化输出尽量让 provider/model 原生按 schema 产出</li>
+    <li>二者完全相同，只是名字不同</li>
+    <li>结构化输出只能处理 markdown，解析器只能处理图片</li>
+    <li>解析器会执行工具，结构化输出只显示文本</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。把“后处理”也纳入 Runnable 体系，整条“输入→模型→结构化输出”就是一条统一的链。又是闭包性的红利。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。parser 是下游解析与校验层；structured output 是模型调用策略。二者都服务结构化结果，但约束位置不同。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. 解析器提供 <code>get_format_instructions()</code>，把“期望格式说明”注入提示。这种“解析器自己告诉提示该让模型怎么输出”图什么？</div>
+  <div class="qn">2. 解析失败时，最健康的处理方式是什么？</div>
   <ol class="opts">
-    <li>没有意图</li>
-    <li>多此一举</li>
-    <li>让提示更长</li>
-    <li>让“提示”和“解析”协同闭环：同一个解析器既定义格式要求、又负责解析，二者不会对不上</li>
+    <li>显式捕获解析错误，保留原始输出和错误信息，再决定重试、修复或向用户降级</li>
+    <li>吞掉异常并返回空对象</li>
+    <li>永远无限重试直到模型碰巧输出正确格式</li>
+    <li>把错误当作成功结果写入业务表</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。“谁解析、谁就说明格式”——把格式的“约定”和“解析”收敛到同一对象，避免提示写一套、解析按另一套。单一事实来源再现。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。parse error 是可观测边界。保留 raw output 与错误原因，才能做有限修复循环和审计，而不是制造静默脏数据。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 解析器与 <code>with_structured_output</code> 被说成“互补”：解析器更通用、结构化输出约束更强。为什么两种都保留？</div>
+  <div class="qn">3. 为什么即使模型“看起来输出了 JSON”，仍需要 schema validation？</div>
   <ol class="opts">
-    <li>适用场景不同：结构化输出靠模型原生能力强约束但依赖支持，解析器对任意文本输出都通用——给你按需选择</li>
-    <li>历史包袱</li>
-    <li>没区别</li>
-    <li>优柔寡断</li>
+    <li>因为 validation 会让模型更快</li>
+    <li>因为 validation 会自动调用外部工具</li>
+    <li>因为所有 provider 都禁止直接返回 JSON</li>
+    <li>因为 JSON 语法正确不代表字段齐全、类型正确或满足业务约束</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。提供“强约束（需模型支持）+ 通用（任意输出）”两条路，是务实设计：不同模型/场景能力不同，留选择权给你。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. JsonOutputParser 支持“流式逐步解析出 dict”。为什么解析器要费劲支持流式，而不是等完整文本再一次解析？</div>
-  <ol class="opts">
-    <li>更省内存</li>
-    <li>配合流式 UI：边生成边解析出可用的部分结构，用户更早看到结果，体验更好</li>
-    <li>更准确</li>
-    <li>炫技</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。流式解析是为了“边生成边可用”，这要求解析器能处理“不完整的 JSON 片段”——为体验付出的实现复杂度。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。语法解析只证明形状像 JSON；schema validation 才检查字段、类型和约束，避免半正确结果进入下游。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>“谁解析、谁负责说明格式”把约定和解析绑在一起。如果模型经常不按格式输出，你会从“提示侧”还是“解析侧”补救？各有什么代价？</li>
-    <li>强约束的结构化输出 vs 通用的文本解析，你的项目更适合哪种？如果模型升级后原生结构化输出变强了，你的选择会变吗？</li>
+    <li>设计一个有限 repair loop：第一次解析失败后给模型哪些错误信息、最多重试几次、何时返回降级结果，并说明如何记录 raw output。</li>
+    <li>面对一个需要严格业务动作的场景，判断该用 parser 解析文本，还是让模型发 tool call / structured output。说明你的选择依据。</li>
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="09-runnable-compose.html"><div class="dir">← 上一课</div><div class="ttl">Runnable 如何组合</div></a><a class="next" href="11-chat-internals.html"><div class="dir">下一课 →</div><div class="ttl">聊天模型内部</div></a></div>
+  <div class="footnav"><a class="prev" href="16-prompts.html"><div class="dir">← 上一课</div><div class="ttl">提示词 Prompts</div></a><a class="next" href="14-streaming-callbacks.html"><div class="dir">下一课 →</div><div class="ttl">Streaming 与 Callbacks</div></a></div>
 </div>
 
 </body></html>

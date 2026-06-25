@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>18 · 写自己的中间件 — LangChain 图解教程</title>
-<meta name="description" content="第五部分 · 自己动手做 Agent｜写自己的中间件：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>29 · Middleware 生命周期 — LangChain 图解教程</title>
+<meta name="description" content="第六部分 · Agent 内部｜Middleware 生命周期：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="18 · 写自己的中间件 — LangChain 图解教程">
-<meta property="og:description" content="第五部分 · 自己动手做 Agent｜写自己的中间件：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="29 · Middleware 生命周期 — LangChain 图解教程">
+<meta property="og:description" content="第六部分 · Agent 内部｜Middleware 生命周期：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="18 · 写自己的中间件 — LangChain 图解教程">
-<meta name="twitter:description" content="第五部分 · 自己动手做 Agent｜写自己的中间件：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="29 · Middleware 生命周期 — LangChain 图解教程">
+<meta name="twitter:description" content="第六部分 · Agent 内部｜Middleware 生命周期：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -256,329 +256,125 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
 </style>
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第五部分 · 自己动手做 Agent</span>
-    <span class="pill">18 / 27</span>
+    <span class="pill">第六部分 · Agent 内部</span>
+    <span class="pill">29 / 46</span>
   </div>
-  <div class="progress"><span style="width:66%"></span></div>
+  <div class="progress"><span style="width:63%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第五部分 · 自己动手做 Agent</div>
-    <h1>写自己的中间件</h1>
+    <div class="part">第六部分 · Agent 内部</div>
+    <h1>Middleware 生命周期</h1>
   </div>
-  
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-第 7、13 课我们<strong>用</strong>过内置中间件（限流、人审、重试…）。当它们不够用时，
-定制自己 Agent 的<strong>核心钥匙</strong>就是——<strong>写你自己的中间件</strong>。这是 Agent 最强大的扩展点。
-</p>
 
-<div class="card analogy">
-  <div class="tag">🧅 生活类比</div>
-  中间件就像<strong>洋葱的一层层皮</strong>，也像 Web 框架的 middleware：每次请求都<strong>从外向里穿过每一层</strong>，
-  再<strong>从里向外穿回来</strong>。每一层都能在"进去前"和"出来后"做点事——记录、改写、拦截、重试。
-</div>
+<p class="lead">AgentMiddleware 是 Agent 循环的“横切扩展层”：你不必改 create_agent 的核心 model/tool loop，就能在模型调用前改状态、在模型调用外包一层重试或路由、在模型调用后检查结果、在工具调用外做人审或限流，并在 Agent 结束后做审计。本课聚焦 <span class="mono">AgentMiddleware</span>、<span class="mono">_chain_model_call_handlers</span>、<span class="mono">_chain_tool_call_wrappers</span>、<span class="mono">ModelCallLimitMiddleware</span> 与 <span class="mono">HumanInTheLoopMiddleware</span>，读懂 before/after/wrap 三类钩子为什么要用不同机制实现。</p>
+<div class="card analogy"><div class="tag">🧩 生活类比</div>把中间件想成机场安检和登机流程。旅客主线是值机、安检、登机、起飞；航空公司不想每增加一条规则就重写机场。于是液体检查、优先登机、人工复核、超售处理都作为可插拔环节放在主线周围。有些环节改变旅客状态，比如盖章放行；有些环节包住一次动作，比如安检员可以让你重新过机或转人工。AgentMiddleware 也是如此：状态钩子像流程站点，wrap 钩子像包住一次模型或工具调用的检查员。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：Middleware 在循环哪里插手</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">before_agent / before_model</div><div class="mn-desc">在模型前读取或改写 state，例如注入系统消息、做预算检查</div></div><div class="map-node now"><div class="mn-label">wrap_model_call</div><div class="mn-desc">包住模型调用，可重试、替换模型、短路、记录耗时</div></div><div class="map-node now"><div class="mn-label">after_model</div><div class="mn-desc">模型返回后检查 AIMessage，例如审查 tool_calls 或结构化输出</div></div><div class="map-node source"><div class="mn-label">wrap_tool_call</div><div class="mn-desc">包住单次工具调用，可做人审、权限、脱敏、错误转换</div></div><div class="map-node after"><div class="mn-label">after_agent</div><div class="mn-desc">循环结束后做审计、指标、最终状态整理</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>中间件源码要分两条线读：第一条是抽象基类定义有哪些钩子，第二条是 create_agent 构图时如何把钩子串起来。状态钩子常被编成图节点；wrap 钩子常被组合成洋葱式 handler。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/langchain_v1/langchain/agents/middleware/types.py</td><td class="mono">AgentMiddleware</td><td>中间件基类，定义 before_agent、before_model、wrap_model_call、after_model、wrap_tool_call、after_agent 等扩展点</td><td>用户自定义中间件从这里继承或实现</td></tr><tr><td class="mono">libs/langchain_v1/langchain/agents/factory.py</td><td class="mono">_chain_model_call_handlers</td><td>把多个 wrap_model_call 组合成嵌套 handler 链</td><td>model 节点内部调用模型前后经过这条链</td></tr><tr><td class="mono">libs/langchain_v1/langchain/agents/factory.py</td><td class="mono">_chain_tool_call_wrappers</td><td>把多个 wrap_tool_call 组合到 ToolNode/工具执行路径周围</td><td>每次工具调用会经过 wrapper 栈</td></tr><tr><td class="mono">libs/langchain_v1/langchain/agents/middleware/model_call_limit.py</td><td class="mono">ModelCallLimitMiddleware</td><td>内置模型调用次数限制，用软上限保护 Agent 不无限思考</td><td>通常在模型调用前后统计并阻止超限</td></tr><tr><td class="mono">libs/langchain_v1/langchain/agents/middleware/human_in_the_loop.py</td><td class="mono">HumanInTheLoopMiddleware</td><td>内置人在回路中间件，在敏感工具或动作前 interrupt 等待人工批准</td><td>常包住工具调用或在工具前插入审批边界</td></tr></table>
+<h2>调用图：洋葱式 wrapper 与图节点并存</h2>
+<div class="flow call-graph"><div class="node hl"><div class="nt">State hook</div><div class="nd">before_model/after_model 可作为图节点读写 state，运行痕迹进入 checkpoint</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">Wrapper outer</div><div class="nd">第一个 wrap_model_call 拿到 handler，可决定是否调用下一层</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">Wrapper inner</div><div class="nd">下一个 wrapper 继续包住 handler，形成洋葱式顺序</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">Actual call</div><div class="nd">最终模型或工具调用在最内层执行</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">Unwind</div><div class="nd">结果从内到外返回，每层可记录、修改、抛错或转换</div></div></div>
+<h2>Trace：五类钩子的执行位置</h2>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. before_model</td><td>state.messages + runtime.context</td><td>GuardMiddleware 检查用户身份、追加安全提示或阻止模型调用</td><td>更新后的 state 进入 model 节点</td></tr><tr><td>2. wrap_model_call</td><td>ModelRequest + handler</td><td>Limit/Retry/Router wrapper 记录次数，必要时换模型或重试 handler</td><td>AIMessage 或异常</td></tr><tr><td>3. after_model</td><td>AIMessage(tool_calls=...)</td><td>检查工具调用是否越权、是否需要把某些 tool_calls 改走人工审批</td><td>保留或修改后的模型结果</td></tr><tr><td>4. wrap_tool_call</td><td>ToolCall(name=&#x27;refund&#x27;, args=...) + handler</td><td>HumanInTheLoopMiddleware interrupt 等待批准；通过后才调用真实工具</td><td>ToolMessage 或拒绝消息</td></tr><tr><td>5. after_agent</td><td>最终 state 和 structured_response</td><td>写审计日志、统计 token、记录最终状态摘要</td><td>调用结束后的可观察副作用</td></tr></table>
+<h2>简化源码走读：middleware 链如何包住模型</h2>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/langchain_v1/langchain/agents/factory.py :: _chain_model_call_handlers</span><span class="ln">简化版</span></div><pre>def _chain_model_call_handlers(middleware, base_handler):
+    handler = base_handler
+    for mw in reversed(middleware):
+        if not has_wrap_model_call(mw):
+            continue
+        next_handler = handler
 
-<h2>七个钩子：在循环的关键点插入逻辑</h2>
-<p>一个中间件可以实现下面任意几个<strong>钩子方法</strong>，框架会在对应时机自动调用：</p>
+        def handler(request, mw=mw, next_handler=next_handler):
+            return mw.wrap_model_call(request, next_handler)
 
-<table class="t">
-  <tr><th>钩子</th><th>触发时机</th><th>典型用途</th></tr>
-  <tr><td class="mono">before_agent</td><td>整个 Agent 开始时（一次）</td><td>初始化、鉴权</td></tr>
-  <tr><td class="mono">before_model</td><td>每次调用模型<strong>前</strong></td><td>裁剪历史、注入提示</td></tr>
-  <tr><td class="mono">dynamic_prompt</td><td>每次调用模型<strong>前</strong>（生成系统提示）</td><td>按状态切换 system prompt</td></tr>
-  <tr><td class="mono">wrap_model_call</td><td><strong>包裹</strong>整个模型调用</td><td>改请求/响应、重试、降级</td></tr>
-  <tr><td class="mono">after_model</td><td>每次调用模型<strong>后</strong></td><td>校验/改写模型输出</td></tr>
-  <tr><td class="mono">wrap_tool_call</td><td><strong>包裹</strong>每次工具调用</td><td>工具级重试、审计</td></tr>
-  <tr><td class="mono">after_agent</td><td>整个 Agent 结束时（一次）</td><td>收尾、记录指标</td></tr>
-</table>
-
-<div class="flow" style="flex-direction:column;gap:.5rem;align-items:stretch">
-  <div style="text-align:center;color:var(--muted);font-size:.82rem">before_agent → 〔循环：before_model → (wrap_model_call) 模型 → after_model → (wrap_tool_call) 工具 〕→ after_agent</div>
-</div>
-
-<h2>两种写法</h2>
-<div class="cols">
-  <div class="col">
-    <h4>① 装饰器（轻量）</h4>
-    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> before_model
-
-<span class="nb">@before_model</span>
-<span class="kw">def</span> <span class="fn">log_turns</span>(state, runtime):
-    print(len(state[<span class="st">"messages"</span>]))
-    <span class="kw">return</span> None   <span class="cm"># None = 不改状态</span></pre>
-  </div>
-  <div class="col">
-    <h4>② 类（功能全）</h4>
-    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> AgentMiddleware
-
-<span class="kw">class</span> <span class="fn">Guard</span>(AgentMiddleware):
-    <span class="kw">def</span> <span class="fn">before_model</span>(self, state, runtime):
-        ...
-    <span class="kw">def</span> <span class="fn">wrap_model_call</span>(self, request, handler):
-        <span class="kw">return</span> handler(request)</pre>
-  </div>
-</div>
-<pre class="code">agent = create_agent(model, tools, middleware=[Guard()])   <span class="cm"># 装上即生效</span></pre>
-
-<div class="card detail">
-  <div class="tag">🔬 代码对应</div>
-  <ul>
-    <li><span class="mono">AgentMiddleware</span> 基类与全部钩子 → <span class="mono">agents/middleware/types.py</span></li>
-    <li>装饰器 <span class="mono">before_model / after_model / wrap_model_call / wrap_tool_call / before_agent / after_agent / dynamic_prompt</span>
-      与 <span class="mono">ModelRequest / ModelResponse</span> → 从 <span class="mono">langchain.agents.middleware</span> 导出</li>
-  </ul>
-</div>
-
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，逐个吃透中间件机制。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 七个钩子分别在何时触发 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 执行顺序</div>
-      <div class="a">
-<pre class="code">before_agent                <span class="cm"># 仅一次</span>
-└─ 循环开始
-   before_model             <span class="cm"># 每轮模型调用前</span>
-   dynamic_prompt           <span class="cm"># 每轮模型调用前·按状态生成系统提示</span>
-   wrap_model_call ─ 模型 ─┐ <span class="cm"># 包在模型调用外层</span>
-   after_model  ◄──────────┘ <span class="cm"># 每轮模型调用后</span>
-   wrap_tool_call ─ 工具      <span class="cm"># 每次工具调用外层</span>
-└─ 循环结束
-after_agent                 <span class="cm"># 仅一次</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ before_model vs wrap_model_call 区别</div>
-      <div class="a"><span class="mono">before_model</span> 只能在调用<strong>前</strong>改状态（返回一个 state 更新）；
-        <span class="mono">wrap_model_call</span> <strong>同时掌控前后</strong>：能改请求、决定是否调用、还能改/重试响应——更强但也更重。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 多个中间件怎么叠</div>
-      <div class="a">多个中间件像洋葱<strong>层层包裹</strong>：靠前的在最外层。<span class="mono">wrap_*</span> 钩子可决定"是否、何时"调用内层（<span class="mono">handler</span>）。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> wrap_model_call：拦截并改写模型调用 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 模式：改请求 → 调 handler → 改响应</div>
-      <div class="a">
-<pre class="code"><span class="kw">def</span> <span class="fn">wrap_model_call</span>(self, request, handler):
-    <span class="cm"># request 里有 model / messages / tools / system_message / state / runtime</span>
-    new_req = request.override(messages=trim(request.messages))  <span class="cm"># 改请求（用 override，别直接赋值）</span>
-    response = handler(new_req)                   <span class="cm"># 真正调用模型（内层）</span>
-    <span class="cm"># 这里可检查 response，必要时改写或用不同 request 重试</span>
-    <span class="kw">return</span> response</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 它为什么这么关键</div>
-      <div class="a">内置的 <span class="mono">ModelRetryMiddleware</span> / <span class="mono">ModelFallbackMiddleware</span>（第 7 课）
-        正是基于 <span class="mono">wrap_model_call</span> 实现的——失败就换个 <span class="mono">request</span> 再调一次 <span class="mono">handler</span>。
-        你也能用它做"动态换模型、按内容改提示、缓存"等任意定制。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">request</span> 是 <span class="mono">ModelRequest</span>（字段：model/messages/<strong>system_message</strong>/tools/tool_choice/state/runtime；
-        <span class="mono">system_prompt</span> 是已废弃的别名），
-        定义在 <span class="mono">agents/middleware/types.py</span>。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> dynamic_prompt：让系统提示词随状态变化 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">
-<pre class="code"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> dynamic_prompt
-
-<span class="nb">@dynamic_prompt</span>
-<span class="kw">def</span> <span class="fn">make_prompt</span>(request):
-    user = request.runtime.context.user_id
-    <span class="kw">return</span> <span class="st">f"你在为用户 {user} 服务，回答要个性化。"</span>
-<span class="cm"># 每轮根据运行时上下文/状态，动态生成系统提示词</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 与固定 system_prompt 的区别</div>
-      <div class="a">固定 <span class="mono">system_prompt</span> 是写死的字符串；<span class="mono">dynamic_prompt</span> 能在<strong>每次调用时</strong>
-        根据当前状态/运行时上下文（如用户身份、检索结果）<strong>实时生成</strong>提示词。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">把"提示词工程"也变成可编程的中间件，适合多租户、个性化、A/B 实验等场景。</div>
-    </div>
-  </div>
-</details>
-
-<h2>三个真实场景：中间件到底能干什么</h2>
-<p>光看钩子名字没体感，来看三个生产里最常写的中间件——全部基于 <span class="mono">wrap_model_call</span> / <span class="mono">override</span>：</p>
-<details class="accordion">
-  <summary><span class="badge-num">4</span> 案例库：PII 脱敏 / 成本限速 / A·B 切模型 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 ① PII 脱敏（wrap_model_call + override）</div>
-      <div class="a">只把<strong>发给模型的那份副本</strong>脱敏（手机号/邮箱 → 占位符），原始对话历史<strong>原封不动</strong>：
-<pre class="code"><span class="kw">class</span> <span class="fn">PIIRedaction</span>(AgentMiddleware):
-    <span class="kw">def</span> <span class="fn">wrap_model_call</span>(self, request, handler):
-        clean = request.override(messages=redact(request.messages))
-        <span class="kw">return</span> handler(clean)        <span class="cm"># 敏感数据不出本地</span></pre></div>
-    </div>
-    <div class="qa">
-      <div class="q">🧪 ② 成本 / 限速护栏（wrap_model_call）</div>
-      <div class="a">累加每次调用的 token，超预算就<strong>短路</strong>或降级换更便宜的模型：
-<pre class="code"><span class="kw">class</span> <span class="fn">Budget</span>(AgentMiddleware):
-    <span class="kw">def</span> <span class="fn">wrap_model_call</span>(self, request, handler):
-        <span class="kw">if</span> self.spent &gt; self.cap:
-            <span class="kw">raise</span> RuntimeError(<span class="st">"预算用尽"</span>)      <span class="cm"># 或 override 换便宜模型</span>
-        resp = handler(request)
-        ai = resp.result[-1]                  <span class="cm"># 最新的 AIMessage</span>
-        self.spent += (ai.usage_metadata <span class="kw">or</span> {}).get(<span class="st">"total_tokens"</span>, 0)
-        <span class="kw">return</span> resp</pre></div>
-    </div>
-    <div class="qa">
-      <div class="q">🧪 ③ A/B 切模型（wrap_model_call + override）</div>
-      <div class="a">放一部分流量到候选模型，灰度对比效果——上线新模型的常用手法：
-<pre class="code"><span class="kw">class</span> <span class="fn">ABModel</span>(AgentMiddleware):
-    <span class="kw">def</span> <span class="fn">wrap_model_call</span>(self, request, handler):
-        <span class="kw">if</span> random.random() &lt; 0.1:             <span class="cm"># 10% 流量走候选</span>
-            request = request.override(model=candidate)
-        <span class="kw">return</span> handler(request)</pre></div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 共同套路</div>
-      <div class="a"><strong>读改状态</strong>用 <span class="mono">before/after_model</span>（返回 state 更新）；
-        <strong>拦截 / 改请求 / 重试 / 短路一次调用</strong>用 <span class="mono">wrap_model_call</span>——
-        靠 <span class="mono">request.override(...)</span> 造新请求、靠 <span class="mono">handler(...)</span> 决定调不调、调几次。内置的 retry/fallback/限流就是这么写的。</div>
-    </div>
-  </div>
-</details>
-
-<h2>🔬 实现细节与亮点</h2>
-<p>这是第五部分最值得深挖的一处：<strong>两类钩子用了两种完全不同的实现机制</strong>——这正是 middleware 既灵活又高效的秘密。</p>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">langchain/agents/factory.py</span><span class="ln">机制一：before/after 钩子 → 真实图节点</span></div>
-<pre><span class="cm"># 被覆盖的 before_model / after_model 会被编译成 LangGraph 的"节点"</span>
-graph.add_node(f<span class="st">"{m.name}.before_model"</span>, before_node, ...)
-graph.add_node(f<span class="st">"{m.name}.after_model"</span>,  after_node,  ...)
-<span class="cm"># 再用边把它们按顺序串进循环：…before_model → model → after_model…</span>
-</pre>
-</div>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">langchain/agents/factory.py</span><span class="ln">机制二：wrap_* 钩子 → 洋葱式函数组合</span></div>
-<pre><span class="kw">def</span> <span class="fn">_chain_model_call_handlers</span>(handlers):
-    <span class="cm"># "第一个 middleware 成为最外层；每层拿到一个 handler 回调去执行内层"</span>
-    <span class="cm"># 组合成嵌套函数：outer(req, handler=inner(req, handler=...真正调模型))</span>
-    ...
-</pre>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 两种机制</div>
-  <ul>
-    <li><strong>状态型钩子</strong>（<span class="mono">before_agent/before_model/after_model/after_agent</span>）：返回一个 state 更新，
-      被编译成<strong>图里的真实节点</strong>，按顺序执行。</li>
-    <li><strong>包裹型钩子</strong>（<span class="mono">wrap_model_call/wrap_tool_call</span>）：不是节点，而是被
-      <span class="mono">_chain_model_call_handlers</span> 组合成<strong>层层嵌套的函数</strong>，每层拿到 <span class="mono">handler</span> 去调内层。（<span class="mono">dynamic_prompt</span> 本质上也属此类——包裹模型调用、生成 system prompt 的便捷写法。）</li>
-    <li>哪些钩子被启用？框架检查<strong>子类是否覆盖了该方法</strong>（基类默认是 no-op，返回 <span class="mono">None</span>），没覆盖就<strong>不进图</strong>。</li>
-  </ul>
-</div>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li><strong>两类钩子两种实现，各取所长</strong>：要"读改状态"的用图节点（清晰、可被 LangGraph 持久化）；要"包裹前后/决定是否调用"的用嵌套函数（能重试、能短路）。</li>
-    <li><strong>洋葱组合解释了 retry/fallback</strong>：<span class="mono">wrap_model_call</span> 拿到 <span class="mono">handler</span> 回调，可<strong>重复调用</strong>内层——这就是 <span class="mono">ModelRetry/ModelFallback</span>"失败再调一次"的实现原理。第一个 middleware 在最外层。</li>
-    <li><strong>零开销原则</strong>：没被覆盖的钩子<strong>根本不会进图</strong>，不写就没成本——既灵活又不拖慢循环。</li>
-  </ul>
-</div>
-
-<div class="card key">
-  <div class="tag">✅ 本课要点</div>
-  <ul>
-    <li>中间件是 Agent 的核心扩展点：七个钩子 <span class="mono">before_agent / before_model / dynamic_prompt / wrap_model_call / after_model / wrap_tool_call / after_agent</span>。</li>
-    <li>两种写法：<strong>装饰器</strong>（轻量）与<strong>继承 AgentMiddleware</strong>（功能全）。</li>
-    <li><span class="mono">wrap_model_call</span> 能改请求/响应、重试、降级——内置的 retry/fallback 都基于它。</li>
-    <li><span class="mono">dynamic_prompt</span> 让系统提示词随运行时上下文动态生成。</li>
-    <li>下一课：把运行时数据传进去（context）、加降级、把思考流式推给 UI。</li>
-  </ul>
-</div>
-<div class="selftest">
+    return handler
+</pre><div class="cw-note">真实实现要处理同步/异步、类型化请求、响应对象和错误传播；runtime 等上下文放在 request 或 request.runtime 对象上，而不是作为第三个位置参数随意传入。核心思想是 wrapper 拿到 next_handler，所以它可以先做检查，再调用内层，也可以重试多次、替换请求、短路返回或把异常转换成更友好的错误。</div></div><h2>为什么 before/after 和 wrap 不是同一种东西</h2><p>before_model、after_model 这类钩子更像状态转换：读当前 state，返回一段 state 更新。它们适合放进图，因为图能记录节点输入输出、进入 checkpoint、被 stream 展示，也能和其他状态更新按 reducer 合并。比如 before_model 追加一条系统提示，after_model 记录模型输出审查结果，这些都属于“状态里发生了什么”。</p><p>wrap_model_call 和 wrap_tool_call 则是控制一次调用的边界。它们需要拿到 handler，才能决定要不要调用内层、调用几次、是否换参数、是否捕获异常。重试、fallback、限流、缓存、熔断、人审短路，本质都不是简单 state update，而是“控制是否以及如何执行这个调用”。洋葱式 wrapper 正好表达这种控制权。</p><p>两种机制并存不是设计不统一，而是语义不同。强行把所有中间件都做成图节点，重试会很别扭，因为节点只能产生状态更新，不能自然地重复调用内层模型。强行把所有中间件都做成 wrapper，状态变更又不容易被图持久化和可视化。AgentMiddleware 的成熟之处在于按语义选择工具。</p><h2>顺序为什么必须可解释</h2><p>多个中间件叠加时，顺序是第一调试线索。外层 wrapper 先看到请求，最后看到响应；内层 wrapper 离真实调用更近。假设外层是审计，内层是重试，那么审计可能只看到一次“整体调用”；如果外层是重试，内层是审计，审计可能记录每一次尝试。两种都合理，但语义完全不同。团队必须把顺序当成 API 设计，而不是列表偶然顺序。</p><p>状态钩子也有顺序问题。一个 before_model 先注入租户信息，另一个 before_model 再做权限检查，和反过来执行可能结果不同。健康做法是让每个中间件职责单一，并在配置旁写清楚依赖：某某 guard 必须在 prompt 注入之后，某某审计必须包在 retry 外部。复杂 Agent 不是不能用很多中间件，而是不能让顺序变成隐形规则。</p><p>HumanInTheLoopMiddleware 是理解顺序的好例子。它通常应该靠近敏感工具调用边界，而不是只在最终回答后提醒人审。因为真正需要批准的是“是否执行退款、发邮件、改数据库”这些副作用动作。如果人审放错位置，模型可能已经调用了工具，审批就从预防变成事后通知，安全语义完全变了。</p><h2>常见误解与边界情况</h2><p>误解一是以为 middleware 越多越安全。实际上每层中间件都会增加顺序、延迟和失败模式。安全系统需要最少但明确的护栏：哪些规则在模型前检查，哪些规则在工具前检查，哪些错误要中断，哪些错误要回填给模型。堆叠没有边界的中间件，只会把主循环变成新的黑盒。</p><p>误解二是把 wrapper 当成普通回调。普通回调通常只能观察 start/end/error；wrapper 拥有控制权，可以不调用 handler、调用多次、换请求、捕获异常。这个能力很强，也很危险。写 wrapper 时要明确幂等性，尤其包住有副作用工具时，重试可能导致重复扣款或重复发邮件。</p><h2>工程复盘：把中间件当成安全边界设计</h2><p>中间件最容易被滥用成“哪里都放一点逻辑”。成熟做法是先给每个中间件写一句边界说明：它保护什么风险，读取哪些 state/context，可能修改什么，失败时抛错还是返回消息。没有边界说明的中间件，会在几轮迭代后变成隐形业务层，核心循环虽然没改，系统复杂度却被搬到了更难看见的地方。</p><p>before_model 适合做输入侧准备和轻量阻断，例如注入非敏感租户摘要、检查消息长度、确认用户是否具备基本访问权限。它不适合执行有副作用动作，也不适合读取工具结果后做复杂补偿，因为此时工具还没有运行。把阶段放错，会让中间件依赖不存在的状态，或者在模型前做了本该在工具前做的安全检查。</p><p>after_model 适合检查模型输出的结构化动作。比如模型请求 refund_order，可以在 after_model 检查 tool_calls 是否包含高风险工具、参数是否明显越界、是否需要打上审批标记。但 after_model 仍未执行工具，它更像动作审查员，不是副作用执行者。真正阻止执行通常还要在 wrap_tool_call 或 HITL 边界落地。</p><p>wrap_model_call 的风险在于它能重复调用模型。对无副作用模型调用来说，重试通常安全；但每次重试都会消耗 token，并可能产生不同 tool_calls。外层如果没有记录尝试次数、原错误和最终选择，排查时只会看到一个结果，丢失了为什么改走 fallback 的证据。重试不是透明的，应该被观测。</p><p>wrap_tool_call 的风险更高，因为工具可能改变外部世界。任何包住工具的 retry、timeout、fallback、人审，都必须先知道工具是否幂等。查询库存可以重试，创建订单不能盲目重试，除非工具支持幂等键并能查询前一次结果。把模型调用的可靠性模式原样套到工具上，是 Agent 系统常见事故来源。</p><p>HumanInTheLoopMiddleware 的用户体验也要设计。interrupt 只说“是否批准”往往不够，审批人需要看到工具名、参数摘要、用户身份、租户、风险原因和可选操作。批准后还要把决定写入可追踪状态，避免恢复执行时看不出是谁批准了什么。人审不是暂停按钮，而是一条审计链。</p><p>多个中间件之间的依赖应显式排序。可以用命名约定或配置分组：观测类最外层，预算类靠外，fallback/retry 包住模型，权限类靠近工具，HITL 紧贴副作用工具。顺序不是审美问题，而是语义问题。每次新增中间件都要问它应该看见原始请求、每次重试，还是最终结果。</p><p>测试中间件时，不要只测“最终能返回”。应构造一个假 handler，记录被调用次数、收到的 request、抛出的错误和返回路径。这样能验证 wrapper 是否真的短路、是否重复调用、是否按预期修改请求。对状态钩子，则要检查它返回的 state 更新是否能被 reducer 合并，而不是在原地偷偷修改输入 dict。</p><div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：before_model 可以实现所有护栏</div><div class="pf-correct">正确：模型前只能检查当前 state；真正的副作用权限通常要在 wrap_tool_call 里守。</div></div><div class="pitfall"><div class="pf-wrong">误解：wrapper 只是日志回调</div><div class="pf-correct">正确：wrapper 控制内层 handler，能重试、短路、替换请求，也必须承担副作用风险。</div></div><div class="pitfall"><div class="pf-wrong">误解：中间件顺序无所谓</div><div class="pf-correct">正确：外层/内层顺序会改变审计粒度、重试范围和人审语义。</div></div><div class="pitfall"><div class="pf-wrong">误解：HumanInTheLoop 只是在回答前问人</div><div class="pf-correct">正确：HITL 的关键是在敏感动作执行前 interrupt，而不是事后确认。</div></div></div><h2>源码阅读练习：调试 wrapper 顺序</h2><p>先画洋葱图。把 middleware 列表从外到内写出来，再在最内层写真实模型或工具调用。外层最先接触 request，最晚拿到 response；内层最接近真实调用。只要画出这个方向，很多顺序争论就会从抽象讨论变成具体语义。</p><p>再标注每层是否可能短路。权限检查可能不调用 handler，缓存可能直接返回旧结果，HITL 可能 interrupt，retry 可能多次调用 handler。能短路的层放在不同位置，会决定哪些审计和计费记录能看见这次尝试。</p><p>然后标注每层是否会重复调用。retry 放在审计外面，审计可能只记录一次整体调用；retry 放在审计里面，审计可能记录每次尝试。两种设计都可能正确，但必须符合团队希望的观测粒度。</p><p>工具 wrapper 还要标注副作用阶段。权限、人审、幂等检查应在真实工具执行之前；审计可以同时记录执行前请求和执行后结果；错误转换应知道工具是否已经产生副作用。把这些阶段混在一个 wrapper 里，会让失败恢复很难写清楚。</p><p>状态钩子的调试则要看图事件。before_model 是否真的产生 state update，after_model 是否看到了模型输出，after_agent 是否只在循环结束后执行。不要用 wrapper 的直觉读状态钩子，它们不是内外层函数，而是图上的步骤。</p><p>最后写一个最小假 handler 测试顺序：handler 每次被调用就把名字写入列表，中间件也写入列表。断言列表顺序，比看最终回答可靠得多。中间件系统的正确性首先是执行顺序正确，其次才是业务逻辑正确。</p><div class="card lab"><div class="tag">🧪 小实验 · 设计一个工具权限中间件</div><ol><li>列出一个敏感工具，例如 refund_order(amount, order_id)，说明它的副作用。</li><li>写出 before_model 只做什么：读取 context 中的 user_id/role，不把密钥放进消息。</li><li>写出 wrap_tool_call 做什么：检查工具名、金额上限、租户范围，必要时触发人工审批。</li><li>决定错误策略：权限不足抛异常，还是返回带 tool_call_id 的拒绝 ToolMessage 给模型解释。</li><li>说明 middleware 在列表中的顺序：应在 retry 内侧还是外侧，为什么。</li></ol></div><h2>课堂检查清单：确认你真的理解 middleware</h2><p>能说明中间件是横切能力，不是把业务主流程藏到插件里。每个中间件都应有清晰风险边界。</p><p>能区分 before_model、after_model 与 wrap_model_call 的语义：前两者偏状态更新，后者控制一次调用。</p><p>能区分 after_model 与 wrap_tool_call：前者审查模型提出的动作，后者守住真实工具执行边界。</p><p>能解释为什么 wrapper 拿到 handler 就能实现重试、fallback、短路、缓存和熔断。</p><p>能画出多个 wrapper 的洋葱顺序，并预测外层和内层交换后日志、重试次数和错误传播会怎样变化。</p><p>能指出哪些中间件应靠近模型，哪些应靠近工具，哪些应最外层记录审计指标。</p><p>能说明 HumanInTheLoop 的关键是副作用前审批，而不是最终回答后让人看一眼。</p><p>能为敏感工具列出审批信息：工具名、参数摘要、租户、用户、风险原因、批准人和恢复状态。</p><p>能避免在 wrapper 中盲目重试有副作用工具，除非工具支持幂等键和状态查询。</p><p>能测试一个 wrapper 是否真的调用内层几次、是否短路、是否修改 request、是否正确传播异常。</p><p>能测试状态钩子返回的是增量 state update，而不是偷偷原地修改输入对象。</p><p>能在中间件列表旁写出顺序理由，让后来维护者知道为什么审计在外、权限在内或相反。</p><p>能识别中间件过多带来的新黑盒，并通过职责拆分、命名和观测减少复杂度。</p><h2>复盘提问：中间件课后自检</h2><p>中间件的强大来自不改核心循环，但危险也来自不改核心循环。逻辑被放在循环旁边后，调用者可能看不出它已经改变了模型请求、工具执行或错误传播。因此每个中间件都应该有名字、边界、顺序说明和测试，不能只靠作者记忆。</p><p>状态钩子和调用包裹的差异要反复练习。状态钩子像图上的站点，适合留下可持久化的状态变化；调用包裹像围住一次动作的守门员，适合控制是否执行、执行几次、失败如何处理。把二者混用，会让代码既不好观察，也不好恢复。</p><p>顺序是中间件系统的第二 API。列表前后不是格式问题，而是安全和观测语义。权限检查在重试外还是内，审计记录整体调用还是每次尝试，人审发生在参数改写前还是后，都会改变生产行为。任何顺序变化都应像代码变更一样被评审。</p><p>中间件尤其适合承载横切关注点，例如预算、限流、审计、人审、脱敏、模型路由和错误转换。但业务主流程如果完全藏进中间件，图会变得表面简单、实际难懂。健康边界是主流程仍能从图上读出，中间件只负责跨流程的一致规则。</p><p>测试中间件时，最终答案通过并不够。要测试 handler 调用次数、异常是否传播、短路是否发生、请求是否被修改、状态更新是否合并。中间件的错误常常不改变 happy path，却会在失败、重试和副作用场景制造事故。</p><h2>Hook 顺序与 wrapper 嵌套排障</h2><p>调试 middleware 时先把执行顺序画成两层：状态 hook 是图上的节点，wrapper 是调用边界外的洋葱。before_model 和 after_model 的证据应出现在 state update、checkpoint 或 stream 事件中；wrap_model_call 和 wrap_tool_call 的证据应体现为 handler 调用次数、异常传播、短路或重试。</p><p>wrapper 顺序必须用外层、内层语言描述。外层先看到 request，最后看到 response；内层最接近真实模型或工具。审计包住重试会记录一次整体调用，重试包住审计会记录每次尝试。两者都可能正确，但必须符合团队想要的观测粒度。</p><p>排障时不要把 runtime 当成第三个随手添加的位置参数。真实 wrap_model_call 的概念是 request 加 handler，runtime/context/config 应从 request 或 request.runtime 侧读取。签名讲错会让读者写出不能挂进真实中间件链的伪代码。</p><h2>状态钩子 vs wrapper 钩子选择表</h2><p>如果逻辑要产生可持久化状态更新，例如追加安全提示、记录审查结果、设置 jump_to，优先用 before/after hook，因为图能看见它的输入输出。若逻辑要决定是否执行一次调用、执行几次、是否换模型、是否捕获异常，优先用 wrapper，因为它需要 handler 控制权。</p><p>工具权限通常横跨两类 hook：before_model 可以投影非敏感身份摘要，让模型知道业务场景；wrap_tool_call 才真正守住副作用工具执行前的权限、租户、金额和人审。把权限全部放在 prompt 或 after_agent，安全语义都会太晚。</p><p>测试也要按类别拆开。状态 hook 测它返回的增量 state 是否被 reducer 合并；wrapper 测 fake handler 被调用几次、收到什么 request、异常是否被转换。只测最终回答通过，无法发现 wrapper 顺序反了或状态 hook 原地修改输入的问题。</p><div class="card version"><div class="tag">📌 版本锚点</div>本课使用 LangChain v1 AgentMiddleware 的概念性源码锚点。具体内置中间件名称和文件可能随版本扩展，但状态钩子编进图、wrap 钩子组合 handler、HITL 守副作用边界，是阅读 middleware 系统的稳定心智模型。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>AgentMiddleware 让护栏、审计、重试、人审等横切能力不污染核心 Agent 循环。</li><li>before/after 钩子偏状态更新，适合成为图节点；wrap 钩子偏调用控制，适合洋葱式 handler。</li><li>中间件顺序会改变语义，必须显式设计和测试。</li><li>HITL 应放在敏感副作用发生前，尤其是工具调用边界。</li></ul></div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. 中间件让你“在不改核心循环的前提下”插入逻辑。这个“扩展点”最体现哪条原则？</div>
+  <div class="qn">1. 哪一组最准确地区分了 AgentMiddleware 的 before/after 与 wrap 钩子？</div>
   <ol class="opts">
-    <li>单例</li>
-    <li>KISS</li>
-    <li>开闭原则：对扩展开放（随便加中间件）、对修改关闭（核心循环不动）</li>
-    <li>DRY</li>
+    <li>before/after 会自动重试，wrap 只能打印日志</li>
+    <li>三者没有区别，只是命名不同</li>
+    <li>before/after 只能用于工具，wrap 只能用于最终回答</li>
+    <li>before/after 偏状态读写，wrap 偏包住一次模型或工具调用并控制是否调用内层 handler</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。“不改核心、靠加插件扩展”正是开闭原则。它让 Agent 行为高度可定制，同时核心保持稳定。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。状态钩子适合成为图节点；wrap 钩子拿到 handler，能重试、短路、替换请求或捕获异常。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. 两类钩子用了两种实现：状态钩子编译成图节点、包裹钩子组合成洋葱式嵌套函数。为什么不统一成一种？</div>
+  <div class="qn">2. 多个 <code>wrap_model_call</code> 中间件叠加时，为什么顺序重要？</div>
   <ol class="opts">
-    <li>两类需求本质不同：状态钩子“读改状态”适合做图节点（可持久化），包裹钩子“控制前后/能否调用”适合做嵌套函数（能重试/短路）——各取所长</li>
-    <li>历史原因</li>
-    <li>偷懒</li>
-    <li>没区别</li>
+    <li>外层先看到请求、后看到响应；内外顺序会改变重试范围、审计粒度和错误处理语义</li>
+    <li>只有最后一个中间件会运行</li>
+    <li>顺序只影响代码格式，不影响行为</li>
+    <li>顺序由模型随机决定</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。“改状态”和“包裹一次调用”是两种语义，分别用最契合的机制实现。这是“按需选择实现”而非强行统一的务实设计。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。洋葱式 wrapper 的外层/内层位置就是语义。审计包住重试和重试包住审计，记录结果会不同。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 内置的 retry/fallback 都基于 <code>wrap_model_call</code> 实现。为什么“拿到 handler 回调、能重复调内层”就足以实现重试？</div>
+  <div class="qn">3. <code>HumanInTheLoopMiddleware</code> 最应该守住哪个边界？</div>
   <ol class="opts">
-    <li>wrap 拿到了“执行内层”的回调，于是可以失败了换个请求再调一次 handler——重试/降级本质就是“多调几次内层”</li>
-    <li>巧合</li>
-    <li>handler 很快</li>
-    <li>handler 自带重试</li>
+    <li>模型第一次读取用户问题之前，阻止任何文本生成</li>
+    <li>只在 build.py 生成 HTML 时运行</li>
+    <li>所有最终回答生成之后，再询问人类是否喜欢语气</li>
+    <li>敏感工具或有副作用动作执行之前，interrupt 等待人工批准</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。洋葱式的“外层掌控内层调用”是个强大原语：重试=多调、降级=换参再调、短路=不调。一个机制覆盖多种健壮性需求。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. “零开销原则”：没被覆盖的钩子根本不进图。这个设计图什么？</div>
-  <ol class="opts">
-    <li>不写就没成本：丰富的扩展点（七个钩子）不以“拖慢每次循环”为代价，按需付费</li>
-    <li>减少内存</li>
-    <li>防止出错</li>
-    <li>代码好看</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。“未使用即零成本”让框架能提供丰富扩展点而不牺牲性能——你只为用到的能力买单。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。HITL 的安全价值在于预防危险副作用，而不是事后通知。退款、发邮件、改数据库等动作应在执行前审批。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>中间件让 Agent 高度可定制，但一堆中间件叠在一起，执行顺序和相互影响也会变复杂。你会怎么管理“中间件栈”以免它变成新的复杂度黑洞？</li>
-    <li>“状态钩子做节点、包裹钩子做嵌套函数”是按语义选实现。如果让你设计扩展点，你会倾向“少而统一”还是“多而专用”？为什么？</li>
+    <li>设计一个 guard middleware：说明哪些逻辑放 before_model，哪些放 wrap_tool_call，权限不足时抛异常还是生成 ToolMessage。</li>
+    <li>调试一个 wrapper 顺序问题：审计、重试、fallback 三个中间件不同排序会产生哪些日志和行为差异？</li>
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="17-rag.html"><div class="dir">← 上一课</div><div class="ttl">RAG 检索增强</div></a><a class="next" href="19-runtime-context.html"><div class="dir">下一课 →</div><div class="ttl">运行时上下文与健壮性</div></a></div>
+  <div class="footnav"><a class="prev" href="13-agent-internals.html"><div class="dir">← 上一课</div><div class="ttl">create_agent 构图内部</div></a><a class="next" href="19-runtime-context.html"><div class="dir">下一课 →</div><div class="ttl">Runtime Context 与结构化响应</div></a></div>
 </div>
 
 </body></html>

@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>02 · Monorepo 全景 — LangChain 图解教程</title>
-<meta name="description" content="第一部分 · 宏观全景｜Monorepo 全景：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>02 · 项目与包结构 — LangChain 图解教程</title>
+<meta name="description" content="第一部分 · 全局地图｜项目与包结构：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="02 · Monorepo 全景 — LangChain 图解教程">
-<meta property="og:description" content="第一部分 · 宏观全景｜Monorepo 全景：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="02 · 项目与包结构 — LangChain 图解教程">
+<meta property="og:description" content="第一部分 · 全局地图｜项目与包结构：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="02 · Monorepo 全景 — LangChain 图解教程">
-<meta name="twitter:description" content="第一部分 · 宏观全景｜Monorepo 全景：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="02 · 项目与包结构 — LangChain 图解教程">
+<meta name="twitter:description" content="第一部分 · 全局地图｜项目与包结构：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -256,309 +256,213 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
 </style>
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第一部分 · 宏观全景</span>
-    <span class="pill">02 / 27</span>
+    <span class="pill">第一部分 · 全局地图</span>
+    <span class="pill">02 / 46</span>
   </div>
-  <div class="progress"><span style="width:7%"></span></div>
+  <div class="progress"><span style="width:4%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第一部分 · 宏观全景</div>
-    <h1>Monorepo 全景</h1>
+    <div class="part">第一部分 · 全局地图</div>
+    <h1>项目与包结构</h1>
   </div>
-  
+
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-LangChain 的代码不是一个大包，而是一个 <strong>monorepo（单仓库、多包）</strong>：
-一个 Git 仓库里装着十几个<strong>各自独立发版</strong>的 Python 包。看懂这张"分层地图"，
-你就再也不会在目录里迷路。
+LangChain 不是一个单包巨石，而是一组按稳定性和变更速度拆开的包：<span class="mono">langchain-core</span> 放协议地基，<span class="mono">langchain</span> 放高层入口和默认组合，<span class="mono">langgraph</span> 放状态图运行时，<span class="mono">langchain-community</span> 放社区集成，厂商 partner 包放 OpenAI、Anthropic 等易变适配。第二课的目标，是让你看到“为什么包要这样分”，以及换 provider 时爆炸半径为什么能被压小。
 </p>
 
 <div class="card analogy">
-  <div class="tag">🏗️ 生活类比</div>
-  把它想成一栋<strong>分层的大楼</strong>：地基层（core）定义所有"接口标准"，
-  楼上的主套间（langchain）放你日常用的高级功能，
-  而每个厂商（partners/openai、partners/anthropic）是<strong>可插拔的配件房间</strong>，
-  都按地基层的标准接口来装修，所以能随意替换。
+  <div class="tag">🏙️ 生活类比 · 城市分区</div>
+  一座城市不会把宪法、公交调度、临街小店和临时展会都写进同一本规章。宪法稳定，公交调度常更新，商店每天换促销，展会更是随来随走。LangChain 的包结构也是这种分区：核心协议像宪法，主包像市政服务，LangGraph 像交通调度中心，community 和 partner 像各种店铺与外部公司。分区的意义不是让名字变多，而是让变化只发生在该变化的街区。
 </div>
 
-<h2>仓库的物理结构</h2>
-<p>所有包都在 <span class="inline">libs/</span> 下。你现在只需认得这几个最重要的：</p>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">langchain/libs/</span><span class="ln">目录结构</span></div>
-<pre><span class="cm"># 在仓库根目录执行 ls libs/ 就能看到</span>
-libs/
-├── <span class="fn">core/</span>            <span class="cm"># langchain-core：地基，所有抽象与接口</span>
-├── <span class="fn">langchain/</span>       <span class="cm"># langchain-classic：旧版（维护中，无新功能）</span>
-├── <span class="fn">langchain_v1/</span>    <span class="cm"># langchain：当前主力包，你日常 import 的就是它</span>
-├── <span class="fn">partners/</span>        <span class="cm"># 各厂商集成：openai / anthropic / ollama ...</span>
-│   ├── openai/
-│   ├── anthropic/
-│   └── ...
-├── <span class="fn">text-splitters/</span>  <span class="cm"># 文档切块工具</span>
-├── <span class="fn">standard-tests/</span>  <span class="cm"># 给所有 partner 共用的标准测试套件</span>
-└── <span class="fn">model-profiles/</span>  <span class="cm"># 模型能力档案（上下文长度、是否支持工具等）</span>
-</pre>
-</div>
-
-<h2>核心三层：地基 / 主力 / 配件</h2>
-<p>十几个包里，理解 LangChain 你<strong>主要只需盯住三层</strong>。它们的依赖方向<strong>永远从上往下</strong>
-——上层依赖下层，下层<strong>绝不</strong>反过来依赖上层：</p>
-
+<h2>五类包各管一层</h2>
+<p>先看层次图。越靠下越稳定，越靠上越贴近使用体验或厂商变化。一个健康的依赖方向应当是上层依赖下层，边缘依赖核心；不能让核心反过来 import 某个具体厂商，否则地基会被边缘拖着走。</p>
 <div class="layers">
-  <div class="layer l-part">
-    <div class="lh"><span class="badge">集成层</span><span class="name">langchain-openai / langchain-anthropic …</span></div>
-    <div class="ld">每个厂商一个独立包，把厂商 SDK 适配成 core 定义的标准接口。
-      位置：<span class="mono">libs/partners/*/</span>。换厂商 = 换这一层的包。</div>
-  </div>
-  <div class="layer l-main">
-    <div class="lh"><span class="badge">编排层</span><span class="name">langchain（主力包）</span></div>
-    <div class="ld">面向用户的高级功能：<span class="mono">create_agent</span>、<span class="mono">init_chat_model</span>、中间件等。
-      位置：<span class="mono">libs/langchain_v1/langchain/</span>。这是你日常写代码 import 的包。</div>
-  </div>
-  <div class="layer l-core">
-    <div class="lh"><span class="badge">地基层</span><span class="name">langchain-core</span></div>
-    <div class="ld">最底层抽象：<span class="mono">Runnable</span>、<span class="mono">BaseChatModel</span>、各种
-      <span class="mono">Message</span>、<span class="mono">BaseTool</span>。位置：<span class="mono">libs/core/langchain_core/</span>。
-      <strong>用户通常不直接 import 它</strong>，但所有东西都建在它之上。</div>
-  </div>
+  <div class="layer l-core"><div class="lh"><span class="badge">core</span><span class="name">langchain-core</span></div><div class="ld">协议、基类、消息、Runnable、工具抽象、配置和回调接口。它追求稳定、轻依赖、可被所有包引用。</div></div>
+  <div class="layer l-main"><div class="lh"><span class="badge">main</span><span class="name">langchain</span></div><div class="ld">面向用户的高层入口与默认组合，例如 init_chat_model、create_agent、常用 chains。它依赖 core，并把复杂组合包装成好用 API。</div></div>
+  <div class="layer l-part"><div class="lh"><span class="badge">graph</span><span class="name">langgraph</span></div><div class="ld">有状态图、节点、边、Pregel 执行、checkpoint、中断与人审。Agent 循环越来越多地落在这一层。</div></div>
+  <div class="layer l-app"><div class="lh"><span class="badge">community</span><span class="name">langchain-community</span></div><div class="ld">社区维护或长尾集成，覆盖加载器、工具、向量库、第三方服务。它变化快，不应污染核心地基。</div></div>
+  <div class="layer l-part"><div class="lh"><span class="badge">partners</span><span class="name">langchain-openai / anthropic / ...</span></div><div class="ld">厂商 SDK 适配层，负责认证、参数翻译、payload 组装和响应解析。某个 SDK 升级时，影响应尽量限制在该 partner 包。</div></div>
 </div>
+<div class="lesson-map"><div class="lm-title">🗺️ 本课地图：从包名看责任</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">core</div><div class="mn-desc">先识别稳定协议：Runnable、BaseMessage、RunnableConfig、Callback 接口</div></div><div class="map-node now"><div class="mn-label">langchain</div><div class="mn-desc">再找高层入口：init_chat_model、create_agent 等用户 API</div></div><div class="map-node after"><div class="mn-label">langgraph</div><div class="mn-desc">理解 Agent 循环为什么需要图执行与状态持久化</div></div><div class="map-node source"><div class="mn-label">community</div><div class="mn-desc">把长尾集成与核心发布节奏隔离</div></div><div class="map-node source"><div class="mn-label">partners</div><div class="mn-desc">把厂商 SDK 的变化控制在单独包里</div></div></div></div>
+<h2>源码地图：包根就是第一层线索</h2>
+<p>读大型仓库时，目录名本身就是架构文档。下面的源码入口不是让你背路径，而是训练一个习惯：看到一个 import，先判断它属于“协议地基、主包便利、图运行时、社区集成、厂商适配”哪一类，再决定应该往上读使用者，还是往下读实现者。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/</td><td class="mono">package root</td><td>核心协议、消息、Runnable、工具抽象、配置、回调。</td><td>被 langchain、langgraph、partners 依赖；不应依赖具体厂商。</td></tr><tr><td class="mono">libs/langchain_v1/langchain/</td><td class="mono">package root</td><td>高层用户 API 与默认组合，例如 chat_models、agents。</td><td>向下依赖 core、partners、langgraph。</td></tr><tr><td class="mono">langchain-ai/langgraph/libs/langgraph/langgraph/</td><td class="mono">package root</td><td>状态图、Pregel、checkpoint、中断、控制流。</td><td>依赖 core 协议，对外提供可执行图。</td></tr><tr><td class="mono">langchain-ai/langchain-community/libs/community/langchain_community/</td><td class="mono">package root</td><td>社区和长尾集成，范围广、变化快。</td><td>依赖 core；稳定性弱于 core。</td></tr><tr><td class="mono">libs/partners/openai/langchain_openai/</td><td class="mono">package root</td><td>OpenAI SDK 适配，参数与响应格式翻译。</td><td>依赖 core；不应让 core 反向知道它。</td></tr><tr><td class="mono">libs/partners/anthropic/langchain_anthropic/</td><td class="mono">package root</td><td>Anthropic SDK 适配，处理该厂商的消息和工具调用差异。</td><td>与其他 partner 平级隔离。</td></tr></table>
+<h2>依赖方向：地基不能认识住户</h2>
+<p>包拆分的关键不是“文件夹漂亮”，而是依赖方向可控。一个简单判断：如果删除 OpenAI partner 包，<span class="mono">langchain-core</span> 仍应能被导入；如果删除 core，所有上层都应该崩。这说明 core 是地基，partner 是可替换边缘。</p>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">architecture_rules.py :: dependency_direction</span><span class="ln">简化版</span></div><pre># 允许：上层依赖稳定地基
+langchain -&gt; langchain_core
+langchain_openai -&gt; langchain_core
+langchain_anthropic -&gt; langchain_core
+langchain -&gt; langgraph
 
-<div class="card macro">
-  <div class="tag">🌍 宏观理解：为什么要分这么多包？</div>
-  <ul>
-    <li><strong>依赖隔离</strong>：你只装 OpenAI，就不会被迫装上 Anthropic 的 SDK。每个 partner 是独立包，按需安装。</li>
-    <li><strong>独立发版</strong>：OpenAI 出了新功能，<span class="mono">langchain-openai</span> 可以自己发版，不用等整个框架。</li>
-    <li><strong>稳定地基</strong>：<span class="mono">core</span> 很少变，给所有上层一个稳定的"接口契约"。</li>
-  </ul>
-</div>
+# 谨慎：高层可选择性调用具体 partner，但要通过工厂或可选依赖隔离
+init_chat_model(&quot;openai:gpt-5.1&quot;) -&gt; langchain_openai.ChatOpenAI
 
-<h2>用依赖关系验证这套分层</h2>
-<p>不用记，<strong>看每个包的 <span class="inline">pyproject.toml</span> 就能验证</strong>谁依赖谁。下面是真实内容：</p>
-
-<div class="cols">
-  <div class="col">
-    <h4>🟢 core 依赖谁？</h4>
-    <pre class="code" style="margin:.4rem 0"><span class="cm"># libs/core/pyproject.toml</span>
-dependencies = [
-  <span class="st">"langsmith"</span>,    <span class="cm"># 追踪</span>
-  <span class="st">"pydantic"</span>,     <span class="cm"># 数据校验</span>
-  <span class="st">"tenacity"</span>,     <span class="cm"># 重试</span>
-  ...
-]</pre>
-    <p style="font-size:.85rem;color:var(--muted)">没有任何 langchain 包——它是<strong>地基</strong>，谁都不依赖。</p>
-  </div>
-  <div class="col">
-    <h4>🔵 主力包 / partner 依赖谁？</h4>
-    <pre class="code" style="margin:.4rem 0"><span class="cm"># langchain_v1/pyproject.toml</span>
-dependencies = [
-  <span class="st">"langchain-core"</span>,  <span class="cm"># ↓ 依赖地基</span>
-  <span class="st">"langgraph"</span>,       <span class="cm"># Agent 引擎</span>
-]
-<span class="cm"># partners/openai/pyproject.toml</span>
-dependencies = [
-  <span class="st">"langchain-core"</span>,  <span class="cm"># ↓ 依赖地基</span>
-  <span class="st">"openai"</span>,          <span class="cm"># 厂商 SDK</span>
-]</pre>
-  </div>
-</div>
-
+# 禁止：地基反向依赖边缘
+langchain_core -X-&gt; langchain_openai
+langchain_core -X-&gt; langchain_community</pre><div class="cw-note">真正的依赖声明要读 pyproject.toml；这段伪代码只表达方向原则：稳定层不认识易变层。</div></div>
 <div class="card detail">
-  <div class="tag">🔬 细节：开发工具栈</div>
-  这个仓库用一套现代 Python 工具链，后面"贡献"那一课会细讲，先混个眼熟：
-  <table class="t" style="margin-top:.6rem">
-    <tr><th>工具</th><th>作用</th></tr>
-    <tr><td class="mono">uv</td><td>装依赖 / 管理虚拟环境（比 pip 快）</td></tr>
-    <tr><td class="mono">ruff</td><td>代码检查 + 格式化</td></tr>
-    <tr><td class="mono">mypy</td><td>静态类型检查</td></tr>
-    <tr><td class="mono">pytest</td><td>测试框架</td></tr>
-    <tr><td class="mono">make</td><td>把上面命令打包成 <span class="mono">make test</span> / <span class="mono">make lint</span></td></tr>
-  </table>
-  每个包<strong>各自有一份</strong> <span class="mono">pyproject.toml</span> 和 <span class="mono">uv.lock</span>。
+  <div class="tag">🔬 为什么 core 要特别稳定</div>
+  <p><span class="mono">langchain-core</span> 里放的是公共契约。契约一旦破坏，受影响的不是一个功能，而是所有实现该契约的模型、工具、retriever、parser、图和用户代码。因此 core 的设计会偏保守：少依赖、少魔法、重向后兼容。相反，partner 包必须跟着厂商 SDK 快速迭代，参数名、认证方式、响应字段都可能变化；把它们拆出去，是为了让“变化快的东西”不要拖垮“变化慢的地基”。</p>
 </div>
 
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入三个常见疑问。</p>
+<h2>Provider 切换追踪</h2>
+<p>假设你把模型字符串从 <span class="mono">openai:gpt-5.1</span> 改成 <span class="mono">anthropic:claude-sonnet-4-5</span>。业务代码仍然调用 <span class="mono">model.invoke(messages)</span>，但底层导入、payload 和响应解析会换到另一个 partner 包。下面的 trace 展示爆炸半径如何被限制。</p>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1 用户改配置</td><td>provider:model 字符串</td><td>init_chat_model 解析 provider 前缀。</td><td>选择 openai 或 anthropic adapter</td></tr><tr><td>2 构造模型</td><td>统一参数 temperature、model、api_key</td><td>主包加载对应 partner 类，如 ChatOpenAI 或 ChatAnthropic。</td><td>BaseChatModel 子类实例</td></tr><tr><td>3 调用统一接口</td><td>BaseMessage 列表</td><td>上层仍调用 invoke；config、callbacks、stream 等接口不变。</td><td>进入 provider wrapper</td></tr><tr><td>4 翻译 payload</td><td>标准消息和工具 schema</td><td>partner 包把消息翻译成该厂商 SDK 需要的字段。</td><td>OpenAI/Anthropic 专用请求</td></tr><tr><td>5 响应归一</td><td>厂商原始响应</td><td>partner 包解析 content、tool_calls、usage，再包装成 AIMessage。</td><td>上层拿到同一种 AIMessage</td></tr></table>
+<h2>community 与 partners 的区别</h2>
+<p>很多学习者会把 <span class="mono">langchain-community</span> 和 partner 包混在一起。粗略说，community 是“广而杂”的集成集合，适合长尾工具、加载器、向量库、非核心服务；partner 是“厂商主线适配”，通常围绕某个重要 provider 独立发版、独立依赖、独立维护。两者都属于边缘层，但隔离粒度不同。</p>
+<p>为什么不把所有东西都放进 community？因为高频厂商的 SDK 变化会非常频繁，独立 partner 包可以单独升级、单独 pin 版本、单独修 bug。为什么不把所有长尾集成都拆成 partner？因为拆太细会增加维护成本和发现成本。工程设计永远是在稳定性、维护成本、安装体积、发布节奏之间做取舍。</p>
 
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 为什么用 monorepo，而不是一个大包或彻底分成多个仓库 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 三种方案对比</div>
-      <div class="a">
-<pre class="code"><span class="cm"># 方案 A：一个大包（all-in-one）</span>
-pip install langchain   <span class="cm"># 但会拖进所有厂商 SDK，臃肿</span>
+<h2>包边界如何影响日常开发</h2>
+<p>包结构不是维护者的内部趣味，它会直接影响你写应用的方式。导入 <span class="mono">langchain_core.messages</span> 的代码，通常是在表达稳定数据契约；导入 <span class="mono">langchain_openai</span> 的代码，通常是在表达“这里接受 OpenAI 的厂商特性”；导入 <span class="mono">langchain_community</span> 的代码，通常要额外关注依赖质量、发布节奏和生产风险。读 import 就能看到耦合边界，这是大型项目里非常实用的信号。</p>
+<p>如果你的业务层到处散落 <span class="mono">from openai import OpenAI</span>，换 provider 时就会到处改；如果业务层只接触 <span class="mono">BaseMessage</span>、<span class="mono">Runnable</span> 或你自己封装的薄接口，provider 变化就集中在 adapter。LangChain 的拆包给了你一个参考：稳定契约向内收，易变适配向外放。你自己的项目也可以照这个模式拆分，例如把“客服问答业务规则”与“具体模型供应商”分开。</p>
 
-<span class="cm"># 方案 B：彻底分仓库（每个包一个 repo）</span>
-<span class="cm"># 跨包改动要开多个 PR，版本对不齐，难维护</span>
+<h2>读 pyproject.toml 的价值</h2>
+<p>架构图可能过期，口头描述可能简化，真实依赖最终要看包声明。<span class="mono">pyproject.toml</span> 告诉你一个包直接依赖谁、哪些依赖是 optional、哪些 extra 会拉入额外 provider。比如用户只安装 core 时，不应被迫安装所有厂商 SDK；安装 <span class="mono">langchain-openai</span> 时，才合理拉入 OpenAI 相关依赖。理解这一点，能解释为什么有时 import 报错并不是框架坏了，而是你没有安装对应 integration 包。</p>
+<p>optional dependency 也是控制爆炸半径的工具。一个向量库集成需要某个重依赖，如果它被塞进核心依赖，所有用户都会为少数功能付出安装成本；如果它作为 community 或 extra 存在，只用该功能的人才承担成本。这种取舍背后是“默认路径轻、扩展路径可选”的设计哲学。</p>
 
-<span class="cm"># 方案 C：monorepo（LangChain 的选择）</span>
-<span class="cm"># 一个 repo 多个包：按需安装、统一改动、独立发版</span>
-pip install langchain langchain-openai   <span class="cm"># 只装你要的</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">LangChain 要同时服务"只用一个厂商的轻量用户"和"跨多包协同的核心开发者"。
-        单一大包会让前者背上不必要的依赖；彻底分仓库会让后者的跨包改动（改 core 接口同时更新所有 partner）变成噩梦。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ monorepo 的优点</div>
-      <div class="a"><strong>按需安装</strong>（只装用到的 partner）、<strong>跨包原子改动</strong>（一个 PR 同时改 core 与 partner）、
-        <strong>独立发版</strong>（每个包有自己的版本号与 <span class="mono">pyproject.toml</span>）、<strong>共享工具链</strong>（统一 lint/test 配置）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">🔀 其他方案</div>
-      <div class="a">很多项目用<strong>单包 + 可选依赖</strong>（<span class="mono">pip install pkg[openai]</span>）；
-        或用 <strong>Nx / Turborepo</strong> 之类的 monorepo 工具。LangChain 用的是"<strong>uv workspace</strong> + 各包独立 <span class="mono">pyproject.toml</span>"的轻量组合。</div>
-    </div>
-  </div>
-</details>
+<h2>Provider 切换的真实难点</h2>
+<p>“换模型只改一行”是目标，不是魔法。统一接口能隐藏大部分调用形状，但不能让所有厂商能力完全相同。有的 provider 支持某种工具调用格式，有的支持多模态内容块，有的 usage 字段更细，有的 streaming chunk 结构不同。partner 包的职责，是尽量把这些差异投影到统一的 <span class="mono">AIMessage</span>、<span class="mono">tool_calls</span>、<span class="mono">response_metadata</span> 上；投影不了的独特能力，则要通过 provider-specific 参数暴露。</p>
+<p>因此，写可移植应用时要分清“通用能力”和“厂商专有能力”。通用能力可以依赖 LangChain 抽象，例如消息、工具 schema、invoke/stream；专有能力要隔离在一小块代码里，例如只在构造某个 provider 模型时传特殊参数。这样即使未来切换 provider，你也知道哪些部分可直接迁移，哪些部分需要重新设计。</p>
 
-<details class="accordion">
-  <summary><span class="badge-num">2</span> 地基层 <code>core</code> 里到底有哪些"抽象" <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 目录速览</div>
-      <div class="a"><span class="mono">libs/core/langchain_core/</span> 下的主要子目录，每个都是后面某一课的主角：
-<pre class="code">langchain_core/
-├── <span class="fn">runnables/</span>        <span class="cm"># Runnable 抽象（第 8、9 课）</span>
-├── <span class="fn">language_models/</span>  <span class="cm"># BaseChatModel（第 11 课）</span>
-├── <span class="fn">messages/</span>         <span class="cm"># Human/AI/Tool/System（第 4 课）</span>
-├── <span class="fn">tools/</span>            <span class="cm"># BaseTool / @tool（第 6、12 课）</span>
-├── <span class="fn">prompts/</span>          <span class="cm"># 提示词模板</span>
-├── <span class="fn">outputs/</span>          <span class="cm"># ChatResult 等输出结构</span>
-├── <span class="fn">callbacks/</span>        <span class="cm"># 回调系统（第 14 课）</span>
-└── <span class="fn">output_parsers/</span>   <span class="cm"># 把模型输出解析成结构化数据</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么这些要放在 core</div>
-      <div class="a">它们是<strong>接口契约</strong>：定义"聊天模型长什么样、消息长什么样、工具长什么样"。
-        所有上层（主力包、partner）都依赖这些契约，因此它们必须在最底层且<strong>极少变动</strong>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 这样设计的好处</div>
-      <div class="a">任何人想加一个新厂商，只要去 <span class="mono">partners/</span> 新建一个包、实现 core 的接口即可，
-        <strong>无需改动 core 一行</strong>。这就是"对扩展开放、对修改封闭"。</div>
-    </div>
-  </div>
-</details>
+<h2>community 集成的生产策略</h2>
+<p>使用 community 集成并不等于不可靠，但需要更明确的边界。生产项目里可以把 community loader、tool 或 retriever 包在自己的接口后面，固定版本，写最小回归测试，并记录替代方案。这样即使上游集成变动，你的业务层也不会直接暴露在变化下。换句话说，LangChain 用包边界管理生态变化，你的项目也要用模块边界管理上游变化。</p>
 
-<details class="accordion">
-  <summary><span class="badge-num">3</span> 一个 partner 包是怎么"适配"厂商的 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 适配器模式</div>
-      <div class="a"><span class="mono">langchain-openai</span> 里的 <span class="mono">ChatOpenAI</span> 继承 core 的 <span class="mono">BaseChatModel</span>，
-        把"标准接口"翻译成"OpenAI SDK 调用"：
-<pre class="code"><span class="cm"># 概念示意（partners/openai/...）</span>
-<span class="kw">class</span> <span class="fn">ChatOpenAI</span>(BaseChatModel):
-    <span class="kw">def</span> <span class="fn">_generate</span>(self, messages, ...):
-        <span class="cm"># 1) 标准消息 → OpenAI 的 JSON 格式</span>
-        <span class="cm"># 2) 调用 openai SDK 发请求</span>
-        <span class="cm"># 3) OpenAI 响应 → 标准 AIMessage</span>
-        ...</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">每个厂商的 API 形状不同。partner 包就是那层"翻译"，把差异<strong>封装在最外层</strong>，
-        让上面所有代码都只看到统一的 <span class="mono">BaseChatModel</span>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点 & 🔀 其他方案</div>
-      <div class="a">优点：新增 / 升级厂商只动一个独立包，互不影响（这正是第 11 课"模板方法模式"的落点）。
-        其他方案：把适配逻辑塞进 core（会让 core 依赖所有厂商 SDK，违背分层）——LangChain 刻意避免了这点。</div>
-    </div>
-  </div>
-</details>
+<h2>安装体积也是架构问题</h2>
+<p>很多初学者只从代码组织理解拆包，却忽略安装体积。一个 AI 应用可能只用 OpenAI 聊天模型，却完全不需要几十个向量库、文档加载器、云服务 SDK 和数据库驱动。如果所有集成都作为默认依赖安装，环境会更慢、更脆弱，也更容易出现版本冲突。拆成 core、main、community、partners 后，用户可以按需安装，生产镜像也更小，依赖审计更容易。</p>
+<p>依赖冲突在 AI 生态里尤其常见。某个向量库需要新版 numpy，另一个加载器依赖旧版 pydantic，某个云 SDK 又限制 http 客户端版本。如果这些都绑在核心包上，任何小功能都可能被无关依赖拖垮。把长尾集成放在 community，把主流厂商放在 partner，是把冲突限制在使用者真正选择的功能范围内。</p>
 
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li><strong>依赖严格单向</strong>（core 不依赖任何人），换来稳定地基与"对扩展开放、对修改封闭"。</li>
-    <li>monorepo 两头好处都要：跨包<strong>原子改动</strong>，又能<strong>独立发版、按需安装</strong>。</li>
-  </ul>
-</div>
+<h2>版本发布节奏的分离</h2>
+<p>核心协议的发布节奏应该慢，因为它要保护所有实现者；厂商适配的发布节奏必须快，因为 provider API 会不断增加参数、调整响应、修复流式边界。拆包让这两种节奏可以同时存在。OpenAI wrapper 修一个参数兼容问题，不应要求所有只用 Anthropic 的用户升级；core 增加一个协议字段，也不应被某个厂商 SDK 的临时 bug 阻塞。</p>
+<p>这种节奏分离也帮助维护者分工。熟悉某个 provider 的维护者可以专注 partner 包，熟悉图执行的维护者可以专注 LangGraph，熟悉基础协议的维护者可以审慎维护 core。生态越大，越不能靠一个巨型包和一个统一发布节奏解决所有问题。</p>
 
+<h2>从 import 看风险等级</h2>
+<p>你可以把 import 当成风险提示。导入 core 类型通常风险较低，因为这些符号是稳定契约；导入 langchain 高层入口风险中等，因为它包装便利但可能随推荐用法演进；导入 community 集成要看维护活跃度和依赖；导入 partner 包要关注对应厂商 SDK 版本。不是说某类 import 好或坏，而是每类 import 暗示不同的升级策略。</p>
+<p>在团队项目里，可以制定简单规则：领域层尽量只依赖自己的接口或 core 数据结构；基础设施层负责 partner/community 适配；配置层决定 provider；测试覆盖 adapter 行为。这样项目内部也形成和 LangChain 类似的稳定核心与易变边缘。框架的包结构不仅是被学习对象，也是一种可迁移的工程模式。</p>
+
+<h2>读包结构时常问的四个问题</h2>
+<p>第一，这个包定义契约还是实现契约？第二，它的用户是谁，是应用开发者、其他包维护者，还是某个 provider wrapper？第三，它的变化频率应该快还是慢？第四，如果它坏了，影响范围有多大？用这四个问题审视 <span class="mono">langchain-core</span>、<span class="mono">langchain</span>、<span class="mono">langgraph</span>、<span class="mono">community</span> 和 partners，你会发现拆分不是任意命名，而是围绕稳定性和爆炸半径设计的。</p>
+<p>这四个问题也能帮助你读提交记录。修改 core 的提交通常需要更谨慎的兼容说明和更广泛的测试；修改 partner 的提交更关注对应厂商行为；修改 community 的提交要看依赖和维护状态；修改 LangGraph 的提交则可能影响 Agent 执行语义。看到变更在哪个包，你就能预估审查重点。大型项目的维护不是平均用力，而是按层级风险分配注意力。</p>
+<p>在自己的应用里，建议也保留类似分层。可以有一个稳定的 domain 包定义订单、用户、消息等业务协议；有一个 application 包组织用例；有一个 infrastructure 包放 LangChain、provider、数据库、检索器适配；有一个 experiments 包放临时验证。这样 provider SDK 升级不会穿透到领域层，实验代码也不会污染生产路径。你学 LangChain 包结构，最终是为了把这种边界意识迁移到自己的项目。</p>
+<p>最后记住：拆包不是为了让 import 变长，而是为了让责任变短。一个包如果既定义协议、又接真实厂商、又管理图执行、又包含长尾社区工具，它的责任就太长，任何变化都可能牵动全身。LangChain 的多包结构牺牲了一点发现成本，换来安装可选、发布独立、依赖清晰和风险可控。这是工程上非常典型的取舍。</p>
+<h2>包结构是一种沟通协议</h2>
+<p>仓库维护者用包名向使用者传递预期：core 表示这里应当可靠且通用；partner 表示这里贴近某个厂商；community 表示这里覆盖广但需要使用者判断成熟度；langgraph 表示这里处理图状态和执行。读者尊重这些预期，代码就会更稳。反过来，如果把 partner 的原始响应到处传递，等于绕过了包边界，未来升级时自然痛苦。</p>
+<p>学习时也可以把每个 import 标颜色：绿色是稳定协议，蓝色是高层便利，紫色是图运行时，橙色是边缘集成，红色是直接厂商 SDK。颜色越靠边缘，越需要封装和版本固定。这个简单练习能很快暴露项目中不必要的耦合。</p>
+
+<h2>源码路径也要区分仓库与发行包</h2>
+<p>读第一部分的 source map 时，要注意“包名”和“源码所在仓库”不是同一个维度。<span class="mono">langchain-core</span>、<span class="mono">langchain</span> 和 partner 包可能在同一主仓中以不同目录存在；<span class="mono">langchain-community</span> 可以作为独立社区来源理解；LangGraph 也有自己的源码路径和发布节奏。引用路径时写清仓库或包来源，是为了避免把一个包里的符号误当成另一个包的内部文件。</p>
+<p>这种区分在排查版本问题时特别重要。你本地安装的是 wheel，源码阅读可能看的是 main 分支，文档链接又可能指向某个 tag；三者只要版本不一致，路径和行为就可能出现细微差异。稳妥做法是先记录发行包版本，再找到对应源码 tag，最后用文件 + 符号名描述职责。教学里使用路径是为了建立地图，不是鼓励照抄某个分支的内部实现。</p>
+<p>对 community 集成还要多问一个问题：这个集成是核心维护路径，还是长尾贡献路径？如果它只是把第三方服务包装成 loader 或 tool，生产中最好再套一层自己的 adapter。这样未来 community 路径迁移、依赖升级或维护状态变化时，业务代码仍然面对稳定接口。包结构给你的是风险信号，项目结构要把这个信号转化为隔离措施。</p>
+<p>团队维护依赖清单时，可以按包层级设置不同升级策略：core 升级前跑协议回归，partner 升级前跑对应 provider 的 payload 和解析测试，community 升级前检查第三方依赖树，LangGraph 升级前跑状态图和 checkpoint 用例。分层不是目录知识，而是升级流程。</p>
+<p>如果升级计划无法说明影响哪一层，通常说明边界还没有读清楚，应先补 source map 和最小回归再动版本。</p>
+<p>这也解释了为什么课程要写清 source qualifier：同样叫“集成”，来自主仓、community 仓库、partner 包或 LangGraph 仓库，维护节奏和风险完全不同。路径越明确，升级讨论越不容易把多个来源混在一起。</p>
+
+<h2>边界复盘</h2>
+<p>本课看似讲仓库目录，实际讲的是变化管理。稳定协议要少变，易变适配要隔离，可选集成要按需安装，图运行时要独立演进。只要记住“谁变化快，谁就不该住在地基里”，很多包结构决策都会变得自然。</p>
+<p>再补一个检查：如果一个改动需要同时修改 core、partner、community 和业务代码，通常说明边界设计有问题；理想情况是协议变化才动 core，厂商变化只动 partner，长尾集成变化只动 community，业务需求变化只动应用层。用影响范围反推包边界，是判断架构是否健康的简单方法。</p>
+
+<h2>常见误解</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：包越少越简单，最好所有集成都进 langchain。</div><div class="pf-correct">正确：单包会导致依赖膨胀和发布耦合；拆包是为了控制安装体积与变更半径。</div></div><div class="pitfall"><div class="pf-wrong">误解：core 代码少，所以不重要。</div><div class="pf-correct">正确：core 少而关键，它定义所有上层共享的稳定协议。</div></div><div class="pitfall"><div class="pf-wrong">误解：partner 包只是换个 import 名字。</div><div class="pf-correct">正确：partner 负责认证、payload、工具调用、流式 chunk、usage 等厂商差异。</div></div><div class="pitfall"><div class="pf-wrong">误解：community 不稳定就不能用。</div><div class="pf-correct">正确：community 表示集成范围更广、变化更快；生产中可以 pin 版本并封装边界。</div></div><div class="pitfall"><div class="pf-wrong">误解：依赖方向只是架构图好看。</div><div class="pf-correct">正确：依赖方向决定变更传播路径，违反方向会让底层被上层细节污染。</div></div></div>
+<h2>小实验：画出你项目的包边界</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · provider SDK 爆炸半径</div><ol><li>选择一个使用 OpenAI 或 Anthropic 的小项目，列出直接 import 厂商 SDK 的文件。</li><li>把这些文件按 core/main/provider/business 四类标注，检查业务层是否直接依赖厂商响应字段。</li><li>设计一个最薄的 adapter，让业务层只接收统一的 AIMessage-like 数据。</li><li>假设厂商 SDK 下周改字段名，写下会受影响的文件清单；目标是只影响 adapter。</li></ol></div>
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li>一个 Git 仓库 = 多个独立发版的包，全在 <span class="mono">libs/</span> 下。</li>
-    <li>盯住三层：<strong>core（地基）→ langchain（主力）→ partners（配件）</strong>，依赖永远从上往下。</li>
-    <li>想验证依赖关系，直接读各包的 <span class="mono">pyproject.toml</span>，不用猜。</li>
-    <li>下一课：跟着一次真实调用，看数据如何<strong>穿过这三层</strong>。</li>
+    <li><span class="mono">langchain-core</span> 是稳定协议层；<span class="mono">langchain</span> 是高层入口；<span class="mono">langgraph</span> 是图执行；<span class="mono">community</span> 和 partner 包承接边缘变化。</li>
+    <li>依赖方向应从高层到地基、从边缘到核心，不能让 core import 具体 provider。</li>
+    <li>provider 切换时，上层仍面对 Runnable 和 AIMessage，变化被压在 partner wrapper 内。</li>
+    <li>读大型仓库时，先从包根判断责任，再看 pyproject.toml 确认真实依赖。</li>
   </ul>
 </div>
 <div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. LangChain 把代码分成 core / langchain / partners 三层，且依赖只能“从上往下”。这种<strong>单向依赖</strong>最主要防止了什么？</div>
+  <div class="qn">1. 为什么 <code>langchain-core</code> 必须比 partner 包更稳定？</div>
   <ol class="opts">
-    <li>代码总量变多</li>
-    <li>循环依赖与“牵一发动全身”：地基 core 极少变、稳定，上层随便迭代也不会反噬底层</li>
-    <li>多人协作的合并冲突</li>
-    <li>编译变慢</li>
+    <li>因为 core 不包含任何代码</li>
+    <li>因为 core 定义所有上层共享的协议，破坏它会影响模型、工具、图和用户代码</li>
+    <li>因为 core 不允许测试</li>
+    <li>因为 core 只服务 OpenAI</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。core 定义契约且几乎不动，partners/langchain 都依赖它而非互相依赖；这样换厂商、加功能都不会动摇地基，稳定性与可替换性同时得到。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。越底层、被依赖越广，变更成本越高。core 是公共契约层，所以要轻依赖、保守和向后兼容。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. 每个厂商（openai/anthropic…）单独一个包、独立发版，而不是全塞进一个大包。这样设计图什么？</div>
+  <div class="qn">2. 把 OpenAI、Anthropic 等适配拆成 partner 包，最主要隔离了什么？</div>
   <ol class="opts">
-    <li>显得包很多</li>
-    <li>方便收费</li>
-    <li>解耦发布节奏与依赖：只装用到的厂商、某厂商 SDK 升级不波及别人、换厂商=换一个小包</li>
-    <li>减少代码行数</li>
+    <li>Python 语法差异</li>
+    <li>所有业务逻辑</li>
+    <li>厂商 SDK、认证、payload、响应字段和发布节奏的变化</li>
+    <li>LangGraph 的 checkpoint 数据</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。把“易变的厂商适配”隔离成可插拔小包，是“核心稳定、边缘灵活”的工程体现——依赖树更干净，升级的爆炸半径更小。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。partner 包承接高频厂商变化，某个 SDK 升级时不应迫使 core 或其他 provider 一起变化。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 想确认“主力包到底依赖谁”，本课建议直接读 <code>pyproject.toml</code> 而不是猜。这背后是什么可靠性原则？</div>
+  <div class="qn">3. 健康的包依赖方向应当是什么？</div>
   <ol class="opts">
-    <li>因为代码太难读</li>
-    <li>因为没有别的办法</li>
-    <li>pyproject.toml 是依赖关系的“单一事实来源”：声明式、可机读、不会骗你</li>
-    <li>因为文档都不可信</li>
+    <li>所有包相互 import，减少参数传递</li>
+    <li>业务代码直接读取每个 provider 的原始响应字段</li>
+    <li><code>langchain-core</code> 反向 import 所有 partner，方便统一管理</li>
+    <li>上层和边缘依赖稳定核心，核心不依赖具体厂商或 community 集成</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。依赖在 pyproject.toml 里显式声明，是确定性的事实。养成“读声明而非靠记忆/猜测”的习惯，在任何项目都更可靠。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. core 被设计成“极少变动”。为什么一个被所有上层依赖的“地基”必须保持稳定？</div>
-  <ol class="opts">
-    <li>它是公共契约：一旦改动，所有依赖它的上层与用户代码都可能被波及，所以要苛刻地保持向后兼容</li>
-    <li>因为它最不重要</li>
-    <li>因为它代码少</li>
-    <li>因为没人维护它</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。越底层、被依赖越广，变更成本越高。把抽象/契约放在最稳定的层、让易变的东西留在上层，是分层架构控制变更风险的通用法则。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。单向依赖能控制变更传播路径：稳定层不认识易变层，边缘变化不会污染地基。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>你维护过的项目里，有没有“改一个底层小函数、结果上层到处崩”的经历？对照本课的“单向依赖 + 地基稳定”，当时可以怎么设计来避免？</li>
-    <li>“把易变部分隔离成可插拔模块、把稳定契约沉到底层”是通用思路。在你的领域里，哪些东西该当 <code>core</code>、哪些该当 <code>partner</code>？</li>
+    <li>为一个你熟悉的项目画出 core/main/community/partner 类似边界。哪些代码应该沉到稳定地基，哪些应该留在易变边缘？</li>
+    <li>如果某 provider SDK 改了响应字段，直接依赖 SDK 的业务代码会有什么爆炸半径？用 adapter/partner 包如何缩小影响范围？</li>
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="01-what-is-langchain.html"><div class="dir">← 上一课</div><div class="ttl">LangChain 是什么</div></a><a class="next" href="03-lifecycle.html"><div class="dir">下一课 →</div><div class="ttl">一次调用的生命周期</div></a></div>
+  <div class="footnav"><a class="prev" href="01-what-is-langchain.html"><div class="dir">← 上一课</div><div class="ttl">LangChain 是什么</div></a><a class="next" href="03-lifecycle.html"><div class="dir">下一课 →</div><div class="ttl">一次调用的全链路</div></a></div>
 </div>
 
 </body></html>

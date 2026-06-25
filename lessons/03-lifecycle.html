@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>03 · 一次调用的生命周期 — LangChain 图解教程</title>
-<meta name="description" content="第一部分 · 宏观全景｜一次调用的生命周期：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>03 · 一次调用的全链路 — LangChain 图解教程</title>
+<meta name="description" content="第一部分 · 全局地图｜一次调用的全链路：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="03 · 一次调用的生命周期 — LangChain 图解教程">
-<meta property="og:description" content="第一部分 · 宏观全景｜一次调用的生命周期：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="03 · 一次调用的全链路 — LangChain 图解教程">
+<meta property="og:description" content="第一部分 · 全局地图｜一次调用的全链路：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="03 · 一次调用的生命周期 — LangChain 图解教程">
-<meta name="twitter:description" content="第一部分 · 宏观全景｜一次调用的生命周期：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="03 · 一次调用的全链路 — LangChain 图解教程">
+<meta name="twitter:description" content="第一部分 · 全局地图｜一次调用的全链路：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -256,261 +256,215 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
 </style>
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第一部分 · 宏观全景</span>
-    <span class="pill">03 / 27</span>
+    <span class="pill">第一部分 · 全局地图</span>
+    <span class="pill">03 / 46</span>
   </div>
-  <div class="progress"><span style="width:11%"></span></div>
+  <div class="progress"><span style="width:6%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第一部分 · 宏观全景</div>
-    <h1>一次调用的生命周期</h1>
+    <div class="part">第一部分 · 全局地图</div>
+    <h1>一次调用的全链路</h1>
   </div>
-  
+
 <p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-现在把前两课接起来：当你写下 <span class="inline">model.invoke("你好")</span> 的那一刻，
-数据具体<strong>穿过哪些层、变成什么形状、最后怎么回来</strong>？这一课用一张"生命周期图"讲透。
+本课只追一行代码：<span class="mono">model.invoke("写一句欢迎语")</span>。看似是一句同步调用，内部会经历输入标准化、消息转换、配置合并、回调生命周期、provider payload 组装、网络请求、响应解析，最后回到一条 <span class="mono">AIMessage</span>。理解这条链路，你以后遇到 streaming、batch、tool calling、Agent trace，都能判断当前卡在第几层。
 </p>
 
 <div class="card analogy">
-  <div class="tag">✉️ 生活类比</div>
-  这趟旅程就像<strong>寄一封跨国信</strong>：你写中文信（字符串）→ 邮局装进标准信封并贴上规范地址（消息标准化）→
-  翻译成目的国语言（厂商 API 格式）→ 寄出、对方回信 → 再翻译回中文 → 装进标准信封交还给你（AIMessage）。
-  你只面对"中文信"，<strong>中间的翻译与信封都被框架藏起来了</strong>。
+  <div class="tag">📮 生活类比 · 寄一封跨国快递</div>
+  你把一句中文写在纸上交给快递员，不代表它原样飞到对方手里。快递公司会把它装进标准信封、贴面单、合并运输配置、扫描揽收和转运节点、交给国际承运商、到目的国再拆包投递。<span class="mono">invoke</span> 也是这样：用户输入只是寄件动作，真正的系统会一路做包装、登记、转运、解析和回执。调试时不能只问“最后回了什么”，还要看每个扫描点是否正常。
 </div>
-
-<h2>一次调用的完整生命周期</h2>
-<p>下面每一步都标注了它发生在<strong>哪一层</strong>。重点是数据形状的三次变身：
-<strong>字符串 → 标准消息 → 厂商格式 → 标准消息</strong>。</p>
-
-<div class="vflow">
-  <div class="step"><div class="num">1</div><div class="sc">
-    <h4>你的代码：传入字符串或消息</h4>
-    <p>你调用 <span class="mono">model.invoke("北京天气怎么样？")</span>。输入可以是字符串、字典或消息对象。</p>
-    <p class="mono">📍 编排层 langchain</p>
-  </div></div>
-  <div class="step"><div class="num">2</div><div class="sc">
-    <h4>标准化：一切都变成 Messages</h4>
-    <p>框架把你的输入统一转成一串<strong>标准消息对象</strong>（如 <span class="mono">[HumanMessage("北京天气怎么样？")]</span>）。
-      从这里开始，内部只认消息，不认裸字符串。</p>
-    <p class="mono">📍 地基层 langchain-core · messages/</p>
-  </div></div>
-  <div class="step"><div class="num">3</div><div class="sc">
-    <h4>进入统一入口 invoke → generate</h4>
-    <p><span class="mono">BaseChatModel.invoke()</span> 调用 <span class="mono">generate_prompt → generate</span>，
-      这是<strong>所有厂商共享</strong>的模板流程（含缓存、回调、重试）。</p>
-    <p class="mono">📍 地基层 · language_models/chat_models.py</p>
-  </div></div>
-  <div class="step"><div class="num">4</div><div class="sc">
-    <h4>翻译成厂商格式并发请求</h4>
-    <p>具体 partner（如 <span class="mono">ChatOpenAI._generate</span>）把标准消息<strong>翻译成 OpenAI 的 JSON</strong>，
-      通过厂商 SDK 发出 HTTP 请求。</p>
-    <p class="mono">📍 集成层 langchain-openai</p>
-  </div></div>
-  <div class="step"><div class="num">5</div><div class="sc">
-    <h4>厂商返回 → 翻译回标准消息</h4>
-    <p>OpenAI 返回原始 JSON，partner 把它<strong>翻译回</strong> <span class="mono">AIMessage</span>
-      （含正文、可能的工具调用、token 用量等）。</p>
-    <p class="mono">📍 集成层 → 地基层</p>
-  </div></div>
-  <div class="step"><div class="num">6</div><div class="sc">
-    <h4>回调触发 + 缓存写入 + 返回给你</h4>
-    <p>沿途的<strong>回调（callbacks）</strong>记录这次调用（用于 LangSmith 追踪），结果可能写入缓存，
-      最后把 <span class="mono">AIMessage</span> 交还给你。</p>
-    <p class="mono">📍 地基层 → 你的代码</p>
-  </div></div>
-</div>
-
-<h2>用一张层级图再看一遍</h2>
-<p>同样的旅程，换成"数据穿过三层"的视角。注意<strong>请求往下走、响应往上回</strong>，
-core 提供的统一接口让你的代码<strong>完全不碰最右边的厂商细节</strong>：</p>
-
-<div class="flow" style="flex-direction:column;gap:.6rem">
-  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
-    <div class="node hl" style="flex:0 0 130px">你的代码</div>
-    <div class="arrow">→</div>
-    <div class="node" style="flex:1">字符串 / dict</div>
-  </div>
-  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
-    <div class="node hl" style="flex:0 0 130px">langchain (主力)</div>
-    <div class="arrow">→</div>
-    <div class="node" style="flex:1">标准化为 Messages</div>
-  </div>
-  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
-    <div class="node hl" style="flex:0 0 130px">core (地基)</div>
-    <div class="arrow">→</div>
-    <div class="node" style="flex:1">invoke → generate（缓存/回调/重试的通用模板）</div>
-  </div>
-  <div style="display:flex;align-items:center;gap:.5rem;width:100%">
-    <div class="node hl" style="flex:0 0 130px">openai (配件)</div>
-    <div class="arrow">→</div>
-    <div class="node" style="flex:1">翻译成厂商 JSON → 发 HTTP → 翻译回 AIMessage</div>
-  </div>
-  <div style="text-align:center;color:var(--faint);font-size:.85rem">↑ 响应原路返回，每一层把数据"还原"成上一层认识的形状 ↑</div>
-</div>
-
+<div class="lesson-map"><div class="lm-title">🗺️ 一次 invoke 的六个检查点</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">输入</div><div class="mn-desc">字符串、PromptValue、消息列表都先进入统一入口</div></div><div class="map-node now"><div class="mn-label">消息</div><div class="mn-desc">convert_to_messages 把输入收敛为 BaseMessage 列表</div></div><div class="map-node source"><div class="mn-label">配置</div><div class="mn-desc">ensure_config 合并 tags、metadata、callbacks、run_id</div></div><div class="map-node source"><div class="mn-label">回调</div><div class="mn-desc">on_chat_model_start / end / error 形成可观测生命周期</div></div><div class="map-node after"><div class="mn-label">provider</div><div class="mn-desc">wrapper 翻译 payload 并调用厂商 SDK</div></div><div class="map-node after"><div class="mn-label">输出</div><div class="mn-desc">原始响应被解析回 AIMessage</div></div></div></div>
+<h2>状态流：同一份请求如何变形</h2>
+<p>下面的 state flow 把“写一句欢迎语”沿着调用链拆开。重点不是背函数名，而是记住每一步的输入输出类型。类型一旦错位，错误位置通常也就暴露了：字符串无法变消息，说明卡在标准化；callbacks 没触发，说明 config 或 manager 没传下去；usage 缺失，说明 provider 响应解析没收集到。</p>
+<div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>用户输入</h4><p>你的代码传入一个普通字符串。入口宽，允许字符串、消息、PromptValue。</p><div class="mono">&quot;写一句欢迎语&quot;</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>消息标准化</h4><p>字符串被包装为 HumanMessage，消息列表成为模型统一输入。</p><div class="mono">[HumanMessage(content=&quot;写一句欢迎语&quot;)]</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>配置合并</h4><p>运行时 config 与默认 config 合并，tags、metadata、callbacks、run_name 继续向下传。</p><div class="mono">RunnableConfig</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>回调启动</h4><p>CallbackManager 记录一次 chat model run，追踪器、日志器、LangSmith 都可挂在这里。</p><div class="mono">on_chat_model_start</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>厂商请求</h4><p>provider wrapper 把标准消息翻译成 OpenAI、Anthropic 或本地模型需要的 payload。</p><div class="mono">{messages: ..., model: ...}</div></div></div><div class="step"><div class="num">6</div><div class="sc"><h4>响应归一</h4><p>厂商原始响应被解析成 AIMessage，内容、tool_calls、usage_metadata 回到统一结构。</p><div class="mono">AIMessage(content=...)</div></div></div></div>
 <div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应：关键调用链</div>
-  这条链是第三部分"内部源码"的预告，记住这几个方法名即可：
-  <table class="t" style="margin-top:.6rem">
-    <tr><th>步骤</th><th>方法</th><th>文件</th></tr>
-    <tr><td>统一入口</td><td class="mono">BaseChatModel.invoke</td><td class="mono">core · chat_models.py</td></tr>
-    <tr><td>模板流程</td><td class="mono">generate_prompt → generate</td><td class="mono">core · chat_models.py</td></tr>
-    <tr><td>缓存包装</td><td class="mono">_generate_with_cache</td><td class="mono">core · chat_models.py</td></tr>
-    <tr><td>厂商实现</td><td class="mono">ChatOpenAI._generate</td><td class="mono">partners/openai/…</td></tr>
-  </table>
+  <div class="tag">🔬 源码入口 · 文件 + 符号名</div>
+  追 <span class="mono">invoke</span> 时，先从基类看公共流程，再跳到具体 provider 看差异。不要一开始就陷进某个 SDK 的参数海里；先确认统一入口做了哪些事情，哪些事情才交给子类实现。
 </div>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/language_models/chat_models.py</td><td class="mono">BaseChatModel.invoke</td><td>聊天模型统一同步入口，负责把输入收敛到 chat prompt/messages 并调用生成流程。</td><td>用户调用进入基类公共流程。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/utils.py</td><td class="mono">convert_to_messages</td><td>把字符串、元组、dict、BaseMessage 等输入转换成标准消息列表。</td><td>入口标准化依赖它。</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/config.py</td><td class="mono">ensure_config</td><td>合并和补齐 RunnableConfig，确保 callbacks、tags、metadata 等字段存在。</td><td>Runnable 调用链向下传播配置。</td></tr><tr><td class="mono">libs/core/langchain_core/callbacks/manager.py</td><td class="mono">CallbackManagerForLLMRun</td><td>管理 on_llm_start/on_llm_end/on_llm_error 等生命周期事件。</td><td>模型执行时向观察者发事件。</td></tr><tr><td class="mono">libs/partners/openai/langchain_openai/chat_models/base.py</td><td class="mono">ChatOpenAI._generate</td><td>OpenAI provider wrapper，把标准消息转 payload 并解析响应。</td><td>基类模板方法下沉到具体厂商。</td></tr><tr><td class="mono">libs/partners/anthropic/langchain_anthropic/chat_models.py</td><td class="mono">ChatAnthropic._generate</td><td>Anthropic provider wrapper，处理该厂商的消息块、工具和流式差异。</td><td>与 OpenAI wrapper 平级替换。</td></tr></table>
+<h2>简化伪代码：invoke 的骨架</h2>
+<p>真实源码要处理更多分支：缓存、rate limiter、stream fallback、stop words、structured output、错误包装、异步版本等。这里压缩成一条骨架，帮助你看到“公共流程在基类，厂商差异在子类”的模板方法模式。</p>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">langchain_core/language_models/chat_models.py :: BaseChatModel.invoke</span><span class="ln">简化版</span></div><pre>def invoke(self, input, config=None, *, stop=None, **kwargs):
+    config = ensure_config(config)
+    messages = convert_to_messages(input)
+    callback_manager = CallbackManager.configure(
+        inheritable_callbacks=config.get(&quot;callbacks&quot;),
+        inheritable_tags=config.get(&quot;tags&quot;),
+        inheritable_metadata=config.get(&quot;metadata&quot;),
+    )
+    run_manager = callback_manager.on_chat_model_start(
+        serialized=self.to_json(), messages=[messages]
+    )
+    try:
+        result = self._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
+    except BaseException as error:
+        run_manager.on_llm_error(error)
+        raise
+    run_manager.on_llm_end(result)
+    return result.generations[0].message  # AIMessage</pre><div class="cw-note">这是概念化骨架：函数名与职责对应源码，细节以当前版本实现为准。重点是公共生命周期包住 provider-specific _generate。</div></div>
+<h2>逐步追踪表：写一句欢迎语</h2>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1 invoke 入口</td><td>字符串</td><td>BaseChatModel 接收 LanguageModelInput，不要求你手写 HumanMessage。</td><td>待标准化输入</td></tr><tr><td>2 消息转换</td><td>写一句欢迎语</td><td>convert_to_messages/PromptValue 路径把它转成 HumanMessage。</td><td>[HumanMessage]</td></tr><tr><td>3 配置传播</td><td>config=None 或传入 tags</td><td>ensure_config 补默认值并合并父级 Runnable 配置。</td><td>RunnableConfig</td></tr><tr><td>4 回调 start</td><td>模型序列化信息 + messages</td><td>CallbackManager 创建 run，通知 tracer。</td><td>run_id / run_manager</td></tr><tr><td>5 Provider payload</td><td>标准消息</td><td>ChatOpenAI 等 wrapper 转成厂商 role/content、工具、参数字段。</td><td>SDK 请求对象</td></tr><tr><td>6 响应解析</td><td>厂商原始 JSON/对象</td><td>提取文本、tool_calls、usage、finish_reason。</td><td>ChatGeneration(message=AIMessage)</td></tr><tr><td>7 回调 end</td><td>LLMResult</td><td>on_llm_end 记录完成；异常时走 on_llm_error。</td><td>可观测 trace</td></tr><tr><td>8 返回给你</td><td>ChatGeneration</td><td>取第一条 generation.message。</td><td>AIMessage(content=&#x27;欢迎...&#x27;)</td></tr></table>
+<h2>为什么先标准化消息，而不是直接发给厂商</h2>
+<p>如果上层每个组件都直接理解 OpenAI、Anthropic、本地模型各自的 payload，组合会迅速变成 N×M 的适配矩阵：Prompt 要懂所有厂商，Tool 要懂所有厂商，Agent 要懂所有厂商，Tracer 也要懂所有厂商。LangChain 的做法是先引入标准中间表示：<span class="mono">BaseMessage</span>、<span class="mono">AIMessage</span>、<span class="mono">ToolMessage</span>。上层只认标准消息，provider wrapper 只负责“标准 ↔ 自家格式”的翻译，复杂度从 N×M 降到 N+M。</p>
+<p>这也解释了为什么输出统一成 <span class="mono">AIMessage</span>。即使厂商返回结构完全不同，你的下游 parser、Agent、memory、trace table 都可以稳定读取 <span class="mono">content</span>、<span class="mono">tool_calls</span>、<span class="mono">response_metadata</span>。统一输出是可组合性的地基。</p>
 
-<div class="card macro">
-  <div class="tag">🌍 宏观理解：为什么要这么多次"变身"？</div>
-  每一次形状转换都对应一层的<strong>单一职责</strong>：主力层只管"把用户输入规整成消息"，
-  地基层只管"通用流程（缓存/回调/重试）"，配件层只管"和某个厂商对话"。
-  正因为职责被切干净，<strong>换厂商时只有最底层那一块需要替换</strong>，你上面的代码一行都不用动。
-</div>
+<h2>回调生命周期：可观测性从这里插入</h2>
+<p>回调不是装饰品。一次模型调用通常至少有 start、end、error 三个关键事件，streaming 时还会有 token/chunk 事件。LangSmith 追踪、日志、计费统计、进度条、调试面板都依赖这些事件。更重要的是，config 里的 callbacks、tags、metadata 必须沿 Runnable 调用链向下传播；如果中间某个自定义 Runnable 吞掉 config，下游 trace 就会断裂。</p>
+<p>因此读源码时要特别注意两件事：一是 <span class="mono">ensure_config</span> 和相关 helper 如何合并父子配置；二是每个执行分支是否在异常时调用 error 回调。没有 error 事件的失败很难排查，因为 trace 只显示“开始了”，却不知道在哪里消失。</p>
 
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入两个关键环节。</p>
+<h2>Streaming 路径有什么不同</h2>
+<p>本课主线是 <span class="mono">invoke</span>，但 streaming 不是“invoke 多次”。流式路径会尽早把 provider 的增量 chunk 转成 <span class="mono">AIMessageChunk</span> 或类似结构，并在每个 token/chunk 到达时触发回调。最终可能再把多个 chunk 合并成完整消息。也就是说，标准化、config 和 callbacks 仍然存在，但响应解析从“一次性解析完整响应”变成“持续解析增量响应”。这就是为什么同一个 provider wrapper 通常既有 <span class="mono">_generate</span> 也有 <span class="mono">_stream</span> 或相关分支。</p>
 
-<details class="accordion">
-  <summary><span class="badge-num">1</span> "标准化"那一步到底做了什么 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例：同一个调用的多种输入写法</div>
-      <div class="a">框架会把下面三种写法<strong>都规整成同一串标准消息</strong>，再往下走：
-<pre class="code"><span class="cm"># 写法 1：裸字符串 → 自动当成一条 HumanMessage</span>
-model.invoke(<span class="st">"北京天气怎么样？"</span>)
+<h2>用类型判断问题位置</h2>
+<p>调用链里每一步都有相对清楚的类型边界。你的输入可以很宽，可能是字符串、消息、PromptValue；进入模型前应该收敛成消息列表；provider 请求前应该变成厂商 payload；返回上层前应该重新包装成 <span class="mono">AIMessage</span>。调试时如果你能写出“当前手里是什么类型、下一步期望什么类型”，就已经完成了一半定位。类型不只是给 IDE 看，它是理解框架边界的最短路径。</p>
+<p>例如你在自定义 Runnable 中返回了普通 dict，下游却期待 <span class="mono">BaseMessage</span>，错误可能在组合链中段暴露；如果 provider 原始响应里有 usage，但最终 <span class="mono">AIMessage.usage_metadata</span> 为空，就要查响应解析；如果传了 tags 但 tracer 看不到，就要查 config 是否被中间层丢弃。每个症状都对应一个类型或事件边界。</p>
 
-<span class="cm"># 写法 2：消息对象列表</span>
-model.invoke([HumanMessage(<span class="st">"北京天气怎么样？"</span>)])
+<h2>Config 不是参数垃圾桶</h2>
+<p><span class="mono">RunnableConfig</span> 经常被初学者误解成“随便塞参数的 dict”。更准确地说，它是运行时控制面：tags 用于分类 trace，metadata 用于附加上下文，callbacks 用于观察事件，configurable 用于把可配置字段传给下游，run_name/run_id 用于追踪结构。业务输入仍应放在 input 里，模型参数应放在模型构造或调用 kwargs 中。把所有东西都塞进 config，会让调用边界变得混乱。</p>
+<p>配置传播还有继承关系。一个父 Runnable 给了 tags，下游模型调用通常应带着这些 tags；某个子节点可以追加自己的 tags，但不应该无意中清空父级信息。LangChain 的很多 helper 都在处理这种合并语义。读源码时看到 <span class="mono">ensure_config</span>、<span class="mono">merge_configs</span> 或 callback manager configure，要意识到它们维护的是整条调用链的可观测上下文。</p>
 
-<span class="cm"># 写法 3：(role, content) 元组列表</span>
-model.invoke([(<span class="st">"system"</span>, <span class="st">"你是助手"</span>), (<span class="st">"human"</span>, <span class="st">"北京天气？"</span>)])
-<span class="cm"># ↑ 三者在内部都变成 list[BaseMessage]</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">让用户写得轻松（可以偷懒传字符串），同时让内部逻辑只需处理<strong>一种</strong>规整形式（消息列表）。
-        这种"入口宽容、内部统一"的设计能大幅减少下游分支判断。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">输入灵活但内部干净；所有缓存、回调、厂商适配只需面向 <span class="mono">list[BaseMessage]</span> 编写，复杂度集中在一处。</div>
-    </div>
-  </div>
-</details>
+<h2>异常路径和正常路径同样重要</h2>
+<p>只读成功路径会让你误以为调用链很简单：start、请求、end、返回。真实系统里更关键的是异常路径。provider 网络失败、认证失败、参数非法、工具 schema 不支持、stream 中途断开，都应该触发 error 回调并把异常向上抛出或按策略包装。没有 error 事件，调用就像在黑洞里消失；吞掉异常只返回空文本，更会让上层误判为模型正常回答。</p>
+<p>因此实现自定义模型或自定义 Runnable 时，不能只让 happy path 可运行，还要保证 config 和 callbacks 在失败时也被正确处理。最小原则是：开始了就要结束或报错；创建了 run_manager，就要在成功时 on_end，在失败时 on_error。这样 trace 才是一条闭合链路。</p>
 
-<details class="accordion">
-  <summary><span class="badge-num">2</span> 缓存、回调、重试是在"哪一层"统一处理的 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 这些"横切能力"的位置</div>
-      <div class="a">它们都在<strong>地基层</strong>的通用流程里，<strong>不在</strong>各厂商的 <span class="mono">_generate</span> 里：
-<pre class="code">invoke
-└─ generate
-   └─ _generate_with_cache   <span class="cm"># ← 缓存在这里（命中就不发请求）</span>
-      └─ _generate           <span class="cm"># ← 厂商只负责"真正发请求"这一步</span>
-<span class="cm"># 回调（on_llm_start/end）与重试也由通用流程统一触发</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么这样分</div>
-      <div class="a">缓存、回调、重试对<strong>所有厂商都一样</strong>，没必要每个 partner 各写一遍。
-        把它们放在通用流程里，partner 作者就只需关心"怎么和我的厂商对话"。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点 & 🔀 其他方案</div>
-      <div class="a">优点：能力统一、partner 极简、行为一致（换厂商缓存策略不变）。
-        其他方案：每个 partner 自行实现缓存/重试（重复、易不一致）——这正是 LangChain 用"模板方法"避免的（第 11 课详解）。</div>
-    </div>
-  </div>
-</details>
+<h2>Provider payload 是最后一道翻译</h2>
+<p>上层统一消息不代表 provider payload 毫无差异。OpenAI、Anthropic、本地服务对 system message、多模态块、tool choice、response format、stream usage 的表达都可能不同。provider wrapper 负责把统一结构尽量翻译过去，也负责把厂商响应翻译回来。你需要厂商专属能力时，应该在这一层附近寻找参数入口，而不是破坏上层消息协议。</p>
+<p>这也是为什么读调用链要从基类到子类。基类回答“所有聊天模型共同经历什么”，子类回答“这个厂商特殊在哪里”。如果直接从子类开始，很容易把厂商细节误当成 LangChain 通用规则；如果只读基类，又会忽略真实 payload 的限制。</p>
 
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li>数据每"变身"一次，就对应一层的<strong>单一职责</strong>；职责切干净，换厂商只动最底层。</li>
-    <li>"统一入口 + 厂商专属 <span class="mono">_generate</span>"——可替换性的开关只藏在最里面一层。</li>
-  </ul>
-</div>
+<h2>同步、异步、批量的共同骨架</h2>
+<p>虽然本课追的是同步 <span class="mono">invoke</span>，但同一套心智也适用于 <span class="mono">ainvoke</span>、<span class="mono">batch</span> 和 <span class="mono">abatch</span>。差别主要在调度方式：异步路径用 await 让事件循环管理并发，批量路径为多个输入重复或优化执行公共流程。输入仍要标准化，config 仍要传播，回调仍要标记每个 run，provider 响应仍要回到统一消息。理解共同骨架后，新方法名只是执行语义的变化，而不是全新的世界观。</p>
+<p>这对调试很有帮助。如果单次 invoke 正常、batch 异常，就重点看批量输入和每项 config 是否对齐；如果 invoke 正常、ainvoke 异常，就看异步 provider wrapper 或事件循环；如果 invoke 正常、stream 异常，就看 chunk 解析和 streaming callbacks。先确认共同骨架，再定位分支差异，比盲目重写业务代码更可靠。</p>
 
+<h2>响应解析不只是取 content</h2>
+<p>聊天模型返回的 <span class="mono">AIMessage</span> 包含多种信息：自然语言内容、工具调用请求、响应元数据、usage 统计、可能还有安全过滤或 finish reason。很多 demo 只打印 <span class="mono">result.content</span>，容易让人误以为其他字段不重要。Agent 是否继续循环，往往取决于 <span class="mono">tool_calls</span>；成本统计依赖 usage；调试 provider 行为需要 response_metadata。取 content 是展示层动作，不是完整语义。</p>
+<p>因此写应用时，建议在边界层保留完整消息对象，只有到最终 UI 或日志摘要时再取 content。过早把 AIMessage 转成字符串，会丢失工具请求、token 用量和 provider 元数据，下游就无法判断模型为什么这样回答。LangChain 统一输出为 AIMessage，正是为了让这些结构化信息继续流动。</p>
+
+<h2>最小 trace 如何手工记录</h2>
+<p>即使没有 LangSmith，也可以手工记录一次 invoke：输入类型、标准消息、config tags、provider 名称、是否触发 start、payload 关键字段、原始响应摘要、AIMessage 字段、是否触发 end。记录一两次后，你会发现调用链不再神秘。以后遇到错误，只要看哪一列为空或异常，就能迅速缩小范围。</p>
+<p>这张手工 trace 还可以变成团队调试模板。新同事报告“模型不工作”时，不要只要截图；让他填写输入、消息、config、provider、回调、响应字段。模板迫使问题从模糊感受变成结构化事实，也让你能远程判断是环境、配置、provider 还是业务逻辑问题。</p>
+
+<h2>调用链中的所有权</h2>
+<p>用户代码拥有业务输入和业务解释，LangChain 基类拥有标准流程，provider wrapper 拥有厂商翻译，callback manager 拥有事件分发，模型服务拥有生成结果。所有权清楚，修改才有方向。想改变业务问题，就改 prompt 或工具；想改变可观测标签，就改 config；想支持厂商新参数，就看 wrapper；想改变 Agent 循环，就看 LangGraph。不要在错误层做补丁。</p>
+<p>所有权还决定测试方式。测试业务逻辑时，可以用 fake model 固定输出，避免真实模型干扰；测试 provider wrapper 时，要关注 payload 和响应解析；测试 callback 时，要断言事件顺序和 metadata；测试 streaming 时，要断言 chunk 合并和错误传播。把测试写在正确层，才能避免脆弱测试。比如为了验证欢迎语文案，不应该真的调用 OpenAI；为了验证 OpenAI payload，又不应该只看最终中文回答。</p>
+<p>一次 invoke 看似短，实际上是多个所有者协作的结果。输入归一化保护上层体验，配置合并保护组合能力，回调保护可观测性，provider 翻译保护可替换性，AIMessage 保护下游结构化处理。任何一步被绕过，系统仍可能“看起来能跑”，但会丢失某种工程能力。最常见的例子是把模型输出立即转成字符串：短期方便，长期失去工具调用、usage 和元数据。</p>
+<p>所以本课不只是背调用顺序，而是训练一种审查习惯：一个自定义组件是否接收并传递 config？是否保留消息对象？是否在异常时触发回调？是否把厂商细节隔离在边界层？这些问题比“代码能不能跑一次”更接近生产质量。</p>
+<h2>把 invoke 当成可审计流程</h2>
+<p>生产系统里的每次模型调用都应该能回答几个审计问题：谁发起了调用，输入消息是什么，使用了哪个模型和参数，携带哪些标签，是否调用了工具，花费多少 token，失败时错误是什么。LangChain 的消息、config、callbacks 和 AIMessage 字段正是为了让这些问题有位置可放。忽略这些结构，只保存最终文本，会让审计、计费和复盘都变困难。</p>
+<p>因此，写模型封装时不要过早隐藏底层信息。可以给业务层提供简洁函数，但内部仍应保留完整消息、metadata、usage 和 trace id。简洁 API 与完整可观测性并不矛盾，关键是把展示层的简洁和运行层的结构化分开。</p>
+
+<h2>读 trace 时先分正常证据和缺失证据</h2>
+<p>一次 invoke 的 trace 不只是按时间排序的日志，它还是证据清单。正常证据说明链路经过了某一层，例如出现 on_chat_model_start 说明回调启动了，AIMessage 里有 usage_metadata 说明响应解析至少收到了用量信息；缺失证据同样重要，例如没有 provider payload 记录、没有 error 事件、没有 tool_calls 字段，都在提示某个观察点没有覆盖或某个分支没有执行。调试时要同时看“出现了什么”和“应该出现却没出现什么”。</p>
+<p>缺失证据不能立即等同于 bug，也可能只是你没有打开对应 tracer、provider 不返回该字段、或当前路径不是 streaming。比较稳的步骤是先确认观察方式，再确认协议是否承诺该字段，最后才读具体实现。比如某个模型没有 usage，不一定是 LangChain 丢失；可能是 provider 响应本来没有，或 wrapper 只在非流式路径填充。把“没有看到”拆成“没产生、没传递、没记录”三种可能，定位会更准确。</p>
+<p>在团队里复盘调用链时，建议把 trace 表和源码入口放在一起。trace 告诉你事实顺序，源码告诉你责任位置。只有 trace 没有源码，容易停留在现象；只有源码没有 trace，容易证明了一条没有实际发生的路径。两者配合，才知道当前请求到底走过哪条分支。</p>
+<p>还有一个边界技巧：先记录框架标准对象，再记录厂商对象。前者回答 LangChain 看到了什么，后者回答 provider 收到了什么。两者不一致，问题在翻译层；两者一致但输出异常，才继续查模型服务或业务约束。</p>
+<p>记录 trace 时也要避免只保存成功摘要。把失败输入、异常类型、回调事件和最后一个已知状态一起留下，下一次复现时才能比较差异。没有失败证据的“偶发问题”，通常会退化成重复试 prompt。</p>
+
+<h2>链路复盘</h2>
+<p>一次调用的每个环节都在保护一种工程能力：消息标准化保护可替换性，配置合并保护组合性，回调保护可观测性，provider 翻译保护生态适配，AIMessage 保护下游结构化处理。少看任何一环，都会低估 invoke 的设计含义。</p>
+<p>再补一个检查：如果你无法说清某个字段是在输入标准化、配置传播、回调事件、provider payload 还是响应解析中产生的，就不要急着修。先把字段放回链路位置，再看它由谁创建、谁读取、谁应该保持稳定。链路定位先于代码修改。</p><p>最后确认：一次调用必须能解释输入、配置、事件、请求、响应五类证据，缺一类就补观察点。</p>
+
+<h2>常见误解</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：invoke 只是把字符串直接发给 API。</div><div class="pf-correct">正确：它先标准化输入、合并配置、启动回调，再进入 provider wrapper。</div></div><div class="pitfall"><div class="pf-wrong">误解：config 只影响当前函数，不会继续传。</div><div class="pf-correct">正确：RunnableConfig 的价值就在于 tags、metadata、callbacks 能沿组合链传播。</div></div><div class="pitfall"><div class="pf-wrong">误解：回调只用于打印日志。</div><div class="pf-correct">正确：回调承载 tracing、计费、调试、stream token、错误生命周期等可观测能力。</div></div><div class="pitfall"><div class="pf-wrong">误解：输出 content 是字符串，所以返回值就是字符串。</div><div class="pf-correct">正确：聊天模型返回 AIMessage；content 只是其中一个字段，tool_calls 和 metadata 同样重要。</div></div><div class="pitfall"><div class="pf-wrong">误解：所有 provider 的 invoke 源码都一样。</div><div class="pf-correct">正确：公共骨架相似，payload 翻译、流式 chunk、工具调用解析在 wrapper 中不同。</div></div></div>
+<h2>小实验：给 invoke 加一个可观测标签</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 追踪一次欢迎语调用</div><ol><li>调用 model.invoke(&#x27;写一句欢迎语&#x27;, config={&#x27;tags&#x27;: [&#x27;lesson03&#x27;], &#x27;metadata&#x27;: {&#x27;case&#x27;: &#x27;welcome&#x27;}})。</li><li>在 tracer 或日志里确认 start 事件能看到输入消息和 tags。</li><li>故意传入错误 API key 或非法模型名，观察 error 事件是否记录异常。</li><li>把 invoke 改成 stream，比较 end 事件之前是否多了 chunk/token 事件。</li></ol></div>
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li>一次调用 = 数据三次变身：<strong>字符串 → 标准消息 → 厂商格式 → 标准消息</strong>。</li>
-    <li>请求往下穿三层、响应原路返回；你的代码只接触最上层的统一接口。</li>
-    <li>"统一入口 + 厂商专属 <span class="mono">_generate</span>"是 LangChain 可替换性的核心机关。</li>
-    <li>第一部分（宏观）到此结束。下一部分进入<strong>用户视角</strong>，从最小的"消息"开始动手。</li>
+    <li><span class="mono">model.invoke("写一句欢迎语")</span> 会经历输入标准化、消息转换、config 合并、callbacks、provider payload、响应解析。</li>
+    <li>标准消息是中间表示，让上层逻辑不依赖具体厂商字段。</li>
+    <li>回调生命周期是可观测性的插入口，config 传播断裂会导致 trace 断裂。</li>
+    <li>streaming 与 invoke 共用很多前置步骤，但响应解析和回调事件变成增量式。</li>
   </ul>
 </div>
 <div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. 一次调用里数据“三次变身”：字符串 → 标准消息 → 厂商格式 → 标准消息。中间非要先转成“标准消息（LangChain 自己的格式）”再转厂商格式，为什么不直接转厂商格式？</div>
+  <div class="qn">1. <code>model.invoke('写一句欢迎语')</code> 为什么要先做 message normalization？</div>
   <ol class="opts">
-    <li>纯属多此一举</li>
-    <li>标准中间表示把“上层逻辑”和“厂商差异”解耦：上层只跟标准消息打交道，每个厂商只负责“标准↔自己格式”的翻译</li>
-    <li>为了更慢</li>
-    <li>厂商强制要求</li>
+    <li>为了让字符串变长</li>
+    <li>为了把字符串、PromptValue、消息列表等输入统一成 <code>BaseMessage</code> 列表，隔离上层逻辑和厂商格式</li>
+    <li>因为 provider 只能接收 Python 对象，不能接收 JSON</li>
+    <li>为了跳过回调</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。引入统一中间表示，是“用一层间接把 N×M 适配变成 N+M”的经典做法——加一个厂商只写一个翻译器，上层完全不动。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。标准消息是中间表示。上层只处理 BaseMessage，provider wrapper 再负责翻译成自家 payload。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. 请求往下穿三层、响应原路返回，而“你的代码只接触最上层的统一接口”。这对使用者意味着什么？</div>
+  <div class="qn">2. <code>RunnableConfig</code> 沿调用链传播的意义是什么？</div>
   <ol class="opts">
-    <li>你对接口编程、对实现无感：底层怎么换、走哪个厂商，你的调用代码都不变</li>
-    <li>性能一定更差</li>
-    <li>你无法做任何定制</li>
-    <li>你必须懂每一层的细节</li>
+    <li>让 tags、metadata、callbacks、run_id 等运行时信息能穿过组合链，被下游模型、工具和 tracer 看到</li>
+    <li>替代 provider API key</li>
+    <li>强制所有调用都变成异步</li>
+    <li>只用于改变最终文本内容</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。把厂商差异锁在底层、只暴露统一上层接口，使用者获得“稳定的编程面”——这就是可替换性在调用路径上的体现。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。config 是跨 Runnable 传播的运行上下文。中间组件吞掉它，trace、metadata、回调就会断。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 本课点名“统一入口 + 厂商专属 <code>_generate</code>”是可替换性的核心机关。这是哪种设计模式？</div>
+  <div class="qn">3. 回调生命周期中 start/end/error 事件最直接支撑什么能力？</div>
   <ol class="opts">
-    <li>观察者模式</li>
-    <li>模板方法模式：公共流程（校验/缓存/回调/重试）在基类固定，只有“真正调厂商”的 <code>_generate</code> 由子类实现</li>
-    <li>单例模式</li>
-    <li>工厂模式</li>
+    <li>减少所有网络请求</li>
+    <li>可观测性：追踪输入输出、耗时、错误、stream chunk 和调用层级</li>
+    <li>自动提升模型质量</li>
+    <li>把所有 AIMessage 转成字符串</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。基类把“骨架流程”写死、把“会变的一步”留成抽象方法交给厂商——这正是模板方法。第 11 课会顺着这条调用链看实现。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. 要接入一个全新厂商的模型，按这套设计你大概只需做什么？</div>
-  <ol class="opts">
-    <li>改动所有用到模型的业务代码</li>
-    <li>主要实现“标准消息↔该厂商格式”的转换 + 该厂商的 <code>_generate</code>，上层与其它厂商完全不受影响</li>
-    <li>修改 core 地基</li>
-    <li>重写整个调用流程</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。这正是分层 + 模板方法 + 中间表示三者合力的回报——扩展点被精确收敛到“一个厂商适配器”，是“对扩展开放、对修改关闭”的实践。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。callbacks 是 tracing 和调试的插入口。它们记录调用何时开始、如何结束、哪里失败。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>“引入一个标准中间表示来解耦 N 个生产者和 M 个消费者”在很多系统里出现（编译器 IR、数据交换 JSON、USB 协议…）。再举一个你见过的例子，说说它把“N×M”省成了“N+M”的哪部分？</li>
-    <li>这套“统一入口 + 可替换实现”也有代价：标准表示可能<strong>表达不了某厂商的独特能力</strong>。遇到“厂商特有特性”，框架一般怎么取舍？你会怎么处理？</li>
+    <li>按输入标准化、config 合并、callback start、provider payload、响应解析、callback end 的顺序，追踪一次 <code>invoke</code>，写出每步输入和输出类型。</li>
+    <li>把 <code>invoke</code> 改成 <code>stream</code> 后，哪些步骤仍然相同？哪些地方会变成 chunk/token 级事件？</li>
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="02-monorepo.html"><div class="dir">← 上一课</div><div class="ttl">Monorepo 全景</div></a><a class="next" href="04-messages.html"><div class="dir">下一课 →</div><div class="ttl">消息系统</div></a></div>
+  <div class="footnav"><a class="prev" href="02-monorepo.html"><div class="dir">← 上一课</div><div class="ttl">项目与包结构</div></a><a class="next" href="04-source-reading-map.html"><div class="dir">下一课 →</div><div class="ttl">源码阅读地图</div></a></div>
 </div>
 
 </body></html>

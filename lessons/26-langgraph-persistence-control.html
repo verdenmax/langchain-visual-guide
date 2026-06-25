@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>26 · 持久化 · 中断 · 控制流 — LangChain 图解教程</title>
-<meta name="description" content="第七部分 · 深入 LangGraph｜持久化 · 中断 · 控制流：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>24 · Checkpoint 与持久化 — LangChain 图解教程</title>
+<meta name="description" content="第五部分 · LangGraph 执行引擎｜Checkpoint 与持久化：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="26 · 持久化 · 中断 · 控制流 — LangChain 图解教程">
-<meta property="og:description" content="第七部分 · 深入 LangGraph｜持久化 · 中断 · 控制流：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="24 · Checkpoint 与持久化 — LangChain 图解教程">
+<meta property="og:description" content="第五部分 · LangGraph 执行引擎｜Checkpoint 与持久化：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="26 · 持久化 · 中断 · 控制流 — LangChain 图解教程">
-<meta name="twitter:description" content="第七部分 · 深入 LangGraph｜持久化 · 中断 · 控制流：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="24 · Checkpoint 与持久化 — LangChain 图解教程">
+<meta name="twitter:description" content="第五部分 · LangGraph 执行引擎｜Checkpoint 与持久化：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -256,243 +256,128 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
 </style>
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第七部分 · 深入 LangGraph</span>
-    <span class="pill">26 / 27</span>
+    <span class="pill">第五部分 · LangGraph 执行引擎</span>
+    <span class="pill">24 / 46</span>
   </div>
-  <div class="progress"><span style="width:96%"></span></div>
+  <div class="progress"><span style="width:52%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第七部分 · 深入 LangGraph</div>
-    <h1>持久化 · 中断 · 控制流</h1>
+    <div class="part">第五部分 · LangGraph 执行引擎</div>
+    <h1>Checkpoint 与持久化</h1>
   </div>
-  
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-有了"超步"引擎，LangGraph 最强的能力就<strong>水到渠成</strong>了：把<strong>每个超步存档</strong>（持久化 / 时间旅行 / 人审），
-以及用<strong>原语控制图的走向</strong>（并行 / 跳转 / 多 Agent 交接）。这一课把它们的实现一次讲透。
-</p>
 
-<div class="card analogy">
-  <div class="tag">💾 一句话类比：游戏存档</div>
-  因为引擎<strong>每个超步都自动存了一个档（checkpoint）</strong>，你才能：<strong>关机改天接着玩</strong>（续跑）、
-  <strong>读任意旧档重来</strong>（时间旅行）、<strong>在剧情关键点暂停等你决定</strong>（人审）。
-</div>
+<p class="lead">LangGraph 的持久化不是“把最终答案保存一下”，而是把图在超步边界上的状态保存成 checkpoint。一个 checkpoint 通常围绕 <span class="mono">channel_values</span>、<span class="mono">channel_versions</span>、<span class="mono">versions_seen</span>、<span class="mono">updated_channels</span> 和元数据组织；checkpointer 负责按 <span class="mono">thread_id</span>、checkpoint namespace 和 checkpoint id 读写这些记录。理解 checkpoint 后，resume、get_state、update_state、人审和时间旅行都会变成同一个问题：我要从哪条线程、哪个命名空间、哪一个已提交超步继续观察或修改状态。</p>
+<div class="card analogy"><div class="tag">🧩 生活类比</div>把 checkpoint 想成游戏存档。玩家不是只在通关后保存结局，而是在每个安全房间保存背包、位置、任务进度和世界状态。thread_id 像玩家账号，namespace 像同一账号下的不同存档槽，checkpoint id 像某次具体保存时间。下一次进入游戏时，只要用同一个账号和存档槽，系统就能从上次安全房间继续；如果账号写错，就像打开了别人的空存档，再强的剧情逻辑也找不到你的装备。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：从 checkpoint 到 resume</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">结构</div><div class="mn-desc">Checkpoint 保存 channel_values、channel_versions、versions_seen、updated_channels 等超步边界状态</div></div><div class="map-node source"><div class="mn-label">接口</div><div class="mn-desc">BaseCheckpointSaver 定义 put/get/list 等持久化契约</div></div><div class="map-node now"><div class="mn-label">内存实现</div><div class="mn-desc">InMemorySaver 适合本地实验和测试，不是生产持久层</div></div><div class="map-node now"><div class="mn-label">线程</div><div class="mn-desc">configurable.thread_id 是恢复同一会话的关键索引</div></div><div class="map-node after"><div class="mn-label">控制</div><div class="mn-desc">Pregel.get_state/update_state 让外部查看或修补某条线程的状态</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>持久化相关源码要按“数据结构 → 抽象接口 → 具体 saver → 运行时读写状态”的顺序读。仍然使用文件 + 符号名做锚点，因为 checkpoint 字段会迭代，但这些职责边界更稳定。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">langgraph/checkpoint/base/__init__.py</td><td class="mono">Checkpoint</td><td>描述一次超步边界的持久化状态，包含 channel_values、channel_versions、versions_seen、updated_channels 等</td><td>apply_writes 后形成新 checkpoint，saver 持久化</td></tr><tr><td class="mono">langgraph/checkpoint/base/__init__.py</td><td class="mono">BaseCheckpointSaver</td><td>checkpointer 抽象契约，定义如何按 config 保存、读取、列出 checkpoint</td><td>Pregel 调用 saver，具体后端实现存储细节</td></tr><tr><td class="mono">langgraph/checkpoint/memory/__init__.py</td><td class="mono">InMemorySaver</td><td>内存版 saver，适合教程、单进程实验和测试，进程结束数据消失</td><td>compile(checkpointer=InMemorySaver()) 后被运行时使用</td></tr><tr><td class="mono">langgraph/pregel/main.py</td><td class="mono">Pregel.get_state</td><td>按 config 读取某条线程最新或指定 checkpoint 的 StateSnapshot</td><td>外部调试、UI 展示、人审页面查询状态</td></tr><tr><td class="mono">langgraph/pregel/main.py</td><td class="mono">Pregel.update_state</td><td>在 checkpoint 基础上注入人工更新或修补状态，产生新的可继续运行状态</td><td>人审、修正工具结果、恢复前调整 state</td></tr></table>
+<h2>状态流：一次带 thread_id 的 invoke</h2>
+<div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>配置线程</h4><p>调用 graph.invoke(input, config={&#x27;configurable&#x27;: {&#x27;thread_id&#x27;: &#x27;u-42&#x27;}})。thread_id 进入 checkpointer 的索引键。</p><div class="mono">configurable.thread_id=&#x27;u-42&#x27;</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>读取旧存档</h4><p>运行开始时 saver 按 thread_id 和 namespace 查找最新 checkpoint；第一次调用通常为空。</p><div class="mono">checkpoint=None or latest</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>执行超步</h4><p>Pregel 按 Plan/Execution/Update 推进，每个提交边界形成新的 channel values 和 versions。</p><div class="mono">messages@v1 -&gt; messages@v2</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>写入 checkpoint</h4><p>BaseCheckpointSaver.put 保存 checkpoint 和 metadata，记录当前线程的最新状态。</p><div class="mono">put(thread_id=&#x27;u-42&#x27;, checkpoint_id=&#x27;...&#x27;)</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>下次恢复</h4><p>下一次用同一个 thread_id 调用，运行时从最新 checkpoint 继续，而不是从空 state 开始。</p><div class="mono">resume from latest checkpoint</div></div></div></div>
+<h2>Trace：保存后再恢复</h2>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. first invoke</td><td>{&#x27;messages&#x27;: [HumanMessage(&#x27;我的订单?&#x27;)]} + thread_id=&#x27;alice&#x27;</td><td>checkpointer 未找到 alice 的存档，初始化 state</td><td>checkpoint-1: messages 含用户问题</td></tr><tr><td>2. model/tool steps</td><td>checkpoint-1</td><td>模型调用工具、工具写回结果、模型给出答复</td><td>checkpoint-2/3/4 逐步保存 channel values</td></tr><tr><td>3. process ends</td><td>内存或外部 saver 中已有 alice 最新 checkpoint</td><td>应用进程可结束；持久 saver 仍保留状态</td><td>thread_id=&#x27;alice&#x27; -&gt; checkpoint-4</td></tr><tr><td>4. second invoke</td><td>{&#x27;messages&#x27;: [HumanMessage(&#x27;那什么时候到?&#x27;)]} + same thread_id</td><td>运行时读取 checkpoint-4，把新输入合并到 messages</td><td>模型能看到上次订单上下文</td></tr><tr><td>5. get_state</td><td>config thread_id=&#x27;alice&#x27;</td><td>Pregel.get_state 返回 StateSnapshot</td><td>UI 可展示 values、next、tasks、metadata</td></tr></table>
+<h2>简化源码走读：checkpointer 契约</h2>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">langgraph/checkpoint/base/__init__.py :: BaseCheckpointSaver</span><span class="ln">简化版</span></div><pre>class BaseCheckpointSaver:
+    def get_tuple(self, config):
+        # thread_id + checkpoint_ns + checkpoint_id
+        ...
 
-<h2>持久化：每个超步存一个 checkpoint</h2>
-<p>挂上一个 <strong>checkpointer</strong> 后，引擎会在<strong>每个超步后</strong>把状态存成一个 <span class="mono">Checkpoint</span>。</p>
-<div class="card detail">
-  <div class="tag">🔬 存的是什么（checkpoint/base.py）</div>
-  <ul>
-    <li><span class="mono">Checkpoint</span> 里有 <span class="mono">channel_values</span>（<strong>所有 channel 的当前值＝状态快照</strong>）、<span class="mono">channel_versions</span>、<span class="mono">versions_seen</span>。</li>
-    <li><span class="mono">BaseCheckpointSaver</span> 是<strong>存储接口</strong>：开发用 <span class="mono">InMemorySaver</span>，生产换 <span class="mono">Postgres</span> / <span class="mono">SQLite</span> 版，<strong>代码不变</strong>。</li>
-    <li>对外读状态是 <span class="mono">StateSnapshot</span>（<span class="mono">types.py</span>）：<span class="mono">values</span>（当前状态）、<span class="mono">next</span>（下一步要执行的节点）、<span class="mono">config</span>、<span class="mono">tasks</span>、<span class="mono">interrupts</span> 等——<span class="mono">graph.get_state(config)</span> 返回它。</li>
-  </ul>
-</div>
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">你的代码</span><span class="ln">checkpointer + thread_id（承接第 13 课，这里看实现）</span></div>
-<pre><span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> InMemorySaver
+    def put(self, config, checkpoint, metadata, new_versions):
+        # persist one committed superstep
+        ...
 
-app = g.compile(checkpointer=InMemorySaver())
-cfg = {<span class="st">"configurable"</span>: {<span class="st">"thread_id"</span>: <span class="st">"user-1"</span>}}
-
-app.invoke({<span class="st">"messages"</span>: [...]}, cfg)   <span class="cm"># 每个超步后存一个 checkpoint（绑 thread_id）</span>
-app.invoke({<span class="st">"messages"</span>: [...]}, cfg)   <span class="cm"># 同 thread：从最后的 checkpoint 恢复状态继续</span>
-
-snap = app.get_state(cfg)              <span class="cm"># StateSnapshot：看当前状态 / 下一步</span>
-</pre>
-</div>
-
-<h2>时间旅行（time-travel）</h2>
-<p>因为<strong>每一步的状态都存了</strong>，"回到第 N 步、换个选择重来"就成了可能——这是调试 Agent 的利器。</p>
-<div class="card detail">
-  <div class="tag">🔬 怎么做</div>
-  <span class="mono">graph.get_state_history(cfg)</span> 返回一串历史 <span class="mono">StateSnapshot</span>（每个超步一个）。
-  挑中某个旧 snapshot，把它的 <span class="mono">config</span>（含该 checkpoint 的 id）传回 <span class="mono">invoke</span>，图就会<strong>从那个点 fork 出去重跑</strong>，
-  让你"在岔路口换条路走"。
-</div>
-
-<h2>中断与恢复：interrupt 的真实机制</h2>
-<p>人在回路（HITL）不是什么黑魔法，就是<strong>"存档 + 重放"</strong>的直接产物。官方 <span class="mono">interrupt()</span> 文档说得很清楚：</p>
-<div class="vflow">
-  <div class="step"><div class="num">1</div><div class="sc"><h4>暂停</h4><p>在节点里调 <span class="mono">interrupt(value)</span> → <strong>第一次会抛出 <span class="mono">GraphInterrupt</span></strong>，执行停住，<span class="mono">value</span> 被交给客户端（如"请审批这笔转账"）。</p></div></div>
-  <div class="step"><div class="num">2</div><div class="sc"><h4>等待</h4><p>状态已存档，<strong>不占用任何运行资源</strong>；可以等几秒，也可以等几天。</p></div></div>
-  <div class="step"><div class="num">3</div><div class="sc"><h4>恢复</h4><p>客户端用 <span class="mono">Command(resume=值)</span> 继续；<strong>图会从该节点的开头<u>重新执行</u></strong>，这次 <span class="mono">interrupt()</span> 直接返回你给的值。需要 <strong>checkpointer</strong>。</p></div></div>
-</div>
-<div class="card warn">
-  <div class="tag">⚠️ 真实的坑：恢复是"从节点头重跑"</div>
-  因为恢复会<strong>重新执行整个节点</strong>，所以 <span class="mono">interrupt()</span> <strong>之前</strong>的副作用（比如"已经发了邮件""已经扣了款"）会<strong>再执行一遍</strong>。
-  原则：<strong>把副作用放在 <span class="mono">interrupt()</span> 之后</strong>，或做幂等。第 7 课的 <span class="mono">HumanInTheLoopMiddleware</span> 正是基于这套机制。
-</div>
-
-<h2>控制流原语：Send 与 Command（实现细节）</h2>
-<p>第 13 课点过名，这里看它们在 <span class="mono">types.py</span> 里到底是什么、能干什么。</p>
-<div class="cols">
-  <div class="col">
-    <h4><span class="mono">Send</span>：动态扇出（map-reduce）</h4>
-    <p>文档原话：<strong>"在条件边里用来动态调用一个节点，并可携带与主 state 不同的自定义 state"</strong>。
-    典型就是 map-reduce / 并行：</p>
-<pre class="code"><span class="cm"># 给每个 subject 派发一个并行任务</span>
-<span class="kw">return</span> [Send(<span class="st">"gen_joke"</span>, {<span class="st">"subject"</span>: s})
-        <span class="kw">for</span> s <span class="kw">in</span> state[<span class="st">"subjects"</span>]]</pre>
-    <p>Agent 的<strong>并行工具调用</strong>就是用它把多个 <span class="mono">tool_call</span> 扇给 <span class="mono">tools</span> 节点。</p>
-  </div>
-  <div class="col">
-    <h4><span class="mono">Command</span>：改状态 + 改去向</h4>
-    <p>一个节点返回普通 <span class="mono">dict</span> 只能<strong>改状态</strong>；返回 <span class="mono">Command</span> 能<strong>同时</strong>改状态<strong>并指定下一步</strong>：</p>
-<pre class="code"><span class="kw">from</span> langgraph.types <span class="kw">import</span> Command
-
-<span class="kw">return</span> Command(
-    update={<span class="st">"messages"</span>: [...]},   <span class="cm"># 改状态</span>
-    goto=<span class="st">"researcher"</span>,            <span class="cm"># 跳到另一个 agent</span>
-)</pre>
-    <p>字段：<span class="mono">update</span> / <span class="mono">goto</span>（节点名 / <span class="mono">Send</span> / 序列）/ <span class="mono">resume</span>（配合 interrupt）/ <span class="mono">graph</span>（当前或 <span class="mono">PARENT</span>）。</p>
-  </div>
-</div>
-<div class="card detail">
-  <div class="tag">🔬 这就是"多 Agent handoff"</div>
-  第 21 课对照 AutoGen 时提到的"<strong>交接（handoff）</strong>"，落到 LangGraph 就是 <span class="mono">Command(goto="另一个 agent", update=...)</span>：
-  一个 Agent <strong>改完共享状态、把控制权交棒</strong>给另一个。<span class="mono">Command</span> 还实现了 <span class="mono">ToolOutputMixin</span>——意味着<strong>工具直接返回 Command</strong> 也能驱动跳转。
-  <table class="t" style="margin-top:.6rem">
-    <tr><th>原语</th><th>位置</th></tr>
-    <tr><td class="mono">Send / Command / interrupt() / Interrupt / StateSnapshot</td><td class="mono">types.py</td></tr>
-    <tr><td class="mono">Checkpoint / BaseCheckpointSaver</td><td class="mono">checkpoint/base.py</td></tr>
-  </table>
-</div>
-
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，抠持久化与中断的三个细节。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> checkpoint 里的 versions_seen 是干嘛的 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 三个字段的分工</div>
-      <div class="a"><span class="mono">channel_values</span> = 状态快照；<span class="mono">channel_versions</span> = 每个 channel 的<strong>当前版本号</strong>；
-        <span class="mono">versions_seen</span> = "<strong>每个节点看过哪个版本</strong>"。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 有什么用</div>
-      <div class="a">引擎对比"channel 现在的版本"和"某节点已看过的版本"，决定这个节点<strong>要不要（再）跑</strong>——
-        避免对<strong>同一次更新</strong>重复处理，也让断点续跑能精确知道"还差哪些没做"。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> InMemorySaver 和生产用的 saver <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 同一个接口</div>
-      <div class="a">都实现 <span class="mono">BaseCheckpointSaver</span>。开发/测试用 <span class="mono">InMemorySaver</span>（进程内）；
-        生产换 <span class="mono">langgraph-checkpoint-postgres</span> / <span class="mono">-sqlite</span>，<strong>业务代码不用改</strong>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 怎么选</div>
-      <div class="a">要<strong>跨进程 / 重启后仍能续跑</strong>（真实用户会话、长任务）就用数据库版；只是本地跑通用内存版即可。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> 一个节点里有多个 interrupt 怎么办 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 按顺序匹配</div>
-      <div class="a">LangGraph 按 <span class="mono">interrupt()</span> 在节点里<strong>出现的顺序</strong>，把你给的 resume 值依次对上；
-        这份 resume 值列表<strong>只属于当前这个 task</strong>，不跨任务共享。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 回顾那个坑</div>
-      <div class="a">别忘了恢复是"<strong>从节点头重跑</strong>"：已经返回过值的 interrupt 会直接返回上次的 resume 值，但<strong>它们之间的普通代码会重新执行一遍</strong>。</div>
-    </div>
-  </div>
-</details>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点：一个设计的三个面</div>
-  持久化、时间旅行、人审、可靠跳转——看似四件事，其实是<strong>同一个设计</strong>的不同侧面：
-  <strong>因为状态被逐超步持久化</strong>，"续跑 / 回到过去 / 暂停等人 / 跨节点跳转"才统统成立。
-  这就是"用图 + checkpoint 运行"相比"裸 while 循环"<strong>质的差距</strong>。
-</div>
-
-<div class="card key">
-  <div class="tag">✅ 本课要点 & 第七部分收尾</div>
-  <ul>
-    <li><strong>持久化</strong>：每个超步存一个 <span class="mono">Checkpoint</span>（<span class="mono">channel_values</span> = 状态快照）；<span class="mono">thread_id</span> 区分会话；<span class="mono">get_state</span> 返回 <span class="mono">StateSnapshot</span>。</li>
-    <li><strong>时间旅行</strong>：<span class="mono">get_state_history</span> + 旧 checkpoint 的 config → 从任意一步 fork 重跑。</li>
-    <li><strong>interrupt</strong>：抛 <span class="mono">GraphInterrupt</span> 暂停、<span class="mono">Command(resume=...)</span> 恢复，且<strong>从节点头重放</strong>（副作用要放在 interrupt 之后）。</li>
-    <li><strong>控制流</strong>：<span class="mono">Send</span> = 动态扇出/并行；<span class="mono">Command</span> = 改状态 + 跳转（多 Agent handoff 的底座）。</li>
-    <li>🎉 至此，<span class="mono">create_agent</span> 从"魔法"被彻底拆到了引擎层：<strong>一张状态图，跑在 Pregel 超步引擎上，靠 channel 合并状态、靠 checkpoint 持久化、靠 Send/Command 控制走向。</strong></li>
-  </ul>
-</div>
-<div class="selftest">
+    def list(self, config, before=None, limit=None):
+        # history for time travel/debug
+        ...
+</pre><div class="cw-note">教学版突出三个操作：按 config 读最新或指定 checkpoint，提交新 checkpoint，列出历史。真实实现还会处理 serde、pending writes、异步接口、父子 config 和存储后端差异。</div></div><h2>checkpoint 保存的不是普通聊天记录</h2><p>很多人把 LangGraph 持久化理解成“保存 messages 列表”。messages 当然可能在 checkpoint 里，但 checkpoint 的范围更广：每个 channel 的值、每个 channel 的版本、每个节点已经看过哪些版本、以及本次更新涉及的 channel 集合。动态 Send 相关任务应理解为通过 TASKS / channel_values[TASKS] 等运行时通道表达；旧版或兼容迁移里看到的 pending_sends 不应当成当前 checkpoint 的顶层字段。它保存的是运行时能恢复图执行所需的最小世界，而不是只给 UI 展示的业务日志。</p><p>这就是为什么 checkpoint 能支撑 resume。如果只存最终回答，下次调用只能把历史文字塞回 prompt；如果存完整 channel values 和 versions，运行时知道哪些节点已经执行过、哪些 channel 发生过变化、下一步可以从哪里继续。持久化的是执行状态，不只是对话内容。</p><p>checkpoint 也让 get_state 有了精确语义。get_state 返回的 StateSnapshot 不只是 dict values，还可能包含 next tasks、config、metadata、created_at 等信息。调试时你能看到图停在哪里、为什么下一步会去某节点，而不仅是“当前字段长什么样”。</p><h2>thread_id 是会话边界</h2><p>configurable.thread_id 是多数持久化问题的第一现场。它必须来自稳定业务身份，例如用户会话、工单 id、对话 id，而不是随机生成后丢掉。如果每次请求都用新 thread_id，图永远找不到旧 checkpoint；如果多个用户共享同一个 thread_id，状态会串线，后果比普通缓存污染更严重。</p><p>生产系统通常把 thread_id 放在后端会话层或业务数据库里，而不是让前端随便传任意字符串。前端可以选择会话，但后端要校验权限：用户 A 不应读取用户 B 的 checkpoint。LangGraph 提供运行时能力，不替你完成租户隔离和鉴权。</p><p>命名空间 checkpoint_ns 则适合同一 thread 下的不同用途。例如同一工单可以有 main 运行、实验分支、人工修复分支。namespace 让你不用把所有历史混在一条线上。若不理解 namespace，时间旅行和 fork 很容易覆盖主流程。</p><h2>BaseCheckpointSaver 与具体后端</h2><p>BaseCheckpointSaver 是契约，不是存储产品。它让 Pregel 不关心 checkpoint 最终写到内存、SQLite、Postgres、Redis 还是云服务。运行时只需要按 config put/get/list；序列化、索引、并发控制和清理策略由 saver 实现负责。</p><p>InMemorySaver 的价值是教学和测试。它无需外部服务，能让你验证 thread_id、resume、interrupt 和 history 的机制。但进程退出数据就没了，多进程也不共享。把 InMemorySaver 用到生产持久会话，是典型误用。生产环境应选择支持持久介质、并发访问和备份策略的 saver。</p><p>选择后端时要看访问模式。聊天机器人常读最新 checkpoint；调试后台常 list history；人审系统可能频繁 update_state；时间旅行会读取指定 checkpoint 并 fork。不同模式对索引和容量要求不同。不要等历史记录堆满后才发现 saver list 很慢。</p><h2>update_state 是外部修补，不是随手改内存</h2><p>Pregel.update_state 允许你在某个 checkpoint 基础上写入新的 state update。它适合人工审核后补充 approved=True，或把错误工具结果修正为可信结果，或在恢复前注入缺失字段。它的关键是仍然通过运行时写入机制产生新状态，而不是绕过 channel 直接改存储。</p><p>使用 update_state 时要保留审计意识。谁改了 state，为什么改，基于哪个 checkpoint 改，改完后图从哪里继续，这些都应进入 metadata 或业务日志。否则人审和调试会变成另一个黑盒：你知道状态变了，却不知道哪个人或系统让它变。</p><p>还要注意 reducer 语义。向 messages 追加人工消息，和替换某条消息，是两种不同更新；向 LastValue 写 approval，和向列表型 channel 添加一条 reviewer note，也不同。update_state 并不免除你理解 channel 合并规则的责任。</p><h2>恢复失败的排查顺序</h2><p>第一问：第二次调用是否使用了同一个 thread_id、同一个 checkpoint namespace、同一个 checkpointer 实例或同一个持久后端？很多“状态丢失”只是因为第一次用 thread_id=abc，第二次变成 user_abc，或者本地重启后 InMemorySaver 为空。</p><p>第二问：输入是不是被设计成覆盖了历史。某些图会把新输入映射到 messages channel 并用 add_messages 合并；如果你把 messages 直接设成新列表且没有正确 reducer，就可能覆盖旧历史。持久化保存了旧状态，不代表你的新输入不会按 schema 把它替换掉。</p><p>第三问：get_state 看到的 checkpoint 是否符合预期。如果 saver 里有旧值但运行结果没有用上，问题可能在输入 mapper 或节点读取；如果 saver 里也没有旧值，问题在 checkpoint 写入或 config；如果 checkpoint 有多条 namespace，问题可能是读了错误分支。</p><h2>工程复盘：把持久化当成产品能力</h2><p>在生产系统里，checkpoint 不是框架内部的小优化，而是直接影响产品体验的能力。用户是否能续聊，人工审核是否能回来继续，客服是否能查看历史，调试人员是否能复盘事故，都取决于 checkpoint 是否被正确索引、保存和保护。把它当成“可选缓存”会导致一系列隐蔽问题。</p><p>thread_id 的生成策略必须和业务边界一致。聊天应用可以用 conversation_id，工单系统可以用 ticket_id，批处理流程可以用 job_id。不要用用户 id 直接作为所有对话的 thread_id，否则同一用户的多个会话会互相污染；也不要每次请求生成随机 id，否则永远无法恢复。thread_id 是状态隔离线，不是随便的字符串。</p><p>checkpoint namespace 适合表达分支，而不是替代 thread_id。比如主线 namespace 保存用户可见会话，debug namespace 保存工程师实验，人审 namespace 保存审批修补。这样同一 thread 下可以有多条相关但不互相覆盖的历史。若把 namespace 用乱，get_state_history 会变得难以解释。</p><p>持久化后端还要考虑数据生命周期。对话状态可能包含个人信息、工具结果、业务单号和模型输出，不能无限期保存。团队需要定义保留时间、删除策略、备份策略和导出权限。LangGraph 负责写 checkpoint，不负责替你满足合规要求。</p><p>恢复路径也需要测试。很多系统只测试第一次 invoke 成功，却不测试进程重启后第二次 invoke 是否能找到旧 checkpoint。真正的持久化验收应包括：重启应用、换 worker、连续多轮、错误后恢复、人审后恢复、不同用户隔离、namespace 分支读取。少一个场景，线上就可能在那个场景丢状态。</p><p>get_state 可以成为运营和客服工具的后端接口，但不能裸露所有 values。某些 state key 可能包含系统提示、内部评分、敏感工具结果或安全策略。展示层应做字段过滤和权限控制。可观察性不等于把内部状态全部公开。</p><p>update_state 的产品含义是人工修补。修补能力很有用，也很危险。它能让客服纠正错误订单状态、让审核员补充批准意见、让工程师恢复卡住流程；也可能让未经授权的人篡改历史。每次 update 都应记录操作者、原因、旧 checkpoint、新 checkpoint 和可见影响。</p><p>checkpoint metadata 是事故复盘的朋友。不要忽略 step、source、writes、parent 等信息。只有 values 说明不了状态为什么变化；metadata 能告诉你变化来自输入、节点、人工 update 还是 replay 分支。生产 saver 如果丢掉 metadata，会严重削弱调试能力。</p><p>InMemorySaver 的问题不只是进程退出丢数据，还包括多 worker 不共享。线上服务一旦横向扩展，请求可能落到不同进程。第一次 invoke 写在 worker A 的内存里，第二次 invoke 落到 worker B 就像没有历史。即使 demo 没问题，架构上也不成立。</p><p>最后，持久化是一项端到端能力：config 生成、saver 后端、权限隔离、状态 schema、恢复测试和运维清理缺一不可。LangGraph 给出标准接口，但系统质量取决于你如何把这些接口接到真实业务边界上。</p>
+<h2>常见误解与边界情况</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：checkpoint 等于聊天记录</div><div class="pf-correct">正确：checkpoint 是图运行状态，包含 channel_values、channel_versions、versions_seen、updated_channels 和元数据，不只是 messages。</div></div><div class="pitfall"><div class="pf-wrong">误解：传了 checkpointer 就一定能续聊</div><div class="pf-correct">正确：还必须稳定传入 configurable.thread_id，并使用可持久保存的 saver。</div></div><div class="pitfall"><div class="pf-wrong">误解：InMemorySaver 可以生产使用</div><div class="pf-correct">正确：它适合实验和测试，进程结束即丢失，生产要使用持久后端并做权限隔离。</div></div><div class="pitfall"><div class="pf-wrong">误解：update_state 可以绕过 reducer</div><div class="pf-correct">正确：它仍应尊重 channel 更新语义，并记录审计来源。</div></div></div><h2>实践提示：持久会话上线清单</h2><p>上线前先做冷启动恢复测试：启动服务，运行第一轮对话，停止进程，重新启动，再用同一 thread_id 追问。若使用持久 saver，第二轮应能看到第一轮状态；若使用 InMemorySaver，失败是预期结果，不能把它当生产方案。</p><p>再做并发隔离测试：两个用户同时使用相似输入，但 thread_id 不同。检查 get_state_history 是否完全隔离，确认用户 A 的消息不会出现在用户 B 的 checkpoint 中。</p><p>第三个测试是多会话隔离：同一用户打开两个工单或两个浏览器会话。若 thread_id 只用 user_id，两条会话会串线；正确做法通常是 user_id 加 conversation_id 或后端生成的会话 id。</p><p>第四个测试是 namespace 分支：在 debug namespace 中 fork 一次，不应改变 main namespace 的最新状态。UI 展示主线时也不应误读 debug 分支。</p><p>第五个测试是 update_state 审计：人工修补后，history 中应能看出修补来源、操作者和原因。若只看到 values 变化而没有 metadata，后续复盘会非常困难。</p><p>第六个测试是权限拒绝：尝试用无权限用户读取或恢复别人的 thread_id，后端应拒绝。不要把 thread_id 当成安全凭证，它只是索引。</p><p>第七个测试是数据清理：删除或归档某条会话后，get_state 和 history 的行为应符合产品政策。持久化越成功，越需要生命周期管理。</p><p>这些检查说明 checkpoint 不只是框架参数，而是应用状态管理的一部分。只有把它纳入产品、后端和运维测试，恢复能力才可靠。</p><h2>补充推演：从一次续聊事故反推责任边界</h2><p>用户第一次问订单，系统正确调用工具并回答；第二次问“那能改地址吗”，系统却说不知道订单。这类事故表面是模型忘记历史，实质往往是 checkpoint 读写边界出错。首先要确认第二次请求是否使用同一 thread_id，而不是只看前端会话还在不在。</p><p>如果 thread_id 相同，再看 saver 后端是否同一个。开发环境常把 checkpointer 放在进程内全局变量，重启后自然丢失；生产环境常因为多 worker 或无状态部署，让第二次请求落到没有内存历史的实例。持久后端和共享配置是恢复的基础。</p><p>如果 saver 中能看到旧 checkpoint，再看新输入如何进入 graph。某些输入 mapper 会把 messages 设置为新列表，覆盖旧 messages；正确做法通常是让新 HumanMessage 作为增量进入带 reducer 的 messages channel。持久化保存历史，不代表输入合并一定正确。</p><p>如果 messages 正确但模型仍然不知道订单，可能是节点只读取了本轮 input 而不是 state['messages']，或 prompt 构造时丢掉了历史。此时问题在节点内部数据流，不在 checkpoint。分层排查能避免盲目换数据库。</p><p>如果 get_state_history 中存在多个 namespace，要确认 UI 和 API 使用的是同一个 namespace。debug 分支、人审分支和主线分支混用，会让状态看似丢失，实际只是读了另一条历史线。</p><p>最后要把事故写成检查项：稳定 thread_id、持久 saver、正确 namespace、messages reducer、节点读取完整 state、权限隔离。下次续聊失败时，按这张清单走，比重新猜 prompt 更可靠。</p><h2>上线校验：把 checkpoint 当成恢复契约</h2><p>持久化页的最后检查应围绕 thread 归属，而不是围绕 saver 类型。每条业务会话都要能回答：thread_id 从哪个业务对象生成，谁有权限读取，checkpoint_ns 何时分支，checkpoint_id 何时固定到一次审核或复盘。没有这些规则，换成再可靠的数据库也只是把混乱状态保存得更久。</p><p>恢复契约还包括输入合并方式。第二次 invoke 不是把旧 checkpoint 和新输入随便拼在一起，而是让新 HumanMessage 或业务事件作为增量进入正确 channel，再由 reducer 合并。测试要覆盖连续多轮、进程重启、多 worker、同用户多会话和错误 thread_id，证明恢复链路在真实部署形态下仍然成立。</p><p>人工 update_state 应被当成一次正式状态转移。评审清单里要写操作者、原因、基于哪个 parent checkpoint、写了哪些 channel、是否触发下游节点，以及如何回滚或再审。缺少审计的修补能力会让 checkpoint 从可靠历史变成不可解释的后门。</p><p>最后把数据生命周期也纳入契约：哪些 state key 可以长期保存，哪些必须脱敏或定期清理，哪些 debug namespace 只能短期存在。checkpoint 支撑恢复、客服和复盘，但也扩大了数据责任；上线标准必须同时覆盖可用性、隔离性和合规性。</p><h2>补充提醒：不要把恢复责任推给模型</h2><p>模型只能根据节点传给它的上下文回答，不能替运行时找回丢失的 checkpoint。若历史没有被正确保存、读取和合并，再聪明的模型也只能面对残缺输入猜测。排查续聊问题时，先验证持久化链路，再讨论提示词质量。</p><p>同样，checkpoint 也不会自动保证业务正确。它保存的是图状态，但状态字段是否合理、thread_id 是否安全、人工修改是否审计，仍然属于应用设计责任。框架提供存档能力，团队负责把存档能力接到可靠流程里。</p><div class="card lab"><div class="tag">🧪 小实验 · 定位一次丢失上下文</div><ol><li>用同一个 checkpointer 连续 invoke 两次，第一次问订单，第二次追问配送时间。</li><li>记录两次 config 中的 configurable.thread_id 和 checkpoint_ns，确认完全一致。</li><li>在第二次 invoke 前调用 get_state，检查 messages 是否已有第一次历史。</li><li>把 thread_id 改成另一个值重跑，观察图为什么像新会话。</li><li>把 InMemorySaver 替换为持久 saver 时，列出需要补充的权限、清理和备份策略。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>本课描述的是 LangGraph checkpoint 的稳定心智模型。不同版本的序列化字段、metadata 键和 saver 后端名称可能调整；遇到差异时，优先追踪 Checkpoint、BaseCheckpointSaver、Pregel.get_state 与 Pregel.update_state 的职责，而不是依赖某个字段顺序。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>checkpoint 保存的是超步边界的运行状态，不只是最终输出或聊天日志。</li><li>thread_id、checkpoint namespace、checkpoint id 共同决定读写哪条历史线。</li><li>BaseCheckpointSaver 隔离运行时与存储后端；InMemorySaver 适合实验，不适合生产持久会话。</li><li>get_state 用于观察，update_state 用于受控修补；二者都应带着审计和 channel 语义使用。</li></ul></div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. 课里说持久化、时间旅行、人审“其实是同一个设计的三个面”。这个共同的底座是什么？</div>
+  <div class="qn">1. configurable.thread_id 在 LangGraph 持久化中最核心的作用是什么？</div>
   <ol class="opts">
-    <li>“每个超步都把状态存成一个 checkpoint”——有了逐步存档，续跑/回到过去/暂停等人就都水到渠成</li>
-    <li>更快的模型</li>
-    <li>更多的节点</li>
-    <li>更大的内存</li>
+    <li>作为会话/线程索引，让 checkpointer 找到同一条历史的最新或指定 checkpoint</li>
+    <li>自动加密所有消息</li>
+    <li>替代 state schema 和 reducer</li>
+    <li>决定模型温度</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。一个机制(逐步 checkpoint)派生出多种能力(续跑/时间旅行/人审)。这是“找到正确的底层抽象、上层能力自然涌现”的范例。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。thread_id 是恢复同一运行历史的关键。没有稳定 thread_id，第二次调用通常会像新会话一样从空状态开始。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. interrupt 的恢复是“从节点开头重新执行”。课里专门把它列为“坑”。这个设计的代价是什么、该怎么应对？</div>
+  <div class="qn">2. Checkpoint 与普通聊天日志的主要区别是什么？</div>
   <ol class="opts">
-    <li>状态会丢</li>
-    <li>恢复会变慢</li>
-    <li>interrupt 之前的副作用(已发邮件/已扣款)会重复执行——应把副作用放在 interrupt 之后，或做幂等</li>
-    <li>没有代价</li>
+    <li>Checkpoint 保存图在超步边界恢复所需的 channel_values、channel_versions、versions_seen、updated_channels 和 metadata，不只是展示给用户的消息</li>
+    <li>Checkpoint 只在程序退出时生成一次</li>
+    <li>Checkpoint 不需要 checkpointer</li>
+    <li>Checkpoint 只能保存字符串，聊天日志能保存对象</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。“从头重放”换来了实现的简单与一致，但代价是 interrupt 前的代码会重跑。理解这个取舍，才能避免“重复扣款”这类真实事故。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。checkpoint 是运行状态存档，支撑 resume、get_state、history、interrupt 等能力；聊天日志只是其中可能的一部分。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 多个独立工具调用用 <code>Send</code>“扇出”，把“改状态 + 跳转”统一成 <code>Command</code>。把这两件事分成两个原语，体现了什么？</div>
+  <div class="qn">3. 使用 Pregel.update_state 修补状态时，哪种做法最安全？</div>
   <ol class="opts">
-    <li>为了好记</li>
-    <li>原语越多越好</li>
-    <li>没意图</li>
-    <li>用正交的小原语覆盖图的控制流：Send 管“并行分身”、Command 管“状态+去向”，组合起来表达复杂流转</li>
+    <li>通过图的状态更新语义写入增量，并记录基于哪个 checkpoint、谁因为什么修改</li>
+    <li>直接改底层存储里的 JSON，绕过运行时</li>
+    <li>只要能恢复就可以忽略 state schema</li>
+    <li>不记录操作者和原因，避免日志太多</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。又是“少数正交原语组合出复杂行为”。Send 和 Command 各管一件事，组合起来就能表达 map-reduce、handoff 等复杂控制流。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. 多 Agent 的“handoff(交接)”被落实为 <code>Command(goto=另一个 agent)</code>。把“交接”建模成“改状态 + 跳转”，说明了什么？</div>
-  <ol class="opts">
-    <li>很难实现</li>
-    <li>必须用 AutoGen</li>
-    <li>多 Agent 协作不需要新机制：它就是图里的“带状态更新的跳转”，复用了已有的控制流原语</li>
-    <li>handoff 很神秘</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。“交接”听起来高级，落到图模型就是 Command(goto)。用已有原语表达新概念，避免为每个新需求发明新机制——抽象选对了，能力就复用。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。update_state 仍应尊重 channel/reducer 语义，并保留审计信息，否则人审修补会变成新的黑盒。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>“逐步 checkpoint”这一个机制派生出了续跑/时间旅行/人审三种能力。回想你用过的系统，有没有“一个底层设计意外解锁了一堆上层能力”的例子？</li>
-    <li>interrupt“从节点头重放”带来了“副作用会重复”的坑。如果让你设计中断/恢复，你会选“从头重放(简单但有副作用风险)”还是“精确续接(复杂但无重复)”？为什么？</li>
+    <li>为客服对话图设计 checkpoint config：thread_id 从哪个业务对象来？checkpoint_ns 何时需要？如何防止不同用户读到彼此状态？</li>
+    <li>一次续聊丢失上下文。请按顺序检查 thread_id、checkpointer 生命周期、namespace、get_state 结果和 messages reducer。</li>
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="25-langgraph-pregel-engine.html"><div class="dir">← 上一课</div><div class="ttl">执行引擎：Pregel 与超步</div></a><a class="next" href="27-glossary.html"><div class="dir">下一课 →</div><div class="ttl">术语表 · 概念索引</div></a></div>
+  <div class="footnav"><a class="prev" href="32-langgraph-tasks-channels.html"><div class="dir">← 上一课</div><div class="ttl">Tasks、Channels 与调度</div></a><a class="next" href="33-langgraph-interrupt-command.html"><div class="dir">下一课 →</div><div class="ttl">interrupt、Command 与人在回路</div></a></div>
 </div>
 
 </body></html>

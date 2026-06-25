@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>23 · Tasks、Channels 与调度 — LangChain 图解教程</title>
+<meta name="description" content="第五部分 · LangGraph 执行引擎｜Tasks、Channels 与调度：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="theme-color" content="#1a7f64">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="LangChain 图解教程">
+<meta property="og:title" content="23 · Tasks、Channels 与调度 — LangChain 图解教程">
+<meta property="og:description" content="第五部分 · LangGraph 执行引擎｜Tasks、Channels 与调度：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="23 · Tasks、Channels 与调度 — LangChain 图解教程">
+<meta name="twitter:description" content="第五部分 · LangGraph 执行引擎｜Tasks、Channels 与调度：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f0f2f5; --ink: #1d2129;
+  --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
+  --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
+  --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116; --panel: #161b22; --panel-2: #1c232c; --ink: #e6edf3;
+    --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
+    --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
+    --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+    "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg); color: var(--ink); line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
+
+/* ---- top progress bar ---- */
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: var(--panel);
+  border-bottom: 1px solid var(--line); backdrop-filter: blur(8px);
+}
+.topbar-inner {
+  max-width: 960px; margin: 0 auto; padding: .7rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.topbar .home { font-size: .82rem; color: var(--muted); font-weight: 600; display:flex; gap:.5rem; align-items:center; }
+.topbar .home b { color: var(--accent); }
+.topbar .pill { font-size: .72rem; color: var(--muted); background: var(--panel-2);
+  padding: .2rem .6rem; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.progress { height: 3px; background: var(--panel-2); }
+.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue)); }
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 2.4rem 1.25rem 5rem; }
+
+/* ---- hero ---- */
+.hero { margin-bottom: 2rem; }
+.hero .part { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin-bottom: .55rem; }
+.hero h1 { font-size: 2.05rem; line-height: 1.2; letter-spacing: -.01em; font-weight: 750; }
+.hero .lead { margin-top: .9rem; font-size: 1.06rem; color: var(--muted); }
+
+h2 { font-size: 1.32rem; margin: 2.4rem 0 .9rem; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: .55rem; }
+h2::before { content: ""; width: 4px; height: 1.05em; background: var(--accent); border-radius: 3px; display: inline-block; }
+h3 { font-size: 1.05rem; margin: 1.4rem 0 .5rem; }
+p { margin: .7rem 0; }
+ul, ol { margin: .6rem 0 .6rem 1.3rem; }
+li { margin: .3rem 0; }
+strong { color: var(--ink); font-weight: 680; }
+.inline { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: .08em .4em; font-size: .9em; color: var(--accent-ink); }
+
+/* ---- callout cards ---- */
+.card { border-radius: var(--radius); padding: 1.05rem 1.2rem; margin: 1.2rem 0;
+  border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+.card .tag { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+.card.macro { border-left: 4px solid var(--blue); }
+.card.macro .tag { color: var(--blue); }
+.card.detail { border-left: 4px solid var(--purple); }
+.card.detail .tag { color: var(--purple); }
+.card.analogy { border-left: 4px solid var(--amber); background: var(--amber-soft); }
+.card.analogy .tag { color: var(--amber); }
+.card.key { border-left: 4px solid var(--accent); background: var(--accent-soft); }
+.card.key .tag { color: var(--accent-ink); }
+.card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
+.card.warn .tag { color: var(--red); }
+.card.spark { border-left: 4px solid #e0a000;
+  background: linear-gradient(100deg, rgba(224,160,0,.12), transparent 70%); }
+.card.spark .tag { color: #c98a00; }
+@media (prefers-color-scheme: dark) { .card.spark .tag { color: #f0c050; } }
+
+/* ---- code file callout ---- */
+.codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
+  box-shadow: var(--shadow); }
+.codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
+  background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
+.codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
+.codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
+  overflow-x: auto; font-size: .82rem; line-height: 1.6; }
+.codefile pre .cm { color: #7d8aa3; }
+.codefile pre .kw { color: #c792ea; }
+.codefile pre .fn { color: #82aaff; }
+.codefile pre .st { color: #c3e88d; }
+.codefile pre .nb { color: #f78c6c; }
+
+pre.code { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem; border-radius: 12px;
+  overflow-x: auto; font-size: .83rem; line-height: 1.6; margin: 1.1rem 0; box-shadow: var(--shadow); }
+pre.code .cm { color: #7d8aa3; } pre.code .kw { color: #c792ea; }
+pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb { color: #f78c6c; }
+
+/* ---- collapsible accordion (details/summary) ---- */
+.accordion { border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+  margin: .7rem 0; box-shadow: var(--shadow); overflow: hidden; }
+.accordion > summary { cursor: pointer; padding: .85rem 1.1rem; font-weight: 650; font-size: .96rem;
+  list-style: none; display: flex; align-items: center; gap: .6rem; user-select: none; }
+.accordion > summary::-webkit-details-marker { display: none; }
+.accordion > summary::after { content: "▶"; font-size: .68rem; color: var(--accent);
+  margin-left: auto; transition: transform .15s ease; }
+.accordion[open] > summary::after { transform: rotate(90deg); }
+.accordion > summary:hover { background: var(--panel-2); }
+.accordion[open] > summary { border-bottom: 1px solid var(--line); }
+.accordion .badge-num { background: var(--accent-soft); color: var(--accent-ink);
+  width: 1.6rem; height: 1.6rem; border-radius: 7px; display: inline-flex; align-items: center;
+  justify-content: center; font-size: .82rem; font-weight: 700; flex-shrink: 0; }
+.accordion .hint { font-size: .72rem; color: var(--faint); font-weight: 400; }
+.acc-body { padding: .9rem 1.1rem 1.1rem; }
+.acc-intro { color: var(--muted); font-size: .9rem; margin: .2rem 0 .4rem; }
+.qa { margin: 1rem 0; }
+.qa:first-child { margin-top: .3rem; }
+.qa .q { font-weight: 680; font-size: .9rem; display: flex; gap: .45rem; align-items: center; margin-bottom: .3rem; }
+.qa .a { color: var(--muted); font-size: .9rem; }
+.qa .a strong { color: var(--ink); }
+.qa pre.code { margin: .5rem 0 0; font-size: .78rem; }
+
+/* ---- flow diagram ---- */
+.flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 1.3rem 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1.2rem 1rem; box-shadow: var(--shadow); }
+.flow .node { flex: 1 1 0; min-width: 110px; text-align: center; padding: .7rem .5rem;
+  border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.flow .node .nt { font-weight: 700; font-size: .92rem; }
+.flow .node .nd { font-size: .76rem; color: var(--muted); margin-top: .2rem; }
+.flow .node.hl { background: var(--accent-soft); border-color: var(--accent); }
+.flow .arrow { align-self: center; color: var(--faint); font-size: 1.3rem; padding: 0 .35rem; }
+
+/* vertical flow */
+.vflow { margin: 1.3rem 0; }
+.vflow .step { display: flex; gap: .9rem; position: relative; padding-bottom: 1.1rem; }
+.vflow .step:not(:last-child)::before { content:""; position:absolute; left: 15px; top: 34px; bottom: -2px;
+  width: 2px; background: var(--line); }
+.vflow .num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; z-index:1; }
+.vflow .sc h4 { margin: .25rem 0 .2rem; font-size: 1rem; }
+.vflow .sc p { margin: .15rem 0; font-size: .92rem; color: var(--muted); }
+.vflow .sc .mono { font-size: .8rem; color: var(--accent-ink); }
+
+/* layered architecture */
+.layers { margin: 1.3rem 0; display: flex; flex-direction: column; gap: .55rem; }
+.layer { border-radius: 12px; padding: .85rem 1.1rem; border: 1px solid var(--line); background: var(--panel);
+  box-shadow: var(--shadow); }
+.layer .lh { display: flex; align-items: center; gap: .6rem; }
+.layer .lh .badge { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; }
+.layer .lh .name { font-weight: 700; font-family: ui-monospace, monospace; }
+.layer .ld { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.layer.l-core { border-left: 4px solid var(--accent); } .layer.l-core .badge { background: var(--accent-soft); color: var(--accent-ink); }
+.layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
+.layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
+.layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+
+/* two-column compare */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
+.col h4 { margin: 0 0 .4rem; font-size: .95rem; }
+
+table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
+  background: var(--panel); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+table.t th, table.t td { padding: .6rem .8rem; text-align: left; border-bottom: 1px solid var(--line); }
+table.t th { background: var(--panel-2); font-size: .8rem; letter-spacing: .02em; }
+table.t tr:last-child td { border-bottom: none; }
+table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-size: .82rem; color: var(--accent-ink); }
+@media (max-width: 640px) {
+  /* Wide multi-column tables: scroll within their own box instead of
+     forcing page-level horizontal overflow (which clipped right columns). */
+  table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.t th, table.t td { padding: .5rem .6rem; }
+  /* Code-file header: let a long path wrap and the right-side caption drop to
+     its own line instead of being pushed off-screen and silently clipped by
+     html{overflow-x:hidden}. */
+  .codefile .cf-head { flex-wrap: wrap; }
+  .codefile .cf-head .ln { margin-left: 0; }
+}
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
+
+/* footer nav */
+.footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
+  padding-top: 1.4rem; border-top: 1px solid var(--line); }
+.footnav a { flex: 1; padding: .85rem 1.1rem; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--panel); box-shadow: var(--shadow); transition: .15s; }
+.footnav a:hover { border-color: var(--accent); transform: translateY(-1px); }
+.footnav a.next { text-align: right; }
+.footnav .dir { font-size: .72rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.footnav .ttl { font-weight: 700; color: var(--ink); margin-top: .15rem; }
+.footnav a.disabled { opacity: .35; pointer-events: none; }
+
+/* index page */
+.toc { display: grid; gap: .7rem; margin-top: 1.6rem; }
+.toc-part { font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--accent); margin: 1.4rem 0 .2rem; }
+.toc a { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.05rem; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); transition: .15s; }
+.toc a:hover { border-color: var(--accent); transform: translateX(3px); }
+.toc .n { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
+.toc .tt { font-weight: 650; color: var(--ink); }
+.toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.toc-search { position: relative; margin: 1.6rem 0 -.4rem; }
+.toc-search input { width: 100%; box-sizing: border-box; padding: .75rem 2.8rem .75rem 1rem;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font-size: .98rem; box-shadow: var(--shadow); }
+.toc-search input:focus { outline: none; border-color: var(--accent); }
+.toc-search .qcount { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+  color: var(--faint); font-size: .8rem; pointer-events: none; }
+.toc a.hide, .toc .toc-part.hide { display: none; }
+.toc-empty { display: none; color: var(--muted); padding: 1rem; text-align: center; }
+.toc-empty.show { display: block; }
+.hero.index h1 { font-size: 2.3rem; }
+.legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
+.legend span { display:flex; align-items:center; gap:.4rem; }
+.legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }
+.pdf-btn { display:inline-flex; align-items:center; gap:.4rem; padding:.55rem 1.1rem;
+  background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
+  box-shadow:var(--shadow); transition:.15s; }
+.pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
+</style>
+</head><body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第五部分 · LangGraph 执行引擎</span>
+    <span class="pill">23 / 46</span>
+  </div>
+  <div class="progress"><span style="width:50%"></span></div>
+</div>
+<div class="wrap">
+  <div class="hero">
+    <div class="part">第五部分 · LangGraph 执行引擎</div>
+    <h1>Tasks、Channels 与调度</h1>
+  </div>
+
+<p class="lead">上一课把 LangGraph 执行看成超步循环，本课进一步拆开超步内部的基本零件：公开的 <span class="mono">PregelTask</span> 是 StateSnapshot/debug 面向观察者的任务快照，内部的 <span class="mono">PregelExecutableTask</span> 才是 Runner 调度的可执行工作；<span class="mono">BaseChannel</span> 是状态在运行时的存储与合并边界，<span class="mono">ChannelWrite</span> 把节点返回值归一成写入，<span class="mono">PregelNode</span> 把用户节点包装成能读 channel、写 channel 的运行时节点。理解 Tasks 与 Channels，才能解释 fan-out 为什么能并行，fan-in 为什么需要 reducer，以及两个任务写同一 key 时到底谁说了算。</p>
+<div class="card analogy"><div class="tag">🧩 生活类比</div>把图运行想成一家报社。每个记者真正拿到的采访单像 PregelExecutableTask，里面有采访对象、截止时间、编辑要求和交稿通道；总编看板上的进度卡像公开 PregelTask，只记录任务编号、记者名、路径、是否出错和最终稿件摘要。不同栏目版面就是 channel，例如头版、财经版、评论版；记者写完稿件不会直接冲进印刷机改版面，而是把稿件交给编辑部的收件箱，这就是 ChannelWrite；同一栏目收到多篇稿件时，编辑规则决定是只放最后一篇、按顺序拼接，还是因为冲突退稿。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：任务、通道与写入如何协作</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">PregelTask</div><div class="mn-desc">内部真正调度的是 PregelExecutableTask；公开 PregelTask 主要是 StateSnapshot/debug 面向观察者的任务快照</div></div><div class="map-node now"><div class="mn-label">BaseChannel</div><div class="mn-desc">每个 state key 编译成 channel，channel 负责保存值、判断可读、应用更新</div></div><div class="map-node source"><div class="mn-label">读取</div><div class="mn-desc">PregelNode/local_read 让节点看到本超步的稳定 channel 快照</div></div><div class="map-node now"><div class="mn-label">写入</div><div class="mn-desc">ChannelWrite 把 partial state、branch、send 等输出变成标准化 writes</div></div><div class="map-node after"><div class="mn-label">合流</div><div class="mn-desc">并行写不同 channel 很自然，写同一 channel 必须有明确 reducer 或冲突策略</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>本课继续用文件 + 符号名定位证据。把 types、channels、read/write 和 algo 连起来看，会发现 LangGraph 的“状态”不是一个普通 dict，而是一组带更新协议的 channel；节点也不是直接被调用，而是被包装成会读写 channel 的 PregelNode。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">langgraph/types.py</td><td class="mono">PregelTask / PregelExecutableTask</td><td>PregelTask 是公开/调试快照，含 id、name、path、error、interrupts、state、result；PregelExecutableTask 才携带 input、writes、config、triggers、retry、cache 等执行上下文</td><td>prepare_next_tasks 构造内部可执行任务，StateSnapshot/debug 再暴露公开任务视图</td></tr><tr><td class="mono">langgraph/channels/base.py</td><td class="mono">BaseChannel</td><td>所有 channel 的抽象基类，定义值的读取、更新、检查点复制和生命周期</td><td>State schema/reducer 编译后落到具体 channel 实现</td></tr><tr><td class="mono">langgraph/pregel/_algo.py</td><td class="mono">local_read</td><td>让任务在执行期读取局部可见的 channel 值，同时尊重本步可见性规则</td><td>PregelNode 或运行时读 state 时使用</td></tr><tr><td class="mono">langgraph/pregel/_write.py</td><td class="mono">ChannelWrite</td><td>把节点返回、branch、send、特殊写入统一成 channel write entries</td><td>节点执行后进入 buffered writes，再由 apply_writes 应用</td></tr><tr><td class="mono">langgraph/pregel/_read.py</td><td class="mono">PregelNode</td><td>把用户节点包装成可订阅 channel、可读取输入、可产出 writes 的 Pregel 运行时节点</td><td>编译后的节点对象由 Plan 选择、Runner 调用</td></tr></table>
+<h2>调用图：从用户节点到 channel write</h2>
+<div class="flow call-graph"><div class="node"><div class="nt">StateGraph node</div><div class="nd">用户写的函数：State -&gt; partial State</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">PregelNode</div><div class="nd">编译包装：声明订阅哪些 channel、怎样读输入</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">PregelExecutableTask</div><div class="nd">Plan 阶段生成：本超步要执行的内部任务，之后映射为公开 PregelTask 快照</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">ChannelWrite</div><div class="nd">Execution 后归一：把返回值转成写入条目</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">BaseChannel.update</div><div class="nd">Update 阶段合并：决定 fan-in 的语义</div></div></div>
+<h2>Trace：两个并行任务写不同/相同 channel</h2>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. plan fan-out</td><td>question channel 更新，extract_keywords 与 classify_intent 都订阅 question</td><td>prepare_next_tasks 生成两个 PregelExecutableTask</td><td>tasks=[keywords, intent] 可并行</td></tr><tr><td>2. parallel writes</td><td>两个任务都读取 question@v1</td><td>keywords 写 keywords channel，intent 写 intent channel</td><td>writes=[(&#x27;keywords&#x27;, [&#x27;退款&#x27;]), (&#x27;intent&#x27;, &#x27;refund&#x27;)]</td></tr><tr><td>3. update different</td><td>写入目标不同</td><td>apply_writes 分别调用两个 channel 的 update</td><td>keywords@v2、intent@v2，无冲突</td></tr><tr><td>4. same channel fan-in</td><td>retrieve_a 与 retrieve_b 并行写 documents channel</td><td>若 documents 有 list reducer，则两个结果被聚合；若是 LastValue，则多写会冲突</td><td>documents=[docA, docB] 或 InvalidUpdate</td></tr><tr><td>5. next consumer</td><td>ranker 订阅 keywords、intent、documents</td><td>下一超步读取已合并结果</td><td>ranker 得到完整 fan-in 输入</td></tr></table>
+<h2>简化源码走读：节点读写如何归一</h2>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">langgraph/pregel/_read.py :: PregelNode</span><span class="ln">简化版</span></div><pre>class PregelNode:
+    def run(self, task, channels):
+        state = local_read(channels, self.subscriptions)
+        result = self.user_func(state)
+        # conceptual pseudocode, not a public API call:
+        writes = [
+            (&#x27;keywords&#x27;, result.get(&#x27;keywords&#x27;)),
+            (&#x27;intent&#x27;, result.get(&#x27;intent&#x27;)),
+        ]
+        return writes
+
+class BaseChannel:
+    def update(self, values):
+        raise NotImplementedError
+</pre><div class="cw-note">真实代码更复杂：读输入可能包含 mapper、config、managed values、branch 和 send；当前写入装配主要沿着 ChannelWrite / _assemble_writes 把普通 channel、特殊控制写入和隐藏元数据归一成 write entries。教学版强调同一个事实：节点读的是 channel 快照，返回会被标准化成 writes，合并由 channel 决定。</div></div><h2>PregelTask 不是业务节点本身，也不是内部执行对象</h2><p>用户常说“运行某个节点”，但运行时更准确的单位是任务；同时还要分清公开视图和内部视图。公开的 PregelTask 出现在 StateSnapshot.tasks、checkpoint/debug 输出中，像一张任务快照：它强调 id、name、path，以及失败、interrupt、子图 state、result 等便于观察和恢复的信息。它不是用户节点函数，也不等同于 Runner 手里正在执行的完整对象。</p><p>内部可执行对象是 PregelExecutableTask。prepare_next_tasks 会根据 send、订阅变化、路径和配置生成它；它携带 input、proc、writes deque、config、triggers、retry_policy、cache_key、writers、subgraphs、timeout 等上下文。PregelRunner 消费的是这种更丰富的任务对象，才能调用节点、收集写入、应用重试/缓存/超时策略。</p><p>区分这两层可以避免调试误判。看到 debug 里的 PregelTask 时，应把它当成对外报告：哪一个 task 在哪个 path 上失败、产生了什么 result 或 interrupt；追执行语义时，则回到 PregelExecutableTask 和 Runner。动态 fan-out 下同一个节点定义可以生成多个内部可执行任务，最终又各自留下对应的公开快照。</p><h2>Channel 是状态 key 的执行形态</h2><p>State schema 让用户觉得自己在声明一个 TypedDict 或 Pydantic 字段；编译后，每个 key 都要落到一个 channel。channel 持有当前值，知道空值是否可读，知道多个 update 应该如何合并，也知道怎样复制到 checkpoint。它既是存储单元，也是并发控制单元。</p><p>LastValue channel 适合单写语义，例如最终路由标签、当前草稿、审批结果。聚合类 channel 适合多写语义，例如多个检索器返回 documents、多个工具返回 observations、多个子任务返回局部分析。消息 reducer 适合聊天历史，因为它不仅追加，还要按消息 id 替换。</p><p>因此设计 state 时，不要只问字段类型是什么，还要问并行写入时语义是什么。如果将来可能 fan-in，就应在 schema 上给出 reducer；如果业务上只允许一个写入者，就让 LastValue 的冲突暴露错误。沉默覆盖是最危险的默认，因为它会把竞态伪装成正常输出。</p><h2>local_read 的边界</h2><p>local_read 这个名字容易让人误会：它不是给你读任意全局状态的后门，而是在任务执行上下文内读取本步允许看到的 channel 值。它必须尊重 Pregel 可见性：本批任务已经产生但尚未提交的写入，不应突然出现在另一个并行任务的输入里。</p><p>在某些内部场景中，运行时需要让任务看到自己的局部写入或特定 managed value，这些属于受控例外。作为业务作者，最稳的心智仍是：节点读进入本超步前已经提交的 state，返回 partial state，等待下一超步被别人读到。这个简化模型能覆盖绝大多数调试问题。</p><p>当你发现节点读不到刚刚写的值，先检查它是否在同一超步内。如果是，应该把依赖拆到下一步或通过图边表达。不要用共享可变对象绕过 channel，因为那会破坏 checkpoint 和 replay。</p><h2>fan-out 与 fan-in 的设计规则</h2><p>fan-out 的目标是把一个问题拆成多个独立任务。例如用户问题可以同时进入意图分类、关键词抽取和安全检查；一个检索请求可以发给多个 retriever；一个计划可以分配给多个子 agent。fan-out 健康的前提是这些任务读同一份快照，且不会依赖彼此本步产物。</p><p>fan-in 的目标是把多个结果重新合并。合并时必须回答三个问题：结果是否有顺序要求，重复项如何去重，失败的一支是否影响整体。如果这些问题没有答案，简单把所有结果 append 到列表也只是把复杂性推迟到下游节点。好的 reducer 应该承载业务语义，而不是只为了让密度检查或并行执行通过。</p><p>写不同 channel 的并行任务通常最安全，因为每个任务拥有自己的输出边界。写同一 channel 时要格外谨慎：如果是消息历史，用 add_messages；如果是数值统计，用加法 reducer；如果是候选文档，用列表聚合后再排序；如果是唯一决策，就不该允许多写，冲突应尽早失败。</p><h2>调试冲突写入</h2><p>InvalidUpdate 或类似冲突错误通常不是运行时坏了，而是 schema 没有表达并行写入语义。调试时先看 trace_table：哪些 task 在同一 step 写了同一个 channel？它们是否本来就应该并行？如果不应该，说明边或触发条件设计错了；如果应该，说明 channel 需要 reducer。</p><p>第二步看写入内容是否真的同类。两个检索器都写 documents，可以聚合；一个节点写字符串摘要，另一个节点写文档对象，却都写 answer，就说明 state key 命名太粗。把 key 拆成 draft_answer、retrieved_docs、final_answer，往往比写一个复杂 reducer 更清楚。</p><p>第三步看下游消费方式。下游如果只关心最终最佳结果，可以让 fan-in 先聚合候选，再由 ranker 单独写 final_answer。不要让多个上游直接争夺 final_answer；最终决策应该集中在一个可审计节点里。</p><h2>工程复盘：用 channel 设计状态边界</h2><p>设计 LangGraph state 时，最容易犯的错误是先列业务字段，再等冲突发生才补 reducer。更稳的方法是对每个字段回答四个问题：谁会写它，是否可能同一超步多写，多个值的合并是否有业务含义，下游是否依赖顺序。能回答清楚，channel 类型就自然浮现；回答不清楚，就说明字段边界还太粗。</p><p>例如 documents 看似只是 List[Document]，但并行检索时它承载了来源、得分、去重和排序语义。如果两个 retriever 都写 documents，简单列表拼接会把来源顺序误当相关性顺序。更好的做法是让每个 retriever 写带 source 和 score 的候选，再由 ranker 节点统一排序并写 ranked_documents。这样 fan-in 的合并和最终决策分开，trace 也更清楚。</p><p>再看 final_answer。它通常不应该被多个并行节点同时写，因为最终答案代表一次单一决策。如果多个节点都能写 final_answer，说明你把候选答案和最终答案混在一起了。可以拆成 candidate_answers 列表 channel，再由 judge 或 finalizer 单写 final_answer。冲突错误在这里是朋友，它逼你澄清决策责任。</p><p>消息 channel 也需要特别小心。add_messages 的价值不是简单 append，而是按消息 id 替换或追加，适合工具调用与模型响应交织的聊天历史。如果你用普通列表加法替代它，可能在重试、恢复或人工修改时产生重复消息。对话历史是审计材料，合并规则必须比普通列表更严谨。</p><p>local_read 的稳定快照语义让任务更像读数据库事务，而不是读共享内存。一个任务不应假设自己能看到另一个同批任务刚写的结果。如果你确实需要顺序依赖，就把两个动作拆到不同超步，用边和 channel 表达依赖。用共享对象偷看半成品会让 replay 和 checkpoint 失去意义。</p><p>任务粒度也要服务 channel 设计。一个节点如果同时写十个不相关 channel，下游很难判断哪个变化触发了哪条路径；一个节点如果只做微不足道的字符串清理，又会制造过多 step。合理粒度是一次业务上可命名、可失败、可重试、可观察的动作。它的输出 channel 应该体现这个动作的责任。</p><p>fan-out 不是免费午餐。每个分支都可能调用模型、工具或外部服务，产生成本和失败面。并行前要确认分支之间真的独立，且失败策略明确：一个检索器失败是否继续，安全检查失败是否短路，某个子 agent 超时是否保留其他结果。没有失败语义的 fan-out，只是把错误并行放大。</p><p>fan-in 则是业务判断的集中地。合并不是把数据堆在一起，而是选择一种解释：并列证据、投票、最高分、最近值、人工优先、模型优先。不同解释应写进 reducer 或后续聚合节点。否则下游模型会收到混杂输入，只能用概率猜测哪条更可信。</p><p>调试任务与 channel 时，建议画一张矩阵：行是 tasks，列是 channels，格子标出 read/write。矩阵能立刻暴露两个问题：某任务读取了不该依赖的 channel，或者多个任务写了同一 channel 但没有合并规则。这比在代码里搜索 state key 更直观。</p><p>最终要记住，LangGraph 的状态不是共享垃圾桶，而是一组有协议的通信通道。节点之间通过 channel 传递事实，通过 reducer 处理并发，通过 task trace 保留来源。把这三者设计清楚，图会更容易测试、恢复和解释。</p>
+<h2>常见误解与边界情况</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：PregelTask 等同于节点函数</div><div class="pf-correct">正确：节点是定义；公开 PregelTask 是调试/快照视图，内部 PregelExecutableTask 才是某次运行的可执行实例。</div></div><div class="pitfall"><div class="pf-wrong">误解：State 就是普通 dict</div><div class="pf-correct">正确：编译后 state key 由 channel 管理，channel 决定读取、更新、冲突和 checkpoint 行为。</div></div><div class="pitfall"><div class="pf-wrong">误解：并行写同一 key 会自动选择一个</div><div class="pf-correct">正确：无 reducer 的多写应失败；有 reducer 才能表达列表追加、消息合并或数值聚合。</div></div><div class="pitfall"><div class="pf-wrong">误解：ChannelWrite 只是语法糖</div><div class="pf-correct">正确：它是节点返回值进入 Pregel 写入缓冲区的标准化边界，影响 debug、checkpoint 和合并。</div></div></div><h2>实践提示：从小图验证 channel 语义</h2><p>学习 tasks 与 channels 最快的方法，是写三个只有假数据的小节点，而不是直接调真实模型。一个输入节点写 question，两个并行节点分别写 keywords 和 intent，一个下游节点读取两者。先确认不同 channel 并行写没有冲突。</p><p>第二步让两个并行节点都写 documents，并给 documents 加列表 reducer。观察 trace 中两个 task 的写入如何在 Update 阶段合成一个可见值。此时再让下游节点读取 documents，确认它只能在下一超步看到完整列表。</p><p>第三步故意让两个节点写 final_answer，且不加 reducer。你应该期待失败，而不是期待框架替你选择一个。这个失败说明状态模型保护了业务唯一性。</p><p>第四步把 final_answer 拆成 candidate_answers 和 final_answer。并行节点写候选，judge 节点单写最终答案。这个结构更长一点，却把证据收集和决策责任分开，后续调试更容易。</p><p>第五步给每个候选带 source、score 和 task_id。这样下游排序或过滤时不会丢失来源，debug 也能回答某条错误候选来自哪个分支。</p><p>第六步把一个分支改成失败，思考 reducer 是否应该保留部分结果、记录错误，还是让整个图失败。fan-in 的失败策略本身就是业务语义。</p><p>这些小实验的价值在于把 channel 当成协议测试。你验证的不是 Python 列表能不能 append，而是图在并行、提交、合并、下游读取时是否符合你的业务承诺。</p><p>当小图语义稳定后，再把真实模型和工具接进去。否则模型输出的不确定性会掩盖 channel 设计问题，让你误以为是 prompt 不好。</p><h2>补充推演：读写矩阵如何指导重构</h2><p>假设一个图有 planner、retriever_a、retriever_b、summarizer、finalizer 五个节点。把它们放进行列矩阵后，你可能发现 planner 写 plan，两个 retriever 都读 plan 并写 documents，summarizer 读 documents 写 draft，finalizer 读 draft 写 answer。这个结构清楚，因为每个阶段的 channel 责任单一。</p><p>如果矩阵显示 retriever_a 也写 answer，summarizer 也写 answer，finalizer 也写 answer，就说明 answer 被滥用。重构时可以让 retriever 写 evidence，summarizer 写 draft_answer，finalizer 单独写 final_answer。字段变多了，但语义更窄，冲突更少。</p><p>如果矩阵显示某个节点读所有 channel，通常说明它承担了过多责任。比如 finalizer 同时读原始 question、所有工具结果、审批结果、错误日志和内部评分，也许应该拆出 prepare_context 节点，让 finalizer 只读整理好的上下文。</p><p>如果矩阵显示某个 channel 被所有节点写，通常说明它是日志或消息类 channel，需要明确 reducer 和顺序策略。若它不是日志，却被到处写，那就是全局变量味道太重。LangGraph 允许共享状态，但不鼓励无边界共享。</p><p>读写矩阵还帮助决定哪些节点可以并行。两个节点读相同输入、写不同输出，通常可以同一超步执行；一个节点读另一个节点的输出，就必须跨超步；两个节点写同一输出，则必须先设计 fan-in。矩阵让这些关系在代码执行前就可见。</p><p>因此，Tasks 与 Channels 不是抽象名词，而是重构工具。每当图变复杂，就把节点、task、channel、write 画出来，先修通信结构，再修 prompt 和业务函数。</p><h2>最后校验：用读写矩阵验收任务与通道</h2><p>完成 tasks/channels 设计后，不要只看图能不能跑通，而要把每个节点在一个表里列成 read/write 矩阵：行是 PregelExecutableTask 或节点实例，列是 channel，格子标出读取、写入、reducer 和失败策略。矩阵能直接暴露哪些任务可以并行，哪些必须跨超步，哪些 fan-in 还没有业务语义。</p><p>对每个可能多写的 channel，评审时要写出一句可测试的合并承诺。例如 documents 是按来源去重后保留分数，messages 是按 id 替换或追加，candidate_answers 是保留所有候选并交给 judge 排序。若只能说“框架会处理”，就说明 reducer 还没有被业务定义。</p><p>对每个公开 PregelTask 快照，调试模板应记录它对应的内部执行上下文线索：task id、name、path、triggers、写入目标和最终 result/error。这样遇到十个并行工具调用时，团队不会只说“工具节点失败”，而能定位是哪一次 send、哪个输入和哪个 channel 写入导致问题。</p><p>最后用一个最小 fan-out/fan-in 小图做回归：两个 retriever 并行写 documents，一个 ranker 下一超步读取合并结果，再故意让两个节点写 final_answer 触发冲突。这个练习能证明通道协议、任务粒度和错误边界都被设计清楚，而不是靠模型输出碰巧正确。</p><div class="card lab"><div class="tag">🧪 小实验 · 设计一个安全 fan-in</div><ol><li>定义三个输出：intent、keywords、documents，判断哪些会被单写，哪些可能被多写。</li><li>让两个 retriever 并行写 documents，给 documents 设计列表聚合和去重策略。</li><li>故意让两个分类器都写 final_intent，解释为什么 LastValue 多写应报错。</li><li>增加一个 decide_intent 节点，让它读取两个分类结果后单独写 final_intent。</li><li>用 trace 表记录每个 task 写了哪个 channel，并确认下一超步消费者只读提交后的结果。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>LangGraph 的具体 channel 类名、PregelTask 快照字段和 PregelExecutableTask 执行字段可能随版本微调，但“任务实例化、channel 持有合并语义、写入先标准化再统一提交”的结构非常稳定。读新版源码时优先找 BaseChannel、PregelNode、ChannelWrite 与 prepare/apply 之间的连接。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>Task 是运行实例，Node 是定义；动态并行时一个节点可以生成多个任务。</li><li>Channel 是 state key 的运行时形态，负责值、版本、合并和 checkpoint。</li><li>fan-out 要保证任务互不依赖本步半成品，fan-in 要用 reducer 或明确冲突。</li><li>调试并行问题时先列出 step、task、channel、write，再判断是图结构错还是合并规则缺失。</li></ul></div><div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. 公开 PregelTask、内部 PregelExecutableTask 与用户定义 node 的关系，哪项最准确？</div>
+  <ol class="opts">
+    <li>node 只能同步运行，PregelExecutableTask 只能异步运行</li>
+    <li>node 是定义；PregelExecutableTask 是某次内部执行实例；公开 PregelTask 是 StateSnapshot/debug 面向观察者的任务快照</li>
+    <li>PregelTask 只用于保存最终答案，与 debug/state 无关</li>
+    <li>三者完全相同，都是同一个函数对象</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。不要把公开 PregelTask 当成 Runner 手里的完整执行对象。公开快照偏向 id/name/path/error/interrupts/state/result；内部 PregelExecutableTask 才携带 input、writes、config、triggers、retry/cache 等执行上下文。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. 两个并行任务写同一个 channel 时，运行时应如何判断能否合并？</div>
+  <ol class="opts">
+    <li>永远选择最后完成的任务</li>
+    <li>看该 channel/reducer 是否定义了多写合并语义；没有语义时应暴露冲突</li>
+    <li>把两个值转成字符串拼接，不需要 schema</li>
+    <li>随机保留一个值以提高吞吐</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。fan-in 的关键是业务合并规则。列表聚合、消息合并、数值累加可以由 reducer 表达；唯一值多写应失败。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. ChannelWrite 的设计价值主要体现在哪里？</div>
+  <ol class="opts">
+    <li>绕过 Pregel 的 Update 阶段直接写数据库</li>
+    <li>让节点不需要返回任何内容</li>
+    <li>把 partial state、branch、send 等输出归一成标准 writes，方便 debug、checkpoint 和 apply_writes 处理</li>
+    <li>强制所有 channel 都只能保存字符串</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。标准化写入让不同节点输出形式进入同一运行时管道，后续才能统一记录来源、合并和持久化。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>设计一个并行检索 fan-out：两个 retriever 分别写什么 channel？如果都写 documents，reducer 应处理顺序、去重和失败中的哪些问题？</li>
+    <li>某图报错说同一 step 多个任务写 final_answer。请写出排查路径：先看哪些 task，再判断应该加 reducer、拆 key，还是改图结构。</li>
+  </ul>
+</div>
+</div>
+  <div class="footnav"><a class="prev" href="25-langgraph-pregel-engine.html"><div class="dir">← 上一课</div><div class="ttl">Pregel 与超步</div></a><a class="next" href="26-langgraph-persistence-control.html"><div class="dir">下一课 →</div><div class="ttl">Checkpoint 与持久化</div></a></div>
+</div>
+
+</body></html>

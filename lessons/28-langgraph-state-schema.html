@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>18 · State 与 Schema — LangChain 图解教程</title>
+<meta name="description" content="第四部分 · LangGraph 心智模型｜State 与 Schema：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="theme-color" content="#1a7f64">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="LangChain 图解教程">
+<meta property="og:title" content="18 · State 与 Schema — LangChain 图解教程">
+<meta property="og:description" content="第四部分 · LangGraph 心智模型｜State 与 Schema：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="18 · State 与 Schema — LangChain 图解教程">
+<meta name="twitter:description" content="第四部分 · LangGraph 心智模型｜State 与 Schema：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f0f2f5; --ink: #1d2129;
+  --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
+  --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
+  --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116; --panel: #161b22; --panel-2: #1c232c; --ink: #e6edf3;
+    --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
+    --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
+    --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+    "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg); color: var(--ink); line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
+
+/* ---- top progress bar ---- */
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: var(--panel);
+  border-bottom: 1px solid var(--line); backdrop-filter: blur(8px);
+}
+.topbar-inner {
+  max-width: 960px; margin: 0 auto; padding: .7rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.topbar .home { font-size: .82rem; color: var(--muted); font-weight: 600; display:flex; gap:.5rem; align-items:center; }
+.topbar .home b { color: var(--accent); }
+.topbar .pill { font-size: .72rem; color: var(--muted); background: var(--panel-2);
+  padding: .2rem .6rem; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.progress { height: 3px; background: var(--panel-2); }
+.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue)); }
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 2.4rem 1.25rem 5rem; }
+
+/* ---- hero ---- */
+.hero { margin-bottom: 2rem; }
+.hero .part { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin-bottom: .55rem; }
+.hero h1 { font-size: 2.05rem; line-height: 1.2; letter-spacing: -.01em; font-weight: 750; }
+.hero .lead { margin-top: .9rem; font-size: 1.06rem; color: var(--muted); }
+
+h2 { font-size: 1.32rem; margin: 2.4rem 0 .9rem; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: .55rem; }
+h2::before { content: ""; width: 4px; height: 1.05em; background: var(--accent); border-radius: 3px; display: inline-block; }
+h3 { font-size: 1.05rem; margin: 1.4rem 0 .5rem; }
+p { margin: .7rem 0; }
+ul, ol { margin: .6rem 0 .6rem 1.3rem; }
+li { margin: .3rem 0; }
+strong { color: var(--ink); font-weight: 680; }
+.inline { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: .08em .4em; font-size: .9em; color: var(--accent-ink); }
+
+/* ---- callout cards ---- */
+.card { border-radius: var(--radius); padding: 1.05rem 1.2rem; margin: 1.2rem 0;
+  border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+.card .tag { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+.card.macro { border-left: 4px solid var(--blue); }
+.card.macro .tag { color: var(--blue); }
+.card.detail { border-left: 4px solid var(--purple); }
+.card.detail .tag { color: var(--purple); }
+.card.analogy { border-left: 4px solid var(--amber); background: var(--amber-soft); }
+.card.analogy .tag { color: var(--amber); }
+.card.key { border-left: 4px solid var(--accent); background: var(--accent-soft); }
+.card.key .tag { color: var(--accent-ink); }
+.card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
+.card.warn .tag { color: var(--red); }
+.card.spark { border-left: 4px solid #e0a000;
+  background: linear-gradient(100deg, rgba(224,160,0,.12), transparent 70%); }
+.card.spark .tag { color: #c98a00; }
+@media (prefers-color-scheme: dark) { .card.spark .tag { color: #f0c050; } }
+
+/* ---- code file callout ---- */
+.codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
+  box-shadow: var(--shadow); }
+.codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
+  background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
+.codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
+.codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
+  overflow-x: auto; font-size: .82rem; line-height: 1.6; }
+.codefile pre .cm { color: #7d8aa3; }
+.codefile pre .kw { color: #c792ea; }
+.codefile pre .fn { color: #82aaff; }
+.codefile pre .st { color: #c3e88d; }
+.codefile pre .nb { color: #f78c6c; }
+
+pre.code { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem; border-radius: 12px;
+  overflow-x: auto; font-size: .83rem; line-height: 1.6; margin: 1.1rem 0; box-shadow: var(--shadow); }
+pre.code .cm { color: #7d8aa3; } pre.code .kw { color: #c792ea; }
+pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb { color: #f78c6c; }
+
+/* ---- collapsible accordion (details/summary) ---- */
+.accordion { border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+  margin: .7rem 0; box-shadow: var(--shadow); overflow: hidden; }
+.accordion > summary { cursor: pointer; padding: .85rem 1.1rem; font-weight: 650; font-size: .96rem;
+  list-style: none; display: flex; align-items: center; gap: .6rem; user-select: none; }
+.accordion > summary::-webkit-details-marker { display: none; }
+.accordion > summary::after { content: "▶"; font-size: .68rem; color: var(--accent);
+  margin-left: auto; transition: transform .15s ease; }
+.accordion[open] > summary::after { transform: rotate(90deg); }
+.accordion > summary:hover { background: var(--panel-2); }
+.accordion[open] > summary { border-bottom: 1px solid var(--line); }
+.accordion .badge-num { background: var(--accent-soft); color: var(--accent-ink);
+  width: 1.6rem; height: 1.6rem; border-radius: 7px; display: inline-flex; align-items: center;
+  justify-content: center; font-size: .82rem; font-weight: 700; flex-shrink: 0; }
+.accordion .hint { font-size: .72rem; color: var(--faint); font-weight: 400; }
+.acc-body { padding: .9rem 1.1rem 1.1rem; }
+.acc-intro { color: var(--muted); font-size: .9rem; margin: .2rem 0 .4rem; }
+.qa { margin: 1rem 0; }
+.qa:first-child { margin-top: .3rem; }
+.qa .q { font-weight: 680; font-size: .9rem; display: flex; gap: .45rem; align-items: center; margin-bottom: .3rem; }
+.qa .a { color: var(--muted); font-size: .9rem; }
+.qa .a strong { color: var(--ink); }
+.qa pre.code { margin: .5rem 0 0; font-size: .78rem; }
+
+/* ---- flow diagram ---- */
+.flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 1.3rem 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1.2rem 1rem; box-shadow: var(--shadow); }
+.flow .node { flex: 1 1 0; min-width: 110px; text-align: center; padding: .7rem .5rem;
+  border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.flow .node .nt { font-weight: 700; font-size: .92rem; }
+.flow .node .nd { font-size: .76rem; color: var(--muted); margin-top: .2rem; }
+.flow .node.hl { background: var(--accent-soft); border-color: var(--accent); }
+.flow .arrow { align-self: center; color: var(--faint); font-size: 1.3rem; padding: 0 .35rem; }
+
+/* vertical flow */
+.vflow { margin: 1.3rem 0; }
+.vflow .step { display: flex; gap: .9rem; position: relative; padding-bottom: 1.1rem; }
+.vflow .step:not(:last-child)::before { content:""; position:absolute; left: 15px; top: 34px; bottom: -2px;
+  width: 2px; background: var(--line); }
+.vflow .num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; z-index:1; }
+.vflow .sc h4 { margin: .25rem 0 .2rem; font-size: 1rem; }
+.vflow .sc p { margin: .15rem 0; font-size: .92rem; color: var(--muted); }
+.vflow .sc .mono { font-size: .8rem; color: var(--accent-ink); }
+
+/* layered architecture */
+.layers { margin: 1.3rem 0; display: flex; flex-direction: column; gap: .55rem; }
+.layer { border-radius: 12px; padding: .85rem 1.1rem; border: 1px solid var(--line); background: var(--panel);
+  box-shadow: var(--shadow); }
+.layer .lh { display: flex; align-items: center; gap: .6rem; }
+.layer .lh .badge { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; }
+.layer .lh .name { font-weight: 700; font-family: ui-monospace, monospace; }
+.layer .ld { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.layer.l-core { border-left: 4px solid var(--accent); } .layer.l-core .badge { background: var(--accent-soft); color: var(--accent-ink); }
+.layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
+.layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
+.layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+
+/* two-column compare */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
+.col h4 { margin: 0 0 .4rem; font-size: .95rem; }
+
+table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
+  background: var(--panel); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+table.t th, table.t td { padding: .6rem .8rem; text-align: left; border-bottom: 1px solid var(--line); }
+table.t th { background: var(--panel-2); font-size: .8rem; letter-spacing: .02em; }
+table.t tr:last-child td { border-bottom: none; }
+table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-size: .82rem; color: var(--accent-ink); }
+@media (max-width: 640px) {
+  /* Wide multi-column tables: scroll within their own box instead of
+     forcing page-level horizontal overflow (which clipped right columns). */
+  table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.t th, table.t td { padding: .5rem .6rem; }
+  /* Code-file header: let a long path wrap and the right-side caption drop to
+     its own line instead of being pushed off-screen and silently clipped by
+     html{overflow-x:hidden}. */
+  .codefile .cf-head { flex-wrap: wrap; }
+  .codefile .cf-head .ln { margin-left: 0; }
+}
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
+
+/* footer nav */
+.footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
+  padding-top: 1.4rem; border-top: 1px solid var(--line); }
+.footnav a { flex: 1; padding: .85rem 1.1rem; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--panel); box-shadow: var(--shadow); transition: .15s; }
+.footnav a:hover { border-color: var(--accent); transform: translateY(-1px); }
+.footnav a.next { text-align: right; }
+.footnav .dir { font-size: .72rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.footnav .ttl { font-weight: 700; color: var(--ink); margin-top: .15rem; }
+.footnav a.disabled { opacity: .35; pointer-events: none; }
+
+/* index page */
+.toc { display: grid; gap: .7rem; margin-top: 1.6rem; }
+.toc-part { font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--accent); margin: 1.4rem 0 .2rem; }
+.toc a { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.05rem; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); transition: .15s; }
+.toc a:hover { border-color: var(--accent); transform: translateX(3px); }
+.toc .n { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
+.toc .tt { font-weight: 650; color: var(--ink); }
+.toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.toc-search { position: relative; margin: 1.6rem 0 -.4rem; }
+.toc-search input { width: 100%; box-sizing: border-box; padding: .75rem 2.8rem .75rem 1rem;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font-size: .98rem; box-shadow: var(--shadow); }
+.toc-search input:focus { outline: none; border-color: var(--accent); }
+.toc-search .qcount { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+  color: var(--faint); font-size: .8rem; pointer-events: none; }
+.toc a.hide, .toc .toc-part.hide { display: none; }
+.toc-empty { display: none; color: var(--muted); padding: 1rem; text-align: center; }
+.toc-empty.show { display: block; }
+.hero.index h1 { font-size: 2.3rem; }
+.legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
+.legend span { display:flex; align-items:center; gap:.4rem; }
+.legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }
+.pdf-btn { display:inline-flex; align-items:center; gap:.4rem; padding:.55rem 1.1rem;
+  background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
+  box-shadow:var(--shadow); transition:.15s; }
+.pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
+</style>
+</head><body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第四部分 · LangGraph 心智模型</span>
+    <span class="pill">18 / 46</span>
+  </div>
+  <div class="progress"><span style="width:39%"></span></div>
+</div>
+<div class="wrap">
+  <div class="hero">
+    <div class="part">第四部分 · LangGraph 心智模型</div>
+    <h1>State 与 Schema</h1>
+  </div>
+
+<p class="lead">State schema 是 LangGraph 图的合同：它声明哪些 key 可以进入状态、每个 key 的类型是什么、哪个 key 需要 reducer、哪些数据属于运行时 context 而不是可变 state。本课把 schema 当成“多人协作写同一本账”的制度来看：节点只能按合同读写，返回 partial update；运行时根据 schema 建 channel；list 这类会累积的 key 必须声明合并规则，否则默认覆盖会让历史消失。</p>
+<div class="card analogy"><div class="tag">🧩 生活类比</div>把 State schema 想成共享病历的表格模板：姓名、过敏史、检查结果、医嘱、备注分别有固定栏位。医生不能把化验单塞进姓名栏，也不应该直接涂改整本病历；每次只提交自己新增的记录，由病历系统按规则追加或覆盖。context_schema 则像医院科室、值班医生、权限范围，是这次看诊的环境，不是病人病情本身。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：State schema 如何约束整张图</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">状态合同</div><div class="mn-desc">TypedDict/Pydantic/dataclass 都是在声明图运行时可以看到的 key</div></div><div class="map-node source"><div class="mn-label">通道生成</div><div class="mn-desc">_get_channels/_get_channel 把字段类型和 Annotated reducer 变成 channel</div></div><div class="map-node now"><div class="mn-label">上下文分离</div><div class="mn-desc">context_schema 放运行环境，state 放会随节点演化的数据</div></div><div class="map-node now"><div class="mn-label">部分更新</div><div class="mn-desc">节点返回 {&#x27;messages&#x27;: [...]}，reducer 决定和旧值怎样合并</div></div><div class="map-node after"><div class="mn-label">下一课</div><div class="mn-desc">节点和边会围绕这个状态合同工作</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>读 schema 相关源码时，重点不是背某个 TypedDict 示例，而是追踪“类型声明怎样变成运行时通道”。下面这些文件 + 符号名覆盖了建造者入口、字段解析、运行时上下文和消息 reducer。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">langgraph/graph/state.py</td><td class="mono">StateGraph.__init__</td><td>接收 state_schema、context_schema、input_schema、output_schema 等图级合同</td><td>用户定义图时调用，初始化 schemas 与 channels</td></tr><tr><td class="mono">langgraph/graph/state.py</td><td class="mono">_get_channels</td><td>扫描 schema 字段，决定每个 key 对应什么 channel 或 managed value</td><td>compile 前把类型信息转成运行时合并规则</td></tr><tr><td class="mono">langgraph/graph/state.py</td><td class="mono">_get_channel</td><td>读取单个字段的 Annotated 元数据，识别 reducer、LastValue 或其他通道</td><td>字段级类型标注进入底层 channel</td></tr><tr><td class="mono">langgraph/runtime.py</td><td class="mono">Runtime</td><td>向节点暴露运行时 context、store、stream_writer 等环境能力</td><td>节点可读 context，但不应把它当作 state 更新</td></tr><tr><td class="mono">langgraph/graph/message.py</td><td class="mono">add_messages</td><td>消息列表常用 reducer，追加新消息或按 id 替换旧消息</td><td>Annotated[list[AnyMessage], add_messages] 驱动 messages 合并</td></tr></table>
+<h2>状态流：节点返回一条 AIMessage 后发生什么</h2>
+<div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>schema 声明</h4><p>State 声明 messages 字段，并用 Annotated 绑定 add_messages。</p><div class="mono">messages: Annotated[list[AnyMessage], add_messages]</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>节点接收快照</h4><p>model 节点拿到当前 state，其中 messages 已包含用户消息和之前的工具结果。</p><div class="mono">state[&#x27;messages&#x27;] -&gt; list[AnyMessage]</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>节点返回增量</h4><p>节点不返回整份 state，只返回自己新增的一条 AIMessage。</p><div class="mono">return {&#x27;messages&#x27;: [AIMessage(&#x27;ok&#x27;)]}</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>reducer 合并</h4><p>add_messages 读取旧 messages 和新增列表，按 id 替换或追加。</p><div class="mono">old + new -&gt; merged messages</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>下一节点可见</h4><p>合并后的 state 进入下一步路由或节点。</p><div class="mono">state[&#x27;messages&#x27;] includes AIMessage(&#x27;ok&#x27;)</div></div></div></div>
+<h2>Trace：partial update 与 reducer 的分工</h2>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. 初始输入</td><td>{&#x27;messages&#x27;: [HumanMessage(&#x27;hi&#x27;)]} </td><td>输入 schema 校验/规范化后写入 messages channel</td><td>state.messages 有一条用户消息</td></tr><tr><td>2. model 节点</td><td>完整 state 快照</td><td>节点调用模型并返回 {&#x27;messages&#x27;: [AIMessage(&#x27;ok&#x27;)]} </td><td>一份 partial update，而不是整份 state</td></tr><tr><td>3. channel update</td><td>旧 messages + 新 AIMessage</td><td>add_messages 作为 reducer 处理列表合并</td><td>messages=[HumanMessage(&#x27;hi&#x27;), AIMessage(&#x27;ok&#x27;)]</td></tr><tr><td>4. context 读取</td><td>runtime.context={&#x27;user_id&#x27;: &#x27;u1&#x27;}</td><td>节点可用 context 选择权限或租户配置</td><td>context 不写入 state，除非显式返回某个 state key</td></tr><tr><td>5. 输出过滤</td><td>最终内部 state</td><td>output_schema 可限制最终暴露哪些 key</td><td>调用者只看到约定输出</td></tr></table>
+<h2>简化源码走读：schema 怎样变成 channel</h2>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">langgraph/graph/state.py :: _get_channel</span><span class="ln">简化版</span></div><pre>def _get_channel(name, annotation):
+    if has_reducer(annotation):
+        return BinaryOperatorAggregate(annotation, reducer)
+    if is_managed_value(annotation):
+        return ManagedValueSpec(...)
+    return LastValue(annotation)
+
+class StateGraph:
+    def __init__(self, state_schema, *, context_schema=None):
+        self.schemas[state_schema] = _get_channels(state_schema)
+        self.context_schema = context_schema
+</pre><div class="cw-note">教学版把真实分支压缩成三类：字段带 reducer 就用聚合通道；特殊管理值走 managed value；普通字段默认 LastValue 覆盖。这个转换解释了为什么 schema 不是注释，而是运行时合并语义。</div></div>
+<h2>Schema 是图的公共合同</h2>
+<h3>一、TypedDict、Pydantic、dataclass 都是在声明形状</h3><p>LangGraph 不要求你只用一种 Python 类型来描述 state。TypedDict 轻量、直观，适合教程和多数业务图；Pydantic 适合需要字段校验、默认值和更强结构约束的场景；dataclass 适合已有面向对象数据模型的项目。选择哪一种不是审美问题，而是团队希望在类型检查、运行时校验和可读性之间怎样取舍。关键是：schema 必须让节点作者知道可以读写哪些 key。</p><h3>二、State 和 context 的边界</h3><p>state 是会随节点执行而演化的数据，例如 messages、draft、tool_results、risk_score、需要人工确认的字段。context 是一次运行的环境，例如 user_id、tenant_id、权限、模型配置、数据库连接提示或实验分组。context 可以影响节点怎么做，但它不是图的业务历史。把 context 塞进 state 会污染 checkpoint；把 state 塞进 context 会让数据流不可见。</p><h3>三、input/output/private state</h3><p>一个图内部可能维护很多 key，但调用者不一定都要提供或看到。input_schema 可以收窄入口需要的数据，output_schema 可以限制最终返回的视图，内部私有 state key 则服务于中间节点协作。这样设计能避免把内部实现暴露成公共 API。例如客服图内部有 retrieved_docs、tool_attempts、moderation_notes，最终输出可能只需要 messages 和 final_answer。</p><h3>四、partial update 是节点协作的最小单位</h3><p>节点返回 partial state，有两个收益。第一，节点只声明自己改变了什么，读起来更像事件日志；第二，运行时可以精确知道哪些 key 有更新，从而让 reducer、checkpoint、并行冲突处理都有依据。返回整份 state 会掩盖真正变化，还可能把旧值误写回去。尤其在并行分支里，整份 state 返回常常制造难以解释的覆盖。</p><h3>五、默认覆盖不是追加</h3><p>如果一个字段没有 reducer，通常语义是 LastValue：新值覆盖旧值。这对 draft、current_step、final_answer 这类单值字段很合理；对 messages、logs、documents 这类累积字段就危险。很多初学者以为返回 {'messages': [AIMessage('ok')]} 会自动追加到旧列表；实际是否追加取决于 schema 是否绑定 add_messages 或其他 reducer。</p><h3>六、add_messages 不是普通 list.extend</h3><p>add_messages 的特别之处在于消息 id。没有相同 id 时，它表现得像追加；有相同 id 时，它会替换旧消息。这让工具调用、消息修正和流式合并更可控。把它理解成简单 append 会漏掉“按 id 更新”的能力，也会在重复 tool_call_id 或手动构造消息 id 时踩坑。</p><h3>七、schema 也是调试文档</h3><p>一个清楚的 State schema 能让后来的人不用读所有节点也知道图在维护什么。messages 表示对话历史，next_action 表示路由意图，tool_results 表示工具产物，needs_human 表示是否中断给人审。命名越接近业务含义，trace 越容易读。反过来，如果 state 里全是 data、result、temp，就算图能跑，调试也会像猜谜。</p><h3>八、不要原地修改 state</h3><p>节点里写 state['messages'].append(...) 看似和返回 {'messages': [...]} 等价，但它绕开了更新记录和 reducer。运行时无法可靠知道这是一次有意写入，还是你临时改了输入对象。更糟的是，在并行、重试或 checkpoint 场景中，原地修改会让状态快照失真。把 state 当只读输入，把返回值当唯一写入，是最稳的工程纪律。</p><h3>九、schema 控制的是图状态，不是所有函数参数</h3><p>节点仍然可以接受 runtime、config 或通过闭包捕获模型和工具。schema 不负责描述模型对象或数据库连接对象；它负责描述会进入图状态、被 checkpoint、被节点共享的业务数据。这个边界能防止把不可序列化对象写入状态，也让持久化只保存真正需要恢复的内容。</p><h3>十、运行时上下文要显式命名</h3><p>context_schema 的好处是让节点依赖的环境数据也有合同。比如 Runtime[Context] 中的 context 可以包含 user_id 和 permissions。节点读 runtime.context['user_id'] 时，读者知道这是运行上下文，而不是 messages 里的一条业务消息。这样的显式分离也方便测试：同一份 state 可以在不同 context 下跑出不同授权行为。</p><h3>十一、私有 key 不等于乱放临时变量</h3><p>内部状态 key 可以不暴露给图的最终输出，但仍然应被 schema 管理。临时草稿、检索候选、评估分数都可以是私有 state；它们依旧要有类型、合并语义和命名。私有只表示 API 不公开，不表示可以绕过状态系统。</p><h3>十二、schema 设计先于节点实现</h3><p>写图之前先列 state keys，能迫使你思考数据生命周期：谁创建，谁读取，谁更新，是否累积，是否需要出现在最终输出，是否应该 checkpoint。很多 LangGraph 设计问题，其实在 schema 阶段就能发现。例如两个节点都要写同一个 list，却没有 reducer；路由函数需要 step_count，却没有任何节点维护它。</p><h3>十三、最小心智模型</h3><p>State schema 是图的类型合同和合并合同。类型告诉节点“有什么”；reducer 告诉运行时“同一个 key 的多次更新怎么合并”；context_schema 告诉节点“这次运行在什么环境里”；input/output schema 告诉外部调用者“入口和出口长什么样”。把这四层分清，状态图才不会退化成一堆共享变量。</p>
+<h2>扩展复盘：如何设计一份耐用的 State schema</h2>
+<p>设计 state 时，先不要写代码，而是列数据生命周期。每个 key 都问四个问题：谁创建它，谁读取它，谁更新它，什么时候它不再需要。messages 由入口和模型、工具节点持续追加，几乎贯穿全图；retrieved_docs 可能只在检索和回答之间短暂存在；final_answer 只在最后覆盖一次；needs_human 可能由风险节点设置，再由人工节点清除。把生命周期写清楚，schema 的类型、reducer 和输出边界自然会清楚。</p>
+<p>第二步是区分“事实”和“过程”。订单号、用户问题、工具结果属于业务事实；tool_attempts、last_error、route_reason 属于过程记录。事实常常需要进入最终回答或 checkpoint；过程记录主要服务调试、限流、重试和人工审核。两类数据都可以是 state，但命名要让读者知道它的用途。不要把所有中间变量都叫 result，也不要把过程控制藏在 messages 的自然语言文本里。</p>
+<p>第三步是给累积字段选择合并策略。messages 用 add_messages，因为它有消息 id 和工具调用语义；audit_events 可能需要 append 并带时间和来源；retrieved_docs 可能需要按 document_id 去重；risk_scores 可能需要取最大值或保留按来源分组的 dict。每个策略都反映业务含义。最糟糕的做法是看到 list 就统一 operator.add，短期解决报错，长期制造重复、乱序和难以解释的状态。</p>
+<p>第四步是决定哪些 key 属于输入、输出和私有内部状态。外部调用者不应该被迫提供内部重试计数，也不一定需要看到检索候选和评分细节。input_schema 可以让入口更窄，output_schema 可以让返回值更稳定，内部 schema 则保留实现自由。这样以后你更换检索策略、增加风控节点或调整工具重试，不会破坏调用方契约。</p>
+<p>最后要把 context_schema 当成环境合同来审查。只要某个值描述“这次运行在哪个租户、哪个用户、什么权限、什么实验配置下发生”，它通常属于 context；只要某个值是节点产物、业务历史或后续节点要合并的内容，它属于 state。这个边界清楚后，checkpoint 才不会保存不该保存的环境对象，测试也能用同一份 state 搭配不同 context 验证授权和个性化行为。</p>
+<p>耐用 schema 的目标不是把所有可能字段一次性设计完，而是让当前字段有清楚语义，并为后续扩展留下边界。新增 key 时，先写一句说明：为什么需要它，谁写它，谁读它，是否累积，是否输出。这个习惯比复杂类型技巧更重要，因为 LangGraph 的很多线上问题，根源不是 Python 类型写错，而是团队没人说清楚某个 key 代表什么。</p>
+<h2>案例推演：客服 Agent 的 schema 评审</h2>
+<p>假设你要设计订单客服图，第一次评审 schema 时可以把白板分成四栏：入口、内部、输出、上下文。入口可能只有 messages 和可选 order_id；内部包括 retrieved_docs、tool_attempts、last_tool_error、risk_flags、draft_answer；输出包括 messages、final_answer、needs_human；上下文包括 user_id、tenant_id、locale、permissions。这样一分，团队立刻能看出哪些数据来自调用方，哪些数据只是图内部协作，哪些数据会暴露给外部。</p>
+<p>接着审查每个 key 的更新者。messages 会被入口、model、tools 写；tool_attempts 会被工具节点写；risk_flags 由风控节点写；draft_answer 由模型节点覆盖；final_answer 由 finalize 节点覆盖。一个 key 如果没有明确写入者，可能是多余的；如果有太多写入者，可能需要拆分或增加 reducer。schema 评审的目标不是追求字段越少越好，而是让每个字段都有主人和生命周期。</p>
+<p>第三步审查合并语义。messages 用 add_messages，tool_attempts 可以按工具调用 id 去重追加，risk_flags 可以用集合并集，draft_answer 和 final_answer 用 LastValue，last_tool_error 也可以覆盖。retrieved_docs 则要看业务：如果多个检索节点并行，可能按 document_id 去重并按分数排序；如果只有一个检索节点，每次覆盖当前候选就足够。合并语义必须来自业务，而不是来自字段类型。</p>
+<p>第四步审查 checkpoint 价值。哪些 key 是恢复时必须保留的？messages、tool_attempts、needs_human 通常需要；临时 prompt 片段、模型对象、数据库连接不应该进入 state。这个问题能帮助你把不可序列化对象排除出去，也能减少 checkpoint 体积。记住：能写进 state 的，不一定都应该长期保存；应该保存的，必须有清晰类型和语义。</p>
+<p>第五步审查隐私和权限。user_id 放 context 并不表示它不重要，而是它描述运行环境。订单详情、用户输入、工具结果如果进入 state，就可能被 checkpoint 保存，需要考虑脱敏、保留周期和访问控制。schema 设计不是纯技术细节，它决定哪些数据会出现在 trace、存档和调试页面。越早明确，越少后续合规返工。</p>
+<p>最后，把 schema 当成团队接口文档。节点作者按它返回 partial update，测试作者按它构造状态，运维排障按它读 checkpoint，产品讨论按它理解流程。一个好的 State schema 不需要很花哨，但必须命名稳定、合并语义明确、context/state 边界清楚。只要这份合同稳，图的节点可以逐步演进；合同含糊，节点越多越难维护。</p>
+<h2>进一步练习：用 schema 反推节点设计</h2>
+<p>拿到一份 schema 后，可以反过来检查节点是否合理。每个节点最多应关注少数几个输入 key，并只写自己承诺的输出 key。如果一个节点读取几乎所有 state，又写回许多无关字段，说明它可能承担了多个职责。把这种节点拆开，通常会让 reducer 选择更简单，路由条件也更清楚。schema 不是写完就放着的类型声明，它是评审节点边界的工具。</p>
+<p>还可以用 schema 设计测试夹具。为 messages 构造最小历史，为 retrieved_docs 构造空列表、重复文档和高分文档，为 needs_human 构造 True/False 两种状态。节点测试不需要真实跑完整图，只要给定这些状态样本，检查 partial update 是否符合合同。这样测试能直接保护 schema 语义，而不是只验证最终页面有没有文本。</p>
+<p>当需求变化时，先改 schema 说明再改节点。比如新增“用户情绪”能力，不要直接在某个节点里塞一个 sentiment 临时字段；先决定它是当前值还是历史，谁负责写，是否输出，是否影响路由，是否需要 checkpoint。这个顺序能避免临时字段扩散成隐形公共接口。很多长期维护成本，都是从一个没有评审的临时 key 开始的。</p>
+<p>最后，把 schema 文档和源码引用放在一起复查。StateGraph.__init__ 告诉你图接收哪些 schema，_get_channel 告诉你字段会落到什么通道，Runtime 告诉你 context 怎样进入节点，add_messages 告诉你消息列表怎样合并。只要这四个证据能支撑你的设计，schema 就不是凭感觉写出来的，而是和运行时机制对齐的合同。</p>
+<p>补充检查：schema 合同要覆盖“初始、运行中、结束后”三个状态。初始 state 里哪些 key 可缺省，运行中哪些 key 只能由内部节点写，结束后 output_schema 暴露哪些 key，都应写清楚。否则同一个字段可能在入口被调用方误传，在中途被节点覆盖，最后又被外部依赖，合同边界会迅速失控。</p>
+<p>context/state 边界也要反复复查。user_id、tenant_id、permissions、实验开关描述运行环境，适合随 Runtime context 注入；messages、retrieved_docs、needs_human、final_answer 描述业务演化，适合进入 state。把环境写进 state 会污染 checkpoint，把业务历史藏进 context 会让 trace 看不见关键变化。边界清楚，恢复、测试和权限审查才有共同语言。</p>
+<p>状态演进要像版本化 API 一样对待。新增 key 时说明默认值、写入者、读取者、合并语义和输出可见性；删除或改名 key 时检查旧 checkpoint、旧测试夹具和下游调用者。LangGraph 的 state 不是临时 dict，而是节点之间的公共合同。合同越稳定，图越容易迭代。</p>
+<p>本课可以用一句话收束：schema 先定义工程边界，再允许模型在边界内产生不确定输出。模型文本可能变化，但 state key 的含义、context 的来源、partial update 的目标和 reducer 的选择必须稳定。把这份合同写清，后续节点、边和运行时才有可靠基础。</p>
+<h2>常见误解与边界情况</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：节点可以直接 append state[&#x27;messages&#x27;]</div><div class="pf-correct">正确：把 state 当只读输入；返回 partial update，让 add_messages 记录和合并更新。</div></div><div class="pitfall"><div class="pf-wrong">误解：返回整份 state 更保险</div><div class="pf-correct">正确：返回整份 state 会制造覆盖和噪声；节点应只返回自己产生的 key。</div></div><div class="pitfall"><div class="pf-wrong">误解：context 和 state 都是 dict，随便放</div><div class="pf-correct">正确：context 是运行环境，state 是业务演化数据；混用会破坏 checkpoint 和可读性。</div></div><div class="pitfall"><div class="pf-wrong">误解：list 字段天然会累积</div><div class="pf-correct">正确：没有 reducer 的字段默认通常是 LastValue 覆盖；累积列表要显式声明 reducer。</div></div></div>
+<h2>小实验</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 为客服图设计 State schema</div><ol><li>列出入口需要的 key：用户问题、已有 messages、可能的订单号。</li><li>列出内部 key：retrieved_docs、tool_attempts、needs_human、draft_answer，并标注哪些只在内部使用。</li><li>判断每个 key 的合并语义：messages 用 add_messages，tool_attempts 可以累加，final_answer 用覆盖。</li><li>把 user_id、tenant_id、permissions 放入 context_schema，再解释为什么它们不应作为普通 state 历史保存。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>本课使用的 StateGraph.__init__、_get_channels、_get_channel、Runtime、add_messages 是理解 v1 时代 LangGraph state contract 的稳定入口。具体 schema 参数名可能演进，但 state/context 分离、partial update 和 reducer 合并这三条规则应优先记住。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>State schema 是图的合同，定义 state key、类型和合并语义。</li><li>TypedDict、Pydantic、dataclass 都可表达 schema，选择取决于校验和可读性需求。</li><li>context_schema 描述运行环境，不应和会 checkpoint 的业务 state 混淆。</li><li>节点返回 partial update；list 累积必须显式声明 reducer，例如 add_messages。</li><li>原地修改 state 和返回整份 state 都会削弱可追踪、可并行和可恢复能力。</li></ul></div><div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. 下列哪项最适合放进 <code>context_schema</code>，而不是普通 state？</div>
+  <ol class="opts">
+    <li>本次运行的 user_id、tenant_id、权限范围等环境信息</li>
+    <li>会被 add_messages 合并的聊天历史</li>
+    <li>模型刚生成的最终回答</li>
+    <li>工具节点返回的 ToolMessage</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。context 是运行环境，state 是会随节点演化并可能 checkpoint 的业务数据。用户、租户、权限通常属于 context。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. 一个 list 字段希望累积多个节点返回的日志，schema 中最容易漏掉什么？</div>
+  <ol class="opts">
+    <li>把所有节点改成同步函数</li>
+    <li>把日志写进 context</li>
+    <li>给这个字段声明 reducer，否则默认可能按 LastValue 覆盖</li>
+    <li>删除 output_schema</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。list 类型不等于 append 语义。需要用 Annotated 或等价方式声明 reducer，运行时才知道怎样合并多次更新。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 节点收到 state 后，推荐的更新方式是什么？</div>
+  <ol class="opts">
+    <li>把 state 当只读输入，只返回本节点产生的 partial update</li>
+    <li>总是返回整份 state，覆盖所有旧值</li>
+    <li>把 context 复制进 state 的每个 key</li>
+    <li>原地修改 state，然后返回 None</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。partial update 能让运行时精确记录写入和调用 reducer；原地修改或整份覆盖都会削弱可追踪性。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>为一个“订单客服 Agent”选择 state keys：messages、order_id、tool_attempts、retrieved_docs、final_answer、needs_human 中哪些需要 reducer？哪些应只做内部私有 state？</li>
+    <li>你发现某节点直接对 messages 列表执行 append(msg) 后偶发丢历史。请写出调试步骤，并说明如何改成 partial update + reducer。</li>
+  </ul>
+</div>
+</div>
+  <div class="footnav"><a class="prev" href="24-langgraph-mental-model.html"><div class="dir">← 上一课</div><div class="ttl">为什么需要 LangGraph</div></a><a class="next" href="29-langgraph-nodes-edges.html"><div class="dir">下一课 →</div><div class="ttl">Node、Edge 与路由</div></a></div>
+</div>
+
+</body></html>

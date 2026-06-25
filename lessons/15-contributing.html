@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>15 · 读源码 / 调试 / 测试 / 贡献 — LangChain 图解教程</title>
-<meta name="description" content="第四部分 · 进阶｜读源码 / 调试 / 测试 / 贡献：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>37 · 本地开发、源码调试与贡献 — LangChain 图解教程</title>
+<meta name="description" content="第八部分 · 工程化与实战｜本地开发、源码调试与贡献：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="15 · 读源码 / 调试 / 测试 / 贡献 — LangChain 图解教程">
-<meta property="og:description" content="第四部分 · 进阶｜读源码 / 调试 / 测试 / 贡献：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="37 · 本地开发、源码调试与贡献 — LangChain 图解教程">
+<meta property="og:description" content="第八部分 · 工程化与实战｜本地开发、源码调试与贡献：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="15 · 读源码 / 调试 / 测试 / 贡献 — LangChain 图解教程">
-<meta name="twitter:description" content="第四部分 · 进阶｜读源码 / 调试 / 测试 / 贡献：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="37 · 本地开发、源码调试与贡献 — LangChain 图解教程">
+<meta name="twitter:description" content="第八部分 · 工程化与实战｜本地开发、源码调试与贡献：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -256,294 +256,113 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
 </style>
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第四部分 · 进阶</span>
-    <span class="pill">15 / 27</span>
+    <span class="pill">第八部分 · 工程化与实战</span>
+    <span class="pill">37 / 46</span>
   </div>
-  <div class="progress"><span style="width:55%"></span></div>
+  <div class="progress"><span style="width:80%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第四部分 · 进阶</div>
-    <h1>读源码 / 调试 / 测试 / 贡献</h1>
+    <div class="part">第八部分 · 工程化与实战</div>
+    <h1>本地开发、源码调试与贡献</h1>
   </div>
-  
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-你已经理解了 LangChain 的<strong>用法</strong>和<strong>内部机制</strong>。最后一课给你一套<strong>实战工具箱</strong>：
-如何高效读源码、跑测试、调试，以及把改动贡献回去。这会把"理解"变成"能动手"。
-</p>
+<p class="lead">读源码和贡献不是从克隆仓库后盲目全量测试开始，而是从一个公开 API 的归属开始：先判断它属于 langchain、langchain-core、langgraph 还是本教程生成器，再进入对应包的 pyproject、测试目录和 CI 规则。工程化学习的目标不是记住每个目录，而是建立一条可复查路线：选择 API、找到包边界、用 editable 环境让本地源码参与 import、写或跑一个聚焦测试、用 CI 同款检查证明生成物没有漂移，最后把变更压成小 PR。本课把本地开发、源码调试、包布局和贡献循环合成一条新手可执行的工作流。</p><div class="card analogy"><div class="tag">🧩 生活类比</div>把本地开发想成修一座大型商场的某个电梯。你不能一进门就拆总配电，也不能只看门口导览图就动手。正确做法是先确认电梯属于哪栋楼、哪家维保、哪张图纸；再把自己的维修工具接到这台电梯的控制柜；只跑这台电梯相关的安全测试；最后把维修记录交给物业验收。LangChain 的包边界就是楼栋，editable install 是把本地控制柜接入运行环境，聚焦测试是安全试运行，PR 是可审计维修单。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：从想改一个 API 到可审计 PR</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">选择入口</div><div class="mn-desc">从 docs、示例或报错中确定要研究的 API，例如 create_agent、Runnable 或 @tool</div></div><div class="map-node now"><div class="mn-label">定位包边界</div><div class="mn-desc">根据 import 路径回到 langchain_v1、core、LangGraph 或本教程 src 目录</div></div><div class="map-node now"><div class="mn-label">建立 editable 环境</div><div class="mn-desc">让解释器导入本地源码而不是已安装 wheel，使断点和修改立即生效</div></div><div class="map-node source"><div class="mn-label">聚焦测试</div><div class="mn-desc">先跑最小单测或生成器检查，再扩大到相关包 CI，避免用全量测试掩盖问题</div></div><div class="map-node after"><div class="mn-label">小 PR 循环</div><div class="mn-desc">提交源码、测试、生成 HTML/PDF 差异和路径说明，让 reviewer 能复现</div></div></div></div><h2>源码入口：文件 + 符号名</h2><p>下面的 source map 特意使用当前已验证路径。LangChain 主仓当前没有根目录 pyproject；包级配置在 libs/langchain_v1/pyproject.toml 与 libs/core/pyproject.toml，LangGraph 在独立 langchain-ai/langgraph 仓库的 libs/langgraph/pyproject.toml。本教程自己的工程守卫则在 src/build.py、src/check_* 和 .github/workflows/ci.yml。</p><table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">langchain/libs/langchain_v1/pyproject.toml</td><td class="mono">[project] / [dependency-groups] / [tool.uv.sources]</td><td>声明 langchain v1 包名、依赖、测试/类型/lint 组和 editable 本地源码来源</td><td>确定 create_agent 等高层入口属于哪个包以及本地开发依赖如何连线</td></tr><tr><td class="mono">langchain/libs/core/pyproject.toml</td><td class="mono">langchain-core package</td><td>声明核心协议包，包含 Runnable、消息、工具、回调等稳定契约</td><td>上层包和 partner 包依赖它，贡献时要特别关注兼容性</td></tr><tr><td class="mono">langgraph/libs/langgraph/pyproject.toml</td><td class="mono">langgraph package</td><td>声明图运行时包和 langgraph-checkpoint/prebuilt/sdk 等 editable 来源</td><td>Agent 循环、checkpoint 和图执行相关问题要回到独立 LangGraph 仓库核验</td></tr><tr><td class="mono">src/build.py</td><td class="mono">build</td><td>本教程把 registry.CONTENT 与 quizzes.render 组合成 lessons 与 index</td><td>修改课程内容后必须重新生成站点 HTML</td></tr><tr><td class="mono">src/check_html.py</td><td class="mono">check_lesson / check_stale</td><td>检查结构、导航、陈旧文案、要点卡和类比卡</td><td>本地和 CI 都用它防止生成 HTML 结构回归</td></tr><tr><td class="mono">.github/workflows/ci.yml</td><td class="mono">verify job</td><td>重建站点和 print，再跑链接、HTML 与密度检查</td><td>PR 前本地模拟同款命令，避免提交过期生成物</td></tr></table><h2>状态流：一次本地源码调试与贡献循环</h2><div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>选定 API</h4><p>从失败用例或文档疑问出发，写下 import 路径和预期行为。</p><div class="mono">api=&#x27;langchain.agents.create_agent&#x27;</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>找包和文件</h4><p>用 import 前缀、pyproject 和 source map 判断它落在 langchain_v1、core 还是 langgraph。</p><div class="mono">package=langchain_v1</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>接 editable 环境</h4><p>用包级 uv/venv/conda 环境把本地 libs 路径作为可编辑来源，确认 python 导入的是工作区文件。</p><div class="mono">editable=True</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>跑聚焦测试</h4><p>先运行最靠近改动的单测或本教程 check，再扩到相关包的 lint/type/test。</p><div class="mono">pytest path::test_name</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>提交 PR</h4><p>附上源码锚点、测试输出、生成 HTML 差异和兼容性说明。</p><div class="mono">small-reviewed-PR</div></div></div></div><h2>Trace：把一次工程动作摊平成证据链</h2><table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. choose API</td><td>用户报告 create_agent 对某个 middleware 组合行为异常</td><td>记录公开入口、最小复现、期望消息状态</td><td>待查入口 langchain.agents.create_agent</td></tr><tr><td>2. find package</td><td>import path + source map</td><td>确认高层入口在 langchain/libs/langchain_v1，消息和 Runnable 在 libs/core，图执行在 LangGraph</td><td>文件候选 factory.py、types.py、core messages</td></tr><tr><td>3. editable env</td><td>包级 pyproject 与 tool.uv.sources</td><td>让本地源码覆盖已安装 wheel，并用 python -c 打印 module.__file__</td><td>导入路径指向工作区 libs/...</td></tr><tr><td>4. focused test</td><td>最小复现与相关测试文件</td><td>先跑单个失败测试，再跑相关包测试组或本教程 check_*</td><td>红灯证明问题存在，绿灯证明修复有效</td></tr><tr><td>5. PR</td><td>源码 diff、测试输出、生成 HTML diff</td><td>提交小而完整的变更，说明包边界和兼容性</td><td>reviewer 可复现、CI 可验证</td></tr></table><h2>简化源码走读：保留契约，不背实现</h2><div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">src/build.py + .github/workflows/ci.yml :: build / verify job</span><span class="ln">简化版</span></div><pre># 教学版：本教程内容改动后的贡献循环
+changed = [&quot;src/part08_engineering.py&quot;, &quot;src/quizzes.py&quot;]
 
-<div class="card analogy">
-  <div class="tag">🧭 生活类比</div>
-  前面是看地图，这一课是<strong>发驾照</strong>：认识仪表盘（工具链）、学会安全检查（测试）、
-  懂得看故障灯（调试），最后按交规上路（贡献规范）。
-</div>
+run(&quot;cd src &amp;&amp; python build.py&quot;)
+run(&quot;cd src &amp;&amp; python build_print.py&quot;)
+run(&quot;cd src &amp;&amp; python check_links.py&quot;)
+run(&quot;cd src &amp;&amp; python check_html.py&quot;)
+run(&quot;cd src &amp;&amp; python check_content_density.py&quot;)
 
-<h2>① 工具链：四件套 + make</h2>
-<p>第 2 课见过它们，现在配上真实命令。这个仓库用 <span class="inline">uv</span> 管理依赖、<span class="inline">make</span> 封装常用命令：</p>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">libs/core/ （在某个包目录下执行）</span><span class="ln">常用命令</span></div>
-<pre><span class="cm"># 安装所有依赖组（首次准备环境）</span>
-uv sync --all-groups
-
-<span class="cm"># 跑单元测试（已配置 --disable-socket：禁网络）</span>
-make test
-
-<span class="cm"># 代码检查 / 自动格式化</span>
-make lint
-make format
-
-<span class="cm"># 只跑某个测试文件</span>
-uv run --group test pytest tests/unit_tests/test_xxx.py
-</pre>
-</div>
-
-<table class="t">
-  <tr><th>工具</th><th>做什么</th><th>命令入口</th></tr>
-  <tr><td class="mono">uv</td><td>装依赖 / 虚拟环境</td><td class="mono">uv sync / uv run</td></tr>
-  <tr><td class="mono">pytest</td><td>跑测试</td><td class="mono">make test</td></tr>
-  <tr><td class="mono">ruff</td><td>检查 + 格式化</td><td class="mono">make lint / make format</td></tr>
-  <tr><td class="mono">mypy</td><td>静态类型检查</td><td class="mono">make lint（含）</td></tr>
-</table>
-
-<h2>② 测试结构：镜像源码，单测禁网</h2>
-<p>每个包都有自己的 <span class="inline">tests/</span>，结构<strong>镜像源码目录</strong>。两类测试泾渭分明：</p>
-
-<div class="cols">
-  <div class="col">
-    <h4>🟢 unit_tests（单元测试）</h4>
-    <p><strong>不许联网</strong>（<span class="mono">--disable-socket</span>）。用<strong>假模型</strong>替代真实 API，快且稳定。</p>
-    <p class="mono">tests/unit_tests/</p>
-  </div>
-  <div class="col">
-    <h4>🔵 integration_tests（集成测试）</h4>
-    <p>允许真实网络调用（需 API key），验证与厂商的真实对接。</p>
-    <p class="mono">tests/integration_tests/</p>
-  </div>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 细节：用"假模型"写单元测试</div>
-  既然单测不能联网，怎么测和模型相关的逻辑？用 <span class="mono">core</span> 自带的<strong>假聊天模型</strong>：
-  <pre class="code" style="margin:.5rem 0"><span class="kw">from</span> langchain_core.language_models.fake_chat_models <span class="kw">import</span> (
-    GenericFakeChatModel,   <span class="cm"># 按预设脚本"假装"回复</span>
-    FakeListChatModel,      <span class="cm"># 轮流返回一组固定回复</span>
-)
-model = GenericFakeChatModel(messages=iter([<span class="st">"你好！"</span>]))
-assert model.invoke(<span class="st">"hi"</span>).content == <span class="st">"你好！"</span></pre>
-  位置：<span class="mono">core/language_models/fake_chat_models.py</span>。这让你能离线测试链、Agent、解析器等。
-</div>
-
-<h2>③ 读源码的正确姿势</h2>
-<p>面对几十万行代码别慌。永远<strong>从公开入口往里读</strong>，而不是从底层乱翻：</p>
-
-<div class="vflow">
-  <div class="step"><div class="num">1</div><div class="sc"><h4>从 __init__.py 看导出</h4>
-    <p>想知道一个包对外提供啥，先看它的 <span class="mono">__init__.py</span> 的 <span class="mono">__all__</span>。
-      比如 <span class="mono">agents/__init__.py</span> 只导出 <span class="mono">create_agent</span> 和 <span class="mono">AgentState</span>。</p></div></div>
-  <div class="step"><div class="num">2</div><div class="sc"><h4>顺着 import 往下钻</h4>
-    <p>公开函数通常在主力/集成层，真正的抽象在 <span class="mono">core</span>。顺着 import 链走，最终都会到 <span class="mono">langchain_core</span>。</p></div></div>
-  <div class="step"><div class="num">3</div><div class="sc"><h4>遇到方法名按名搜索</h4>
-    <p>行号会变，但方法名稳定。<span class="mono">grep "def _generate"</span> 比记行号可靠。</p></div></div>
-  <div class="step"><div class="num">4</div><div class="sc"><h4>用测试当"活文档"</h4>
-    <p>看不懂某个 API？去 <span class="mono">tests/unit_tests/</span> 找它的测试，那里有最小可运行用法。</p></div></div>
-</div>
-
-<h2>④ 调试技巧</h2>
-<div class="card detail">
-  <div class="tag">🔬 细节</div>
-  <ul>
-    <li><strong>看真实请求</strong>：给 <span class="mono">invoke</span> 传一个打印型回调（<span class="mono">config={"callbacks":[...]}</span>，见第 14 课），
-      就能观察生命周期事件。或接入 <strong>LangSmith</strong> 做可视化追踪。</li>
-    <li><strong>隔离问题</strong>：用假模型替换真模型，确认 bug 是出在你的链逻辑还是厂商对接。</li>
-    <li><strong>最小复现</strong>：把问题缩到 3–5 行能跑的代码，再逐层加回。</li>
-  </ul>
-</div>
-
-<h2>⑤ 贡献规范：提交前必看</h2>
-<div class="card warn">
-  <div class="tag">⚠️ 提交规范（Conventional Commits）</div>
-  <ul>
-    <li>PR / commit 标题格式：<span class="mono">type(scope): 描述</span>，<strong>必须带 scope</strong>。
-      例：<span class="mono">fix(core): resolve type hinting issue</span>、<span class="mono">feat(openai): add ...</span>。</li>
-    <li>描述以小写开头（除非是专有名词/类名）；类/函数/参数名用反引号包裹。</li>
-    <li>新功能/修 bug <strong>必须配单元测试</strong>；公共 API 签名<strong>尽量不破坏</strong>，新参数用关键字形式 <span class="mono">*, new_param=...</span>。</li>
-    <li>所有 Python 代码<strong>必须有类型注解和返回类型</strong>；文档用 Google 风格 docstring。</li>
-  </ul>
-</div>
-
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入三个实战问题。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 为什么单元测试要禁网（--disable-socket） <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 现象</div>
-      <div class="a"><span class="mono">make test</span> 跑单测时带了 <span class="mono">--disable-socket</span>，
-        任何真实网络请求都会直接失败。所以单测里<strong>不能</strong>真的调 OpenAI。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么这么做</div>
-      <div class="a">真实 API 调用<strong>慢、要钱、不稳定、结果不确定</strong>，还依赖密钥。
-        把网络禁掉能强制单测做到<strong>快速、确定、可离线、免费</strong>——这是优秀单测的基本要求。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 那怎么测模型逻辑</div>
-      <div class="a">用<strong>假模型</strong>（<span class="mono">GenericFakeChatModel</span> 等，见本课"假模型"小节）替代真实 API；
-        真正验证厂商对接放到 <span class="mono">integration_tests/</span>（需密钥、显式运行）。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> 想加一个新厂商集成，从哪下手 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 步骤概览</div>
-      <div class="a">
-<pre class="code"><span class="cm"># 1) 在 libs/partners/ 新建一个独立包</span>
-<span class="cm"># 2) 实现 BaseChatModel 的 _generate（翻译你的厂商 API）</span>
-<span class="cm"># 3) 复用 standard-tests 的标准测试套件验证一致性</span>
-<span class="kw">from</span> langchain_tests.integration_tests <span class="kw">import</span> ChatModelIntegrationTests</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么有 standard-tests</div>
-      <div class="a"><span class="mono">libs/standard-tests/</span> 提供一套<strong>所有厂商共用</strong>的测试，确保每个新集成
-        都满足相同的行为契约（如正确返回 AIMessage、支持工具调用）。继承它即可获得一大批现成用例。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">新集成"填空式"开发：实现接口 + 跑标准测试，质量有保障，且<strong>完全不用改 core</strong>。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> 提交规范为什么这么严（scope、类型注解、不破坏 API） <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 一个合格提交长什么样</div>
-      <div class="a">
-<pre class="code">fix(openai): handle empty tool_calls in streaming
-
-- 描述以小写开头，用反引号包裹 `tool_calls`
-- 配套单元测试，不破坏公共 API 签名</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a"><strong>scope</strong> 让人一眼看出改了哪个包（自动生成 changelog）；
-        <strong>类型注解</strong>让 mypy 能静态查错、IDE 能补全；
-        <strong>不破坏公共 API</strong> 保护成千上万依赖 LangChain 的下游项目不会因升级而崩。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 经验法则</div>
-      <div class="a">新增可选参数用关键字形式（<span class="mono">*, new=None</span>）保持向后兼容；
-        改动配测试；提交信息让人不看 diff 也能懂"改了什么、为什么"。</div>
-    </div>
-  </div>
-</details>
-
-<h2>全景回顾：你已经走完的地图</h2>
-<div class="layers">
-  <div class="layer l-app"><div class="lh"><span class="badge">第 1 部分</span><span class="name">宏观全景</span></div>
-    <div class="ld">是什么 · monorepo 三层 · 一次调用的生命周期</div></div>
-  <div class="layer l-main"><div class="lh"><span class="badge">第 2 部分</span><span class="name">用户视角</span></div>
-    <div class="ld">消息 · 聊天模型 · 工具 · Agent —— 学会"用"</div></div>
-  <div class="layer l-part"><div class="lh"><span class="badge">第 3 部分</span><span class="name">内部源码</span></div>
-    <div class="ld">Runnable · 组合 · 模型调用链 · 工具机制 · Agent 状态图 · 流式与回调</div></div>
-  <div class="layer l-core"><div class="lh"><span class="badge">第 4 部分</span><span class="name">进阶实战</span></div>
-    <div class="ld">读源码 · 测试 · 调试 · 贡献 —— 把理解变成动手</div></div>
-</div>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li><strong>单测禁网 + 假模型</strong>：换来快、确定、可离线、免费的测试——这是优秀测试的底线。</li>
-    <li><strong>standard-tests 填空式</strong>加厂商：实现接口 + 跑标准套件，质量自动有保障，且完全不碰 core。</li>
-  </ul>
-</div>
-
-<div class="card key">
-  <div class="tag">✅ 本课要点</div>
-  <ul>
-    <li>环境：<span class="mono">uv sync --all-groups</span>；日常：<span class="mono">make test / lint / format</span>。</li>
-    <li>单测禁网、用<strong>假模型</strong>；测试目录镜像源码，是最好的"活文档"。</li>
-    <li>读源码从 <span class="mono">__init__.py</span> 入口往 <span class="mono">core</span> 钻，按方法名搜索。</li>
-    <li>贡献守 Conventional Commits + 类型注解 + 配套测试 + 不破坏公共 API。</li>
-    <li>前四部分（宏观→用户→源码→进阶）到此完结。<strong>第五部分</strong>带你把这些零件拼成<strong>你自己的 Agent</strong>。</li>
-  </ul>
-</div>
-<div class="selftest">
+assert git_diff(&quot;index.html&quot;, &quot;lessons/&quot;, &quot;print.html&quot;).is_committed()
+</pre><div class="cw-note">真实 LangChain 包开发会使用包级 uv/pytest/ruff/mypy；本教程是静态站点，所以贡献循环强调 build、print、链接、结构和密度。共同原则相同：源码改动必须有可复现检查，生成物必须与源码同步。</div></div><h2>先确认你在改哪个包</h2><p>大型 Python monorepo 里最容易犯的错，是把 import 名称、发布包名称和仓库目录混在一起。langchain.agents.create_agent 是用户 API，但它不是 langchain-core 的稳定协议；Runnable、AIMessage、BaseCallbackHandler 属于 langchain-core；checkpoint 和图执行能力来自 LangGraph。贡献前先写下三列：用户 import、源码文件、发布包。三列对齐，后面的测试和 reviewer 说明才不会跑偏。</p><p>包边界还决定兼容性承诺。core 的符号被很多包依赖，修改参数、返回类型或异常语义会影响广泛；高层 langchain_v1 可以组合 core 和 langgraph，但也要保护用户 API；本教程 src 目录则是生成器，修改内容后要提交生成的 HTML。不同边界对应不同风险，不应同样处理。</p><h2>Editable install 的意义不是省安装时间</h2><p>editable install 的关键价值是让解释器导入你的工作区源码。没有这一步，你可能在编辑 A 文件，却一直运行环境里旧 wheel 的代码，断点打不到、print 不出现、测试也不会反映修改。确认方式很简单：在 Python 中打印目标模块的 __file__，路径必须指向当前仓库或克隆目录，而不是 site-packages 里的压缩发布物。</p><p>LangChain 与 LangGraph 的 pyproject 中都有 tool.uv.sources 指向相邻包的本地路径。这个配置说明维护者希望开发时让多个包以源码方式联动：改 core 后 langchain_v1 立即看到，改 prebuilt 或 checkpoint 后 langgraph 测试能覆盖。若这些来源路径和你本地目录不一致，要先修环境，不要急着怀疑业务代码。</p><h2>聚焦测试比全量测试更适合调试</h2><p>全量测试很重要，但不适合第一步。全量失败时你很难知道哪个失败与本次修改有关；全量通过也可能掩盖你没有覆盖具体边界。更好的顺序是：先写或找到一个最小失败测试，只验证一个行为；让它红；修复；让它绿；再跑相邻模块测试；最后跑 CI 同款命令。这个梯度让每个信号都有解释。</p><p>本教程的聚焦测试是 build.py、build_print.py、check_links.py、check_html.py、check_content_density.py。内容类改动最常见失败不是 Python 逻辑，而是生成 HTML 没提交、链接断了、课程缺少 source_map 或 CJK 密度不足。先跑这些检查，能在本地发现 CI 会拒绝的 drift。</p><h2>源码调试从入口往内钻</h2><p>调试公开 API 时，不要从最长的内部文件开始。先在调用点确认输入对象，再跳到 public factory 或 base class，看它把输入标准化成什么协议；然后跟到具体实现或图节点；最后用测试验证维护者承诺的行为。这个顺序和课程前面反复强调的 source map 一致：入口、契约、实现、测试。</p><p>断点也要按状态边界放。对 Agent 问题，先看 create_agent 收到的 tools、middleware、context_schema；再看模型节点输出的 AIMessage；再看 ToolMessage 是否写回；最后看 structured_response。对静态教程问题，先看 registry.CONTENT 是否映射正确，再看 build 输出，再看检查器解析到的原始 HTML。</p><h2>PR 应该小到能被 reviewer 复现</h2><p>好的 PR 不只是代码少，而是证据完整。标题说明行为，描述列出源码锚点，测试区贴出具体命令和结果，风险区说明公共 API 是否变化，生成物区说明 index、lessons、print 是否同步。reviewer 不应该通过猜测理解你的意图，也不应该重新设计一遍才能判断变更是否安全。</p><p>小 PR 还保护贡献者自己。若一次同时改包布局、API 行为、文档和大量快照，任何 CI 失败都难定位。把环境修复、行为修复、文档更新、生成物同步分成可审计步骤，回滚也更容易。工程化贡献的核心不是让改动显得大，而是让因果链短。</p><h2>本教程的生成物也是源代码责任</h2><p>很多静态站点把 HTML 当产物不提交，本仓库相反：index.html、lessons/ 和 print.html 都是需要随 src 同步的发布内容。CI 会重新运行 build，并用 git diff 检查提交的 HTML 是否过期。这意味着改 src/part08_engineering.py 或 src/quizzes.py 后，未重新生成就提交，属于不完整变更。</p><p>生成物同步不是形式主义。读者直接打开 index.html 或 GitHub Pages 时看到的是 HTML，不是 Python 源。若源码和 HTML 漂移，reviewer 看源觉得正确，用户却读到旧页面。CI 的 diff gate 把这种风险提前暴露，等价于软件项目里检查编译产物或 API schema 是否随源更新。</p><h2>常见误解与边界情况：环境问题不是业务问题</h2><p>常见误解是“测试没失败，所以源码路径肯定对”。如果你没有确认 module.__file__，测试可能跑的是已安装版本；如果你没有让最小复现先红，测试可能没有覆盖目标行为。另一个误解是“全量 CI 失败一定是我这行代码错了”。在大型仓库里，环境、缓存、依赖约束、生成物漂移都可能导致失败，必须先用聚焦检查缩小范围。</p><p>边界情况是跨仓贡献。LangChain 主仓和 LangGraph 独立仓的版本、目录和发布节奏不同；教程里的源码路径也可能随着上游重组而变化。因此本文使用文件 + 符号名而不是行号，并在发现计划路径过期时更新计划。贡献时也要在 PR 描述中写明自己核验的是哪个仓库和哪个时间点。</p><h2>贡献前自查清单</h2><p>第一，公开 API、源码文件、发布包三者是否对齐。第二，环境是否真正 editable，导入路径是否指向工作区。第三，是否有一个聚焦测试或检查证明问题被覆盖。第四，是否跑过与改动同层的检查。第五，生成物是否随源码提交。第六，PR 描述是否能让陌生 reviewer 复现。</p><p>这张清单看似琐碎，却能节省大量 review 往返。维护者最怕的不是新手问问题，而是收到无法复现、边界不清、没有测试、生成物过期的改动。把证据链补齐，就是对开源协作的尊重，也是自己学习源码最快的方式。</p><h2>从本地失败到教学素材</h2><p>工程化学习的一个技巧，是把每次失败都转成 source map 的一行。今天因为 check_content_density 失败，就记住它从 registry.CONTENT 读原始 lesson body 而不是读 lessons/*.html；明天因为链接失败，就记住 check_links.py 解析所有相对 href。失败越具体，你的源码地图越可靠。</p><p>同样方法也适用于 LangChain。一次 no-tool Fake 模型测试失败，可以补充 GenericFakeChatModel 的行为；一次 Agent 工具循环失败，可以补充 FakeToolCallingModel、AIMessage.tool_calls 和 ToolMessage 的配对规则。读源码不是一次性任务，而是把调试证据持续沉淀成可复查路径。</p><h2>多包仓库里的调试礼仪</h2><p>在多包仓库中工作，还要尊重依赖方向。不要为了让一个高层测试通过，就让 langchain-core 反向导入 langchain_v1 或某个 partner；不要为了省事在 core 里读取环境变量、调用具体 provider SDK 或依赖图运行时。稳定层越干净，边缘包越能独立演进。调试时若发现自己想从底层 import 高层，通常说明修复点选错了，应该把适配逻辑留在上层，或通过协议把需要的信息向下传递。</p><p>贡献者还要学会阅读 pyproject 里的依赖组。test、lint、typing、dev 不是装饰字段，而是维护者定义的本地工作模式。某个包只改文档，可能不需要跑所有集成测试；但改公共协议，就至少要跑该包测试和依赖它的高层测试。写 PR 时说明自己为什么选择这些检查，比只写“tests pass”更可审计。</p><p>source debugging 也包括理解失败来自构建系统还是运行系统。本教程的失败可能来自 HTML 结构、导航链、密度门槛；LangChain 的失败可能来自 mypy、ruff、pytest、snapshot、依赖约束。先给失败分类，再决定修代码、修测试、修生成物还是修环境。没有分类的调试会在同一堆日志里反复横跳。</p><h2>贡献记录应留下学习路径</h2><p>一份好的贡献记录能让后来者复用你的路线。假设你修了一个 tool schema 问题，PR 描述可以写：公开入口是 @tool，契约在 StructuredTool，失败测试在某个单测，修复影响参数描述生成，不改变工具调用返回类型。这样的记录不只是给 reviewer 看，也会在半年后帮助另一个新手快速进入上下文。</p><p>本教程要求 source rows 和版本锚点，也是同一思想。内容不是凭经验写成，而是说明当前核验到哪个仓库、哪个文件、哪个符号。上游路径变化时，计划文档要跟着修正，而不是让读者在旧路径里迷路。工程化写作和工程化代码一样，都要为未来维护成本负责。</p><p>最后，贡献循环要保持可逆。每次提交只解决一个清晰问题，生成物和源码一起提交，测试输出可复现，路径修正单独说明。这样即使 reviewer 要求调整，你也能快速定位并修改；如果某个假设错了，也能回滚局部，而不是推倒整个分支。</p><h2>把源码阅读变成可复制路线</h2><p>当你第一次进入一个陌生包，不要急着追所有 import。先建立一张小表：入口函数在哪里，输入输出对象是什么，哪些 base class 或 protocol 定义契约，哪些 tests 展示承诺行为，哪些 CI 命令会保护这些承诺。表格只要五到八行，却能让你从“看见很多文件”变成“知道下一步打开哪个文件”。这也是本课反复强调 source_map 的原因。</p><p>路线还要记录没有走的路。例如本次核验发现 LangChain 主仓没有根 pyproject，计划中旧路径就必须标记为过期；发现 LangGraph 在独立仓库，就不能继续写 langchain/libs/langgraph。把这些负面发现写下来，可以防止后来的读者重复踩坑。工程化学习不只是知道正确答案，也包括知道哪些旧答案已经失效。</p><p>最后，把每次本地检查结果当成提交资产。一次完整任务应能回答：哪些文件改了，哪些生成物更新了，哪些检查通过了，CJK 密度是多少，quiz 答案分布如何，路径修正是什么。这样的交付报告让维护者马上判断质量，也让未来回溯时有明确证据。</p><h2>维护者视角下的完整交付</h2><p>从维护者视角看，一个贡献是否成熟，关键不是作者花了多少时间，而是变更能否被快速验证。维护者会先看范围是否单一，再看源码锚点是否可信，再看测试是否覆盖行为，再看生成物是否同步，最后看描述是否说明兼容性。若这些信息都齐全，review 可以讨论设计；若缺失，review 只能先要求补证据。</p><p>因此新手要把每次任务当成交付练习：先写清楚要改哪一层，过程中保留失败和通过的命令，发现计划路径过期就立即修正文档，结束时报告 CJK 计数、检查结果、答案分布和 commit。这样的习惯会让你在任何大型开源项目中更快获得信任。</p><h2>最后一公里：报告要能复盘</h2><p>完成任务后不要只说已经改好，而要列出文件、检查、计数、路径修正和提交号。报告本身也是工程资产：它告诉接手者哪些假设被验证，哪些生成物已经更新，哪些风险仍需后续任务处理。一个清晰报告能减少维护者重新拉分支检查的成本。</p><h2>贡献失败的复盘路径</h2><p>复盘时还要保存反例：哪些路径原计划可用但当前不存在，哪些检查曾经失败，哪些命令只能在包级目录运行。这些细节会随着仓库演进而变化，写进课程能帮助读者建立版本意识。工程化贡献的最后一步，是让下一位维护者不必重新猜你的调查过程。</p><p>一次成熟的复盘至少回答四件事：失败在哪个阶段暴露，哪个源码或生成物需要更新，哪个检查能在下次提前发现，PR 描述应补充哪条证据。这样贡献循环会越来越短，而不是每次都靠 reviewer 在评论里重新发现同类问题。</p><div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：先跑全量测试才专业</div><div class="pf-correct">正确：先跑最小相关测试，定位清楚后再扩大到包级和 CI 级检查。</div></div><div class="pitfall"><div class="pf-wrong">误解：编辑源码就等于运行源码</div><div class="pf-correct">正确：必须确认 editable 环境和 module.__file__，否则可能运行旧 wheel。</div></div><div class="pitfall"><div class="pf-wrong">误解：行号是最精确引用</div><div class="pf-correct">正确：行号随版本漂移；教学和 PR 说明优先使用文件 + 符号名。</div></div><div class="pitfall"><div class="pf-wrong">误解：生成 HTML 是 CI 的事</div><div class="pf-correct">正确：本仓库要求提交生成 HTML/PDF 源，CI 只验证没有漂移。</div></div></div><div class="card lab"><div class="tag">🧪 小实验 · 定位一个 API 并准备小 PR</div><ol><li>选择一个你想理解的 API，写出 import 路径、源码候选文件和发布包名称。</li><li>在本地环境中打印该模块的 __file__，确认它是否来自工作区源码。</li><li>找到最靠近该 API 的一个测试或本教程检查命令，只运行这一项并记录输出。</li><li>写一段 PR 描述草稿：问题、修改、源码锚点、测试命令、生成物是否同步。</li><li>检查草稿里是否还有无法复现的词，例如“应该”“好像”“相关测试都过了”。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>路径核验于 2026-06：LangChain 主仓 master 当前无根 pyproject.toml，包配置位于 langchain/libs/langchain_v1/pyproject.toml 与 langchain/libs/core/pyproject.toml；LangGraph 位于独立 langchain-ai/langgraph 仓库的 libs/langgraph/pyproject.toml。本教程 CI 路径以当前仓库 .github/workflows/ci.yml 为准。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>从公开 API 到包边界，是源码调试的第一步。</li><li>editable install 要用 module.__file__ 验证，不能凭感觉。</li><li>聚焦测试先红再绿，再扩大到包级和 CI 级检查。</li><li>本教程的 src 与生成 HTML/print 必须同步提交。</li><li>PR 的价值在于可复现证据链，而不是一次改很多。</li></ul></div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. 单元测试“禁网、用假模型”。为什么测试故意不连真实模型？</div>
+  <div class="qn">1. 调试 <code>create_agent</code> 行为时，为什么第一步要确认 package boundary，而不是直接改最长的内部文件？</div>
   <ol class="opts">
-    <li>省钱</li>
-    <li>确定性与速度：真实模型有随机性/延迟/费用，假模型让测试可复现、快、稳定——测的是你的代码而非模型</li>
-    <li>怕泄密</li>
-    <li>模型不可用</li>
+    <li>因为 import 路径、源码目录和发布包边界决定测试范围与兼容性风险</li>
+    <li>因为最长的文件通常没有任何逻辑</li>
+    <li>因为 CI 只检查 README，不检查源码</li>
+    <li>因为所有 Agent 代码都在同一个 Python 文件里</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。测试要的是“可复现的确定结果”。把不确定的外部依赖（模型/网络）替换成假的，是单测的通用原则——隔离被测对象。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。先确认入口属于 langchain_v1、langchain-core 还是 LangGraph，才能选择正确源码锚点、测试命令和 PR 风险说明。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. 测试目录“镜像源码结构”，且被称为“最好的活文档”。为什么测试能当文档用？</div>
+  <div class="qn">2. 一个聚焦测试在贡献循环里最直接解决什么问题？</div>
   <ol class="opts">
-    <li>测试展示了每个组件“该怎么用、期望什么行为”，且随代码一起更新、不会过时——比静态文档更可信</li>
-    <li>测试有注释</li>
-    <li>没有别的文档</li>
-    <li>测试写得长</li>
+    <li>只证明 reviewer 能读懂 PR，不验证行为</li>
+    <li>把失败缩到一个可解释行为，先红后绿，再扩大到相关检查</li>
+    <li>让生成 HTML 不需要提交</li>
+    <li>先跑全量测试并根据最早失败猜测范围</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。“可执行的文档”——测试既描述用法又验证它仍成立。文档会过期，但通过的测试不会撒谎。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。聚焦测试给出明确因果：这个行为以前失败，修复后通过。之后再跑包级或 CI 级检查。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 读源码建议“从 <code>__init__.py</code> 入口往 core 钻、按方法名搜索”而不是记行号。这个习惯背后的考量是？</div>
+  <div class="qn">3. 教程和 PR 说明为什么优先写“文件 + 符号名”而不是固定行号？</div>
   <ol class="opts">
-    <li>搜索更快</li>
-    <li>行号难记</li>
-    <li>没有考量</li>
-    <li>方法名稳定、行号易变：按符号定位在代码迭代后依然有效，是更鲁棒的导航方式</li>
+    <li>因为文件名不需要核验</li>
+    <li>因为符号名不能搜索</li>
+    <li>因为符号锚点比行号更抗上游重排，reviewer 仍能复查结论</li>
+    <li>因为行号能跨版本保持不变</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。这正是本教程“源码引用以文件+符号名为主、不写死行号”的同一原则——符号是稳定锚点，行号是流沙。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. 贡献要求“Conventional Commits + 类型注解 + 配套测试 + 不破坏公共 API”。这套规矩共同维护的是什么？</div>
-  <ol class="opts">
-    <li>形式主义</li>
-    <li>项目的长期可维护与可信赖：可读历史、可检查类型、可回归测试、可依赖的稳定接口</li>
-    <li>提高门槛劝退新人</li>
-    <li>让 PR 变多</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。每条规矩对应一种“长期健康”的保障。大型开源项目靠这些约束，才能在众多贡献者下不腐化——这也是本教程给自己 CI 加结构守卫的同款思路。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。行号会随着格式化和重构漂移；文件 + 符号名既可复查，又更适合长期教程和开源 PR。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>“测试用假模型保证确定性”很对，但假模型测不出“真实模型会不会按预期行动”。单元测试 vs 真实集成测试，你会怎么分工？</li>
-    <li>“通过的测试是不会过期的活文档”——前提是测试本身写得清楚。你见过“测试存在却帮不上理解”的反例吗？什么样的测试才配当文档？</li>
+    <li>某公开 API 在本地表现异常。请写出调试计划：如何确认导入的是 editable 源码、如何定位包边界、先跑哪个聚焦测试、再跑哪些 CI 同款检查？</li>
+    <li>为一个小 PR 写提交前说明：问题、源码锚点、测试命令、生成物同步、兼容性风险分别怎么描述？</li>
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="14-streaming-callbacks.html"><div class="dir">← 上一课</div><div class="ttl">Streaming 与 Callbacks</div></a><a class="next" href="16-prompts.html"><div class="dir">下一课 →</div><div class="ttl">提示词 Prompts</div></a></div>
+  <div class="footnav"><a class="prev" href="39-memory-conversation-state.html"><div class="dir">← 上一课</div><div class="ttl">记忆、会话历史与状态</div></a><a class="next" href="40-testing-debugging.html"><div class="dir">下一课 →</div><div class="ttl">测试、Fake 模型与回归</div></a></div>
 </div>
 
 </body></html>

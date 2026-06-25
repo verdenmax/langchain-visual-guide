@@ -1,4 +1,4 @@
-"""Content for Part 1 (macro overview): lessons 01-03."""
+"""Legacy Part 1 content; current Part 1 build is superseded by part01_overview.py."""
 
 # ---------------------------------------------------------------------------
 LESSON_01 = r"""

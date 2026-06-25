@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>13 · Agent 内部 — LangChain 图解教程</title>
-<meta name="description" content="第三部分 · 内部源码｜Agent 内部：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>28 · create_agent 构图内部 — LangChain 图解教程</title>
+<meta name="description" content="第六部分 · Agent 内部｜create_agent 构图内部：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="13 · Agent 内部 — LangChain 图解教程">
-<meta property="og:description" content="第三部分 · 内部源码｜Agent 内部：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="28 · create_agent 构图内部 — LangChain 图解教程">
+<meta property="og:description" content="第六部分 · Agent 内部｜create_agent 构图内部：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="13 · Agent 内部 — LangChain 图解教程">
-<meta name="twitter:description" content="第三部分 · 内部源码｜Agent 内部：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="28 · create_agent 构图内部 — LangChain 图解教程">
+<meta name="twitter:description" content="第六部分 · Agent 内部｜create_agent 构图内部：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -256,389 +256,138 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
 </style>
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第三部分 · 内部源码</span>
-    <span class="pill">13 / 27</span>
+    <span class="pill">第六部分 · Agent 内部</span>
+    <span class="pill">28 / 46</span>
   </div>
-  <div class="progress"><span style="width:48%"></span></div>
+  <div class="progress"><span style="width:60%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第三部分 · 内部源码</div>
-    <h1>Agent 内部</h1>
+    <div class="part">第六部分 · Agent 内部</div>
+    <h1>create_agent 构图内部</h1>
   </div>
-  
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-第 7 课的 <span class="inline">create_agent</span> 看起来像魔法。真相是：它<strong>构建并编译了一张
-LangGraph 状态图（StateGraph）</strong>。这一课拆开这张图，你会发现"Agent 循环"不过是图里的两个节点 + 几条边。
-</p>
 
-<div class="card analogy">
-  <div class="tag">🗺️ 生活类比</div>
-  把 Agent 想成<strong>地铁线路图</strong>：每个<strong>节点</strong>是一个站（"模型站"、"工具站"），
-  <strong>边</strong>是轨道，而<strong>条件边</strong>是道岔——列车（消息状态）到了"模型站"后，
-  道岔根据"有没有 tool_calls"决定开往"工具站"还是直接驶向终点。
-</div>
+<p class="lead"><span class="mono">create_agent</span> 看起来是一行 API，内部却在做一件很工程化的事：它在 <span class="mono">factory.py</span> 里直接归一化 model、tools、system_prompt、middleware、context_schema、response_format 等参数，并内联组装一张 <span class="mono">StateGraph</span>。这张图至少包含 model 节点、可选 tools 节点、真实的 model→tools 条件边、messages 状态和 <span class="mono">add_messages</span> reducer；更复杂时还会插入 middleware 节点、人审边界、结构化输出策略和运行时上下文。本课从参数流入图构件的角度读 <span class="mono">create_agent</span> 与 <span class="mono">_make_model_to_tools_edge</span>、<span class="mono">_chain_model_call_handlers</span>、<span class="mono">_chain_tool_call_wrappers</span> 等 helper，理解为什么“高层声明式 API”最终要落到 LangGraph 的状态图。</p>
+<div class="card analogy"><div class="tag">🧩 生活类比</div>create_agent 像旅行社的打包行程。你告诉它目的地、预算、想去的景点、是否需要导游、是否要保险；旅行社不会让你自己排每天路线，而是在同一个服务台里把这些偏好编成一张行程图：第一天集合，某些景点需要门票，遇到天气就改线，晚上回酒店。你传入的是参数，得到的是可执行流程。factory.py 里的内联构图逻辑和 helper 函数就像服务台背后的路线表、审批表和调度规则，把车、票、导游和应急方案接起来。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：参数如何变成 StateGraph</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">声明入口</div><div class="mn-desc">create_agent 接收模型、工具、提示、schema、middleware、response_format 等用户意图</div></div><div class="map-node now"><div class="mn-label">内联构图</div><div class="mn-desc">create_agent 在 factory.py 中归一化参数，直接创建 StateGraph、节点、边和状态键</div></div><div class="map-node source"><div class="mn-label">状态图</div><div class="mn-desc">StateGraph 定义 messages 等 state，并用 add_messages 描述消息如何增量合并</div></div><div class="map-node now"><div class="mn-label">节点与边</div><div class="mn-desc">model 节点负责模型调用，ToolNode 负责工具执行，条件边负责循环或结束</div></div><div class="map-node after"><div class="mn-label">编译运行</div><div class="mn-desc">图编译后成为 Runnable，继承 LangGraph 的 stream、checkpoint、interrupt 和 recursion_limit</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>源码阅读建议从工厂函数进入，再看内联构图逻辑如何把参数放进图。不要只读最终返回对象；关键在“参数 -> 状态 -> 节点 -> 边 -> 编译图”的转换链。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/langchain_v1/langchain/agents/factory.py</td><td class="mono">create_agent</td><td>公开工厂函数，暴露声明式 Agent 配置入口</td><td>用户参数从这里进入构图流程</td></tr><tr><td class="mono">libs/langchain_v1/langchain/agents/factory.py</td><td class="mono">_make_model_to_tools_edge</td><td>真实 model→tools 条件边 helper，读取最新 AIMessage、已完成 ToolMessage 和结构化输出工具，决定去 tools、回 model 或 END</td><td>替代把 create_agent 构图误讲成 tools_condition 或虚构构建器</td></tr><tr><td class="mono">libs/langchain_v1/langchain/agents/factory.py</td><td class="mono">_chain_model_call_handlers / _chain_tool_call_wrappers</td><td>组合 middleware 的 model/tool wrapper 栈，让中间件按顺序包住真实调用</td><td>把 middleware 参数映射到调用链而不是普通提示词</td></tr><tr><td class="mono">libs/langgraph/langgraph/graph/state.py</td><td class="mono">StateGraph</td><td>状态图构建器，注册 state schema、节点、普通边、条件边和编译步骤</td><td>承接 create_agent 内联添加的节点与边</td></tr><tr><td class="mono">libs/prebuilt/langgraph/prebuilt/tool_node.py</td><td class="mono">ToolNode</td><td>当 tools 非空时加入图，负责执行模型发出的 tool_calls</td><td>由条件边从 model 节点路由进入</td></tr><tr><td class="mono">libs/langgraph/langgraph/graph/message.py</td><td class="mono">add_messages</td><td>messages 状态的 reducer，把每个节点返回的新消息追加或按 id 合并</td><td>让 model 和 tools 节点只返回增量消息</td></tr></table>
+<h2>调用图：create_agent 的构图路径</h2>
+<div class="flow call-graph"><div class="node hl"><div class="nt">create_agent(...) </div><div class="nd">接收 model、tools、system_prompt、middleware、context_schema、response_format</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">normalize inputs</div><div class="nd">把模型标识解析为 chat model，把工具转成 BaseTool/ToolNode 可用形式</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">inline factory assembly</div><div class="nd">解析 state schema、添加 model/tools/middleware 节点、组合 wrapper、接条件边和输出格式策略</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">StateGraph</div><div class="nd">add_node(&#x27;model&#x27;)、可选 add_node(&#x27;tools&#x27;)、add_conditional_edges(...)、messages reducer</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">compile</div><div class="nd">返回可 invoke/stream 的编译图，运行时由 LangGraph 调度</div></div></div>
+<h2>Trace：参数进入图构件</h2>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. model 参数</td><td>model=&#x27;anthropic:claude...&#x27; 或 BaseChatModel 实例</td><td>create_agent 归一化为可调用模型，并准备 bind_tools 或工具 schema</td><td>model node 的核心 runnable</td></tr><tr><td>2. tools 参数</td><td>tools=[search_order, refund_order]</td><td>工具被验证、命名、生成 schema；若非空则构造 ToolNode</td><td>tools 节点 + model 后条件边</td></tr><tr><td>3. messages state</td><td>用户传入 messages 或 input</td><td>StateGraph 使用包含 messages 的 state schema，并为 messages 绑定 add_messages reducer</td><td>节点可返回 {&#x27;messages&#x27;:[new_message]}</td></tr><tr><td>4. middleware 参数</td><td>middleware=[limit, hitl, custom_guard]</td><td>create_agent 直接添加 before/after 节点，并用 _chain_model_call_handlers / _chain_tool_call_wrappers 组合 wrapper</td><td>图形状和调用链被扩展</td></tr><tr><td>5. response_format</td><td>response_format=AnswerSchema 或显式策略</td><td>通过 AutoStrategy、ToolStrategy 或 ProviderStrategy 选择结构化输出路径</td><td>最终 state 可含 structured_response</td></tr></table>
+<h2>简化源码走读：从声明到图</h2>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/langchain_v1/langchain/agents/factory.py :: create_agent / inline StateGraph assembly</span><span class="ln">简化版</span></div><pre>def create_agent(model, tools=None, middleware=(), response_format=None, **opts):
+    normalized_tools = normalize_tools(tools or [])
+    model_handler = _chain_model_call_handlers(wrap_model_handlers)
+    tool_wrapper = _chain_tool_call_wrappers(wrap_tool_handlers)
 
-<h2>create_agent 构建的图长这样</h2>
-<p>核心就两个节点和一条会绕回去的边。请求带着 <strong>状态（messages）</strong>在图里流动：</p>
-
-<div class="flow" style="flex-direction:column;gap:.7rem;align-items:center">
-  <div class="node">START</div>
-  <div class="arrow" style="transform:rotate(90deg)">→</div>
-  <div class="node hl" style="min-width:220px">节点 "model"<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">调用聊天模型，产出 AIMessage</span></div>
-  <div class="arrow" style="transform:rotate(90deg)">→ 条件判断 →</div>
-  <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;justify-content:center">
-    <div class="node" style="min-width:220px;border-color:var(--amber)">有 tool_calls → 节点 "tools"<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">ToolNode 执行工具 → 加 ToolMessage → <b>回到 "model"</b></span></div>
-    <div class="node" style="min-width:140px;border-color:var(--accent)">无 → END</div>
-  </div>
-</div>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">langchain_v1/langchain/agents/factory.py</span><span class="ln">构建状态图（节选）</span></div>
-<pre><span class="kw">from</span> langgraph.graph.state <span class="kw">import</span> StateGraph
-<span class="kw">from</span> langgraph.prebuilt.tool_node <span class="kw">import</span> ToolNode
-
-graph = StateGraph(...)
-graph.add_node(<span class="st">"model"</span>, model_node)        <span class="cm"># 模型节点</span>
-graph.add_node(<span class="st">"tools"</span>, tool_node)        <span class="cm"># 工具节点（ToolNode）</span>
-graph.add_edge(START, <span class="st">"model"</span>)             <span class="cm"># 入口 → model</span>
-graph.add_conditional_edges(<span class="st">"model"</span>, ...)   <span class="cm"># model → tools 或 END</span>
-graph.add_conditional_edges(<span class="st">"tools"</span>, ...)   <span class="cm"># tools → 回到 model（或退出）</span>
-<span class="kw">return</span> graph.compile(...)               <span class="cm"># 编译成 CompiledStateGraph</span>
-</pre>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应</div>
-  <ul>
-    <li>Agent 引擎来自<strong>独立库 LangGraph</strong>——它是<strong>另一个仓库</strong>（<span class="mono">langchain-ai/langgraph</span>），
-      <strong>不在</strong>你一直读的 langchain monorepo 的 <span class="mono">libs/</span> 里；<span class="mono">langchain</span> 主力包<strong>依赖</strong>它。
-      <span class="mono">StateGraph</span>、<span class="mono">ToolNode</span> 等都从 <span class="mono">langgraph</span> 导入。</li>
-    <li><span class="mono">create_agent</span> 在 <span class="mono">agents/factory.py</span>：定义 <span class="mono">model_node</span>，加 <span class="mono">"model"</span>/<span class="mono">"tools"</span> 两节点，
-      用 <span class="mono">add_conditional_edges</span> 接好循环，最后 <span class="mono">compile()</span>。</li>
-    <li>返回的 <span class="mono">CompiledStateGraph</span> <strong>本身也是一个 Runnable</strong>——所以你能对它
-      <span class="mono">invoke</span>/<span class="mono">stream</span>（呼应第 8 课）。</li>
-  </ul>
-</div>
-
-<h2>create_agent 用到的 LangGraph 零件清单</h2>
-<p>你问"LangGraph 的代码细节到底用了哪些"——这张表一次说清。<span class="mono">factory.py</span> 顶部就 import 了它们：</p>
-<table class="t">
-  <tr><th>LangGraph 零件</th><th>作用</th><th>教程位置</th></tr>
-  <tr><td class="mono">StateGraph / CompiledStateGraph</td><td>定义并编译整张 Agent 图</td><td>本课</td></tr>
-  <tr><td class="mono">START / END</td><td>图的入口与出口</td><td>本课流程图</td></tr>
-  <tr><td class="mono">add_conditional_edges</td><td>"去 tools 还是结束"的条件路由</td><td>本课 · 深入 ①</td></tr>
-  <tr><td class="mono">ToolNode</td><td>执行工具、产出 ToolMessage 的节点</td><td>第 12 课</td></tr>
-  <tr><td class="mono">add_messages（reducer）</td><td>messages 的<strong>合并规则</strong>（按 id 追加/替换）</td><td>下方 ⤵</td></tr>
-  <tr><td class="mono">Send</td><td><strong>并行扇出</strong>多个工具调用</td><td>本课 · 进阶 ④</td></tr>
-  <tr><td class="mono">Command</td><td>状态更新 + 跳转（多 Agent <strong>handoff</strong> 的底座）</td><td>本课 · 进阶 ④ · 第 21 课</td></tr>
-  <tr><td class="mono">Checkpointer / Store</td><td>持久化会话 / 长期记忆</td><td>本课 · 进阶 ①③</td></tr>
-  <tr><td class="mono">interrupt</td><td>中断等人审批（HITL）</td><td>本课 · 进阶 ② · 第 7 课</td></tr>
-  <tr><td class="mono">Runtime</td><td>运行时上下文（依赖注入）</td><td>第 19 课</td></tr>
-</table>
-<p style="color:var(--muted);font-size:.9rem">想把这些零件<strong>逐个拆到引擎层</strong>（Pregel 超步、channels、checkpoint、Send/Command 的实现）？见 <strong>第七部分 · 深入 LangGraph</strong>。</p>
-
-<h2>状态：在节点间流动的是什么？</h2>
-<p>图里流动的不是裸消息，而是 <span class="inline">AgentState</span>——一个至少含 <span class="inline">messages</span> 键的状态字典。
-每个节点读取它、产出新消息追加进去：</p>
-<pre class="code"><span class="cm"># 你 invoke 的就是这个 state</span>
-{<span class="st">"messages"</span>: [HumanMessage(...), AIMessage(...), ToolMessage(...), ...]}
-<span class="cm"># model 节点追加 AIMessage；tools 节点追加 ToolMessage</span>
-</pre>
-
-<div class="card detail">
-  <div class="tag">🔬 关键细节：messages 为什么是"追加"而非"覆盖"</div>
-  <p>真实定义是 <span class="mono">messages: Annotated[list[AnyMessage], add_messages]</span>（<span class="mono">agents/middleware/types.py</span>）。
-  这个 <span class="mono">add_messages</span> 是 LangGraph 的 <strong>reducer（归并函数）</strong>：当节点/中间件返回
-  <span class="mono">{"messages": [...]}</span> 时，框架<strong>不是覆盖</strong>旧列表，而是用它把新消息<strong>按 id 合并</strong>进去（id 相同则替换、不同则追加）。</p>
-  <ul>
-    <li>所以 <span class="mono">"model"</span> 节点只要 <span class="mono">return {"messages": [ai]}</span> 就能"追加一条"，不必自己拼回整段历史。</li>
-    <li>想<strong>删 / 改</strong>历史？返回<strong>相同 id</strong> 的消息可替换，或用 <span class="mono">RemoveMessage</span> 删除——直接塞一个新列表是<strong>删不掉</strong>的（只会被合并进去）。</li>
-    <li>这也解释了第 18 课中间件改消息为何要小心：你返回的是会被 reducer <strong>归并</strong>的"更新"，而不是整份状态。</li>
-  </ul>
-</div>
-
-<h2>middleware：在循环里插钩子</h2>
-<p>第 7 课签名里的 <span class="inline">middleware</span> 参数，就是往这张图里<strong>插入额外节点/包裹逻辑</strong>的机制——
-可在"调用模型前后"做拦截（如改写请求、人审、日志）。它让 Agent 行为可扩展而无需改核心循环。</p>
-
-<div class="card macro">
-  <div class="tag">🌍 宏观理解</div>
-  <ul>
-    <li><strong>Agent 不是黑魔法，是一张图</strong>：节点("model"/"tools") + 条件边(看 tool_calls) = 自动循环。</li>
-    <li>LangChain 负责<strong>"组装"</strong>这张图（把模型、工具、中间件接成节点和边），
-      LangGraph 负责<strong>"运行"</strong>这张图（状态在节点间流转、支持持久化/中断）。</li>
-    <li>因为编译产物是 Runnable，整个 Agent 自动获得 stream/批处理/回调等能力。</li>
-  </ul>
-</div>
-
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入 Agent 内部的三个机制。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 条件边是怎么决定"去 tools 还是结束"的 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 路由函数</div>
-      <div class="a">"model"节点之后挂了一个条件边，本质是一个看状态的小函数：
-<pre class="code"><span class="kw">def</span> <span class="fn">should_continue</span>(state):
-    last = state[<span class="st">"messages"</span>][-1]
-    <span class="kw">if</span> last.tool_calls:        <span class="cm"># 模型请求了工具</span>
-        <span class="kw">return</span> <span class="st">"tools"</span>         <span class="cm"># → 去 tools 节点</span>
-    <span class="kw">return</span> END                <span class="cm"># → 否则结束</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么用"条件边"而不是写死</div>
-      <div class="a">是否继续循环取决于<strong>运行时</strong>模型的输出，不是编译期能定的。
-        条件边（<span class="mono">add_conditional_edges</span>）让图能根据当前状态<strong>动态选择</strong>下一个节点。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">循环的终止条件被清晰地表达为一条边，逻辑集中、可读；要改循环行为只需改这个路由函数。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> 为什么用"图(Graph)"而不是简单 while 循环 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">❓ 图能给你什么，while 给不了</div>
-      <div class="a"><strong>持久化 / 断点续跑</strong>（checkpointer：跑一半存档，之后从断点恢复）、
-        <strong>中断与人审</strong>（在某节点暂停等人确认）、<strong>并行分支</strong>、<strong>可视化</strong>、
-        <strong>细粒度流式</strong>（按节点输出事件）。这些用裸 while 自己实现会非常复杂。</div>
-    </div>
-    <div class="qa">
-      <div class="q">🧪 体现在签名里</div>
-      <div class="a"><span class="mono">create_agent</span> 的 <span class="mono">checkpointer</span>、<span class="mono">interrupt_before/after</span>、
-        <span class="mono">store</span> 等参数，正是这些图能力的开关。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点 & 🔀 其他方案</div>
-      <div class="a">优点：把"有状态、可中断、可恢复的循环"标准化。其他方案：自己写 while（小场景够用，但要自己实现状态管理与持久化）。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> AgentState 里除了 messages 还能放什么 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 自定义状态</div>
-      <div class="a">默认状态至少含 <span class="mono">messages</span>，但你可以用 <span class="mono">state_schema</span> 扩展，
-        让节点之间传递更多字段（如已检索文档、剩余预算、用户画像等）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么需要</div>
-      <div class="a">复杂 Agent 的节点常要共享"对话之外"的数据。把它们放进状态，
-        就能在 model / tools / middleware 各节点间安全传递，而不必塞进消息里污染对话。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">AgentState</span> 由 <span class="mono">agents/middleware/types.py</span> 定义并从 <span class="mono">langchain.agents</span> 导出；
-        <span class="mono">state_schema</span> 是 <span class="mono">create_agent</span> 的参数之一。</div>
-    </div>
-  </div>
-</details>
-
-<h2>🗺️ 进阶专题：状态图的高级能力</h2>
-<p>create_agent 编译出的 LangGraph 图，远不止"循环"。正因为底层是<strong>图</strong>而非裸 while，
-它还自带<strong>持久化、中断恢复、并行、长期记忆</strong>等生产级能力——大多通过 <span class="inline">create_agent</span> 的参数开启。</p>
-
-<table class="t">
-  <tr><th>能力</th><th>开关 / 机制</th></tr>
-  <tr><td>跨请求记忆、多会话隔离</td><td class="mono">checkpointer + thread_id</td></tr>
-  <tr><td>暂停 / 断点续跑（人审）</td><td class="mono">interrupt_before / interrupt_after</td></tr>
-  <tr><td>跨会话的长期存储</td><td class="mono">store</td></tr>
-  <tr><td>并发分支 / 子图</td><td class="mono">LangGraph 图能力</td></tr>
-</table>
-
-<h2>🔍 状态图进阶 · 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，逐个吃透高级能力。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 持久化与多会话：checkpointer + thread_id <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">
-<pre class="code"><span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> InMemorySaver
-
-agent = create_agent(model, tools, checkpointer=InMemorySaver())
-<span class="cm"># 用 thread_id 区分不同用户/会话，各自的历史自动保存与恢复</span>
-agent.invoke({<span class="st">"messages"</span>: [...]}, config={<span class="st">"configurable"</span>: {<span class="st">"thread_id"</span>: <span class="st">"user-1"</span>}})
-agent.invoke({<span class="st">"messages"</span>: [...]}, config={<span class="st">"configurable"</span>: {<span class="st">"thread_id"</span>: <span class="st">"user-1"</span>}})  <span class="cm"># 记得上一轮</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 它解决什么</div>
-      <div class="a">默认每次 <span class="mono">invoke</span> 都是<strong>全新一局</strong>。挂上 <span class="mono">checkpointer</span> 后，
-        图会在每步<strong>存档状态</strong>，相同 <span class="mono">thread_id</span> 的后续调用自动<strong>接着上次</strong>跑——这就是 Agent 的"记忆"。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">记忆能力是"配置项"而非手写：开发用 <span class="mono">InMemorySaver</span>，生产换成数据库版（如 Postgres），代码不变。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> 中断与恢复：让图在中途暂停等人 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 机制</div>
-      <div class="a"><span class="mono">interrupt_before=["tools"]</span> 让图在执行工具节点<strong>前暂停</strong>并存档，
-        把控制权交还给你的程序；人确认后再 <span class="mono">invoke(None, config=...)</span> <strong>从断点继续</strong>。
-        第 7 课的 <span class="mono">HumanInTheLoopMiddleware</span> 正是基于这套机制。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么只有"图"能做到</div>
-      <div class="a">暂停 / 恢复要求把"执行到哪、状态是什么"完整存下来，之后精确还原。
-        这正是<strong>状态图 + checkpointer</strong> 的拿手好戏；裸 while 循环很难优雅实现"跑一半存档、改天再续"。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">支撑人审、审批流、超长任务分段执行等真实场景；中断期间不占用任何运行资源。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> 并行、子图与长期记忆 store <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 三种进阶形态</div>
-      <div class="a">
-<pre class="code"><span class="cm"># 并行：图可让多个分支节点并发执行，再汇合（如同时查多个数据源）</span>
-<span class="cm"># 子图：把一个编译好的 Agent 当作另一张图里的一个节点（多智能体协作）</span>
-<span class="cm"># 长期记忆：store 跨会话保存知识（区别于 checkpointer 的"单会话状态"）</span>
-agent = create_agent(model, tools, store=my_store)</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ checkpointer 与 store 区别</div>
-      <div class="a"><span class="mono">checkpointer</span> 存的是<strong>单个会话(thread)的过程状态</strong>（用于续跑/记住本轮对话）；
-        <span class="mono">store</span> 存的是<strong>跨会话、跨用户的长期知识</strong>（如"这个用户的偏好"），两者互补。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点 & 🌍 收束</div>
-      <div class="a">正因为 Agent 是一张<strong>可组合的图</strong>，单 Agent 能升级成<strong>多 Agent 系统</strong>（子图）、
-        能并发、能记长期记忆。这就是"用图运行"相比"裸循环"的真正威力。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">4</span> 控制流原语：Send（并行扇出）与 Command（跳转 / handoff） <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 Send：一次请求多个工具，怎么并行</div>
-      <div class="a">当一条 AIMessage 里有<strong>多个 tool_calls</strong> 时，路由不是简单返回 <span class="mono">"tools"</span>，而是给每个调用发一个 <span class="mono">Send</span>：
-<pre class="code"><span class="cm"># factory.py：把 N 个工具调用并行扇出到 tools 节点</span>
-<span class="kw">return</span> [Send(<span class="st">"tools"</span>, [tc]) <span class="kw">for</span> tc <span class="kw">in</span> pending_tool_calls]</pre>
-        这就是"<strong>并行工具调用</strong>"的真实机制：<span class="mono">Send(node, payload)</span> 让同一个节点<strong>被并发触发多次</strong>，各跑各的、再汇合回 model。</div>
-    </div>
-    <div class="qa">
-      <div class="q">🧪 Command：状态更新 + 跳转（多 Agent handoff）</div>
-      <div class="a">普通节点返回一个 <span class="mono">dict</span> 只更新状态；返回 <span class="mono">Command</span> 则能<strong>同时</strong>"改状态 + 指定下一步去哪"：
-<pre class="code"><span class="kw">from</span> langgraph.types <span class="kw">import</span> Command
-<span class="kw">return</span> Command(update={<span class="st">"messages"</span>: [...]}, goto=<span class="st">"researcher"</span>)  <span class="cm"># 改状态并跳到另一个 agent</span></pre>
-        多 Agent <strong>handoff</strong>（第 21 课对照 AutoGen 时提到的"交接"）正是用 <span class="mono">Command(goto=...)</span> 实现的——一个 Agent 把任务<strong>交棒</strong>给另一个。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 一句话记</div>
-      <div class="a"><span class="mono">Send</span> = <strong>"分身并行"</strong>（fan-out，如多工具）；<span class="mono">Command</span> = <strong>"改状态 + 改去向"</strong>（含 handoff）。
-        二者都来自 <span class="mono">langgraph.types</span>，是 LangGraph 控制流的两块基石。</div>
-    </div>
-  </div>
-</details>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li><strong>Agent 就是一张图</strong>：节点 + 条件边 = 循环；"组装(LangChain)"与"运行(LangGraph)"彻底分离。</li>
-    <li>编译产物<strong>仍是 Runnable</strong>，所以 Agent 自动获得 stream/批处理/回调，还能持久化与中断。</li>
-  </ul>
-</div>
-
-<div class="card key">
-  <div class="tag">✅ 本课要点</div>
-  <ul>
-    <li>两个节点：<span class="mono">"model"</span>（调模型）、<span class="mono">"tools"</span>（ToolNode 执行工具）；条件边按 <span class="mono">tool_calls</span> 决定走向。</li>
-    <li>流动的状态是 <span class="mono">AgentState</span>（含 <span class="mono">messages</span>，靠 <span class="mono">add_messages</span> reducer <strong>合并</strong>而非覆盖）；<span class="mono">middleware</span> 可在循环中插钩子。</li>
-    <li>它<strong>直接复用 LangGraph 的零件</strong>：<span class="mono">StateGraph / ToolNode / Send（并行）/ Command（handoff）/ checkpointer / interrupt</span>——LangChain 组装、LangGraph 运行。</li>
-    <li>编译产物是 Runnable，所以能 invoke/stream。下一课：流式与回调系统。</li>
-  </ul>
-</div>
-<div class="selftest">
+    graph = StateGraph(
+        state_schema=resolved_state_schema,
+        input_schema=input_schema,
+        output_schema=output_schema,
+        context_schema=opts.get(&quot;context_schema&quot;),
+    )
+    graph.add_node(&quot;model&quot;, RunnableCallable(model_node, amodel_node))
+    if normalized_tools or tool_wrapper:
+        graph.add_node(&quot;tools&quot;, ToolNode(normalized_tools, wrap_tool_call=tool_wrapper))
+        graph.add_conditional_edges(
+            loop_exit_node,
+            RunnableCallable(_make_model_to_tools_edge(
+                model_destination=loop_entry_node,
+                structured_output_tools=structured_output_tools,
+                end_destination=exit_node,
+            )),
+            [&quot;tools&quot;, loop_entry_node, exit_node],
+        )
+    return graph.compile(checkpointer=checkpointer, store=store)
+</pre><div class="cw-note">教学版省略了动态模型选择、中间件链、结构化输出、interrupt 和 store/checkpointer 等细节，但保留了 create_agent 的关键角色：不是直接执行一次模型，而是声明并编译一张可重复运行的图。</div></div><h2>为什么不是手写 while 循环</h2><p>手写 while 循环可以完成最简单的 model/tool/model，但一旦需求增长，就会不断补洞：怎么保存中间状态，怎么流式输出每个节点，工具并行怎么合并，工具前人审怎么暂停，模型失败怎么重试，超过多少步算失控，最终结构化结果放在哪里。StateGraph 已经为这些问题提供统一运行时，create_agent 的价值就是把 Agent 的常见形状编到这套运行时里。</p><p>图还有一个重要收益：可观察。节点名、边、状态 key、每步写入都能被 stream/debug/checkpoint 展示。手写循环的日志通常是开发者随手 print，格式不稳定，也很难恢复执行。Agent 一旦进入生产，可恢复、可追踪、可中断往往比少写几行代码更重要。</p><p>不过，create_agent 并不是所有场景的唯一答案。如果你的控制流有非常强的业务确定性，例如必须先检索、再审批、再发邮件、最后写数据库，直接用 StateGraph 手工建图可能更清晰。create_agent 适合“模型可自主决定是否调工具”的通用 Agent；手工图适合“业务流程本身就是主角”的工作流。</p><h2>add_messages 为什么是关键小零件</h2><p>messages 是 Agent 状态中最重要的时间线。model 节点产出 AIMessage，tools 节点产出 ToolMessage，中间件也可能追加 SystemMessage 或修改消息。若每个节点都返回完整历史，节点之间会强耦合：任何节点都要知道前面所有消息怎么合并、是否去重、是否替换同 id 消息。add_messages reducer 把合并规则集中起来，节点只返回“我新增了什么”。</p><p>增量返回也和 checkpoint 配合得更好。每一轮写入可以被记录为一个小的状态更新，而不是反复保存一份越来越大的完整列表。调试时你能看到“本步新增了一个 ToolMessage”，而不是只能比较两份大历史差异。对并行工具调用，reducer 还能把多个 ToolMessage 合并到同一 messages key，保持消息因果链完整。</p><p>这就是 StateGraph 思维和普通 dict 思维的区别。普通 dict.update 会让后写覆盖先写；Agent messages 需要的是追加、按 id 替换和保留顺序。把这个语义显式写成 reducer，图运行时才能安全地处理多个节点对同一个 state key 的写入。</p><h2>常见误解与边界情况</h2><p>误解一是把 create_agent 当成一个“更聪明的模型调用”。实际上它返回的是图，图可以 stream、checkpoint、配置 recursion_limit，也能插入 middleware。把它当模型调用会忽略状态、边和运行时能力，调试时只盯着 prompt，很容易漏掉工具节点或 reducer 的问题。</p><p>误解二是以为传入 tools 后模型一定会调用工具。create_agent 只是把工具说明和执行路径接好；是否调用仍由模型输出 tool_calls 决定。工具描述不清、系统提示禁止调用、模型认为已有答案，都可能导致工具节点完全不跑。排查时要看 AIMessage.tool_calls，而不是只看工具列表是否存在。</p><h2>工程复盘：从参数表反推图形状</h2><p>阅读或评审一个 create_agent 调用时，最有效的方法是先做参数表。第一列写参数名，第二列写它影响的图组件，第三列写运行时可观察结果。model 影响 model 节点；tools 影响 ToolNode 和条件边；middleware 影响额外节点或 wrapper 链；context_schema 影响 Runtime.context；response_format 影响最终 structured_response。参数表一旦完整，图形状基本就能推出来。</p><p>不要把所有参数都理解成 prompt 配置。system_prompt 确实会改变模型看到的内容，但 tools 会改变模型可发出的动作空间，middleware 会改变调用边界，checkpointer 会改变恢复能力，context_schema 会改变工具可用的可信环境。这些参数属于不同层次。把它们都塞进“提示词优化”框里，会导致你用错排查手段。</p><p>create_agent 的源码价值在于把宽入口收束为窄契约。用户可能传字符串模型名、模型实例、普通函数工具、BaseTool、不同形式的 response_format；factory.py 会在函数体内把这些归一化为模型节点、ToolNode、structured_output_tools、middleware wrapper 和 StateGraph schema。源码里很多分支看似繁琐，其实是在维护公共 API 的宽入口和内部图的窄契约。读源码时要区分“兼容用户输入”的代码和“决定运行语义”的代码。</p><p>StateGraph 的 state schema 是 Agent 的长期骨架。messages 几乎总在里面，structured_response 可能在里面，某些中间件还会增加额外状态。评审时要问每个 state key 谁写、谁读、合并规则是什么。一个无人负责的 state key 会变成调试噪声；一个无 reducer 却被多个节点写的 key 会在并行场景产生冲突。</p><p>ToolNode 是否出现由工具集合决定，但工具集合为空并不代表 Agent 没有价值。无工具 Agent 仍可以用 middleware、context 和 response_format 做结构化问答。相反，有工具也不代表每轮都会进入 ToolNode；条件边仍要看 AIMessage.tool_calls。这个区分能避免很多“我明明传了工具为什么没跑”的误判。</p><p>add_messages 让图采用增量写入思维。model 节点不需要复制完整历史，tools 节点也不需要知道前面有多少消息；它们只返回新增消息。运行时用 reducer 统一合并。这个设计降低节点复杂度，也让 checkpoint 可以记录每一步新增内容。若手写循环每次都重建完整 messages，短期简单，长期难以观察和恢复。</p><p>response_format 会改变最终阶段，而不是替代中间工具观察。模型仍可能先调用工具，再基于 ToolMessage 生成结构化响应。评审时要确认 schema 字段能被工具事实支撑：如果 schema 要求 order_count，但没有任何工具返回订单列表或数量，模型只能猜。结构化格式约束形状，不会凭空创造可靠事实来源。</p><p>如果需要超出 create_agent 默认形状的流程，不要硬塞参数。比如必须先审批再允许模型看某些数据，或者必须按固定流程依次调用三个系统，手写 StateGraph 更清晰。create_agent 是通用 Agent 的快捷入口，不是替代所有工作流建模的银弹。判断标准是：控制权主要属于模型，还是主要属于业务流程。</p><div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：create_agent 直接执行 Agent</div><div class="pf-correct">正确：它构造并返回可运行图；真正执行发生在 invoke/stream 时。</div></div><div class="pitfall"><div class="pf-wrong">误解：StateGraph 只是实现细节，不影响用法</div><div class="pf-correct">正确：图决定状态、节点、边、流式事件、checkpoint 和 recursion_limit，是可观察行为的一部分。</div></div><div class="pitfall"><div class="pf-wrong">误解：messages 可以普通 list append</div><div class="pf-correct">正确：在图里应通过 add_messages reducer 合并增量，避免覆盖和并行冲突。</div></div><div class="pitfall"><div class="pf-wrong">误解：ToolNode 总是存在</div><div class="pf-correct">正确：只有传入工具且图需要工具阶段时才加入；无工具 Agent 可以只有模型路径。</div></div></div><h2>源码阅读练习：检查构图结果而非只看入口</h2><p>第一步，确认 create_agent 返回的对象按 Runnable 使用，而不是在工厂函数里直接完成业务。很多困惑来自把“构建阶段”和“运行阶段”混在一起：构建阶段决定节点和边，运行阶段才读取用户消息、调用模型和执行工具。</p><p>第二步，列出图的入口节点。普通 Agent 往往从 model 或 before_agent/before_model 之类中间件节点进入。入口错了，后续工具和结构化响应都可能看起来正常注册，却永远没有机会运行。</p><p>第三步，列出 model 后的条件边。没有工具时，model 可以直接结束；有工具时，条件边必须能根据 AIMessage.tool_calls 跳到 ToolNode。条件边是 Agent 循环从“一次模型调用”变成“多轮工具交互”的关键。</p><p>第四步，检查 state schema。messages 是否使用 add_messages，structured_response 是否有明确写入者，中间件新增字段是否有读者。图的状态越清楚，后面 checkpoint、stream 和 debug 才越有意义。</p><p>第五步，把参数和节点一一对应。某个 middleware 没生效时，不要只看它是否传进列表，还要看它覆盖了哪个 hook，这个 hook 是否会生成节点或 wrapper。某个 response_format 没生效时，要看最终模型路径是否真的走结构化输出。</p><p>最后，判断是否应该退出 create_agent。若图里出现大量固定业务步骤、复杂条件审批和多个必须串行的外部系统，手写 StateGraph 可能比继续堆参数更清楚。高层 API 的价值是覆盖常见形状，不是隐藏所有流程设计。</p><div class="card lab"><div class="tag">🧪 小实验 · 把一组参数画成图</div><ol><li>选择一个 create_agent 调用，列出 model、tools、middleware、context_schema、response_format 五类参数。</li><li>画出至少两个节点：model 与 tools；如果没有工具，说明为什么 tools 节点可以省略。</li><li>标出 messages state，并写明 model 和 tools 各自返回的增量消息类型。</li><li>在 model 节点后写条件边：AIMessage.tool_calls 非空去 tools，否则结束。</li><li>给每个 middleware 标注它会变成图节点、调用 wrapper，还是只改变模型/工具请求。</li></ol></div><h2>课堂检查清单：确认你真的理解 create_agent 构图</h2><p>能把 create_agent 看成构图函数，而不是一次模型调用。它接收声明式参数，返回可 invoke 和 stream 的编译图。</p><p>能根据 tools 是否为空判断图里是否需要 ToolNode，并知道有 ToolNode 也不代表每轮一定执行工具。</p><p>能说明 model 节点之后为什么需要条件边。循环轮数取决于运行时 AIMessage.tool_calls，编译期无法固定。</p><p>能解释 add_messages 的作用：节点返回新增消息，reducer 负责追加、替换和合并，而不是让节点复制完整历史。</p><p>能把 middleware 分成状态钩子和 wrapper，并指出它们会改变图节点还是调用链。</p><p>能说明 response_format 影响最终输出契约，而不是替代中间 ToolMessage 或工具事实来源。</p><p>能检查 state schema 中每个 key 的读者、写者和 reducer，避免无主字段或并行写冲突。</p><p>能区分用户传入参数的宽入口和图内部组件的窄契约，理解 create_agent 为什么要在函数体内做大量归一化。</p><p>能说明为什么图比 while 循环更适合 checkpoint、interrupt、stream、debug 和并行工具。</p><p>能判断什么时候不该用 create_agent，而应手写 StateGraph 表达固定业务流程。</p><p>能从一次运行 trace 反推图路径：入口节点、model、条件边、tools、再回 model 或 END。</p><p>能把构图阶段的错误和运行阶段的错误分开排查，避免在 prompt 上修一个其实是图形状的问题。</p><p>能说明 checkpointer、store、context_schema 等参数为什么属于运行时能力，而不是模型提示词的一部分。</p><p>能在代码评审中要求作者画出参数到图组件的映射表，让隐式构图变成团队可讨论的设计。</p><h2>复盘提问：构图课后自检</h2><p>create_agent 的学习难点在于它把很多工程能力藏在一个友好入口后面。你看到的是一行函数调用，运行时看到的是节点、边、状态、reducer、wrapper、runtime 和编译图。每当行为不符合预期，都应从这张隐藏图还原路径，而不是只盯着入口参数。</p><p>参数越多，越要分类。模型参数决定谁来思考，工具参数决定模型可以采取哪些外部动作，中间件决定调用边界如何被保护，上下文决定代码能读取什么可信环境，输出格式决定最终结果如何被应用消费。分类清楚，排查时才不会把所有问题都归因于提示词。</p><p>构图思维还能帮助团队沟通。产品说要加人工审批，工程上不是在 prompt 里写一句请谨慎，而是要在敏感工具前加入中间件或图节点。产品说要结构化结果，工程上不是让模型多写几行，而是要定义 response_format 并验证字段来源。</p><p>当 create_agent 的默认图形状不再适合时，主动切到 StateGraph 是成熟选择。高层 API 让常见 Agent 变快，手写图让特殊流程变清楚。两者不是竞争关系，而是同一运行时上的两个入口。关键是知道自己需要模型自主循环，还是需要业务确定流程。</p><p>读源码时要容忍工厂函数里的复杂分支。公共 API 为了好用，必须接受多种输入形式；内部图为了可靠，必须收束到少数稳定组件。看懂这层转换，就能理解为什么源码不是简单 while 循环，也能判断哪些复杂度是必要的兼容成本。</p><h2>create_agent 构图评审清单</h2><p>评审 create_agent 调用时，先画参数到图组件的映射：model 进入 model 节点，tools 进入 ToolNode 与 model→tools 条件边，middleware 进入图节点或 wrapper 链，context_schema 进入 Runtime.context，response_format 进入结构化输出策略。缺少这张映射，就很容易把构图问题误修成 prompt 问题。</p><p>第二步检查边：当前 factory.py 使用 _make_model_to_tools_edge 决定从 loop_exit_node 去 tools、回 model 或 END，而不是简单套用 prebuilt tools_condition。这个 helper 会看最新 AIMessage、已完成 ToolMessage、structured_output_tools 和 jump_to，因此比教学图里的二分路由更贴近真实实现。</p><p>第三步检查状态：messages 是否由 add_messages 合并，structured_response 是否有清晰写入路径，中间件新增字段是否有 reader 和 reducer。第四步检查退出条件：无工具、只有结构化输出工具、有 after_model hook、有 return_direct 工具时，图的出口可能不同，不能只凭“传了 tools”判断路径。</p><h2>factory.py helper 路径图</h2><p>真实源码阅读可以按 helper 分层：create_agent 负责宽入口、schema 合并、节点注册和 compile；_make_model_to_tools_edge 负责模型输出后的条件路由；_chain_model_call_handlers 负责把 wrap_model_call 做成外到内的 handler 栈；_chain_tool_call_wrappers 负责把 wrap_tool_call 做成工具执行边界。</p><p>结构化输出不要只联想到 BaseChatModel.with_structured_output。create_agent 先把裸 schema 包成 AutoStrategy，也接受显式 ProviderStrategy 或 ToolStrategy；之后根据模型能力与策略决定是 provider 原生结构化响应，还是把 schema 作为结构化输出工具参与循环。这个区别会影响 tools 节点、structured_output_tools 和错误恢复。</p><p>如果源码评审发现页面写了不存在的内部类名，应优先回到 factory.py 找当前符号：函数定义、helper 名、条件边和 source map 必须能在仓库中复查。教学可以简化流程，但不能把简化伪代码写成真实源码符号。</p><h2>构图口令</h2><p>把参数映射成节点和边，是理解本页最重要的练习。遇到 create_agent 行为异常时，先画图，再读 trace，最后才改提示。只要能画出入口、model、ToolNode、条件边、messages reducer 和最终 structured_response，构图结果就从黑盒变成了可维护设计。</p><div class="card version"><div class="tag">📌 版本锚点</div>本课聚焦 LangChain v1 的 create_agent 构图模型。当前源码没有独立构建器类；create_agent 在 factory.py 内联组装 StateGraph，并通过 _make_model_to_tools_edge、_chain_model_call_handlers、_chain_tool_call_wrappers 等 helper 管理关键边和 wrapper 链。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>create_agent 是声明式工厂，核心工作是把参数编成 StateGraph。</li><li>create_agent 在 factory.py 内联归一化输入，并决定 state、节点、边、middleware 与输出格式路径。</li><li>add_messages 让节点返回增量消息，图运行时负责合并消息历史。</li><li>ToolNode 与 _make_model_to_tools_edge 构成 create_agent 的真实 model/tool 路由；是否进入工具由 AIMessage.tool_calls 和已完成 ToolMessage 决定。</li></ul></div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. <code>create_agent</code> 把 Agent 循环“编译成一张图（StateGraph）”，而不是直接写个 <code>while</code> 循环。这样设计最主要图什么？</div>
+  <div class="qn">1. <code>create_agent</code> 最核心的内部产物是什么？</div>
   <ol class="opts">
-    <li>为了强制你用 LangGraph</li>
-    <li>图能把“持久化、中断续跑、并行、可视化”变成通用能力，而裸循环这些都得手搓</li>
-    <li>图执行更快</li>
-    <li>让代码显得高级</li>
+    <li>一个只能同步运行的 while 循环</li>
+    <li>只包含 provider SDK 的客户端对象</li>
+    <li>一张包含 model 节点、可选 ToolNode、条件边和 messages state 的 <code>StateGraph</code></li>
+    <li>一段固定 prompt 字符串</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。一旦是图，状态在节点间流转，checkpointer/interrupt/并行/画图都是图引擎免费给的。“LangChain 组装、LangGraph 运行”的分离正源于此。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。create_agent 的关键不是立即执行模型，而是把声明式参数编译成 LangGraph 状态图，运行时再由图调度。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. “是否继续循环”用“条件边看 <code>tool_calls</code>”而不是“固定循环 N 次”。为什么？</div>
+  <div class="qn">2. 为什么 Agent 的 <code>messages</code> 状态通常使用 <code>add_messages</code> reducer？</div>
   <ol class="opts">
-    <li>固定次数会报错</li>
-    <li>条件边写起来短</li>
-    <li>模型不支持计数</li>
-    <li>要循环几轮取决于运行时模型每轮是否还要调工具——编译期无法预知，条件边让图按当前状态动态决定</li>
+    <li>让工具不能返回 ToolMessage</li>
+    <li>让节点只返回新增消息，由 reducer 负责追加、按 id 合并和处理并行写入</li>
+    <li>让模型绕过系统提示</li>
+    <li>让所有消息在每一轮都被删除</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。把“终止”做成“看状态的条件边”，才能自适应地停在该停的地方。动态性是 Agent 的本质需求。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。model 和 tools 节点都只应表达自己的增量输出；合并历史的规则集中在 reducer，图才容易持久化和调试。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 状态里 messages 用 <code>add_messages</code> reducer 合并，节点只返回“新增的那条”。为什么不让节点直接返回完整历史？</div>
+  <div class="qn">3. 在 create_agent 构出的图里，<code>ToolNode</code> 的职责是什么？</div>
   <ol class="opts">
-    <li>增量 + reducer 让“每个节点只关心自己产出什么”，并天然适配按步存档（checkpoint）与并行分支合并</li>
-    <li>完整历史太大</li>
-    <li>reducer 是必填的</li>
-    <li>返回完整历史会死循环</li>
+    <li>检查最新 AIMessage 的 tool_calls，直接决定是否 END</li>
+    <li>替代模型生成最终回答</li>
+    <li>保存用户密码和 API key</li>
+    <li>执行模型请求的工具调用，并把结果包装为与请求 id 配对的 ToolMessage</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。增量更新让节点解耦（各管各的输出），reducer 统一负责“怎么并进去”。这也是状态可逐步持久化、并行写能合并的基础。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. 模型一次请求 3 个工具，create_agent 用 <code>Send</code> 把它们“扇出”到 tools 节点。这个设计的好处是？</div>
-  <ol class="opts">
-    <li>节省内存</li>
-    <li>让代码更短</li>
-    <li>避免使用 ToolNode</li>
-    <li>3 个独立工具能在同一超步内并行执行、再汇合，而不是串行一个个等——降低总延迟</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。Send(node, payload) 让同一节点被并发触发多次；多个独立工具因此并行跑。这是“图 + Send”相对手写串行循环的实在优势。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。ToolNode 是工具执行阶段：按 name/args 调用工具，并把观察结果写回消息历史，供下一轮 model 使用。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>如果让你<strong>不依赖 LangGraph</strong> 手写一个极简 Agent 循环，你会怎么处理“终止条件 / 工具并行 / 出错重试 / 中途存档”？对照本课，体会 LangGraph 替你省了哪些事。</li>
-    <li>“把循环建模成图”带来了持久化/中断/并行，但也引入了图引擎的复杂度与学习成本。对一个只需“简单问答 + 偶尔调工具”的应用，这套重型设计<strong>值得吗</strong>？</li>
+    <li>选择一个 create_agent 调用，把 model、tools、middleware、context_schema、response_format 分别映射到图里的节点、边、state 或 runtime 组件。</li>
+    <li>给一条具体用户请求画出 graph path：从入口到 model，再到 tools 或 END，标出每一步哪个 state key 被读写。</li>
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="12-tool-internals.html"><div class="dir">← 上一课</div><div class="ttl">工具调用内部</div></a><a class="next" href="14-streaming-callbacks.html"><div class="dir">下一课 →</div><div class="ttl">Streaming 与 Callbacks</div></a></div>
+  <div class="footnav"><a class="prev" href="07-agents-intro.html"><div class="dir">← 上一课</div><div class="ttl">Agent 循环心智模型</div></a><a class="next" href="18-custom-middleware.html"><div class="dir">下一课 →</div><div class="ttl">Middleware 生命周期</div></a></div>
 </div>
 
 </body></html>

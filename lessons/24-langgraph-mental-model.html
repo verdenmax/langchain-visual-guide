@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>24 · 深入 LangGraph：图 / 状态 / 节点 / 边 — LangChain 图解教程</title>
-<meta name="description" content="第七部分 · 深入 LangGraph｜深入 LangGraph：图 / 状态 / 节点 / 边：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>17 · 为什么需要 LangGraph — LangChain 图解教程</title>
+<meta name="description" content="第四部分 · LangGraph 心智模型｜为什么需要 LangGraph：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="24 · 深入 LangGraph：图 / 状态 / 节点 / 边 — LangChain 图解教程">
-<meta property="og:description" content="第七部分 · 深入 LangGraph｜深入 LangGraph：图 / 状态 / 节点 / 边：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="17 · 为什么需要 LangGraph — LangChain 图解教程">
+<meta property="og:description" content="第四部分 · LangGraph 心智模型｜为什么需要 LangGraph：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="24 · 深入 LangGraph：图 / 状态 / 节点 / 边 — LangChain 图解教程">
-<meta name="twitter:description" content="第七部分 · 深入 LangGraph｜深入 LangGraph：图 / 状态 / 节点 / 边：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="17 · 为什么需要 LangGraph — LangChain 图解教程">
+<meta name="twitter:description" content="第四部分 · LangGraph 心智模型｜为什么需要 LangGraph：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -256,256 +256,153 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
 </style>
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第七部分 · 深入 LangGraph</span>
-    <span class="pill">24 / 27</span>
+    <span class="pill">第四部分 · LangGraph 心智模型</span>
+    <span class="pill">17 / 46</span>
   </div>
-  <div class="progress"><span style="width:88%"></span></div>
+  <div class="progress"><span style="width:36%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第七部分 · 深入 LangGraph</div>
-    <h1>深入 LangGraph：图 / 状态 / 节点 / 边</h1>
+    <div class="part">第四部分 · LangGraph 心智模型</div>
+    <h1>为什么需要 LangGraph</h1>
   </div>
-  
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-第 13 课你看到：<span class="inline">create_agent</span> 把 Agent 循环<strong>编译成一张 LangGraph 状态图</strong>。
-这一部分（3 课）我们把这张图的<strong>引擎彻底拆开</strong>。先从最基本的问题开始：
-<strong>LangGraph 到底是什么、为什么需要它。</strong>
-</p>
 
-<div class="card analogy">
-  <div class="tag">🚆 一句话类比</div>
-  你在第 8/9 课学的 <strong>LCEL（<span class="mono">Runnable |</span>）像一条直的传送带</strong>——东西一头进、一头出，绝不回头。
-  而 <strong>LangGraph 像一整套带道岔和环线的铁路网 + 一个调度塔</strong>：列车能<strong>转圈、并行、
-  中途停车存档、改天从原地继续</strong>。
-</div>
+<p class="lead">如果说 LCEL 链把 prompt、model、parser 接成一条可组合的管道，那么 LangGraph 解决的是另一类问题：流程会分岔，会把中间结果写入共享状态，会因为工具结果重新回到模型，还必须知道什么时候停止。本课建立第一张 LangGraph 心智地图：图不是漂亮 UI，而是一种可执行的状态机；节点不是随便改全局变量，而是接收 state、返回 partial state；编译后的图仍然是 Runnable，可以像链一样 invoke、stream、batch，却比直线链多了循环、路由和持久运行的能力。</p>
+<div class="card analogy"><div class="tag">🧩 生活类比</div>把 LCEL 想成一条地铁线路：站点固定、方向明确、从起点到终点不回头。LangGraph 更像城市公交调度中心：乘客的当前位置、换乘记录、目的地和路况都在状态里，车辆可以按规则改道、回到中转站、等待工具车送来信息，再决定下一站。调度图不是墙上的路线图好看而已，它是实际发车、记录、转弯和停运的规则。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：为什么从链升级到状态图</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">链的边界</div><div class="mn-desc">LCEL 擅长直线和 DAG 组合，但循环、长期状态、动态路由会变得别扭</div></div><div class="map-node now"><div class="mn-label">图的承诺</div><div class="mn-desc">StateGraph 用节点、边、共享状态表达可执行流程</div></div><div class="map-node now"><div class="mn-label">Agent 循环</div><div class="mn-desc">messages 进入模型，按 tool_calls 条件分支到工具，再回到模型</div></div><div class="map-node source"><div class="mn-label">Runnable 兼容</div><div class="mn-desc">CompiledStateGraph 仍能被 LangChain 当作 Runnable 调用</div></div><div class="map-node after"><div class="mn-label">下一课</div><div class="mn-desc">把 State schema 当成整张图的契约来读</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>本课的源码证据只使用文件 + 符号名，不写行号，因为 LangGraph 版本迭代时行号会移动，而类名、函数名和模块边界更适合作为阅读锚点。建议按“状态图 → 消息 reducer → Pregel 运行时 → LangChain Agent 入口”的顺序读。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">langgraph/graph/state.py</td><td class="mono">StateGraph</td><td>有状态图建造者，要求每个节点围绕共享 state 读写 partial update</td><td>用户定义 schema、节点和边后调用 compile</td></tr><tr><td class="mono">langgraph/graph/message.py</td><td class="mono">add_messages</td><td>消息列表 reducer，按消息 id 替换或追加，支撑聊天历史合并</td><td>State key 标注后在运行时合并模型和工具消息</td></tr><tr><td class="mono">langgraph/pregel/main.py</td><td class="mono">Pregel</td><td>编译图的底层执行模型，按步骤调度节点、通道和更新</td><td>Compiled graph 作为 Pregel/Runnable 被 invoke 或 stream</td></tr><tr><td class="mono">libs/langchain_v1/langchain/agents/factory.py</td><td class="mono">create_agent</td><td>LangChain 高层 Agent 工厂，把易用 API 建在 LangGraph 能力之上</td><td>用户调用 create_agent，内部组装/编译 LangGraph agent</td></tr></table>
+<h2>调用图：从一次聊天请求到工具循环</h2>
+<p>一个最小工具型聊天机器人可以这样想：输入先写入 <span class="mono">messages</span>；模型节点读取消息并生成 AIMessage；如果 AIMessage 带 tool_calls，条件边把控制权交给工具节点；工具节点执行外部函数并写回 ToolMessage；边再把流程导回模型，让模型基于工具结果继续回答；如果模型不再请求工具，条件边走向 END。这个“可能回到模型”的动作，就是链和图最醒目的差别。</p>
+<div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>输入进入状态</h4><p>用户问题被包装成 HumanMessage，写入 state[&#x27;messages&#x27;]。状态不是全局变量，而是本次运行的可合并数据。</p><div class="mono">messages=[HumanMessage(&#x27;北京天气?&#x27;)]</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>模型节点运行</h4><p>model 节点读取完整消息历史，调用聊天模型，返回 {&#x27;messages&#x27;: [AIMessage(...)]} 这样的部分状态。</p><div class="mono">model(state) -&gt; {&#x27;messages&#x27;: [AIMessage(tool_calls=[...])]}</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>条件边路由</h4><p>route_tools 检查最后一条 AIMessage 是否有 tool_calls；有就去 tools，没有就去 END。</p><div class="mono">route_tools(state) -&gt; &#x27;tools&#x27; | END</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>工具节点写回</h4><p>tools 节点执行天气工具，把 ToolMessage 作为增量返回，由 add_messages 合并进消息列表。</p><div class="mono">tools(state) -&gt; {&#x27;messages&#x27;: [ToolMessage(...)]}</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>回到模型或结束</h4><p>工具结果可见后再次进入 model；当模型产出最终回答且不再调用工具，图到达 END。</p><div class="mono">tools -&gt; model -&gt; END</div></div></div></div>
+<h2>Trace：同一条 messages 如何跨节点流动</h2>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. invoke</td><td>{&#x27;messages&#x27;: [HumanMessage(&#x27;查订单 42&#x27;)]} </td><td>CompiledStateGraph 接收输入，初始化通道和运行配置</td><td>messages 通道有一条用户消息</td></tr><tr><td>2. model</td><td>messages=用户问题</td><td>模型判断需要调用 search_order 工具</td><td>partial={&#x27;messages&#x27;: [AIMessage(tool_calls=[...])]}</td></tr><tr><td>3. route</td><td>最后一条 AIMessage 有 tool_calls</td><td>条件边返回 tools 节点名</td><td>下一步调度 tools</td></tr><tr><td>4. tools</td><td>tool_calls + 旧 messages</td><td>执行工具，把结果包装成 ToolMessage</td><td>partial={&#x27;messages&#x27;: [ToolMessage(&#x27;已发货&#x27;)]}</td></tr><tr><td>5. model again</td><td>用户消息 + AI 工具请求 + ToolMessage</td><td>模型生成自然语言答复，不再调用工具</td><td>END，最终 state 含完整消息轨迹</td></tr></table>
+<h2>简化源码走读：图不是链的语法糖</h2>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">langgraph/graph/state.py :: StateGraph</span><span class="ln">简化版</span></div><pre>class StateGraph:
+    def __init__(self, state_schema, *, context_schema=None):
+        self.schema = state_schema
+        self.channels = _get_channels(state_schema)
 
-<h2>为什么 LCEL 不够：DAG vs 状态图</h2>
-<p>LCEL 把程序表达成一条<strong>有向无环图（DAG）</strong>——非常适合"prompt → model → parser"这种<strong>直线链</strong>。
-但 Agent 天生不是直线：</p>
-<div class="cols">
-  <div class="col">
-    <h4>🟦 LCEL：有向无环图（DAG）</h4>
-    <p>一头流到另一头，<strong>不能转圈</strong>、不能暂停存档。适合<strong>确定的线性管道</strong>。</p>
-  </div>
-  <div class="col">
-    <h4>🟩 LangGraph：有状态的图（状态机）</h4>
-    <p>补上 <strong>环（cycle）+ 共享状态（state）+ 持久化 + 人在回路</strong>。适合<strong>会循环、会分支</strong>的 Agent。</p>
-  </div>
-</div>
-<div class="card detail">
-  <div class="tag">🔬 关键差别</div>
-  Agent 的本质是"<strong>循环 + 分支</strong>"：反复"想 → 调工具 → 把结果回灌 → 再想"，直到完成。
-  用 DAG <strong>表达不了"绕回去"</strong>；而图天然能画出"从 tools 节点连一条边<strong>回到</strong> model 节点"的环。
-</div>
+    def add_node(self, name, action):
+        # action: State -&gt; partial State
+        self.nodes[name] = action
 
-<h2>四件套：State / Node / Edge / compile</h2>
-<p>LangGraph 的全部心智，就是这四个词。官方 <span class="mono">StateGraph</span> 的文档一句话点透：
-<strong>"一张图，其节点通过读写一份共享状态来通信；每个节点的签名是 <span class="mono">State → 部分 State</span>"</strong>。</p>
-
-<div class="layers">
-  <div class="layer l-core">
-    <div class="lh"><span class="badge">State</span><span class="name">共享状态</span></div>
-    <div class="ld">一个数据字典（如 <span class="mono">{"messages": [...]}</span>），在图里流动。<strong>每个键可标注一个 reducer</strong>（归并函数 <span class="mono">(旧, 新) → 新</span>），决定多个节点的写如何合并。</div>
-  </div>
-  <div class="layer l-main">
-    <div class="lh"><span class="badge">Node</span><span class="name">节点</span></div>
-    <div class="ld">一个<strong>普通函数</strong>：读 <span class="mono">state</span> → 返回一份<strong>部分更新</strong>（如 <span class="mono">{"messages": [ai]}</span>）。"调模型""执行工具"各是一个节点。</div>
-  </div>
-  <div class="layer l-part">
-    <div class="lh"><span class="badge">Edge</span><span class="name">边</span></div>
-    <div class="ld"><strong>普通边</strong> <span class="mono">A→B</span>；<strong>条件边</strong>按一个路由函数<strong>动态</strong>选下一站；特殊节点 <span class="mono">START</span> / <span class="mono">END</span> 是入口与出口。</div>
-  </div>
-  <div class="layer l-app">
-    <div class="lh"><span class="badge">compile</span><span class="name">编译</span></div>
-    <div class="ld"><span class="mono">StateGraph</span> 只是<strong>建造者</strong>，不能直接跑；<span class="mono">.compile()</span> 出一个 <strong>CompiledStateGraph</strong>（可执行，<strong>本身就是 Runnable</strong>）。</div>
-  </div>
-</div>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">你的代码</span><span class="ln">最小可跑的 StateGraph（真实 API）</span></div>
-<pre><span class="kw">from</span> typing_extensions <span class="kw">import</span> TypedDict, Annotated
-<span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, START, END
-<span class="kw">import</span> operator
-
-<span class="kw">class</span> <span class="fn">State</span>(TypedDict):
-    count: Annotated[int, operator.add]   <span class="cm"># 给 count 标个 reducer：累加</span>
-
-<span class="kw">def</span> <span class="fn">step</span>(state):                       <span class="cm"># 节点：state → 部分 state</span>
-    <span class="kw">return</span> {<span class="st">"count"</span>: 1}
-
-g = StateGraph(State)
-g.add_node(<span class="st">"step"</span>, step)
-g.add_edge(START, <span class="st">"step"</span>)               <span class="cm"># 入口 → step</span>
-g.add_edge(<span class="st">"step"</span>, END)                 <span class="cm"># step → 出口</span>
-app = g.compile()                         <span class="cm"># 得到可执行图（也是 Runnable）</span>
-
-<span class="nb">print</span>(app.invoke({<span class="st">"count"</span>: 0}))       <span class="cm"># {'count': 1}（reducer 把 0 和 1 累加）</span>
-</pre>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 代码对应（langgraph 仓库）</div>
-  <table class="t" style="margin-top:.6rem">
-    <tr><th>概念</th><th>位置</th></tr>
-    <tr><td class="mono">StateGraph / add_node / add_edge / add_conditional_edges / compile</td><td class="mono">graph/state.py</td></tr>
-    <tr><td class="mono">CompiledStateGraph（compile 的产物）</td><td class="mono">graph/state.py · 继承 Pregel</td></tr>
-    <tr><td class="mono">START / END</td><td class="mono">constants.py（值是 "__start__" / "__end__"）</td></tr>
-    <tr><td>reducer（如 add_messages）</td><td class="mono">graph/message.py · 第 25 课详解</td></tr>
-  </table>
-</div>
-
-<h2>和 LangChain 的关系（回顾 + 定位）</h2>
-<div class="cols">
-  <div class="col">
-    <h4>LangChain（你一直在学）</h4>
-    <p><strong>高层便利</strong>：<span class="mono">create_agent</span> 帮你把这张图<strong>搭好</strong>，你不用碰节点和边。</p>
-  </div>
-  <div class="col">
-    <h4>LangGraph（这一部分）</h4>
-    <p><strong>底层引擎</strong>：真正<strong>运行</strong>这张图。它是<strong>另一个独立仓库</strong> <span class="mono">langchain-ai/langgraph</span>，<span class="mono">langchain</span> 依赖它；你也能<strong>单独用</strong>它从零搭图。</p>
-  </div>
-</div>
-<div class="card detail">
-  <div class="tag">🔬 一个会反复用到的事实</div>
-  <span class="mono">CompiledStateGraph</span> <strong>本身就是一个 Runnable</strong>，所以第 8 课关于 Runnable 的一切
-  （<span class="mono">invoke</span>/<span class="mono">stream</span>/<span class="mono">batch</span>、<span class="mono">config</span>、回调）对整张图都成立。
-  在第 22 课的全栈图里，LangChain 与 LangGraph 都在 <strong>L7 编排层</strong>。
-</div>
-
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，抠三个常被问到的细节。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 条件边的路由函数到底返回什么 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 返回值</div>
-      <div class="a"><span class="mono">add_conditional_edges(源节点, path, path_map=None)</span>：<span class="mono">path</span> 是一个看 state 的函数，
-        返回<strong>下一个节点名</strong>（或名字列表，甚至 <span class="mono">Send</span>）；返回 <span class="mono">"END"</span> 就结束。
-        可选的 <span class="mono">path_map</span> 把返回值映射到节点名。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 小坑</div>
-      <div class="a">官方建议给 <span class="mono">path</span> 的返回值<strong>加类型注解</strong>（如 <span class="mono">-&gt; Literal["tools", "__end__"]</span>），
-        否则画图工具无法得知这条条件边有哪些可能目标。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> 为什么必须 compile() <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 两个阶段</div>
-      <div class="a"><span class="mono">StateGraph</span> 只是<strong>建造者</strong>，存着"节点 + 边"的图纸，不能执行。
-        <span class="mono">compile()</span> 会<strong>校验图</strong>（节点是否连通、键是否合法）并把图纸编成一个可执行的 <span class="mono">Pregel</span>（即 <span class="mono">CompiledStateGraph</span>）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 顺带的好处</div>
-      <div class="a">产物是 <strong>Runnable</strong>，于是 <span class="mono">invoke/stream/batch</span>、回调、<span class="mono">config</span> 全部免费获得（第 8 课）。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> reducer 的签名与默认行为 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 签名</div>
-      <div class="a">reducer 是 <span class="mono">(旧值, 新值) → 新值</span>。键<strong>不标</strong> reducer 时默认是 <span class="mono">LastValue</span>——<strong>后写覆盖前值</strong>；
-        标了（如 <span class="mono">operator.add</span> / <span class="mono">add_messages</span>）就按你的函数<strong>合并</strong>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 它在哪生效</div>
-      <div class="a">第 25 课会看到：编译时<strong>每个键变成一个 channel</strong>，reducer 就是那个 channel 的"更新函数"。</div>
-    </div>
-  </div>
-</details>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点：把"图"当成一等公民</div>
-  一旦把程序建模成"<strong>状态 + 节点 + 边</strong>"，那些最难的能力——<strong>循环、分支、并行、持久化、人审、时间旅行</strong>——
-  就都变成<strong>图引擎的通用能力</strong>，而不必每个 Agent 各写一遍。这正是 LangGraph 存在的理由，下一课我们看它怎么"跑"。
-</div>
-
-<div class="card key">
-  <div class="tag">✅ 本课要点</div>
-  <ul>
-    <li>LCEL 是 <strong>DAG（不能转圈）</strong>；LangGraph 是<strong>有状态的图</strong>，补上环 / 状态 / 持久化 / 人审。</li>
-    <li>四件套：<strong>State</strong>（共享状态，键可带 reducer）、<strong>Node</strong>（<span class="mono">state → 部分 state</span>）、<strong>Edge</strong>（普通/条件，<span class="mono">START/END</span>）、<strong>compile()</strong>（产出可执行的 <span class="mono">CompiledStateGraph</span>）。</li>
-    <li><span class="mono">CompiledStateGraph</span> 是 Runnable；LangGraph 是<strong>独立仓库</strong>，<span class="mono">create_agent</span> 依赖它、也能单独用。</li>
-    <li>下一课：编译产物到底怎么"跑"——揭开 <strong>Pregel 引擎</strong>。</li>
-  </ul>
-</div>
-<div class="selftest">
+    def compile(self):
+        self.validate()
+        return CompiledStateGraph(...)
+</pre><div class="cw-note">教学版只保留关键形状：StateGraph 维护节点、边、schema 和 channel；compile 之后才得到可运行对象。真实实现还会处理输入输出 schema、checkpointer、interrupt、retry 和 Pregel 节点包装。</div></div>
+<h2>图和链的根本差别</h2>
+<h3>一、链强调一段输出接下一段输入</h3><p>LCEL 的直觉是“把一组 Runnable 按数据依赖拼起来”。Prompt 产出消息，模型产出 AIMessage，parser 产出业务对象；每段只看上游输出，整体像一条表达式。这个模型非常适合无环处理：检索上下文、格式化提示词、调用模型、解析结果。它也能表达并行和简单分支，但一旦流程需要反复回到同一个模型节点，链就会变成手写 while 循环加很多外部变量。</p><h3>二、图强调状态在节点之间持续存在</h3><p>LangGraph 的核心不是“把边画出来”，而是“把状态作为第一等公民”。节点拿到同一份逻辑 state 的快照，返回自己负责的增量；底层通道和 reducer 决定这些增量怎样合并。于是模型节点不需要知道工具节点怎样存结果，工具节点也不需要负责改写整份历史，它们只对自己产出的 key 负责。共享状态让循环不再依赖隐藏闭包，也让 trace、checkpoint 和恢复都有明确对象。</p><h3>三、图允许控制流回到旧节点</h3><p>Agent 最典型的行为不是一次模型调用，而是“模型思考、发现需要工具、调用工具、观察结果、继续思考”。这是一条带反馈的控制流。用链表达时，你要在链外写循环、判断 tool_calls、维护消息列表；用图表达时，循环就是边，消息列表就是 state，判断就是条件边。图没有让问题消失，但把隐式控制流变成显式结构。</p><h3>四、编译图仍然是 Runnable</h3><p>这点很容易被忽略：LangGraph 不是和 LangChain 断裂的另一套世界。编译后的图可以被当成 Runnable 使用，因此上层仍能调用 invoke、stream、batch，也能带 RunnableConfig、回调和 metadata。差别在于这个 Runnable 的内部不是线性序列，而是 Pregel 风格的图运行时。你可以把它嵌回更大的 LangChain 应用，也可以让 create_agent 帮你生成这样的图。</p><h3>五、LangChain Agent 建在 LangGraph 上</h3><p>高层 Agent API 追求好用：给模型、工具和系统提示，得到一个能对话、调工具、stream 的对象。底层 LangGraph 追求可控：状态 schema、节点、边、checkpoint、interrupt、路由都能被明确表达。create_agent 把这两层接起来，所以“我只是用了 LangChain Agent”并不等于没有 LangGraph；相反，很多 v1 Agent 能力正是依赖 LangGraph 的循环状态机。</p><h3>六、状态不是随手可改的全局 dict</h3><p>节点收到的 state 应当被理解为一次运行步骤的输入快照。正确姿势是返回 partial update，让 reducer 合并。把它当成全局 dict 原地修改，短期看似方便，长期会破坏并行语义、checkpoint 可复现性和调试透明度。图运行时需要知道“哪个节点写了哪个 key”，这样才能处理冲突、记录更新和恢复。</p><h3>七、分支不是 if 语句散落在业务里</h3><p>条件边把“根据状态去哪”提升成图结构的一部分。route_tools 这样的函数只负责观察状态并返回目的节点名或 END。这样 trace 可以看到为什么走 tools，不会把路由逻辑藏在模型节点内部。越复杂的 Agent 越需要这种分离：模型节点产出内容，路由函数做决策，工具节点处理副作用，边负责控制流。</p><h3>八、循环必须有终止条件</h3><p>图能表达环，不代表应该无限绕。每个环都要回答：什么状态表示任务完成？什么状态表示工具失败？最多允许几次工具调用？是否需要 recursion_limit 兜底？如果没有这些问题的答案，LangGraph 只会让无限循环更容易发生。工程上常见做法是让路由函数识别无 tool_calls、达到最大步数、出现不可恢复错误或用户中断，然后走 END 或错误处理节点。</p><h3>九、图不是 UI，而是执行语义</h3><p>很多人看到 Graph 就想到可视化拖拽。LangGraph 的图当然可以被可视化，但它首先是运行时契约：节点怎样被调度，状态怎样合并，边怎样选择，什么时候保存 checkpoint，异常怎样传播。把它误解成 UI，会低估 schema、reducer 和 Pregel 执行模型的重要性。图的价值不是画出来好看，而是运行出来可解释、可恢复、可组合。</p><h3>十、读源码时先找稳定抽象</h3><p>本课 source map 里的 StateGraph、add_messages、Pregel、create_agent 分别代表建图层、状态合并、运行引擎和高层入口。不要一开始就陷入某个具体工具节点或 provider 适配器。先建立“入口到运行时”的纵向路径，再回头读细节，会更容易判断某个行为属于图语义、状态 reducer、还是 LangChain Agent 的封装。</p><h3>十一、从链迁移到图的判断题</h3><p>如果你的流程只有“取输入、格式化、调用模型、解析输出”，链更清楚。如果你开始写 while、把 message history 放在外部变量、根据模型输出选择工具、需要中断恢复、需要多节点共享状态，就该考虑图。判断标准不是代码行数，而是控制流是否已经变成状态机。状态机用图表达，通常比把状态藏在链外更诚实。</p><h3>十二、调试视角的变化</h3><p>调试链时，你常问“上一段输出是什么，下一段为什么不接收”。调试图时，你要问“当前 state 是什么，哪个节点写了哪个 partial，reducer 怎样合并，路由函数为什么选了这个节点，循环为什么还没结束”。问题从线性数据形状扩展到状态演化和控制流演化。这个视角转变，是学习 LangGraph 的第一道门槛。</p><h3>十三、最小心智模型</h3><p>把 LangGraph 记成一句话：一张编译后可运行的状态图，节点读取 state 并返回 partial state，边决定下一步，reducer 合并同一 key 的更新，Pregel 风格运行时负责按步骤调度。只要这句话站稳，后面 State schema、节点边、reducer、compile/runtime 都是对其中某个名词的展开。</p>
+<h2>扩展复盘：从链到图的迁移判断</h2>
+<p>判断一个流程是否应该迁移到 LangGraph，可以先看三个信号。第一，业务代码里是否已经出现手写循环，例如反复调用模型直到没有工具请求；第二，是否有多个步骤都要读写同一份历史，例如消息、工具结果、审计记录、草稿答案；第三，是否需要在失败、中断、人工确认后恢复到某个中间状态。如果三个信号都没有，LCEL 链往往更短、更透明；如果信号越来越多，继续把循环和状态藏在链外，就会让控制流分散在普通 Python 代码里，trace 也只能看到零散调用，看不到完整状态机。</p>
+<p>迁移时不要把原链整体塞进一个巨大的节点。更好的做法是按责任拆分：模型判断是一个节点，工具执行是一个节点，质量检查是一个节点，人工确认是一个节点；共享数据进入 state，去向选择进入条件边，状态合并交给 reducer。这样拆分后，每个节点都能单独测试，每条边都能画出原因，每次运行都能回答“为什么走到这里”。图的收益来自显式结构，而不是把所有旧代码包进一个新容器。</p>
+<p>另一个判断维度是团队协作。直线链通常由一个人就能完整理解；状态图往往会服务多个角色：模型工程师关心 prompt 和工具调用，后端工程师关心状态、持久化和权限，产品或运营关心人工审核与失败分支。图把这些关切放到同一张结构里，减少口头约定。只要节点命名和 state key 命名清楚，新成员能从图结构读出系统意图，而不必先追踪一整段嵌套 while/if 代码。</p>
+<p>图也不是越细越好。如果每个字符串处理函数都变成节点，运行图会过度碎片化，trace 充满无意义步骤。一个节点应该代表一次业务上可命名、可观察、可失败、可重试的动作。比如“调用模型生成工具请求”值得成为节点，“把字符串去掉空格”通常不值得。合适粒度的标准是：当这一步失败时，你是否希望在 trace 中单独看到它；当它需要替换实现时，是否能不影响其他节点。</p>
+<p>最终要记住，LangGraph 给你的不是自动智能，而是组织复杂性的工具。它不会替你设计正确工具，不会替你写终止条件，也不会让坏 schema 变好。它提供的是显式状态、显式路由、显式合并和可运行的图结构。把这些显式性用好，复杂 Agent 才能被调试、被复盘、被安全地演进。</p>
+<h2>案例推演：把“查订单并可能升级人工”画成图</h2>
+<p>假设原来有一条链：把用户问题填进 prompt，模型回答，如果回答里提到订单号就手动调用查询接口，再把结果塞回 prompt。这个写法在 demo 阶段能跑，但一到生产就会出现很多隐含状态：订单号是否已识别，查询工具是否成功，用户是否要求退款，是否需要人工确认，模型是否已经看过工具结果。用 LangGraph 重写时，第一步不是写节点，而是把这些隐含状态摊开：messages 记录对话，order_id 记录识别结果，tool_attempts 记录工具次数，needs_human 记录升级条件。</p>
+<p>图结构可以从最小闭环开始：START 到 model，model 后接 route_tools，有 tool_calls 去 tools，没有工具调用则去 finalize 或 END，tools 再回 model。随后再加风险分支：如果工具返回订单异常或退款金额过高，route_after_tools 可以去 human_review；如果工具失败次数超过上限，可以去 error_handler；如果模型已经给出清晰答复，则去 END。每增加一条边，都要能说清楚对应的业务状态，而不是因为“可能有用”就随手加分支。</p>
+<p>这个案例里，LCEL 仍然有位置。model 节点内部可以是一条 prompt | model 的小链，finalize 节点内部可以是一条格式化和解析链，error_handler 也可以复用 Runnable。LangGraph 负责外层状态机，LCEL 负责节点内部的局部数据流。把两者对立起来是误解；更好的分工是：无环的小步骤用链，跨步骤的循环和路由用图。</p>
+<p>调试时，最有价值的不是最终答案，而是每一步 state 的变化。第一次 model 为什么请求 query_order？tools 返回了什么 ToolMessage？第二次 model 为什么没有继续调用工具？needs_human 为什么保持 False？如果图设计得好，这些问题都能从 trace 和 state update 中回答。若只能从一大段日志里猜测，说明节点、边或 state key 还不够显式。</p>
+<p>安全性也来自显式图结构。退款、发邮件、创建工单等副作用可以集中在少数工具节点，并配合 human_review 或 approval 节点。模型节点只提出意图，不直接执行高风险动作；路由函数只决定去向，不偷偷做副作用；工具节点返回可审计结果。这样产品规则、权限控制和工程实现能在同一张图里对齐。</p>
+<p>最后，用图之后仍要保持克制。不要为了展示 LangGraph 把每个 if 都变成节点，也不要让一个 route 函数承担所有业务判断。图应该让复杂性变得可见，而不是把简单问题复杂化。一个健康的订单图，读者能在一分钟内说出主循环、异常分支和终止条件；如果读者只看到满屏节点却说不出状态如何流动，说明抽象粒度需要回调。</p>
+<h2>迁移判断：什么时候从 LCEL 链升级到 LangGraph</h2>
+<p>第一条判断线是循环是否已经成为业务规则，而不只是临时控制代码。如果你在链外写 while，反复让模型判断是否还要调用工具，再手动把工具结果塞回下一次 prompt，那么真正的系统已经不是直线链，而是一个状态机。迁移到 LangGraph 时，循环要有明确终止：无 tool_calls、达到最大轮数、工具重复返回同样信息、出现不可恢复错误、用户取消或进入人工审核。没有终止条件的图只是把隐形无限循环换成显形无限循环。</p>
+<p>第二条判断线是审计是否重要。直线 LCEL 很适合看“输入经过哪些 Runnable 变成输出”；但复杂 Agent 更常问“第几轮模型为什么选择这个工具，工具返回了什么，路由为什么没有结束，最终答案基于哪些观察”。LangGraph 把节点、边和 state update 暴露成可追踪结构，便于事后复盘和问题定位。如果系统涉及订单、退款、医疗建议、合同草稿或高成本工具调用，审计能力通常不是锦上添花，而是上线前提。</p>
+<p>第三条判断线是状态是否应该显式命名。LCEL 链可以把中间结果自然地从上一段传给下一段；一旦多个步骤都要读取和更新 messages、tool_attempts、draft_answer、needs_human、last_error 这样的共享数据，继续靠外部变量或闭包维护就会让责任模糊。LangGraph 要求你把这些数据放进 state，并让节点只返回 partial update。这样每个字段谁写、谁读、怎样合并、何时输出，都能被讨论和测试。</p>
+<p>第四条判断线是未来是否需要人工介入。很多团队一开始只做自动工具循环，后来才发现退款、删除数据、发送邮件、合规回答都需要人审或确认。如果已经预见到这些节点，提前用图表达 human_review、approval、resume 分支会更稳。即使第一版不接真实人工界面，也可以先让路由把高风险状态导向一个占位节点，保持流程边界清楚，避免以后在链外硬塞暂停和恢复逻辑。</p>
+<p>第五条判断线是图边界本身。不是所有小步骤都应该变成节点：字符串清洗、简单格式化、一次 prompt 模板填充，放在 LCEL 子链或普通函数里更清楚。适合作为图节点的是业务上可命名、可观察、可失败、可重试、可能影响下一跳的动作。一个健康设计通常是“外层 LangGraph 管状态机，节点内部继续使用 LCEL 处理局部无环数据流”。这样既不丢掉链的简洁，也不把循环和状态藏在链外。</p>
+<p>因此，迁移不是因为 LangGraph 更高级，而是因为你的应用已经出现了状态机的事实。只要你能写出“哪些状态持续存在、哪些节点负责更新、哪些边决定去向、哪些条件让循环停止、哪些步骤需要审计或人工准备”，迁移就是自然的；如果这些问题还答不上来，先整理链外的隐含规则，再动手建图。</p>
+<h2>常见误解与边界情况</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：Graph 主要是为了画可视化 UI</div><div class="pf-correct">正确：图首先是可执行状态机；可视化只是理解和调试的附加收益。</div></div><div class="pitfall"><div class="pf-wrong">误解：state 就是节点随便改的全局 dict</div><div class="pf-correct">正确：节点应返回 partial state，由 channel/reducer 统一合并，才能保持可追踪和可并行。</div></div><div class="pitfall"><div class="pf-wrong">误解：有环就一定更智能</div><div class="pf-correct">正确：环只是表达能力，必须配合路由、终止条件和步数兜底，否则会无限循环。</div></div><div class="pitfall"><div class="pf-wrong">误解：LangChain Agent 和 LangGraph 是两套无关实现</div><div class="pf-correct">正确：v1 create_agent 的高层便利入口建立在 LangGraph 的状态图和运行时能力之上。</div></div></div>
+<h2>小实验</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 把一条 LCEL 工具链改写成图</div><ol><li>先写出原链：prompt -&gt; model -&gt; parser，并标出哪一步开始需要 tool_calls 判断。</li><li>定义 state 至少包含 messages；把模型调用写成 model 节点，只返回 {&#x27;messages&#x27;: [AIMessage(...)]}。</li><li>写 route_tools：最后一条 AIMessage 有 tool_calls 返回 &#x27;tools&#x27;，否则返回 END。</li><li>给 tools 节点返回 ToolMessage，并画出 tools -&gt; model 的回边；再写出最多循环次数或无工具调用的终止条件。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>本课以 LangChain v1 与当前 LangGraph 的源码结构为锚点。文件名和模块层次可能随发布调整，但 StateGraph、add_messages、Pregel、create_agent 这些符号分别对应状态建模、消息合并、运行时内核和高层 Agent 入口，是阅读新版源码时更稳定的路标。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>LCEL 链适合无环数据流；LangGraph 适合循环、分支、共享状态和可恢复运行。</li><li>节点的核心契约是 state -> partial state，不是原地改全局对象。</li><li>聊天工具循环可以看成 messages 状态在 model、route、tools、model 之间流动。</li><li>CompiledStateGraph 仍是 Runnable，所以能接入 LangChain 的 invoke/stream/batch 生态。</li><li>LangChain 高层 Agent 的很多能力来自 LangGraph；图不是 UI，而是执行语义。</li></ul></div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. 课里说“LCEL 是 DAG、不能转圈，所以不够”。LangGraph 用“状态图”补上的最关键能力是？</div>
+  <div class="qn">1. 为什么工具型 Agent 用纯 LCEL 链会别扭，而 LangGraph 更合适？</div>
   <ol class="opts">
-    <li>更省内存</li>
-    <li>环(cycle)：Agent 要反复“想→调工具→再想”，DAG 表达不了“绕回去”，状态图天然能画环</li>
-    <li>更快</li>
-    <li>更好看</li>
+    <li>因为 LCEL 不能调用任何模型</li>
+    <li>因为 Agent 需要在模型、工具和模型之间循环，并把 messages 等状态持续带到下一步</li>
+    <li>因为 LangGraph 只能生成更漂亮的流程图</li>
+    <li>因为 LangGraph 会自动让模型更聪明</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。DAG 适合直线管道，但 Agent 本质是带环的循环。这一条“能不能转圈”的差别，正是需要 LangGraph 的根本理由。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。LCEL 擅长无环数据流；工具 Agent 的核心是状态 + 条件路由 + 回边。LangGraph 把这些隐式 while 逻辑变成显式状态图。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. StateGraph 是“建造者”，必须 <code>compile()</code> 才能跑。把“定义”和“执行”分成两阶段，图什么？</div>
+  <div class="qn">2. LangGraph 节点返回 <code>{'messages': [AIMessage(...)]}</code> 而不是整份 state，最重要的原因是什么？</div>
   <ol class="opts">
-    <li>让代码更长</li>
-    <li>定义期可以校验图(连通性/键合法)、把图纸编译成优化过的可执行体，执行期才高效运行——和编译器一个思路</li>
-    <li>没意图</li>
-    <li>多此一举</li>
+    <li>这样节点就不能被测试</li>
+    <li>这样可以避免写 Python 字典</li>
+    <li>这样会跳过所有回调</li>
+    <li>partial update 让运行时知道该节点写了哪个 key，并交给 reducer/channel 合并</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。“先定义、再编译、后执行”让框架有机会在编译期做检查和优化。这是把“构建”与“运行”解耦的经典收益。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。节点契约是 state -> partial state。返回增量能保持写入目标清晰，让 add_messages 等 reducer 处理合并。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 节点签名是 <code>state → 部分 state</code>（只返回增量），由 reducer 负责合并。这种“节点只管自己产出”好处是？</div>
+  <div class="qn">3. LangChain v1 的 <code>create_agent</code> 与 LangGraph 更准确的关系是？</div>
   <ol class="opts">
-    <li>代码短</li>
-    <li>节点高度解耦、易测试：每个节点不需要知道全局历史怎么拼，只关心自己这步产出什么</li>
-    <li>运行更快</li>
-    <li>防止出错</li>
+    <li>create_agent 完全绕过 LangGraph，只使用字符串拼接</li>
+    <li>LangGraph 只负责前端可视化，不参与运行</li>
+    <li>二者只能二选一，不能同时出现</li>
+    <li>create_agent 是高层便利入口，底层 Agent 循环、状态和持久化能力建立在 LangGraph 上</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。节点不操心“怎么并进全局状态”（交给 reducer），于是各节点独立、可单独推理和测试。解耦是图模型的核心红利。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. 课里强调“LangChain 组装、LangGraph 运行”，且 CompiledStateGraph 还是个 Runnable。这种分工 + 兼容图什么？</div>
-  <ol class="opts">
-    <li>让它更复杂</li>
-    <li>职责清晰(高层便利 vs 底层引擎)又无缝衔接：图编译出来仍是 Runnable，第 8 课的一切对它都成立</li>
-    <li>蹭热度</li>
-    <li>没意义</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。高层(LangChain)负责好用、底层(LangGraph)负责能力，且产物兼容 Runnable 抽象——分层 + 统一抽象在这里再次合流。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。LangChain 提供易用 API，LangGraph 提供状态图运行时。高层 Agent 入口常把用户配置组装成可运行的 LangGraph 图。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>“DAG 不能转圈，所以要状态图”。哪些“本质是循环/带反馈”的问题用纯 DAG 会很别扭？反过来，哪些问题用图反而是杀鸡用牛刀？</li>
-    <li>“先定义、再 compile、后执行”和编译器很像。这种“两阶段（构建期 vs 运行期）”的设计你还在哪些系统里见过？它通常换来了什么？</li>
+    <li>选择一条已有 LCEL 链，指出从哪一步开始需要变成图：哪些数据要进入 state？哪些步骤会成为节点？哪条边会回到旧节点？</li>
+    <li>为工具循环写一个终止策略：除了“没有 tool_calls 就 END”，还需要哪些最大轮数、错误状态或人审分支来防止无限循环？</li>
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="23-learning-map.html"><div class="dir">← 上一课</div><div class="ttl">隔壁层学习地图：L5 推理 · L6 向量检索</div></a><a class="next" href="25-langgraph-pregel-engine.html"><div class="dir">下一课 →</div><div class="ttl">执行引擎：Pregel 与超步</div></a></div>
+  <div class="footnav"><a class="prev" href="15-runnable-retry-fallback.html"><div class="dir">← 上一课</div><div class="ttl">重试、Fallback 与健壮链</div></a><a class="next" href="28-langgraph-state-schema.html"><div class="dir">下一课 →</div><div class="ttl">State 与 Schema</div></a></div>
 </div>
 
 </body></html>

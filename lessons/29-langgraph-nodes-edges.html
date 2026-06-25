@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>19 · Node、Edge 与路由 — LangChain 图解教程</title>
+<meta name="description" content="第四部分 · LangGraph 心智模型｜Node、Edge 与路由：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="theme-color" content="#1a7f64">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="LangChain 图解教程">
+<meta property="og:title" content="19 · Node、Edge 与路由 — LangChain 图解教程">
+<meta property="og:description" content="第四部分 · LangGraph 心智模型｜Node、Edge 与路由：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="19 · Node、Edge 与路由 — LangChain 图解教程">
+<meta name="twitter:description" content="第四部分 · LangGraph 心智模型｜Node、Edge 与路由：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f0f2f5; --ink: #1d2129;
+  --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
+  --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
+  --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116; --panel: #161b22; --panel-2: #1c232c; --ink: #e6edf3;
+    --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
+    --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
+    --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+    "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg); color: var(--ink); line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
+
+/* ---- top progress bar ---- */
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: var(--panel);
+  border-bottom: 1px solid var(--line); backdrop-filter: blur(8px);
+}
+.topbar-inner {
+  max-width: 960px; margin: 0 auto; padding: .7rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.topbar .home { font-size: .82rem; color: var(--muted); font-weight: 600; display:flex; gap:.5rem; align-items:center; }
+.topbar .home b { color: var(--accent); }
+.topbar .pill { font-size: .72rem; color: var(--muted); background: var(--panel-2);
+  padding: .2rem .6rem; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.progress { height: 3px; background: var(--panel-2); }
+.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue)); }
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 2.4rem 1.25rem 5rem; }
+
+/* ---- hero ---- */
+.hero { margin-bottom: 2rem; }
+.hero .part { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin-bottom: .55rem; }
+.hero h1 { font-size: 2.05rem; line-height: 1.2; letter-spacing: -.01em; font-weight: 750; }
+.hero .lead { margin-top: .9rem; font-size: 1.06rem; color: var(--muted); }
+
+h2 { font-size: 1.32rem; margin: 2.4rem 0 .9rem; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: .55rem; }
+h2::before { content: ""; width: 4px; height: 1.05em; background: var(--accent); border-radius: 3px; display: inline-block; }
+h3 { font-size: 1.05rem; margin: 1.4rem 0 .5rem; }
+p { margin: .7rem 0; }
+ul, ol { margin: .6rem 0 .6rem 1.3rem; }
+li { margin: .3rem 0; }
+strong { color: var(--ink); font-weight: 680; }
+.inline { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: .08em .4em; font-size: .9em; color: var(--accent-ink); }
+
+/* ---- callout cards ---- */
+.card { border-radius: var(--radius); padding: 1.05rem 1.2rem; margin: 1.2rem 0;
+  border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+.card .tag { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+.card.macro { border-left: 4px solid var(--blue); }
+.card.macro .tag { color: var(--blue); }
+.card.detail { border-left: 4px solid var(--purple); }
+.card.detail .tag { color: var(--purple); }
+.card.analogy { border-left: 4px solid var(--amber); background: var(--amber-soft); }
+.card.analogy .tag { color: var(--amber); }
+.card.key { border-left: 4px solid var(--accent); background: var(--accent-soft); }
+.card.key .tag { color: var(--accent-ink); }
+.card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
+.card.warn .tag { color: var(--red); }
+.card.spark { border-left: 4px solid #e0a000;
+  background: linear-gradient(100deg, rgba(224,160,0,.12), transparent 70%); }
+.card.spark .tag { color: #c98a00; }
+@media (prefers-color-scheme: dark) { .card.spark .tag { color: #f0c050; } }
+
+/* ---- code file callout ---- */
+.codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
+  box-shadow: var(--shadow); }
+.codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
+  background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
+.codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
+.codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
+  overflow-x: auto; font-size: .82rem; line-height: 1.6; }
+.codefile pre .cm { color: #7d8aa3; }
+.codefile pre .kw { color: #c792ea; }
+.codefile pre .fn { color: #82aaff; }
+.codefile pre .st { color: #c3e88d; }
+.codefile pre .nb { color: #f78c6c; }
+
+pre.code { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem; border-radius: 12px;
+  overflow-x: auto; font-size: .83rem; line-height: 1.6; margin: 1.1rem 0; box-shadow: var(--shadow); }
+pre.code .cm { color: #7d8aa3; } pre.code .kw { color: #c792ea; }
+pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb { color: #f78c6c; }
+
+/* ---- collapsible accordion (details/summary) ---- */
+.accordion { border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+  margin: .7rem 0; box-shadow: var(--shadow); overflow: hidden; }
+.accordion > summary { cursor: pointer; padding: .85rem 1.1rem; font-weight: 650; font-size: .96rem;
+  list-style: none; display: flex; align-items: center; gap: .6rem; user-select: none; }
+.accordion > summary::-webkit-details-marker { display: none; }
+.accordion > summary::after { content: "▶"; font-size: .68rem; color: var(--accent);
+  margin-left: auto; transition: transform .15s ease; }
+.accordion[open] > summary::after { transform: rotate(90deg); }
+.accordion > summary:hover { background: var(--panel-2); }
+.accordion[open] > summary { border-bottom: 1px solid var(--line); }
+.accordion .badge-num { background: var(--accent-soft); color: var(--accent-ink);
+  width: 1.6rem; height: 1.6rem; border-radius: 7px; display: inline-flex; align-items: center;
+  justify-content: center; font-size: .82rem; font-weight: 700; flex-shrink: 0; }
+.accordion .hint { font-size: .72rem; color: var(--faint); font-weight: 400; }
+.acc-body { padding: .9rem 1.1rem 1.1rem; }
+.acc-intro { color: var(--muted); font-size: .9rem; margin: .2rem 0 .4rem; }
+.qa { margin: 1rem 0; }
+.qa:first-child { margin-top: .3rem; }
+.qa .q { font-weight: 680; font-size: .9rem; display: flex; gap: .45rem; align-items: center; margin-bottom: .3rem; }
+.qa .a { color: var(--muted); font-size: .9rem; }
+.qa .a strong { color: var(--ink); }
+.qa pre.code { margin: .5rem 0 0; font-size: .78rem; }
+
+/* ---- flow diagram ---- */
+.flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 1.3rem 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1.2rem 1rem; box-shadow: var(--shadow); }
+.flow .node { flex: 1 1 0; min-width: 110px; text-align: center; padding: .7rem .5rem;
+  border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.flow .node .nt { font-weight: 700; font-size: .92rem; }
+.flow .node .nd { font-size: .76rem; color: var(--muted); margin-top: .2rem; }
+.flow .node.hl { background: var(--accent-soft); border-color: var(--accent); }
+.flow .arrow { align-self: center; color: var(--faint); font-size: 1.3rem; padding: 0 .35rem; }
+
+/* vertical flow */
+.vflow { margin: 1.3rem 0; }
+.vflow .step { display: flex; gap: .9rem; position: relative; padding-bottom: 1.1rem; }
+.vflow .step:not(:last-child)::before { content:""; position:absolute; left: 15px; top: 34px; bottom: -2px;
+  width: 2px; background: var(--line); }
+.vflow .num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; z-index:1; }
+.vflow .sc h4 { margin: .25rem 0 .2rem; font-size: 1rem; }
+.vflow .sc p { margin: .15rem 0; font-size: .92rem; color: var(--muted); }
+.vflow .sc .mono { font-size: .8rem; color: var(--accent-ink); }
+
+/* layered architecture */
+.layers { margin: 1.3rem 0; display: flex; flex-direction: column; gap: .55rem; }
+.layer { border-radius: 12px; padding: .85rem 1.1rem; border: 1px solid var(--line); background: var(--panel);
+  box-shadow: var(--shadow); }
+.layer .lh { display: flex; align-items: center; gap: .6rem; }
+.layer .lh .badge { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; }
+.layer .lh .name { font-weight: 700; font-family: ui-monospace, monospace; }
+.layer .ld { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.layer.l-core { border-left: 4px solid var(--accent); } .layer.l-core .badge { background: var(--accent-soft); color: var(--accent-ink); }
+.layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
+.layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
+.layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+
+/* two-column compare */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
+.col h4 { margin: 0 0 .4rem; font-size: .95rem; }
+
+table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
+  background: var(--panel); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+table.t th, table.t td { padding: .6rem .8rem; text-align: left; border-bottom: 1px solid var(--line); }
+table.t th { background: var(--panel-2); font-size: .8rem; letter-spacing: .02em; }
+table.t tr:last-child td { border-bottom: none; }
+table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-size: .82rem; color: var(--accent-ink); }
+@media (max-width: 640px) {
+  /* Wide multi-column tables: scroll within their own box instead of
+     forcing page-level horizontal overflow (which clipped right columns). */
+  table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.t th, table.t td { padding: .5rem .6rem; }
+  /* Code-file header: let a long path wrap and the right-side caption drop to
+     its own line instead of being pushed off-screen and silently clipped by
+     html{overflow-x:hidden}. */
+  .codefile .cf-head { flex-wrap: wrap; }
+  .codefile .cf-head .ln { margin-left: 0; }
+}
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
+
+/* footer nav */
+.footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
+  padding-top: 1.4rem; border-top: 1px solid var(--line); }
+.footnav a { flex: 1; padding: .85rem 1.1rem; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--panel); box-shadow: var(--shadow); transition: .15s; }
+.footnav a:hover { border-color: var(--accent); transform: translateY(-1px); }
+.footnav a.next { text-align: right; }
+.footnav .dir { font-size: .72rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.footnav .ttl { font-weight: 700; color: var(--ink); margin-top: .15rem; }
+.footnav a.disabled { opacity: .35; pointer-events: none; }
+
+/* index page */
+.toc { display: grid; gap: .7rem; margin-top: 1.6rem; }
+.toc-part { font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--accent); margin: 1.4rem 0 .2rem; }
+.toc a { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.05rem; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); transition: .15s; }
+.toc a:hover { border-color: var(--accent); transform: translateX(3px); }
+.toc .n { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
+.toc .tt { font-weight: 650; color: var(--ink); }
+.toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.toc-search { position: relative; margin: 1.6rem 0 -.4rem; }
+.toc-search input { width: 100%; box-sizing: border-box; padding: .75rem 2.8rem .75rem 1rem;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font-size: .98rem; box-shadow: var(--shadow); }
+.toc-search input:focus { outline: none; border-color: var(--accent); }
+.toc-search .qcount { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+  color: var(--faint); font-size: .8rem; pointer-events: none; }
+.toc a.hide, .toc .toc-part.hide { display: none; }
+.toc-empty { display: none; color: var(--muted); padding: 1rem; text-align: center; }
+.toc-empty.show { display: block; }
+.hero.index h1 { font-size: 2.3rem; }
+.legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
+.legend span { display:flex; align-items:center; gap:.4rem; }
+.legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }
+.pdf-btn { display:inline-flex; align-items:center; gap:.4rem; padding:.55rem 1.1rem;
+  background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
+  box-shadow:var(--shadow); transition:.15s; }
+.pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
+</style>
+</head><body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第四部分 · LangGraph 心智模型</span>
+    <span class="pill">19 / 46</span>
+  </div>
+  <div class="progress"><span style="width:41%"></span></div>
+</div>
+<div class="wrap">
+  <div class="hero">
+    <div class="part">第四部分 · LangGraph 心智模型</div>
+    <h1>Node、Edge 与路由</h1>
+  </div>
+
+<p class="lead">节点和边是 LangGraph 最像“图”的部分，但它们真正表达的是两种责任：节点负责把当前 state 转成 partial state，边负责决定下一步去哪。普通边给出固定顺序，条件边把路由函数纳入图结构，START 和 END 则标出入口与终点。本课用工具循环拆解 add_node、add_edge、add_conditional_edges 的心智模型，重点不是记 API，而是知道业务逻辑、路由逻辑和副作用应该分别放在哪里。</p>
+<div class="card analogy"><div class="tag">🧩 生活类比</div>把节点想成工厂里的工位，工人拿到半成品和工单，只完成自己那一步并贴上一张新标签；边像传送带，决定半成品下一站送到哪里。普通传送带永远通向固定工位，分拣传送带会读标签后选择路线。START 是收货口，END 是出货口。最危险的工厂，是工人一边加工一边偷偷改传送带规则，最后谁也不知道货为什么绕圈。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：节点做事，边选路</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">节点契约</div><div class="mn-desc">add_node 注册 state -&gt; partial state 的可运行步骤</div></div><div class="map-node now"><div class="mn-label">普通边</div><div class="mn-desc">add_edge 表达固定后继关系，例如 START -&gt; model</div></div><div class="map-node source"><div class="mn-label">条件边</div><div class="mn-desc">add_conditional_edges 用路由函数把 state 映射到节点名或 END</div></div><div class="map-node now"><div class="mn-label">工具循环</div><div class="mn-desc">model -&gt; route_tools -&gt; tools 或 END；tools 再回 model</div></div><div class="map-node after"><div class="mn-label">下一课</div><div class="mn-desc">多个节点写同一 key 时要靠 reducer/channel 合并</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>节点边相关源码适合按“注册节点、连接边、动态路由、特殊端点”的顺序读。下面的文件 + 符号名就是本课所有结论的证据锚点。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">langgraph/graph/state.py</td><td class="mono">StateGraph.add_node</td><td>把函数、Runnable 或节点规格注册进状态图，并绑定节点名</td><td>用户定义业务步骤，compile 时被包装成 Pregel 节点</td></tr><tr><td class="mono">langgraph/graph/state.py</td><td class="mono">StateGraph.add_edge</td><td>声明一个固定后继关系，当前节点完成后调度目标节点</td><td>START、普通节点和 END 之间建立静态路径</td></tr><tr><td class="mono">langgraph/graph/state.py</td><td class="mono">StateGraph.add_conditional_edges</td><td>注册路由函数和可选路径映射，让 state 决定下一跳</td><td>运行时调用 route 函数，返回节点名、END 或映射键</td></tr><tr><td class="mono">langgraph/constants.py</td><td class="mono">START</td><td>虚拟入口常量，供 add_edge 等图结构 API 标记初始边界</td><td>START -&gt; first_node，运行时从入口边接收初始 state</td></tr><tr><td class="mono">langgraph/constants.py</td><td class="mono">END</td><td>虚拟终点常量，供普通边或条件边标记运行完成</td><td>route 返回 END 或边指向 END 后结束本次图运行</td></tr></table>
+<h2>调用图：工具循环的节点和边</h2>
+<div class="flow call-graph"><div class="node hl"><div class="nt">START</div><div class="nd">入口把初始 messages 写入 state</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">model</div><div class="nd">节点读取 state，返回 AIMessage partial update</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">route_tools</div><div class="nd">条件边函数检查最后一条消息</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">tools 或 END</div><div class="nd">有 tool_calls 去 tools；否则结束</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">tools -&gt; model</div><div class="nd">工具写回 ToolMessage，再把控制权交还模型</div></div></div>
+<h2>Trace：START -> model -> route_tools -> tools or END -> model</h2>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. START</td><td>初始 {&#x27;messages&#x27;: [HumanMessage(...)]}</td><td>虚拟入口把输入交给第一条边</td><td>下一节点 model</td></tr><tr><td>2. model</td><td>state.messages</td><td>模型节点生成 AIMessage，可能包含 tool_calls</td><td>partial messages 更新</td></tr><tr><td>3. route_tools</td><td>最后一条 AIMessage</td><td>条件边函数返回 &#x27;tools&#x27; 或 END</td><td>选择下一跳</td></tr><tr><td>4a. tools</td><td>tool_calls</td><td>工具节点执行副作用并返回 ToolMessage</td><td>tools -&gt; model 回边</td></tr><tr><td>4b. END</td><td>无 tool_calls 的 AIMessage</td><td>图运行结束</td><td>最终 state 返回调用者</td></tr></table>
+<h2>简化源码走读：注册和路由</h2>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">langgraph/graph/state.py :: StateGraph.add_conditional_edges</span><span class="ln">简化版</span></div><pre>builder.add_node(&#x27;model&#x27;, call_model)
+builder.add_node(&#x27;tools&#x27;, tool_node)
+builder.add_edge(START, &#x27;model&#x27;)
+builder.add_conditional_edges(&#x27;model&#x27;, route_tools, {&#x27;tools&#x27;: &#x27;tools&#x27;, END: END})
+builder.add_edge(&#x27;tools&#x27;, &#x27;model&#x27;)
+
+def route_tools(state):
+    last = state[&#x27;messages&#x27;][-1]
+    return &#x27;tools&#x27; if last.tool_calls else END
+</pre><div class="cw-note">教学版把 API 用法和路由函数放在一起：节点产生消息，条件边只做去向判断，工具节点完成后用普通边回到模型。真实源码会校验节点名、路径映射和图连通性。</div></div>
+<h2>节点：state -> partial state</h2>
+<h3>一、节点不是任意回调</h3><p>一个 LangGraph 节点最重要的签名是读取当前 state，返回 partial state。它可以内部调用模型、检索器、工具、数据库或另一个 Runnable，但对图运行时暴露的是统一形状：这一步根据 state 产生了哪些更新。只要节点遵守这个形状，它的内部实现就可以替换，测试时也可以用 fake model 或 fake tool。</p><h3>二、节点命名是公共接口</h3><p>add_node 的名字不只是调试标签，还是边和路由返回值会引用的目的地。名字应该稳定、语义明确，例如 model、tools、retrieve、grade、human_review，而不是 node1、tmp、lambda。条件边返回错名字时，图不是“猜一下你想去哪”，而是应该在校验或运行时失败。好的命名会让 trace 像流程图，坏命名会让 trace 像乱码。</p><h3>三、节点可以是函数也可以是 Runnable</h3><p>StateGraph.add_node 常见输入是普通函数，但 LangGraph 也能包装 Runnable 或更复杂的节点规格。这让前面学过的 LangChain 组件可以进入图：一个 LCEL 子链可以成为节点，一个模型绑定可以成为节点，一个工具集合可以成为节点。图不是抛弃 Runnable，而是把 Runnable 放进有状态控制流里。</p><h3>四、普通边表达确定顺序</h3><p>add_edge 适合没有条件的路径：START 后总是 model，tools 后总是 model，retrieve 后总是 grade。普通边越多，流程越稳定；条件边越多，流程越动态。不要为了显得灵活把所有边都写成条件边，如果下一步永远相同，普通边更清楚，也更容易被编译期校验。</p><h3>五、条件边表达路由，不表达业务副作用</h3><p>路由函数应该尽量纯：观察 state，返回下一跳。它不应调用外部 API，不应写数据库，不应修改 state，不应偷偷发送邮件。原因很简单：路由函数可能被重试、被调试、被可视化假设为无副作用；如果它里面藏了副作用，图的行为就很难复现。业务动作放节点，去向判断放条件边。</p><h3>六、START 和 END 是边界符号</h3><p>START 不是一个你实现的函数，而是图的虚拟入口；END 不是普通节点，而是运行完成的标记。把它们当作边界符号，可以避免给入口和出口写多余节点。START 的后继通常是第一个业务节点，END 通常由条件边返回或普通边指向。看到 START/END，就知道图的生命周期从哪里开始、在哪里闭合。</p><h3>七、工具循环为什么适合条件边</h3><p>模型是否调用工具，是运行时才知道的事。prompt、用户问题、模型能力、工具结果都会影响最后一条 AIMessage。条件边把这个运行时决策显式化：route_tools 只看最后消息，有 tool_calls 去 tools，没有就 END。这样模型节点不用知道工具节点怎么连，工具节点也不用知道什么时候结束。</p><h3>八、无限循环通常来自边而不是模型</h3><p>模型可能不断请求工具，但真正让图无限跑的是边允许它一直回到 model，且路由没有终止策略。解决办法不是只骂模型，而是给图加结构约束：最大工具轮数、错误计数、已调用同一工具同一参数的检测、无新信息时 END、人审节点或 recursion_limit。循环是图能力，终止是图责任。</p><h3>九、路由返回值要和路径映射一致</h3><p>add_conditional_edges 可以让 route 返回真实节点名，也可以通过 path_map 把业务标签映射到节点。无论哪种方式，返回值都必须可解析。常见错误是 route 返回 'tool'，实际节点叫 'tools'；或者返回 True/False，却没有提供 {True: 'tools', False: END} 映射。把路由返回类型写窄、测试覆盖每个分支，能减少这类低级错误。</p><h3>十、节点返回非 dict 的问题</h3><p>StateGraph 节点应返回符合 state 更新语义的 mapping。返回字符串、AIMessage 本体、list 或 None，通常会让运行时不知道写哪个 state key。即使只有一个 messages 字段，也要返回 {'messages': [message]}。这种冗余是有价值的，因为它让写入目标显式，reducer 也能按 key 工作。</p><h3>十一、边把架构意图写出来</h3><p>从代码审查角度看，边比节点更能暴露系统设计。节点里是一段实现，边展示实现之间的控制关系。START -> model -> route -> tools -> model 说明这是工具 Agent；retrieve -> grade -> answer/rewriter 说明这是带质量评估的 RAG；human_review -> approve/reject 说明有人审分支。读图先读边，往往比先读节点内部更快理解系统。</p><h3>十二、测试节点和路由要分开</h3><p>节点测试关注给定 state 时返回什么 partial update；路由测试关注给定 state 时返回哪个节点名或 END。不要把模型调用、工具执行和路由判断混在一个黑盒测试里，否则失败时不知道是模型输出、工具副作用还是路由拼写错。把责任拆开，是 LangGraph 可测试性的主要来源。</p><h3>十三、最小心智模型</h3><p>节点是工位，边是传送带，条件边是分拣器，START/END 是收发货口。工位只贴自己新增的标签，分拣器只读标签决定方向，传送带不加工货物。只要这三个责任不混，复杂图也能保持清楚；一旦节点开始偷偷路由、路由开始偷偷写状态，图就会失去可解释性。</p>
+<h2>扩展复盘：节点边界与路由纪律</h2>
+<p>设计节点时，可以用“输入、动作、输出、失败”四栏检查。输入是它读取哪些 state key 和 context；动作是它调用模型、工具还是纯计算；输出是它返回哪些 partial update；失败是异常、重试或错误状态如何表达。一个节点如果读了十几个 key、调用三个外部系统、同时决定下一跳，通常已经太大。把它拆成多个节点后，边会多一些，但每一步的责任更清楚。</p>
+<p>路由函数则要用另一套标准：它应该短、纯、可枚举。短，是因为路由只决定去向，不承载业务处理；纯，是因为同样 state 应该得到同样目的地，不应有随机数、网络请求或数据库写入；可枚举，是因为每个返回值都应能在测试里覆盖到。一个好的 route_tools 测试，至少包含有工具调用、无工具调用、消息为空、超过最大轮数、工具错误需要人审这几类状态。</p>
+<p>节点名和路由返回值最好形成小型词汇表。比如 model、tools、human_review、finalize、error_handler，这些名字一眼能看出流程。不要让 route 返回模型生成的自然语言句子，再用字符串匹配猜下一跳；也不要把业务标签和节点名混在一起而没有 path_map。图的控制流应该尽量像有限状态机：状态集合明确，转移条件明确，非法转移能尽早失败。</p>
+<p>START/END 的使用也能暴露设计质量。一个图如果有多个实际入口，可能需要先用一个 classify_input 节点把不同输入规范化，而不是从 START 直接连到很多复杂分支。一个图如果迟迟到不了 END，说明完成条件没有被建模。END 不是失败，而是“本次运行已经给出足够结果”。有时错误也应该走到一个 error_handler 节点整理消息后 END，而不是让异常在半路把用户体验炸掉。</p>
+<p>副作用节点要特别谨慎。工具节点可能发邮件、扣款、查库、写工单。它们应该有幂等键、错误返回和可审计输出。路由函数绝不应该藏这些动作，因为路由在读图时会被当成判断逻辑。把副作用集中在节点，能让 checkpoint、重试和人工审核更可控；也能让代码审查者快速找到所有真正影响外部世界的地方。</p>
+<p>当图变大时，先读边再读节点。边告诉你系统允许哪些状态转移，节点告诉你每个转移前后发生什么。一个边很复杂、返回值很多的条件路由，可能暗示应该拆出中间节点；一个节点有很多普通后继，可能暗示它其实在同时做分类和处理。用这套眼光复盘图结构，LangGraph 代码会越来越像清晰的流程规范，而不是另一种形式的意大利面。</p>
+<h2>案例推演：把路由函数从“聪明”改成“可靠”</h2>
+<p>很多初学者会把 route_tools 写得很“聪明”：让它重新调用模型判断要不要工具，查数据库确认工具是否可用，顺手记录一条审计日志，最后返回某个字符串。这样的函数短期看似集中，长期会变成不可测试的黑盒。可靠的路由函数应该更笨：只看当前 state 中已经存在的信息，例如最后一条消息、tool_rounds、last_tool_error、needs_human，然后返回有限集合里的一个目的地。</p>
+<p>以工具循环为例，route_tools 可以先处理保护条件：如果 messages 为空，返回 END 或 error_handler；如果 tool_rounds 超过上限，返回 human_review；如果最后消息不是 AIMessage，返回 END；如果最后 AIMessage 没有 tool_calls，返回 END；否则返回 tools。这个顺序把异常形状、终止条件和正常工具分支分开，测试也能一一覆盖。路由不需要解释业务答案，它只需要做稳定转移。</p>
+<p>节点和路由分离后，错误定位会简单很多。模型没有产生 tool_calls，是 model 节点的问题；tool_calls 参数不合法，是工具节点或模型提示的问题；route 返回了不存在的节点，是路由拼写或 path_map 问题；tools 执行失败后仍然回到 model，是错误分支缺失。每类问题都有明确责任，而不是全部混在一个“Agent 不工作”的症状里。</p>
+<p>条件边的 path_map 可以让路由返回业务标签，而不是直接暴露节点名。例如 route 返回 'need_tool'、'done'、'blocked'，path_map 再映射到 tools、END、human_review。这样业务判断和图节点命名可以适度解耦。但无论是否使用 path_map，返回集合都应清楚、有限、可测试。不要让 route 返回任意模型文本，再靠模糊匹配决定下一跳。</p>
+<p>当一个 route 函数分支越来越多时，可能说明图需要分层。先用 classify 节点写入 next_action，再用简单条件边根据 next_action 跳转；或把错误处理、人审处理、工具处理拆成多个局部路由。复杂路由不是罪，但它必须有结构。把所有 if 都堆在一个函数里，会让图表面清楚、内部混乱。</p>
+<p>最后，边也需要测试。很多项目只测节点输出，不测 route 返回值，结果线上因为 'tool' 和 'tools' 这种拼写差异失败。给每个条件边写一组状态样本，是成本最低的保险。节点测试证明“这一步产出什么”，路由测试证明“产出之后去哪”，两者合起来才证明图能按预期流动。</p>
+<h2>进一步练习：把边画成状态转移表</h2>
+<p>除了画流程图，还可以把每条条件边写成状态转移表。表头写“当前节点、观察的 state、条件、下一节点、理由”。例如当前节点 model，观察最后一条 AIMessage；有 tool_calls 且 tool_rounds 小于 3，下一节点 tools；无 tool_calls，下一节点 END；tool_rounds 达上限，下一节点 human_review。转移表能暴露遗漏分支，也方便产品和后端一起评审。</p>
+<p>转移表还能帮助你发现不该存在的边。如果某条边的理由写不清，只能说“可能以后会用”，最好先不要加。每条边都会扩大图的状态空间，也会增加测试组合。LangGraph 的灵活性很强，但工程上要控制可达路径数量。路径越多，越需要明确状态字段和终止条件，否则 trace 虽然完整，人却读不懂。</p>
+<p>对工具循环，还要单独写失败转移。工具参数缺失、工具超时、工具返回权限错误、工具结果为空，这些状态不应该全部回到 model 让模型猜。可以让工具节点写 last_tool_error 和 tool_attempts，再由条件边选择 retry、human_review、error_handler 或 END。失败路径越显式，用户体验越稳定，副作用也越可控。</p>
+<p>最后，用 START/END 检查整图连通性。每个业务节点都应该能从 START 到达，也应该在合理条件下走向 END 或错误终点。如果一个节点只能进入不能退出，通常是漏边；如果一个节点永远不可达，通常是旧设计残留。把这项检查放进代码评审，比等运行时发现“某分支永远没触发”更省成本。</p>
+<p>补充检查：每个条件边都应有一组最小样本状态，能证明所有返回值都可达且合法。样本不需要真实模型输出，可以手写 AIMessage、ToolMessage 或错误标记。这样做的好处是把路由从模型不确定性中解耦出来：即使模型偶尔输出奇怪内容，图的控制层仍然有可预测的保护分支和终止路径。</p>
+<p>路由可靠性的核心，是返回值集合要小而稳定。route_tools 不应返回模型自然语言，也不应把布尔、节点名和业务标签混着用。要么直接返回 tools、END、human_review 这样的合法目的地，要么返回 need_tool、done、blocked 这样的业务标签并用 path_map 明确映射。每个返回值都应能在代码审查中被追到一条边。</p>
+<p>测试路由函数时，不要依赖真实模型刚好生成某种 tool_calls。构造最小 state：空 messages、最后消息无工具、最后消息有工具、工具轮数超限、工具错误需要人工。对每个样本断言返回值和 path_map 都合法。这样即使节点内部 prompt 后来改变，控制层仍然能保证不会跳到不存在的节点或漏掉终止条件。</p>
+<p>节点和边的收束原则是：节点负责产出事实，路由负责根据事实选择去向。只要 route 函数保持纯、短、可枚举，复杂 Agent 的控制流就能被单独理解和验证。反之，如果路由一边调用模型一边写审计再返回任意字符串，图看起来有结构，实际仍然是不可测试的黑盒。</p>
+<h2>常见误解与边界情况</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：route 返回随便一个字符串，图会自动找到</div><div class="pf-correct">正确：返回值必须是有效节点名、END，或能被 path_map 映射的键。</div></div><div class="pitfall"><div class="pf-wrong">误解：节点可以直接返回 AIMessage</div><div class="pf-correct">正确：StateGraph 节点应返回 dict partial update，例如 {&#x27;messages&#x27;: [AIMessage(...)]}。</div></div><div class="pitfall"><div class="pf-wrong">误解：tools -&gt; model 回边天然安全</div><div class="pf-correct">正确：任何回边都需要终止条件、计数或错误分支，避免无界循环。</div></div><div class="pitfall"><div class="pf-wrong">误解：路由函数里顺手调工具</div><div class="pf-correct">正确：路由应尽量无副作用；外部调用放节点，路由只决定下一跳。</div></div></div>
+<h2>小实验</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 设计 route_tools 函数</div><ol><li>写三个测试状态：最后消息有 tool_calls、没有 tool_calls、messages 为空或最后消息不是 AIMessage。</li><li>让 route_tools 对有工具调用返回 &#x27;tools&#x27;，对无工具调用返回 END，对异常形状返回 END 或错误节点。</li><li>故意把节点名写成 &#x27;tool&#x27;，观察校验或运行时错误，再改回 &#x27;tools&#x27;。</li><li>给 state 增加 tool_rounds，并让 route 在超过 3 次时返回 END 或 human_review。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>本课锚定 StateGraph.add_node、StateGraph.add_edge、StateGraph.add_conditional_edges、START、END。未来 API 可能增加更丰富的控制流原语，但“节点做状态更新，边做控制转移”的边界仍是读图的第一原则。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>节点是 state -> partial state 的可测试步骤；边是节点之间的控制关系。</li><li>普通边适合固定顺序，条件边适合运行时路由。</li><li>START/END 是虚拟边界，标出图的入口和终点。</li><li>工具循环的核心路径是 START -> model -> route_tools -> tools 或 END，tools 再回 model。</li><li>路由函数应避免副作用，返回值必须匹配节点名或 path_map。</li></ul></div><div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. StateGraph 中一个普通业务节点最核心的契约是什么？</div>
+  <ol class="opts">
+    <li>读取 state，执行一步业务，返回 dict 形式的 partial state</li>
+    <li>必须决定整张图的下一跳</li>
+    <li>只能返回字符串</li>
+    <li>必须直接写数据库作为唯一输出</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。节点做状态更新，不负责所有控制流。下一跳通常由普通边或条件边表达。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. <code>add_conditional_edges</code> 的路由函数返回值最需要满足什么？</div>
+  <ol class="opts">
+    <li>必须能解析成有效节点名、END，或 path_map 中的键</li>
+    <li>必须是 True 或 False，不能是别的类型</li>
+    <li>必须返回完整 state</li>
+    <li>必须是模型自然语言解释</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。条件边的输出是控制流目的地。返回值和节点名/path_map 不一致，就无法可靠调度下一步。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. START 和 END 在图里代表什么？</div>
+  <ol class="opts">
+    <li>START/END 是必须由用户实现的两个函数</li>
+    <li>START 是第一个模型节点，END 是最后一个工具节点</li>
+    <li>START/END 是虚拟边界：入口和运行完成标记</li>
+    <li>START/END 只用于画图，不影响执行</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。START 标出初始输入进入哪条边，END 标出图运行完成；它们不是普通业务节点。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>写一个 <code>route_tools(state)</code> 的设计：它如何检查最后一条消息？返回哪些节点名或 END？如何处理消息为空或 tool_calls 重复？</li>
+    <li>某图路径是 model -> tools -> model，线上出现无限循环。请列出你会检查的 state key、路由条件、最大轮数和错误分支。</li>
+  </ul>
+</div>
+</div>
+  <div class="footnav"><a class="prev" href="28-langgraph-state-schema.html"><div class="dir">← 上一课</div><div class="ttl">State 与 Schema</div></a><a class="next" href="30-langgraph-reducers-channels.html"><div class="dir">下一课 →</div><div class="ttl">Reducer 与 Channel</div></a></div>
+</div>
+
+</body></html>

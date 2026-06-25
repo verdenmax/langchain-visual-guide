@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>05 · 学习路径与实验方法 — LangChain 图解教程</title>
+<meta name="description" content="第一部分 · 全局地图｜学习路径与实验方法：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="theme-color" content="#1a7f64">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="LangChain 图解教程">
+<meta property="og:title" content="05 · 学习路径与实验方法 — LangChain 图解教程">
+<meta property="og:description" content="第一部分 · 全局地图｜学习路径与实验方法：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="05 · 学习路径与实验方法 — LangChain 图解教程">
+<meta name="twitter:description" content="第一部分 · 全局地图｜学习路径与实验方法：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f0f2f5; --ink: #1d2129;
+  --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
+  --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
+  --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116; --panel: #161b22; --panel-2: #1c232c; --ink: #e6edf3;
+    --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
+    --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
+    --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+    "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg); color: var(--ink); line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
+
+/* ---- top progress bar ---- */
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: var(--panel);
+  border-bottom: 1px solid var(--line); backdrop-filter: blur(8px);
+}
+.topbar-inner {
+  max-width: 960px; margin: 0 auto; padding: .7rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.topbar .home { font-size: .82rem; color: var(--muted); font-weight: 600; display:flex; gap:.5rem; align-items:center; }
+.topbar .home b { color: var(--accent); }
+.topbar .pill { font-size: .72rem; color: var(--muted); background: var(--panel-2);
+  padding: .2rem .6rem; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.progress { height: 3px; background: var(--panel-2); }
+.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue)); }
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 2.4rem 1.25rem 5rem; }
+
+/* ---- hero ---- */
+.hero { margin-bottom: 2rem; }
+.hero .part { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin-bottom: .55rem; }
+.hero h1 { font-size: 2.05rem; line-height: 1.2; letter-spacing: -.01em; font-weight: 750; }
+.hero .lead { margin-top: .9rem; font-size: 1.06rem; color: var(--muted); }
+
+h2 { font-size: 1.32rem; margin: 2.4rem 0 .9rem; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: .55rem; }
+h2::before { content: ""; width: 4px; height: 1.05em; background: var(--accent); border-radius: 3px; display: inline-block; }
+h3 { font-size: 1.05rem; margin: 1.4rem 0 .5rem; }
+p { margin: .7rem 0; }
+ul, ol { margin: .6rem 0 .6rem 1.3rem; }
+li { margin: .3rem 0; }
+strong { color: var(--ink); font-weight: 680; }
+.inline { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: .08em .4em; font-size: .9em; color: var(--accent-ink); }
+
+/* ---- callout cards ---- */
+.card { border-radius: var(--radius); padding: 1.05rem 1.2rem; margin: 1.2rem 0;
+  border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+.card .tag { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+.card.macro { border-left: 4px solid var(--blue); }
+.card.macro .tag { color: var(--blue); }
+.card.detail { border-left: 4px solid var(--purple); }
+.card.detail .tag { color: var(--purple); }
+.card.analogy { border-left: 4px solid var(--amber); background: var(--amber-soft); }
+.card.analogy .tag { color: var(--amber); }
+.card.key { border-left: 4px solid var(--accent); background: var(--accent-soft); }
+.card.key .tag { color: var(--accent-ink); }
+.card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
+.card.warn .tag { color: var(--red); }
+.card.spark { border-left: 4px solid #e0a000;
+  background: linear-gradient(100deg, rgba(224,160,0,.12), transparent 70%); }
+.card.spark .tag { color: #c98a00; }
+@media (prefers-color-scheme: dark) { .card.spark .tag { color: #f0c050; } }
+
+/* ---- code file callout ---- */
+.codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
+  box-shadow: var(--shadow); }
+.codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
+  background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
+.codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
+.codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
+  overflow-x: auto; font-size: .82rem; line-height: 1.6; }
+.codefile pre .cm { color: #7d8aa3; }
+.codefile pre .kw { color: #c792ea; }
+.codefile pre .fn { color: #82aaff; }
+.codefile pre .st { color: #c3e88d; }
+.codefile pre .nb { color: #f78c6c; }
+
+pre.code { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem; border-radius: 12px;
+  overflow-x: auto; font-size: .83rem; line-height: 1.6; margin: 1.1rem 0; box-shadow: var(--shadow); }
+pre.code .cm { color: #7d8aa3; } pre.code .kw { color: #c792ea; }
+pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb { color: #f78c6c; }
+
+/* ---- collapsible accordion (details/summary) ---- */
+.accordion { border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+  margin: .7rem 0; box-shadow: var(--shadow); overflow: hidden; }
+.accordion > summary { cursor: pointer; padding: .85rem 1.1rem; font-weight: 650; font-size: .96rem;
+  list-style: none; display: flex; align-items: center; gap: .6rem; user-select: none; }
+.accordion > summary::-webkit-details-marker { display: none; }
+.accordion > summary::after { content: "▶"; font-size: .68rem; color: var(--accent);
+  margin-left: auto; transition: transform .15s ease; }
+.accordion[open] > summary::after { transform: rotate(90deg); }
+.accordion > summary:hover { background: var(--panel-2); }
+.accordion[open] > summary { border-bottom: 1px solid var(--line); }
+.accordion .badge-num { background: var(--accent-soft); color: var(--accent-ink);
+  width: 1.6rem; height: 1.6rem; border-radius: 7px; display: inline-flex; align-items: center;
+  justify-content: center; font-size: .82rem; font-weight: 700; flex-shrink: 0; }
+.accordion .hint { font-size: .72rem; color: var(--faint); font-weight: 400; }
+.acc-body { padding: .9rem 1.1rem 1.1rem; }
+.acc-intro { color: var(--muted); font-size: .9rem; margin: .2rem 0 .4rem; }
+.qa { margin: 1rem 0; }
+.qa:first-child { margin-top: .3rem; }
+.qa .q { font-weight: 680; font-size: .9rem; display: flex; gap: .45rem; align-items: center; margin-bottom: .3rem; }
+.qa .a { color: var(--muted); font-size: .9rem; }
+.qa .a strong { color: var(--ink); }
+.qa pre.code { margin: .5rem 0 0; font-size: .78rem; }
+
+/* ---- flow diagram ---- */
+.flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 1.3rem 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1.2rem 1rem; box-shadow: var(--shadow); }
+.flow .node { flex: 1 1 0; min-width: 110px; text-align: center; padding: .7rem .5rem;
+  border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.flow .node .nt { font-weight: 700; font-size: .92rem; }
+.flow .node .nd { font-size: .76rem; color: var(--muted); margin-top: .2rem; }
+.flow .node.hl { background: var(--accent-soft); border-color: var(--accent); }
+.flow .arrow { align-self: center; color: var(--faint); font-size: 1.3rem; padding: 0 .35rem; }
+
+/* vertical flow */
+.vflow { margin: 1.3rem 0; }
+.vflow .step { display: flex; gap: .9rem; position: relative; padding-bottom: 1.1rem; }
+.vflow .step:not(:last-child)::before { content:""; position:absolute; left: 15px; top: 34px; bottom: -2px;
+  width: 2px; background: var(--line); }
+.vflow .num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; z-index:1; }
+.vflow .sc h4 { margin: .25rem 0 .2rem; font-size: 1rem; }
+.vflow .sc p { margin: .15rem 0; font-size: .92rem; color: var(--muted); }
+.vflow .sc .mono { font-size: .8rem; color: var(--accent-ink); }
+
+/* layered architecture */
+.layers { margin: 1.3rem 0; display: flex; flex-direction: column; gap: .55rem; }
+.layer { border-radius: 12px; padding: .85rem 1.1rem; border: 1px solid var(--line); background: var(--panel);
+  box-shadow: var(--shadow); }
+.layer .lh { display: flex; align-items: center; gap: .6rem; }
+.layer .lh .badge { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; }
+.layer .lh .name { font-weight: 700; font-family: ui-monospace, monospace; }
+.layer .ld { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.layer.l-core { border-left: 4px solid var(--accent); } .layer.l-core .badge { background: var(--accent-soft); color: var(--accent-ink); }
+.layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
+.layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
+.layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+
+/* two-column compare */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
+.col h4 { margin: 0 0 .4rem; font-size: .95rem; }
+
+table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
+  background: var(--panel); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+table.t th, table.t td { padding: .6rem .8rem; text-align: left; border-bottom: 1px solid var(--line); }
+table.t th { background: var(--panel-2); font-size: .8rem; letter-spacing: .02em; }
+table.t tr:last-child td { border-bottom: none; }
+table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-size: .82rem; color: var(--accent-ink); }
+@media (max-width: 640px) {
+  /* Wide multi-column tables: scroll within their own box instead of
+     forcing page-level horizontal overflow (which clipped right columns). */
+  table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.t th, table.t td { padding: .5rem .6rem; }
+  /* Code-file header: let a long path wrap and the right-side caption drop to
+     its own line instead of being pushed off-screen and silently clipped by
+     html{overflow-x:hidden}. */
+  .codefile .cf-head { flex-wrap: wrap; }
+  .codefile .cf-head .ln { margin-left: 0; }
+}
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
+
+/* footer nav */
+.footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
+  padding-top: 1.4rem; border-top: 1px solid var(--line); }
+.footnav a { flex: 1; padding: .85rem 1.1rem; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--panel); box-shadow: var(--shadow); transition: .15s; }
+.footnav a:hover { border-color: var(--accent); transform: translateY(-1px); }
+.footnav a.next { text-align: right; }
+.footnav .dir { font-size: .72rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.footnav .ttl { font-weight: 700; color: var(--ink); margin-top: .15rem; }
+.footnav a.disabled { opacity: .35; pointer-events: none; }
+
+/* index page */
+.toc { display: grid; gap: .7rem; margin-top: 1.6rem; }
+.toc-part { font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--accent); margin: 1.4rem 0 .2rem; }
+.toc a { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.05rem; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); transition: .15s; }
+.toc a:hover { border-color: var(--accent); transform: translateX(3px); }
+.toc .n { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
+.toc .tt { font-weight: 650; color: var(--ink); }
+.toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.toc-search { position: relative; margin: 1.6rem 0 -.4rem; }
+.toc-search input { width: 100%; box-sizing: border-box; padding: .75rem 2.8rem .75rem 1rem;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font-size: .98rem; box-shadow: var(--shadow); }
+.toc-search input:focus { outline: none; border-color: var(--accent); }
+.toc-search .qcount { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+  color: var(--faint); font-size: .8rem; pointer-events: none; }
+.toc a.hide, .toc .toc-part.hide { display: none; }
+.toc-empty { display: none; color: var(--muted); padding: 1rem; text-align: center; }
+.toc-empty.show { display: block; }
+.hero.index h1 { font-size: 2.3rem; }
+.legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
+.legend span { display:flex; align-items:center; gap:.4rem; }
+.legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }
+.pdf-btn { display:inline-flex; align-items:center; gap:.4rem; padding:.55rem 1.1rem;
+  background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
+  box-shadow:var(--shadow); transition:.15s; }
+.pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
+</style>
+</head><body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第一部分 · 全局地图</span>
+    <span class="pill">05 / 46</span>
+  </div>
+  <div class="progress"><span style="width:10%"></span></div>
+</div>
+<div class="wrap">
+  <div class="hero">
+    <div class="part">第一部分 · 全局地图</div>
+    <h1>学习路径与实验方法</h1>
+  </div>
+
+<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
+前四课给了边界、包结构、调用链和源码路线。本课把它们合成一套学习方法：每个主题都按“概念 → trace → source → experiment → glossary”五步推进。先用概念建立地图，再用 trace 观察真实流动，再用 source 找到文件和符号，再用实验验证假设，最后回到术语表复习。这样学 LangChain，不会停留在“会跑 demo”，也不会陷入“读源码但不知道为什么”。
+</p>
+
+<div class="card analogy">
+  <div class="tag">🧪 生活类比 · 科学课实验本</div>
+  学框架像做实验课。概念是老师先画的模型，trace 是实验仪器记录的数据，source 是教材里的原理推导，experiment 是你改变量后复现实象，glossary 是期末复习卡片。只背概念会空，只有输出截图会玄，直接读源码会乱；五步连起来，才形成“能解释、能定位、能复现、能迁移”的学习闭环。
+</div>
+<div class="lesson-map"><div class="lm-title">🗺️ 使用本教程的五步闭环</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">Concept</div><div class="mn-desc">先用中文心智模型回答它是什么、边界在哪、为什么存在</div></div><div class="map-node now"><div class="mn-label">Trace</div><div class="mn-desc">再用表格或回调观察输入、状态、输出如何变化</div></div><div class="map-node source"><div class="mn-label">Source</div><div class="mn-desc">用文件 + 符号名把解释落到源码证据</div></div><div class="map-node after"><div class="mn-label">Experiment</div><div class="mn-desc">用 fake model、in-memory saver、可控 config 做可复现实验</div></div><div class="map-node after"><div class="mn-label">Glossary</div><div class="mn-desc">把术语回收到索引，建立跨章节链接</div></div></div></div>
+<h2>学习状态流：不要跳步</h2>
+<p>很多人学 LangChain 的失败模式是跳步：刚看完概念就复制复杂 Agent；输出不对就调 prompt；调不动就随机搜 issue。更稳的流程是把每个主题都当成一个可观测系统，逐层增加证据。</p>
+<div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>概念</h4><p>用一句话定义本节对象，并写出它不负责什么。</p><div class="mono">Runnable = 可调用协议，不是某个具体模型</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>Trace</h4><p>构造最小输入，记录每一步状态如何变化。</p><div class="mono">HumanMessage -&gt; AIMessage -&gt; ToolMessage</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>Source</h4><p>找到公共入口、协议、具体实现和测试。</p><div class="mono">file + symbol</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>Experiment</h4><p>改变一个变量，预测 trace 会怎样变，再运行验证。</p><div class="mono">temperature=0 / fake outputs</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>Glossary</h4><p>把新术语写成可复习的一句话，并链接到相关课。</p><div class="mono">Callback / Checkpoint / Reducer</div></div></div></div>
+<div class="card detail">
+  <div class="tag">🔬 源码入口 · 文件 + 符号名</div>
+  本课关注“怎么做实验”。真实模型输出不稳定、网络和计费也会干扰学习，所以我们优先使用 fake model、内存 checkpointer、RunnableConfig 和 tracer，让实验可重复、可观察、低成本。
+</div>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/language_models/fake_chat_models.py</td><td class="mono">GenericFakeChatModel</td><td>用预设消息或生成器模拟聊天模型，避免真实 API 的随机性和费用。</td><td>实验替身 -&gt; BaseChatModel 协议</td></tr><tr><td class="mono">langchain-ai/langgraph/libs/checkpoint/langgraph/checkpoint/memory/__init__.py</td><td class="mono">InMemorySaver</td><td>内存 checkpoint，用于本地验证 LangGraph 状态保存和恢复。</td><td>Graph runtime -&gt; checkpoint storage</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/config.py</td><td class="mono">RunnableConfig</td><td>传递 tags、metadata、callbacks、configurable 等运行时配置。</td><td>调用者 -&gt; Runnable 链路</td></tr><tr><td class="mono">libs/core/langchain_core/tracers/</td><td class="mono">tracers</td><td>收集 run、事件、输入输出和错误，支撑可观测调试。</td><td>Callbacks -&gt; trace records</td></tr><tr><td class="mono">libs/core/langchain_core/callbacks/manager.py</td><td class="mono">CallbackManager</td><td>把回调事件分发给 tracer、日志器或自定义 handler。</td><td>Runnable execution -&gt; observers</td></tr></table>
+<h2>确定性 fake-model 实验</h2>
+<p>学习早期尽量不要依赖真实模型判断框架行为。真实模型会受 temperature、上下文、服务端版本和网络重试影响，同一个 prompt 可能得到不同结果。框架行为实验需要可重复，因此应该用 fake model 固定输出，再观察消息、工具、状态和回调是否按预期变化。</p>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">experiments/fake_agent_trace.py :: deterministic_fake_model</span><span class="ln">简化版</span></div><pre>from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.runnables import RunnableConfig
+
+fake = GenericFakeChatModel(messages=iter([
+    AIMessage(content=&quot;欢迎来到课程！&quot;),
+]))
+
+config = RunnableConfig(
+    tags=[&quot;lesson05&quot;, &quot;fake&quot;],
+    metadata={&quot;case&quot;: &quot;welcome&quot;},
+)
+
+result = fake.invoke([HumanMessage(content=&quot;写一句欢迎语&quot;)], config=config)
+assert result.content == &quot;欢迎来到课程！&quot;</pre><div class="cw-note">这个实验不验证模型聪明不聪明，只验证 Runnable 输入、config 传播、AIMessage 输出这些框架行为。</div></div>
+<h2>实验 trace 表</h2>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1 固定假输出</td><td>GenericFakeChatModel(messages=iter([...]))</td><td>预设模型下一次返回的 AIMessage。</td><td>确定性响应队列</td></tr><tr><td>2 构造输入</td><td>HumanMessage(&#x27;写一句欢迎语&#x27;)</td><td>使用标准消息而不是裸字符串，减少无关变量。</td><td>messages list</td></tr><tr><td>3 添加 config</td><td>tags + metadata</td><td>通过 RunnableConfig 传入观察标签。</td><td>可追踪 run</td></tr><tr><td>4 执行 invoke</td><td>fake + messages + config</td><td>走 BaseChatModel/Runnable 协议，但不访问网络。</td><td>AIMessage</td></tr><tr><td>5 断言行为</td><td>result.content</td><td>断言固定输出，并检查 trace 是否包含 tags。</td><td>实验可复现</td></tr></table>
+<h2>为什么 output-only 调试很弱</h2>
+<p>只看最终输出，就像医生只看病人最后一句“我不舒服”。模型回答错，可能是输入消息不对、工具 schema 不对、retriever 返回了错误文档、config 没传、回调断了、图状态被覆盖、provider 参数被忽略，也可能只是模型随机性。最终输出把所有层压成一个字符串，信息量太低。</p>
+<p>强调 trace 不是为了形式主义，而是为了把黑盒拆成可观察节点：输入是什么、状态是什么、调用了哪个工具、工具返回什么、下一步路由到哪里、最终消息如何形成。只有这样你才能提出可验证假设。例如“模型没调用工具”可以拆成：工具是否绑定？schema 是否出现在 provider payload？模型是否返回 tool_calls？Agent 是否执行 tool node？ToolMessage 是否回灌？每个问题都能被 trace 或源码回答。</p>
+
+<h2>安全实验设计</h2>
+<p>实验要小、确定、单变量、无副作用。小，意味着一次只验证一个概念，例如 config tags 是否传播，不要同时测试 RAG、工具、streaming 和 checkpoint。确定，意味着优先 fake model 或 temperature=0，并固定输入。单变量，意味着每轮只改一个参数，否则输出变化无法归因。无副作用，意味着真实数据库、付款、发邮件、删文件都要用 stub 或 sandbox 工具替代。</p>
+<p>对 LangGraph 状态实验，<span class="mono">InMemorySaver</span> 很适合入门：它让你观察 checkpoint 和 thread_id 如何工作，而不需要先部署数据库。等理解状态保存、恢复、中断之后，再换 SQLite、Postgres 或生产级 checkpointer。学习顺序应该从可控到真实，而不是一开始就把所有复杂性打开。</p>
+
+<h2>如何配合术语表</h2>
+<p>术语表不是附录，而是学习闭环的“索引层”。每学完一个词，就用一句中文写出：它是什么、在哪一层、和相邻概念有什么区别。例如 Runnable 是协议，不是执行线程；Callback 是事件观察，不是业务逻辑；Checkpoint 是状态快照，不是聊天历史本身。写出区别，才说明你真的掌握边界。</p>
+<p>复习时可以反向使用术语表：随机挑一个词，要求自己画出概念图、写出最小 trace、指出源码入口、设计一个小实验。如果四项中有一项说不清，就回到对应课程补证据。这种复习比重看视频或重跑 demo 更有效。</p>
+
+<h2>从最小实验扩展到真实项目</h2>
+<p>最小实验不是终点，而是通往真实项目的台阶。第一步用 fake model 固定输出，验证框架行为；第二步把 fake model 换成真实 provider，但仍保持工具和输入简单；第三步加入一个无副作用工具，例如查询内存字典；第四步加入 checkpointer，观察 thread_id 和状态恢复；第五步才接真实数据库、真实检索和真实外部 API。每一步只新增一种复杂性，出了问题能立刻回退到上一层。</p>
+<p>这种扩展方式尤其适合 Agent。很多 Agent demo 一上来就包含网页搜索、数据库、文件读写、长上下文和真实模型随机性，输出失败时几乎无法归因。把它拆成层后，你可以先证明“模型会提出工具请求”，再证明“工具节点会执行”，再证明“ToolMessage 会回灌”，最后才证明“真实工具数据质量足够”。学习速度看似慢，其实避免了大量无效调参。</p>
+
+<h2>实验记录应该写什么</h2>
+<p>每次实验建议记录六项：目标、假设、固定条件、变量、观察方式、结论。目标回答你要验证什么；假设写出运行前的预测；固定条件列出 fake 输出、输入消息、版本和配置；变量只允许一个；观察方式说明看 trace、断言、日志还是源码；结论写“支持/不支持假设”而不是“感觉可以”。这样的记录能防止你被单次输出误导。</p>
+<p>例如验证 callbacks 传播：目标是确认父链 tags 会传到模型；固定条件是 fake model 和同一条 HumanMessage；变量是给父 Runnable 增加 tags；观察方式是 tracer 记录；结论是模型 run 是否带有该 tag。这个实验不需要真实模型，却能可靠证明框架传播行为。</p>
+
+<h2>版本变化时怎么复查</h2>
+<p>LangChain 生态变化很快，学习笔记必须能应对版本漂移。不要只保存“某行代码这样写”，要保存符号和职责：<span class="mono">GenericFakeChatModel</span> 用于确定性模型实验，<span class="mono">RunnableConfig</span> 用于运行时配置，<span class="mono">InMemorySaver</span> 用于内存 checkpoint。版本升级后先确认这些符号是否仍在、职责是否变化、测试是否仍覆盖同一行为。这样你能快速更新认知，而不是整套笔记报废。</p>
+<p>如果某个符号迁移了，也不要慌。先找 deprecation message，再看新路径是否保留相同协议。LangChain 的很多迁移都围绕“旧入口变薄，新协议更稳定”展开。理解协议比记住路径更抗变化，这也是前几课反复强调 Runnable、BaseMessage、StateGraph 的原因。</p>
+
+<h2>把每一课变成可运行检查</h2>
+<p>学习结束时，不要只问“我看懂了吗”，而要问“我能不能写一个最小检查”。消息课可以检查字符串如何变成 HumanMessage；模型课可以检查 fake model 返回 AIMessage；工具课可以检查 @tool 是否生成必填参数 schema；Agent 课可以检查 ToolMessage 是否回灌；LangGraph 课可以检查 checkpoint 是否保存状态。每个检查都很小，却能证明你掌握了一个机制。</p>
+<p>这些检查可以积累成个人回归套件。以后版本升级，你运行这些小检查，就知道哪些认知仍然成立，哪些需要更新。相比收藏一堆链接，小检查更接近工程实践：它们能失败，能定位，能提醒你重新读源码。</p>
+
+<h2>学习节奏：先窄后宽</h2>
+<p>不要同时学习所有概念。先窄到一条链：HumanMessage 进入 fake model，返回 AIMessage。然后加 config 和 tracer。再加一个 tool。再把手写循环换成 create_agent。再把一次性状态换成 InMemorySaver。每次只增加一个维度，旧维度保持可验证。这样你的心智模型会像树一样长出分支，而不是像毛线团一样缠在一起。</p>
+<p>先窄后宽并不意味着忽视全局。第一部分已经给了全局地图，后续每次下钻都要回到地图上定位：我现在学的是协议、provider、工具、图、状态、还是观察？知道自己站在哪一层，才不会把某个细节放大成整个框架。</p>
+
+<h2>把失败当成学习材料</h2>
+<p>实验失败不是坏事，前提是失败可观察。一个好的失败会告诉你哪条假设错了：tags 没传播，说明 config 处理有问题；工具没调用，说明 schema、模型能力或路由有问题；checkpoint 没恢复，说明 thread_id 或 saver 配置有问题。一个坏的失败只给你一个含糊输出，让你不知道该改哪里。</p>
+<p>所以每个实验都要设计观察点。至少记录输入、状态、配置、事件和输出；涉及工具时记录 tool_calls 和 ToolMessage；涉及图时记录节点名和状态更新；涉及检索时记录召回文档。观察点越明确，失败越有价值。最终你会把调试从“试试这个 prompt”升级为“验证这个层的假设”。</p>
+<p>学习路径的最后目标，是让你能独立处理新需求。面对一个教程没覆盖的新 provider、新工具或新 graph 模式，你不需要等待完整示例，而是按同一套流程行动：先写概念边界，再构造最小 trace，再找源码入口，再做确定性实验，再把新术语加入索引。流程稳定，未知内容就会变成可拆解任务。</p>
+<p>这也是为什么本指南强调中文解释、源码证据和实验并重。中文解释帮助你建立直觉，源码证据防止直觉漂浮，实验让证据变成自己的经验。三者缺一不可：只有解释会变成口号，只有源码会变成细节堆积，只有实验会变成试错。闭环学习让你既能向别人讲清楚，也能在代码里验证。</p>
+<p>从下一部分开始，每课都可以套用本课方法。看到消息系统，就问消息如何流动；看到聊天模型，就追 invoke；看到工具，就看 schema 和执行边界；看到 Agent，就观察状态图；看到 streaming，就记录 chunk 事件。你不是在学习零散章节，而是在反复练习同一套系统化方法。</p>
+<h2>把术语变成行动</h2>
+<p>术语只有能指导行动才有价值。知道 Runnable，就应该能决定一个组件是否能被 pipe、batch、stream；知道 Callback，就应该能设计观察点；知道 Checkpoint，就应该能解释恢复为什么需要 thread id；知道 FakeModel，就应该能设计无网络实验。每个词都连接一个动作，学习才不会停在背诵。</p>
+<p>复习时可以用“术语到行动”的方式自测：随机抽一个词，写出它能帮助你做的一个调试动作、一个源码入口、一个实验。写不出来，就说明这个词仍然只是名词，没有进入工程直觉。</p>
+
+<h2>把实验写成可重复配方</h2>
+<p>好的学习实验应该像配方，而不是像回忆。配方要写清环境、输入、固定输出、变量、观察点和预期结果。比如验证 checkpoint 恢复，不要只写“试了一下能恢复”，而要写 thread_id 是什么、初始状态是什么、第一次运行停在哪个节点、恢复时传入什么 config、期望状态中哪些字段保持不变。这样别人才能复现，你未来升级版本时也能重跑。</p>
+<p>配方还要明确哪些东西故意不测试。一个 fake model 实验不评价模型质量，一个内存 checkpointer 实验不评价数据库可靠性，一个单工具 Agent 实验不覆盖真实权限系统。写出“不测试什么”能防止读者把实验结论外推到生产。学习中的小实验是为了隔离机制，生产验证则需要在机制清楚后逐层增加真实依赖。</p>
+<p>当实验失败时，先不要扩大变量。最常见的错误是同时换真实模型、加检索、改 prompt、开 streaming，最后不知道哪个变化导致结果不同。闭环学习要求你一次只移动一个旋钮；如果必须引入多个变化，就把它拆成几轮实验，每轮都保留上一轮的可运行检查。</p>
+<p>最终，这些配方可以成为团队的入门手册。新人先跑确定性实验，理解消息、配置、工具和图状态，再接触真实模型和真实数据。这样训练出的不是“会复制 demo 的人”，而是能用证据解释系统行为的人。</p>
+<p>当团队共用同一批配方，讨论也会更具体：大家可以指向同一个输入、同一个 trace、同一个源码符号，而不是各自描述一次不可复现的体验。</p>
+<p>把配方保留下来还有一个好处：它会自然形成升级前检查清单。每次依赖升级后先跑这些小实验，若某一步失败，就按配方里的观察点回到对应源码，而不是在完整业务项目里寻找噪声。</p>
+
+<h2>方法复盘</h2>
+<p>概念、trace、source、experiment、glossary 不是五个独立动作，而是一条闭环。概念给方向，trace 给事实，source 给证据，experiment 给验证，glossary 给复用。任何一步缺失，学习都会偏：没有概念会乱，没有 trace 会黑盒，没有 source 会虚，没有 experiment 会不牢，没有 glossary 会遗忘。</p>
+<p>再补一个检查：每做完一个实验，都要写下如果失败下一步看哪里。比如 fake model 输出不符看预设队列，trace 标签缺失看 config，checkpoint 缺失看 saver 和 thread id。提前写好失败路线，实验才真正可调试。</p><p>最后确认：学习闭环要能重复执行。每遇到新概念，都用同一套问题拆解、同一套 trace 观察、同一套实验验证。</p>
+
+<h2>常见误解</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：教程应该从完整项目开始，越真实越好。</div><div class="pf-correct">正确：学习框架机制时应从可控最小实验开始，再逐步加真实复杂度。</div></div><div class="pitfall"><div class="pf-wrong">误解：fake model 不真实，所以没价值。</div><div class="pf-correct">正确：fake model 用来验证框架行为，不用来评估模型能力；它能消除随机性。</div></div><div class="pitfall"><div class="pf-wrong">误解：只要最终回答对，就说明链路正确。</div><div class="pf-correct">正确：输出正确可能是偶然；没有 trace 无法证明工具、状态、config 都按预期工作。</div></div><div class="pitfall"><div class="pf-wrong">误解：源码读懂一次就够了。</div><div class="pf-correct">正确：版本会变，应该保留文件 + 符号名和实验，方便未来复查。</div></div><div class="pitfall"><div class="pf-wrong">误解：实验变量越多越接近生产。</div><div class="pf-correct">正确：多变量实验难以归因；生产复杂性应在机制理解后逐步引入。</div></div></div>
+<h2>小实验：设计一个无副作用的 Agent 练习</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 从概念到实验的闭环</div><ol><li>选一个主题，例如 RunnableConfig 传播，用一句话写出概念和边界。</li><li>用 fake model 或纯 Runnable 构造最小 trace，记录输入、config、输出。</li><li>找到对应源码入口，例如 config.py :: RunnableConfig 和 ensure_config。</li><li>只改变一个变量，例如新增 metadata，预测 trace 变化并运行验证。</li><li>把 RunnableConfig、callbacks、tracer 三个词加入自己的术语卡片。</li></ol></div>
+<div class="card key">
+  <div class="tag">✅ 本课要点</div>
+  <ul>
+    <li>本教程推荐“概念 → trace → source → experiment → glossary”的学习闭环。</li>
+    <li>fake model、InMemorySaver、RunnableConfig、tracers 能让实验低成本、可重复、可观察。</li>
+    <li>只看最终输出无法定位层次问题；trace 能把黑盒拆成可验证节点。</li>
+    <li>安全实验要小、确定、单变量、无副作用，再逐步迁移到真实 provider 和生产存储。</li>
+  </ul>
+</div>
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. 本教程推荐的学习顺序是什么？</div>
+  <ol class="opts">
+    <li>只背术语表，不运行代码</li>
+    <li>只读源码，不做实验</li>
+    <li>concept → trace → source → experiment → glossary</li>
+    <li>先跑最大 demo，再看最终输出，最后凭感觉改 prompt</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。五步闭环先建立心智，再观察流动，再找证据，再验证假设，最后沉淀术语。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. <code>GenericFakeChatModel</code>、<code>InMemorySaver</code> 这类 fake/in-memory 组件最适合用来做什么？</div>
+  <ol class="opts">
+    <li>消除网络、费用和随机性，验证框架行为、状态保存和 trace 是否按预期工作</li>
+    <li>绕过 Runnable 协议</li>
+    <li>替代所有生产数据库</li>
+    <li>评估真实模型智商</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。fake 组件用于机制实验，不用于模型能力评测；它们让实验可控、低成本、可重复。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 观察 LangGraph 或 Runnable 状态时，最有价值的做法是什么？</div>
+  <ol class="opts">
+    <li>完全关闭 tracing</li>
+    <li>每次同时改变五个变量</li>
+    <li>只保存最终字符串</li>
+    <li>记录输入、状态、config、回调事件、工具结果和输出的变化</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。状态观察把黑盒拆成节点，能定位到底是输入、工具、路由、config 还是 provider 出了问题。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>设计一个安全实验验证 <code>RunnableConfig</code> 的 tags/metadata 是否传播：如何保证小、确定、单变量、无副作用？</li>
+    <li>解释为什么 output-only debugging 很弱。请举例说明最终回答错误时，可能分别由消息、工具、retriever、config、provider 哪些层造成。</li>
+  </ul>
+</div>
+</div>
+  <div class="footnav"><a class="prev" href="04-source-reading-map.html"><div class="dir">← 上一课</div><div class="ttl">源码阅读地图</div></a><a class="next" href="04-messages.html"><div class="dir">下一课 →</div><div class="ttl">消息系统</div></a></div>
+</div>
+
+</body></html>

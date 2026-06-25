@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>21 · compile 与 Runtime — LangChain 图解教程</title>
+<meta name="description" content="第四部分 · LangGraph 心智模型｜compile 与 Runtime：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="theme-color" content="#1a7f64">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="LangChain 图解教程">
+<meta property="og:title" content="21 · compile 与 Runtime — LangChain 图解教程">
+<meta property="og:description" content="第四部分 · LangGraph 心智模型｜compile 与 Runtime：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="21 · compile 与 Runtime — LangChain 图解教程">
+<meta name="twitter:description" content="第四部分 · LangGraph 心智模型｜compile 与 Runtime：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f0f2f5; --ink: #1d2129;
+  --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
+  --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
+  --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116; --panel: #161b22; --panel-2: #1c232c; --ink: #e6edf3;
+    --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
+    --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
+    --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+    "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg); color: var(--ink); line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
+
+/* ---- top progress bar ---- */
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: var(--panel);
+  border-bottom: 1px solid var(--line); backdrop-filter: blur(8px);
+}
+.topbar-inner {
+  max-width: 960px; margin: 0 auto; padding: .7rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.topbar .home { font-size: .82rem; color: var(--muted); font-weight: 600; display:flex; gap:.5rem; align-items:center; }
+.topbar .home b { color: var(--accent); }
+.topbar .pill { font-size: .72rem; color: var(--muted); background: var(--panel-2);
+  padding: .2rem .6rem; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.progress { height: 3px; background: var(--panel-2); }
+.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue)); }
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 2.4rem 1.25rem 5rem; }
+
+/* ---- hero ---- */
+.hero { margin-bottom: 2rem; }
+.hero .part { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin-bottom: .55rem; }
+.hero h1 { font-size: 2.05rem; line-height: 1.2; letter-spacing: -.01em; font-weight: 750; }
+.hero .lead { margin-top: .9rem; font-size: 1.06rem; color: var(--muted); }
+
+h2 { font-size: 1.32rem; margin: 2.4rem 0 .9rem; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: .55rem; }
+h2::before { content: ""; width: 4px; height: 1.05em; background: var(--accent); border-radius: 3px; display: inline-block; }
+h3 { font-size: 1.05rem; margin: 1.4rem 0 .5rem; }
+p { margin: .7rem 0; }
+ul, ol { margin: .6rem 0 .6rem 1.3rem; }
+li { margin: .3rem 0; }
+strong { color: var(--ink); font-weight: 680; }
+.inline { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: .08em .4em; font-size: .9em; color: var(--accent-ink); }
+
+/* ---- callout cards ---- */
+.card { border-radius: var(--radius); padding: 1.05rem 1.2rem; margin: 1.2rem 0;
+  border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+.card .tag { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+.card.macro { border-left: 4px solid var(--blue); }
+.card.macro .tag { color: var(--blue); }
+.card.detail { border-left: 4px solid var(--purple); }
+.card.detail .tag { color: var(--purple); }
+.card.analogy { border-left: 4px solid var(--amber); background: var(--amber-soft); }
+.card.analogy .tag { color: var(--amber); }
+.card.key { border-left: 4px solid var(--accent); background: var(--accent-soft); }
+.card.key .tag { color: var(--accent-ink); }
+.card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
+.card.warn .tag { color: var(--red); }
+.card.spark { border-left: 4px solid #e0a000;
+  background: linear-gradient(100deg, rgba(224,160,0,.12), transparent 70%); }
+.card.spark .tag { color: #c98a00; }
+@media (prefers-color-scheme: dark) { .card.spark .tag { color: #f0c050; } }
+
+/* ---- code file callout ---- */
+.codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
+  box-shadow: var(--shadow); }
+.codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
+  background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
+.codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
+.codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
+  overflow-x: auto; font-size: .82rem; line-height: 1.6; }
+.codefile pre .cm { color: #7d8aa3; }
+.codefile pre .kw { color: #c792ea; }
+.codefile pre .fn { color: #82aaff; }
+.codefile pre .st { color: #c3e88d; }
+.codefile pre .nb { color: #f78c6c; }
+
+pre.code { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem; border-radius: 12px;
+  overflow-x: auto; font-size: .83rem; line-height: 1.6; margin: 1.1rem 0; box-shadow: var(--shadow); }
+pre.code .cm { color: #7d8aa3; } pre.code .kw { color: #c792ea; }
+pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb { color: #f78c6c; }
+
+/* ---- collapsible accordion (details/summary) ---- */
+.accordion { border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+  margin: .7rem 0; box-shadow: var(--shadow); overflow: hidden; }
+.accordion > summary { cursor: pointer; padding: .85rem 1.1rem; font-weight: 650; font-size: .96rem;
+  list-style: none; display: flex; align-items: center; gap: .6rem; user-select: none; }
+.accordion > summary::-webkit-details-marker { display: none; }
+.accordion > summary::after { content: "▶"; font-size: .68rem; color: var(--accent);
+  margin-left: auto; transition: transform .15s ease; }
+.accordion[open] > summary::after { transform: rotate(90deg); }
+.accordion > summary:hover { background: var(--panel-2); }
+.accordion[open] > summary { border-bottom: 1px solid var(--line); }
+.accordion .badge-num { background: var(--accent-soft); color: var(--accent-ink);
+  width: 1.6rem; height: 1.6rem; border-radius: 7px; display: inline-flex; align-items: center;
+  justify-content: center; font-size: .82rem; font-weight: 700; flex-shrink: 0; }
+.accordion .hint { font-size: .72rem; color: var(--faint); font-weight: 400; }
+.acc-body { padding: .9rem 1.1rem 1.1rem; }
+.acc-intro { color: var(--muted); font-size: .9rem; margin: .2rem 0 .4rem; }
+.qa { margin: 1rem 0; }
+.qa:first-child { margin-top: .3rem; }
+.qa .q { font-weight: 680; font-size: .9rem; display: flex; gap: .45rem; align-items: center; margin-bottom: .3rem; }
+.qa .a { color: var(--muted); font-size: .9rem; }
+.qa .a strong { color: var(--ink); }
+.qa pre.code { margin: .5rem 0 0; font-size: .78rem; }
+
+/* ---- flow diagram ---- */
+.flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 1.3rem 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1.2rem 1rem; box-shadow: var(--shadow); }
+.flow .node { flex: 1 1 0; min-width: 110px; text-align: center; padding: .7rem .5rem;
+  border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.flow .node .nt { font-weight: 700; font-size: .92rem; }
+.flow .node .nd { font-size: .76rem; color: var(--muted); margin-top: .2rem; }
+.flow .node.hl { background: var(--accent-soft); border-color: var(--accent); }
+.flow .arrow { align-self: center; color: var(--faint); font-size: 1.3rem; padding: 0 .35rem; }
+
+/* vertical flow */
+.vflow { margin: 1.3rem 0; }
+.vflow .step { display: flex; gap: .9rem; position: relative; padding-bottom: 1.1rem; }
+.vflow .step:not(:last-child)::before { content:""; position:absolute; left: 15px; top: 34px; bottom: -2px;
+  width: 2px; background: var(--line); }
+.vflow .num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; z-index:1; }
+.vflow .sc h4 { margin: .25rem 0 .2rem; font-size: 1rem; }
+.vflow .sc p { margin: .15rem 0; font-size: .92rem; color: var(--muted); }
+.vflow .sc .mono { font-size: .8rem; color: var(--accent-ink); }
+
+/* layered architecture */
+.layers { margin: 1.3rem 0; display: flex; flex-direction: column; gap: .55rem; }
+.layer { border-radius: 12px; padding: .85rem 1.1rem; border: 1px solid var(--line); background: var(--panel);
+  box-shadow: var(--shadow); }
+.layer .lh { display: flex; align-items: center; gap: .6rem; }
+.layer .lh .badge { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; }
+.layer .lh .name { font-weight: 700; font-family: ui-monospace, monospace; }
+.layer .ld { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.layer.l-core { border-left: 4px solid var(--accent); } .layer.l-core .badge { background: var(--accent-soft); color: var(--accent-ink); }
+.layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
+.layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
+.layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+
+/* two-column compare */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
+.col h4 { margin: 0 0 .4rem; font-size: .95rem; }
+
+table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
+  background: var(--panel); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+table.t th, table.t td { padding: .6rem .8rem; text-align: left; border-bottom: 1px solid var(--line); }
+table.t th { background: var(--panel-2); font-size: .8rem; letter-spacing: .02em; }
+table.t tr:last-child td { border-bottom: none; }
+table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-size: .82rem; color: var(--accent-ink); }
+@media (max-width: 640px) {
+  /* Wide multi-column tables: scroll within their own box instead of
+     forcing page-level horizontal overflow (which clipped right columns). */
+  table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.t th, table.t td { padding: .5rem .6rem; }
+  /* Code-file header: let a long path wrap and the right-side caption drop to
+     its own line instead of being pushed off-screen and silently clipped by
+     html{overflow-x:hidden}. */
+  .codefile .cf-head { flex-wrap: wrap; }
+  .codefile .cf-head .ln { margin-left: 0; }
+}
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
+
+/* footer nav */
+.footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
+  padding-top: 1.4rem; border-top: 1px solid var(--line); }
+.footnav a { flex: 1; padding: .85rem 1.1rem; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--panel); box-shadow: var(--shadow); transition: .15s; }
+.footnav a:hover { border-color: var(--accent); transform: translateY(-1px); }
+.footnav a.next { text-align: right; }
+.footnav .dir { font-size: .72rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.footnav .ttl { font-weight: 700; color: var(--ink); margin-top: .15rem; }
+.footnav a.disabled { opacity: .35; pointer-events: none; }
+
+/* index page */
+.toc { display: grid; gap: .7rem; margin-top: 1.6rem; }
+.toc-part { font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--accent); margin: 1.4rem 0 .2rem; }
+.toc a { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.05rem; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); transition: .15s; }
+.toc a:hover { border-color: var(--accent); transform: translateX(3px); }
+.toc .n { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
+.toc .tt { font-weight: 650; color: var(--ink); }
+.toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.toc-search { position: relative; margin: 1.6rem 0 -.4rem; }
+.toc-search input { width: 100%; box-sizing: border-box; padding: .75rem 2.8rem .75rem 1rem;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font-size: .98rem; box-shadow: var(--shadow); }
+.toc-search input:focus { outline: none; border-color: var(--accent); }
+.toc-search .qcount { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+  color: var(--faint); font-size: .8rem; pointer-events: none; }
+.toc a.hide, .toc .toc-part.hide { display: none; }
+.toc-empty { display: none; color: var(--muted); padding: 1rem; text-align: center; }
+.toc-empty.show { display: block; }
+.hero.index h1 { font-size: 2.3rem; }
+.legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
+.legend span { display:flex; align-items:center; gap:.4rem; }
+.legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }
+.pdf-btn { display:inline-flex; align-items:center; gap:.4rem; padding:.55rem 1.1rem;
+  background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
+  box-shadow:var(--shadow); transition:.15s; }
+.pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
+</style>
+</head><body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第四部分 · LangGraph 心智模型</span>
+    <span class="pill">21 / 46</span>
+  </div>
+  <div class="progress"><span style="width:45%"></span></div>
+</div>
+<div class="wrap">
+  <div class="hero">
+    <div class="part">第四部分 · LangGraph 心智模型</div>
+    <h1>compile 与 Runtime</h1>
+  </div>
+
+<p class="lead">StateGraph 在 add_node、add_edge 阶段还只是建造者；compile 才把图纸变成可运行的 Runnable runtime。编译会校验图结构，创建 channel，包装节点，接入 runtime context 和 checkpointer，并产出 CompiledStateGraph。之后 invoke、stream、batch 才真正执行 Pregel 风格的节点调度。本课把 compile 和 invoke 分清：compile 不跑模型，不调工具；它像把剧本、舞台、灯光和安全规则装配好，演出发生在运行阶段。</p>
+<div class="card analogy"><div class="tag">🧩 生活类比</div>把 StateGraph.compile 想成剧院彩排前的舞台装配：剧本检查有没有缺场，演员入口出口是否连通，道具柜按清单摆好，灯光控制台接线完成，录像系统准备记录。装配完成后，剧院还没有演出；只有观众入场并调用 invoke，演员才按场次上台。checkpointer 像录像机，runtime context 像当天演出单，CompiledStateGraph 像已经装配好的整座舞台。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：从 builder 到 Runnable runtime</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">建造阶段</div><div class="mn-desc">StateGraph 收集 schema、节点、边和配置，但不执行节点</div></div><div class="map-node now"><div class="mn-label">编译阶段</div><div class="mn-desc">compile 校验结构、创建 channel、包装节点、接入 checkpointer</div></div><div class="map-node now"><div class="mn-label">运行阶段</div><div class="mn-desc">invoke/stream/batch 进入 Pregel runtime，按步骤调度节点</div></div><div class="map-node source"><div class="mn-label">上下文</div><div class="mn-desc">Runtime 向节点提供 context、store、stream_writer 等环境能力</div></div><div class="map-node after"><div class="mn-label">持久化</div><div class="mn-desc">BaseCheckpointSaver 在运行时保存和恢复 state snapshot</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>compile/runtime 的源码阅读要把“建图对象”和“运行对象”分开。下面的文件 + 符号名覆盖了编译入口、编译产物、Pregel 执行、运行时上下文和 checkpoint 接口。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">langgraph/graph/state.py</td><td class="mono">StateGraph.compile</td><td>把 builder 校验并转换为 CompiledStateGraph，可传入 checkpointer、interrupt、debug 等选项</td><td>用户完成节点边定义后调用</td></tr><tr><td class="mono">langgraph/graph/state.py</td><td class="mono">CompiledStateGraph</td><td>编译后的状态图，继承/组合 Pregel 能力并实现 Runnable 调用面</td><td>调用者对它 invoke、stream、batch</td></tr><tr><td class="mono">langgraph/pregel/main.py</td><td class="mono">Pregel</td><td>底层图执行运行时，按步骤计划、执行节点、提交 channel 更新</td><td>CompiledStateGraph 的运行核心</td></tr><tr><td class="mono">langgraph/runtime.py</td><td class="mono">Runtime</td><td>节点运行时对象，暴露 context、store、stream_writer 等非 state 能力</td><td>运行阶段注入节点，不属于 compile 执行</td></tr><tr><td class="mono">langgraph/checkpoint/base/__init__.py</td><td class="mono">BaseCheckpointSaver</td><td>checkpoint 抽象接口，保存和读取线程/步骤状态</td><td>invoke/stream 时通过 config 中 thread_id 等信息定位</td></tr></table>
+<h2>调用图：build graph -> compile -> invoke -> run nodes -> produce state</h2>
+<div class="flow call-graph"><div class="node hl"><div class="nt">builder</div><div class="nd">StateGraph(State) + add_node/add_edge</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">compile</div><div class="nd">validate graph, create channels, wrap nodes</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">compiled</div><div class="nd">CompiledStateGraph as Runnable</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">invoke/stream</div><div class="nd">Pregel runtime schedules steps with Runtime context</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">final state</div><div class="nd">channels merge updates, optional checkpoint saved</div></div></div>
+<h2>Trace：编译和运行各做什么</h2>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. build</td><td>StateGraph(State)</td><td>注册 model/tools 节点，添加 START、条件边和回边</td><td>builder 持有图纸，不执行任何节点</td></tr><tr><td>2. compile</td><td>builder + checkpointer?</td><td>校验节点名和边，创建 channels，包装节点为运行时任务</td><td>CompiledStateGraph</td></tr><tr><td>3. invoke</td><td>{&#x27;messages&#x27;: [...]} + config</td><td>Pregel 运行时初始化 state、runtime context、checkpoint 配置</td><td>第一个 step 准备调度</td></tr><tr><td>4. run nodes</td><td>当前可运行节点集合</td><td>执行节点，收集 partial updates，提交到 channel</td><td>下一步 state 可见</td></tr><tr><td>5. finish</td><td>到达 END 或无后继</td><td>保存 checkpoint，按 output_schema 整理结果</td><td>invoke 返回最终 state；stream 可逐步吐事件</td></tr></table>
+<h2>简化源码走读：compile 不等于执行</h2>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">langgraph/graph/state.py :: StateGraph.compile</span><span class="ln">简化版</span></div><pre>builder = StateGraph(State)
+builder.add_node(&#x27;model&#x27;, call_model)
+builder.add_edge(START, &#x27;model&#x27;)
+
+compiled = builder.compile(checkpointer=saver)
+# no model call has happened yet
+
+result = compiled.invoke(
+    {&#x27;messages&#x27;: [HumanMessage(&#x27;hi&#x27;)]},
+    config={&#x27;configurable&#x27;: {&#x27;thread_id&#x27;: &#x27;t1&#x27;}},
+)
+</pre><div class="cw-note">教学版强调时间线：compile 返回可运行对象，但不会调用 call_model；invoke 才根据输入和 config 开始调度。checkpointer 也通常在运行时按 thread_id 读写，而不是 compile 时保存业务状态。</div></div>
+<h2>Compile 阶段的责任</h2>
+<h3>一、Builder 是可变图纸</h3><p>StateGraph builder 阶段适合逐步添加节点、边、schema、入口和条件路由。它像一张还在绘制的图纸，可以继续修改。这个阶段的对象不应该被拿去处理用户请求，因为它还没有完成校验、通道创建和运行时包装。把 builder 和 compiled graph 混用，是很多初学者理解混乱的来源。</p><h3>二、compile 做结构校验</h3><p>编译会检查边引用的节点是否存在、START/END 使用是否合理、条件路径是否可解析、schema/channel 是否能建立。校验不是形式主义，它把一部分错误从用户请求时提前到启动时。一个节点名拼错，如果等线上第一个请求走到该分支才爆炸，代价就太高。compile 的价值之一，就是让图尽早失败。</p><h3>三、compile 创建 channel</h3><p>State schema 中的每个 key 会在编译前后被解析为运行时 channel。普通字段可能是 LastValue，Annotated reducer 可能是 BinaryOperatorAggregate，消息字段可能使用 add_messages。没有 channel，节点返回的 partial update 就没有地方落地，也没有合并规则。compile 把类型合同变成运行容器。</p><h3>四、compile 包装节点</h3><p>用户写的函数、Runnable 或工具节点，需要被包装成运行时可以调度的任务。包装层负责传递 config、runtime、输入 state，收集返回值，处理错误和回调。你在节点函数里看到的是简单签名，Pregel 运行时看到的是可计划、可执行、可记录的节点任务。</p><h3>五、CompiledStateGraph 是 Runnable</h3><p>编译产物最重要的工程特性是可运行。它继承或实现 Runnable 调用面，所以可以 invoke、ainvoke、stream、astream、batch，也能被更外层 LangChain 组件组合。对调用者来说，它像一个组件；对内部来说，它是一整张状态图。这种外部统一、内部复杂的封装，是 LangChain/LangGraph 分层的关键。</p><h3>六、Pregel 运行时按步骤推进</h3><p>invoke 之后，Pregel 风格运行时会计划当前哪些节点可运行，执行它们，收集更新，提交到 channel，再进入下一步。并行节点本步写入通常下一步才稳定可见。这种步骤化模型让执行可复现，也让 checkpoint 可以在步骤边界保存状态。compile 只是准备这个运行机器，真正推进发生在 invoke/stream。</p><h3>七、Runtime context 不是 state</h3><p>Runtime 给节点提供 context、store、stream_writer 等能力。context 是本次运行的环境，例如用户、租户、权限；store 可能是外部长期存储；stream_writer 用于输出自定义流事件。它们帮助节点运行，但不自动成为 state。只有节点显式返回的 key 才进入 state 合并和 checkpoint。</p><h3>八、checkpointer 是运行时钩子</h3><p>BaseCheckpointSaver 抽象的是保存和读取状态快照的能力。编译时你可以把 checkpointer 接到图上，但真正保存哪条线程、哪一步状态，要等运行时 config 提供 thread_id 等可配置项。忘记 thread_id 时，checkpointer 可能不知道把状态归档到哪里；多个用户共享 thread_id 时，状态可能串线。</p><h3>九、compile 不会跑模型</h3><p>这句话值得重复：compile 不执行节点、不调用模型、不调工具、不产生业务答案。它最多验证节点存在、包装调用结构。任何“我 compile 了为什么没有结果”的疑问，都是把构建期和运行期混在一起。结果来自 compiled.invoke 或 compiled.stream，而不是 builder.compile。</p><h3>十、compile 后再改 builder 要小心</h3><p>编译产物是根据当时 builder 的图纸生成的。之后你再对 builder add_node/add_edge，旧 compiled graph 不一定会自动更新。正确做法是把图定义集中完成，再 compile 一次并把产物作为应用依赖注入；如果确实要改图，重新 compile 并替换运行对象。不要让线上请求同时使用多个你自己都分不清版本的 compiled graph。</p><h3>十一、stream 和 invoke 共用运行结构</h3><p>stream 不是另一套图，它只是以增量方式暴露运行过程或结果。底层仍然是编译后的图、同一组 channel、同一组节点和边。理解这一点能避免为流式输出写重复业务流程：先让 invoke 正确，再决定 stream_mode、事件粒度和前端消费方式。</p><h3>十二、batch 是多次运行，不是共享 state</h3><p>对 compiled graph batch 多个输入时，每个输入都应该有自己的运行配置和状态边界。除非你显式使用同一个 thread_id 或外部 store，否则不要期待 batch 元素共享同一份 state。把 batch 当成“并发处理多次 invoke”更安全；把它当成“一个大图同时处理所有用户”容易引发状态串扰。</p><h3>十三、最小心智模型</h3><p>build 阶段画图纸，compile 阶段装配机器，invoke/stream 阶段开机运行，checkpointer 在运行边界录像，Runtime context 提供当天环境。CompiledStateGraph 对外像 Runnable，对内像 Pregel 状态机。只要把这条时间线记住，compile、runtime、checkpoint 的多数坑都能提前避开。</p>
+<h2>扩展复盘：把构建期和运行期分开管理</h2>
+<p>在真实服务里，compile 通常发生在应用启动或依赖初始化阶段，而不是每个请求里。启动时构建 StateGraph，注册节点和边，注入模型、工具、checkpointer，调用 compile 得到可复用的 CompiledStateGraph。请求到来时，只调用 compiled.invoke 或 stream，并传入本次输入和 config。这样可以把结构错误提前暴露，也避免每次请求重复装配图。</p>
+<p>运行期最重要的是隔离会话。带 checkpointer 的图必须认真设计 thread_id：它可以来自会话 id、用户 id 加业务会话 id、工单 id，或其他稳定且不串线的标识。不能用固定字符串 demo 处理所有用户，也不能把容易碰撞的临时值当线程标识。thread_id 的选择本质上是状态归属设计，错了就会出现用户看到别人历史、恢复到错误步骤等严重问题。</p>
+<p>compile 后的对象应当被视为不可变运行资产。虽然 builder 可能还能继续 add_node，但旧 compiled graph 不会神奇吸收新图纸。团队协作中最好把图定义封装成一个工厂函数，返回 compiled graph；修改图结构后重新运行测试和构建，部署新产物。不要在请求处理过程中动态修改全局 builder，否则同一进程里可能同时存在多个结构版本，问题很难复现。</p>
+<p>stream、invoke、batch 的选择属于运行接口选择，不应改变图的业务语义。先用 invoke 验证最终 state 正确，再打开 stream 观察中间事件；先用单个输入验证 thread_id 和 checkpoint，再用 batch 做评测或批处理。不要为了前端想看流式输出，就在节点里写另一套业务逻辑。编译图的价值之一，就是同一运行结构可以暴露多种调用形态。</p>
+<p>Runtime context 也要在运行期清晰注入。用户权限、租户配置、实验开关这些值应该随请求传入，而不是硬编码在节点闭包里。这样同一个 compiled graph 可以服务多个用户和环境，测试也能构造不同 context 检查行为。相反，如果把这些运行信息写进全局变量，图看起来能跑，却失去了可复现和可隔离的基础。</p>
+<p>最后，验证 compile/runtime 相关问题时，要按时间线排查：builder 是否含有正确节点边；compile 是否成功创建产物；invoke 输入是否符合 input_schema；config 是否含 thread_id；节点是否收到预期 context；checkpoint 是否在步骤边界保存；输出是否被 output_schema 过滤。按这条链路逐步定位，比盲目怀疑模型或工具可靠得多。</p>
+<h2>案例推演：一次带 checkpoint 的运行时间线</h2>
+<p>应用启动时，服务创建 StateGraph，注册 model、tools、human_review、finalize 等节点，添加边和条件边，然后调用 compile(checkpointer=saver)。这一步如果节点名拼错、边指向不存在的节点、schema reducer 无法解析，应该直接启动失败。此时没有任何用户消息进入图，也没有模型调用发生。compile 的输出是一个可复用的 compiled graph，可以放进应用容器供请求处理函数使用。</p>
+<p>用户发来第一条消息时，请求处理函数构造输入 {'messages': [HumanMessage(...)]}，同时构造 config {'configurable': {'thread_id': session_id}}。session_id 必须能唯一代表这段对话或工单。compiled.invoke 接收输入后，Pregel runtime 初始化 channels，读取或创建该 thread 的 checkpoint，注入 runtime context，然后从 START 的后继节点开始执行。模型调用、工具调用、路由判断都发生在这个阶段。</p>
+<p>每个 step 结束时，节点返回的 partial update 会提交到 channel，合并后的 state 可能被 checkpointer 保存。这样当工具调用后需要人审，图可以暂停；人类批准后，再用同一个 thread_id 恢复，运行时能找到之前的 messages、tool_attempts 和等待状态。没有 thread_id，checkpointer 就像录像机没有磁带标签，无法可靠知道该接哪一段。</p>
+<p>如果服务改版增加了一个 fraud_check 节点，必须重新 compile 并部署新 compiled graph。旧 compiled graph 不会自动拥有新节点。对于已经存在的 checkpoint，还要考虑状态兼容：旧 checkpoint 里没有 fraud_flags，新 schema 是否提供默认值？路由是否能处理缺失 key？这说明 compile/runtime 不是孤立 API，而是和版本迁移、持久化兼容一起考虑的工程问题。</p>
+<p>stream 模式下，时间线不变，只是运行过程中的事件或状态片段被逐步交给调用者。前端看到 token、节点事件或中间状态，不代表图用了另一套逻辑。为了避免前后端理解偏差，后端应该明确 stream_mode 输出的是消息、values、updates 还是自定义事件。否则前端可能把中间 update 当最终答案，或漏掉最后的 END 状态。</p>
+<p>排查 checkpoint 问题时，按固定顺序看：config 是否带 thread_id；thread_id 是否对每个用户唯一；checkpointer 是否真的传给 compile；节点是否把需要恢复的数据写入 state 而不是 context；恢复时 input 是否和线程状态兼容；output_schema 是否隐藏了你想看的调试 key。按时间线排查，比反复修改节点逻辑更有效。</p>
+<h2>进一步练习：运行时配置的安全清单</h2>
+<p>上线前可以为 compiled graph 写一张运行时配置清单。第一项是 thread_id 来源：它是否稳定、唯一、不可被用户随意伪造，是否区分环境和租户。第二项是 context：user_id、tenant_id、permissions 是否每次请求都显式传入，节点是否避免从全局变量读取这些值。第三项是 checkpointer：保存位置、保留时间、加密和清理策略是否满足业务要求。</p>
+<p>第二组清单关注调用方式。invoke 用于普通请求，stream 用于需要中间事件的交互，batch 用于评测或批处理。三者应共享同一个 compiled graph 和业务语义，只改变结果暴露方式。若你发现 stream 路径和 invoke 路径调用了不同节点或不同 prompt，就要警惕逻辑分叉。调用方式可以不同，状态机不应随意变成两套。</p>
+<p>第三组清单关注版本。编译产物对应哪份图定义？部署后旧 checkpoint 是否还能被新 schema 读取？新增 key 是否有默认处理？删除节点后，是否还有旧线程停在那个节点附近？这些问题在无状态链里不明显，但在有 checkpoint 的图里非常重要。状态一旦持久化，图结构就和数据迁移产生了关系。</p>
+<p>最后，运行时排障要保存足够但不过量的信息。trace 需要看到节点名、路由结果、state update 摘要、thread_id 和错误类型；不应随意泄漏密钥、完整隐私数据或不可公开的工具响应。Runtime context、RunnableConfig metadata、checkpoint 内容各有边界。边界清楚，既能调试，也能保护用户数据。</p>
+<p>对 checkpointer 来说，<span class="mono">configurable</span> 不是随便放参数的杂物箱，而是运行时定位线程、命名空间和恢复点的合同。至少要明确 <span class="mono">thread_id</span> 从哪里来，是否还需要 <span class="mono">checkpoint_ns</span> 区分子图或业务域，恢复时是否沿用同一份 config。把这些字段当成 API 合同记录下来，才能让同一张 compiled graph 在多租户、批处理和人工恢复场景里稳定复用。</p>
+<p>补充检查：compile/runtime 的测试最好包含一个“不会发生”的断言，例如只调用 compile 时节点计数器保持为零，只有 invoke 后计数器才增加。再加一个 checkpoint 配置测试：同一 thread_id 能恢复历史，不同 thread_id 彼此隔离，缺失 thread_id 时给出明确错误或退化策略。这样的测试能防止团队把构建期、运行期和持久化边界混在一起。</p>
+<p>部署时还要记录 compiled graph 的版本。运行日志中保留图版本、thread_id、入口 schema 版本和关键路由结果，能帮助你把用户报告的问题对应到具体图结构。如果没有这些信息，checkpoint 里的状态可能来自旧图，当前代码却按新图解释，排查会非常困难。版本信息不是课程细节，而是有状态运行系统的基本卫生。</p>
+<p>运营清单应按生命周期排列：构建期检查节点名、边、schema 和 reducer；编译期确认 checkpointer、interrupt 和 debug 配置；运行期确认 input、context、configurable.thread_id 和 stream_mode；恢复期确认 checkpoint 版本、state 兼容和输出过滤。按阶段排查，能避免把 thread_id 配错误判成模型问题，或把旧 compiled graph 误判成节点 bug。</p>
+<p>本课最终要记住的是时间线：builder 只是图纸，compile 只是装配，invoke/stream 才运行，checkpoint 在运行步骤边界保存和恢复。每次上线前都应问四个问题：我部署的是哪份 compiled graph？每个请求的 thread_id 从哪里来？旧 checkpoint 是否还能被新 schema 解释？出现中断后由谁、用什么输入恢复？这些问题答清楚，LangGraph 才能从 demo 变成可运营系统。</p>
+<p>还要把这个清单落实到团队流程里：代码评审检查图结构和 state 合同，启动日志记录编译产物版本，请求日志记录 thread_id 与关键路由，恢复工具能查看最近 checkpoint 摘要，回滚方案说明旧线程如何继续运行。compile/runtime 课程的重点不是背 API 名称，而是建立运维边界。谁负责构建，谁负责调用，谁负责保存，谁负责恢复，每一段都明确，线上故障才不会在模型、图、存储和前端之间来回甩锅。</p>
+<p>最后给自己一个上线前口令：先确认图能编译，再确认一次 invoke 能结束，再确认同一 thread_id 能恢复，再确认不同 thread_id 不串线，再确认 stream 只改变输出形式而不改变业务路径。这个顺序能把构建、执行、持久化和观测分开验证，避免把所有风险压到真实用户请求上，也让排障记录能对应具体生命周期阶段和责任人，减少临场猜测即可。</p>
+<h2>常见误解与边界情况</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：compile 会执行图并得到答案</div><div class="pf-correct">正确：compile 只校验和装配；invoke/stream/batch 才运行节点。</div></div><div class="pitfall"><div class="pf-wrong">误解：compile 后继续改 builder，旧 compiled graph 会自动变</div><div class="pf-correct">正确：编译产物反映编译当刻的图；修改 builder 后应重新 compile 并替换产物。</div></div><div class="pitfall"><div class="pf-wrong">误解：用了 checkpointer 不需要 thread_id</div><div class="pf-correct">正确：运行时通常需要 config.configurable.thread_id 等信息定位会话状态。</div></div><div class="pitfall"><div class="pf-wrong">误解：runtime context 就是 state 的另一个名字</div><div class="pf-correct">正确：context 是环境输入，state 是可演化、可合并、可 checkpoint 的业务数据。</div></div></div>
+<h2>小实验</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 观察 compile 和 invoke 的分界</div><ol><li>写一个节点，在函数体第一行打印或记录 &#x27;model called&#x27;；只执行 builder.compile()，确认没有打印。</li><li>对 compiled.invoke({&#x27;messages&#x27;: [...]}) 运行一次，确认节点此时才执行。</li><li>接入内存 checkpointer，先不传 thread_id 观察错误或不可恢复行为，再传 {&#x27;configurable&#x27;: {&#x27;thread_id&#x27;: &#x27;demo&#x27;}}。</li><li>compile 后给 builder 再添加一个节点，但不重新 compile，解释为什么旧 compiled graph 不会包含新节点。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>本课锚定 StateGraph.compile、CompiledStateGraph、Pregel、Runtime、BaseCheckpointSaver。不同版本可能调整 checkpointer 配置细节或 runtime 参数形状，但“builder/compile/runtime 三阶段”和“编译产物是 Runnable”是稳定心智模型。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>compile 把 StateGraph builder 转成可运行 CompiledStateGraph，但不执行节点。</li><li>编译阶段负责校验、channel 创建、节点包装和 checkpointer/runtime 钩子装配。</li><li>invoke/stream/batch 才进入 Pregel 运行时，按步骤执行节点并合并 state。</li><li>Runtime context 是运行环境，不是会自动 checkpoint 的业务 state。</li><li>使用 checkpointer 时要正确提供 thread_id 等配置；修改 builder 后应重新 compile。</li></ul></div><div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. <code>StateGraph.compile()</code> 和 <code>compiled.invoke()</code> 的关系，哪项正确？</div>
+  <ol class="opts">
+    <li>二者完全等价，只是名字不同</li>
+    <li>compile 负责校验和装配运行时；invoke 才真正执行节点</li>
+    <li>invoke 只能在 compile 前调用</li>
+    <li>compile 会调用模型并返回最终答案</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。compile 把 builder 变成 CompiledStateGraph；运行发生在 invoke/stream/batch。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. Runtime context 与 state 的区别是什么？</div>
+  <ol class="opts">
+    <li>二者没有区别</li>
+    <li>context 是运行环境输入；state 是会被节点更新、合并并可能 checkpoint 的业务数据</li>
+    <li>context 会自动通过 add_messages 合并</li>
+    <li>state 只能保存 user_id，context 只能保存 messages</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。Runtime 向节点提供 context、store、stream_writer 等环境能力；只有 state key 的 partial update 才进入图状态合并。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 使用 checkpointer 运行会话型图时，为什么常需要在 config 中提供 thread_id？</div>
+  <ol class="opts">
+    <li>thread_id 用来选择 HTML 模板</li>
+    <li>thread_id 会让模型跳过工具调用</li>
+    <li>thread_id 通常用于定位保存/恢复哪一条会话线程的 checkpoint</li>
+    <li>thread_id 会改变 Python 类型检查结果</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。checkpointer 需要知道状态属于哪条线程/会话。缺失或复用错误 thread_id 都可能导致无法恢复或状态串线。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>按时间线写出 build graph -> compile -> invoke -> run nodes -> produce state 每一步的输入、输出和不会发生的事情。</li>
+    <li>给一个带 checkpointer 的客服图设计 config：thread_id 从哪里来？如何避免不同用户共享 thread_id？恢复时应检查哪些 state？</li>
+  </ul>
+</div>
+</div>
+  <div class="footnav"><a class="prev" href="30-langgraph-reducers-channels.html"><div class="dir">← 上一课</div><div class="ttl">Reducer 与 Channel</div></a><a class="next" href="25-langgraph-pregel-engine.html"><div class="dir">下一课 →</div><div class="ttl">Pregel 与超步</div></a></div>
+</div>
+
+</body></html>

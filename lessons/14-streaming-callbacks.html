@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>14 · Streaming 与 Callbacks — LangChain 图解教程</title>
-<meta name="description" content="第三部分 · 内部源码｜Streaming 与 Callbacks：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>11 · Streaming 与 Callbacks — LangChain 图解教程</title>
+<meta name="description" content="第二部分 · 用户 API 基础｜Streaming 与 Callbacks：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="14 · Streaming 与 Callbacks — LangChain 图解教程">
-<meta property="og:description" content="第三部分 · 内部源码｜Streaming 与 Callbacks：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="11 · Streaming 与 Callbacks — LangChain 图解教程">
+<meta property="og:description" content="第二部分 · 用户 API 基础｜Streaming 与 Callbacks：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="14 · Streaming 与 Callbacks — LangChain 图解教程">
-<meta name="twitter:description" content="第三部分 · 内部源码｜Streaming 与 Callbacks：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="11 · Streaming 与 Callbacks — LangChain 图解教程">
+<meta name="twitter:description" content="第二部分 · 用户 API 基础｜Streaming 与 Callbacks：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -256,321 +256,217 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
 </style>
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第三部分 · 内部源码</span>
-    <span class="pill">14 / 27</span>
+    <span class="pill">第二部分 · 用户 API 基础</span>
+    <span class="pill">11 / 46</span>
   </div>
-  <div class="progress"><span style="width:51%"></span></div>
+  <div class="progress"><span style="width:23%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第三部分 · 内部源码</div>
+    <div class="part">第二部分 · 用户 API 基础</div>
     <h1>Streaming 与 Callbacks</h1>
   </div>
-  
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-最后一块内部机制：<strong>流式输出（Streaming）</strong>与<strong>回调（Callbacks）</strong>。
-前者让你"边生成边显示"，后者是 LangSmith 追踪、日志、监控的底层钩子。两者都贯穿前面所有组件。
-</p>
+
+<p class="lead">Streaming 和 callbacks 让一次运行在发生时就可见。<span class="mono">stream</span> / <span class="mono">astream</span> 让你逐步收到模型 chunk，<span class="mono">astream_events</span> 让你看到链、模型、工具、parser 的事件流，callback handler 和 tracer 则把 run start、token、end、error、tags、metadata、run id 串起来。它们是可观测性边界，不是业务逻辑的隐藏中间件。</p>
 
 <div class="card analogy">
-  <div class="tag">📺 生活类比</div>
-  <strong>Streaming</strong> 像<strong>直播</strong>：不必等整集拍完，画面一帧帧实时推送。
-  <strong>Callbacks</strong> 像<strong>赛事解说</strong>：在"比赛开始 / 进球 / 结束"等关键时刻自动播报，
-  你可以挂上任意多位解说员（处理器），各做各的记录。
+  <div class="tag">🎥 生活类比 · 透明厨房与出餐铃</div>
+  普通 invoke 像等服务员端来整盘菜，你只看到最终结果。Streaming 像透明厨房，能看到厨师正在切菜、下锅、装盘；callbacks 像每个工位的出餐铃和记录表，开始、出错、完成都会响。看到过程能提升体验和排错，但你不能因为看见切菜就把半熟食材当成最终菜品。
 </div>
 
-<h2>Streaming：chunk 是可以相加的</h2>
-<p><span class="inline">stream()</span> 不返回完整结果，而是不断 yield <span class="inline">AIMessageChunk</span>。
-关键设计：<strong>这些 chunk 能用 <span class="mono">+</span> 累加</strong>，拼回一条完整消息：</p>
+<h2>本课地图：从运行开始到结束 / 出错</h2>
+<p>流式与回调共同回答一个问题：这次运行现在在哪里？模型是否开始？token 是否到达？工具是否执行？parser 是否失败？run id 是什么？tags 和 metadata 如何关联到用户请求？理解这些事件后，你才能构建实时 UI、日志、LangSmith trace 和可靠错误处理。</p>
+<div class="lesson-map"><div class="lm-title">🗺️ 运行可观测性的五段</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">run start</div><div class="mn-desc">Runnable 或链开始，生成 run id，携带 tags/metadata</div></div><div class="map-node now"><div class="mn-label">model start</div><div class="mn-desc">聊天模型收到消息，callback 记录输入摘要</div></div><div class="map-node now"><div class="mn-label">chunks/events</div><div class="mn-desc">token、AIMessageChunk、tool/chain/parser 事件陆续产生</div></div><div class="map-node source"><div class="mn-label">end/error</div><div class="mn-desc">运行正常结束或错误结束，handler/tracer 收尾</div></div><div class="map-node after"><div class="mn-label">UI/trace</div><div class="mn-desc">前端渲染、日志、LangSmith 和调试工具消费事件</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>读 streaming 与 callbacks 时，要从模型 stream、Runnable events、callback manager、handler 接口和 tracer 五个入口合起来看。单看 stream 只能看到 token；单看 callback 只能看到钩子；合起来才是完整运行可观测性。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/language_models/chat_models.py</td><td class="mono">BaseChatModel.stream</td><td>聊天模型同步流式入口，返回逐步产生的消息 chunk。</td><td>模型 wrapper 向上层暴露 token/chunk 流。</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">astream_events</td><td>Runnable 事件流接口，暴露链、模型、工具等运行事件。</td><td>上层 UI、日志或调试器消费统一事件。</td></tr><tr><td class="mono">libs/core/langchain_core/callbacks/manager.py</td><td class="mono">CallbackManager</td><td>管理 callback handlers，分发 start、token、end、error 等事件。</td><td>运行时把事件广播给观察者。</td></tr><tr><td class="mono">libs/core/langchain_core/callbacks/base.py</td><td class="mono">BaseCallbackHandler</td><td>用户自定义 callback handler 的基类，定义 on_chat_model_start、on_llm_new_token 等方法。</td><td>应用实现日志、指标、UI 推送等观察行为。</td></tr><tr><td class="mono">libs/core/langchain_core/tracers/base.py</td><td class="mono">BaseTracer</td><td>追踪器基类，记录 run 树、时间、输入输出、错误和层级关系。</td><td>LangSmith 等可观测系统建立 trace。</td></tr></table>
+<h2>状态流：run start → token/chunk → run end/error</h2>
+<div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>run start</h4><p>链或模型开始运行，生成 run_id，读取 tags、metadata、callbacks。</p><div class="mono">on_chain_start</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>model start</h4><p>聊天模型收到标准消息，callback 可以记录模型名和输入摘要。</p><div class="mono">on_chat_model_start</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>token/chunk events</h4><p>provider 逐步返回 token 或 AIMessageChunk，stream 产出给调用者。</p><div class="mono">on_llm_new_token</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>tool/chain events</h4><p>如果链中有工具或子 Runnable，事件树记录每个子运行。</p><div class="mono">on_tool_start / on_chain_end</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>run end/error</h4><p>成功时收尾并合并最终消息；失败时触发 error 事件并保留证据。</p><div class="mono">on_llm_end / on_llm_error</div></div></div></div>
+<h2>代码走读：简化版 callback 生命周期</h2>
+<p>真实 callback manager 会处理继承 handlers、异步 handlers、run tree、错误传播和 tracing。下面的伪代码保留最常见的四个钩子：模型开始、新 token、模型结束、模型错误。注意 handler 观察事件，不应该偷偷改写核心业务结果。</p>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/core/langchain_core/callbacks/base.py :: BaseCallbackHandler lifecycle</span><span class="ln">简化版</span></div><pre>class PrintingHandler(BaseCallbackHandler):
+    def on_chat_model_start(self, serialized, messages, run_id, **kwargs):
+        print(&quot;model start&quot;, run_id, serialized[&quot;name&quot;])
 
-<pre class="code">full = None
-<span class="kw">for</span> chunk <span class="kw">in</span> model.stream(<span class="st">"讲个故事"</span>):
-    print(chunk.content, end=<span class="st">""</span>)   <span class="cm"># 实时显示</span>
-    full = chunk <span class="kw">if</span> full <span class="kw">is</span> None <span class="kw">else</span> full + chunk  <span class="cm"># ★ chunk 相加</span>
-<span class="cm"># 循环结束后，full 等价于一次性 invoke 的完整 AIMessage</span>
-</pre>
+    def on_llm_new_token(self, token, run_id, **kwargs):
+        print(token, end=&quot;&quot;, flush=True)
 
-<div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应</div>
-  <ul>
-    <li><span class="mono">stream</span> 定义在 <span class="mono">core/language_models/chat_models.py</span>；
-      产出的 <span class="mono">AIMessageChunk</span> 在 <span class="mono">messages/ai.py</span>（继承 <span class="mono">BaseMessageChunk</span>）。</li>
-    <li><span class="mono">+</span> 能相加，是因为 <span class="mono">BaseMessageChunk</span> 实现了 <span class="mono">__add__</span>（合并内容、工具调用片段、用量）。</li>
-    <li>辅助函数 <span class="mono">generate_from_stream</span>（同文件）把一串 chunk 归并成最终 <span class="mono">ChatResult</span>。</li>
-  </ul>
-</div>
+    def on_llm_end(self, response, run_id, **kwargs):
+        print(&quot;model end&quot;, run_id)
 
-<h2>Callbacks：在生命周期关键点挂钩子</h2>
-<p>还记得第 3 课"沿途触发回调"吗？回调系统在每次调用的关键时刻发出事件，
-你可以注册处理器来响应。最常见的用途就是 <strong>LangSmith 追踪</strong>。</p>
+    def on_llm_error(self, error, run_id, **kwargs):
+        print(&quot;model error&quot;, run_id, repr(error))
 
-<div class="flow">
-  <div class="node hl"><div class="nt">on_llm_start</div><div class="nd">开始调用模型</div></div>
-  <div class="arrow">→</div>
-  <div class="node"><div class="nt">on_llm_new_token</div><div class="nd">每来一个 token<br>（流式）</div></div>
-  <div class="arrow">→</div>
-  <div class="node hl"><div class="nt">on_llm_end</div><div class="nd">调用结束<br>（含用量）</div></div>
-</div>
+model.invoke(messages, config={&quot;callbacks&quot;: [PrintingHandler()]})</pre><div class="cw-note">这是教学伪代码：真实回调方法签名会随事件类型携带更多字段，异步场景应使用对应 async 处理。</div></div>
+<h2>例子追踪：一个流式回答如何产生 chunks 与事件</h2>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1 链开始</td><td>question=&#x27;解释 Runnable&#x27;</td><td>RunnableSequence 生成 run id，发送 chain start 事件。</td><td>on_chain_start / run_id=R1</td></tr><tr><td>2 模型开始</td><td>格式化后的 messages</td><td>BaseChatModel.stream 调用 provider 流式接口。</td><td>on_chat_model_start / run_id=R2</td></tr><tr><td>3 chunk 到达</td><td>provider delta=&#x27;Runnable&#x27;</td><td>stream yield AIMessageChunk，同时 callback 收到 token。</td><td>chunk.content=&#x27;Runnable&#x27; / on_llm_new_token</td></tr><tr><td>4 更多事件</td><td>delta=&#x27; 是统一调用协议&#x27;</td><td>UI 追加显示，tracer 记录时间顺序。</td><td>多个 chunks 和 events</td></tr><tr><td>5 收尾</td><td>provider done</td><td>合并最终消息，发送 end；若失败则发送 error。</td><td>final AIMessage / on_llm_end</td></tr></table>
+<h2>stream 与 astream：chunk 不是最终消息</h2>
+<p><span class="mono">stream</span> 适合同步代码逐步消费输出；<span class="mono">astream</span> 适合 async WebSocket、SSE 或异步任务。两者都让你更早看到内容，但不保证总耗时更短。网络、provider、工具调用和解析仍决定总时延。流式优化的是“首 token 延迟”和用户感知，不是魔法加速。</p>
+<p>chunk 需要合并才能成为最终消息。文本 chunk 可以简单拼接，但工具调用 chunk、结构化输出 chunk、多模态 chunk 可能需要更复杂的合并逻辑。不要在收到第一个 chunk 时就认为模型已经完成，也不要把中间 chunk 写入不可撤销业务状态。UI 可以显示草稿，业务提交要等最终结果和验证。</p>
 
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/callbacks/</span><span class="ln">BaseCallbackHandler（示意）</span></div>
-<pre><span class="kw">class</span> <span class="fn">BaseCallbackHandler</span>:
-    <span class="kw">def</span> <span class="fn">on_llm_start</span>(self, ...): ...        <span class="cm"># 模型开始</span>
-    <span class="kw">def</span> <span class="fn">on_llm_new_token</span>(self, token, ...): ...  <span class="cm"># 流式逐 token</span>
-    <span class="kw">def</span> <span class="fn">on_llm_end</span>(self, response, ...): ...     <span class="cm"># 模型结束</span>
-    <span class="kw">def</span> <span class="fn">on_tool_start</span>/<span class="fn">on_tool_end</span>(self, ...): ...  <span class="cm"># 工具事件</span>
-</pre>
-</div>
+<h2>astream_events：比 token 更宽的运行事件</h2>
+<p>只看 token 不足以调试复杂链。<span class="mono">astream_events</span> 可以暴露链开始、prompt 结束、模型开始、模型 stream、工具开始、工具结束、parser 错误等事件。它适合构建调试面板、实时日志和教学可视化，因为你能看到每个 Runnable 子步骤，而不是只看到模型输出。</p>
+<p>事件流也帮助定位卡住位置。如果 UI 长时间没有 token，但事件显示工具正在运行，问题可能是外部 API；如果模型已结束但 parser 报错，问题在输出契约；如果没有 model start，问题可能在 prompt 格式化或上游输入。事件把“慢”拆成可定位阶段。</p>
 
-<div class="card detail">
-  <div class="tag">🔬 自己写一个回调处理器（10 行）</div>
-  <p>不止能用官方追踪——继承 <span class="mono">BaseCallbackHandler</span>，只重写你关心的钩子即可：</p>
-<pre class="code"><span class="kw">from</span> langchain_core.callbacks <span class="kw">import</span> BaseCallbackHandler
+<h2>callback handlers：观察者，不是业务中间件</h2>
+<p>Callback handler 很适合做日志、指标、进度推送、trace 标注和调试打印。它们不适合承载核心业务决策，例如在 <span class="mono">on_llm_new_token</span> 里修改数据库状态，或在 <span class="mono">on_llm_end</span> 里偷偷改变返回值。回调是旁路观察机制，业务逻辑应写在 Runnable、工具或图节点中。</p>
+<p>把 callbacks 当 middleware 会制造隐式控制流。阅读链的人看不到 handler 里发生了什么，测试也容易漏掉。生产中应让 handler 幂等、轻量、可失败隔离：日志失败不应让核心回答失败，除非你的合规要求明确规定 trace 写入失败必须中断。</p>
 
-<span class="kw">class</span> <span class="fn">MyHandler</span>(BaseCallbackHandler):
-    <span class="kw">def</span> <span class="fn">on_llm_start</span>(self, serialized, prompts, **kw):
-        <span class="nb">print</span>(<span class="st">"→ 模型开始，prompt:"</span>, prompts[0][:30])
-    <span class="kw">def</span> <span class="fn">on_llm_end</span>(self, response, **kw):
-        <span class="nb">print</span>(<span class="st">"← 模型结束，用量:"</span>, response.llm_output)
+<h2>tags、metadata 与 run IDs</h2>
+<p><span class="mono">RunnableConfig</span> 中的 tags 和 metadata 用于给运行打标签，例如 tenant、feature、experiment、request_id。run id 用于关联父子运行和外部日志。良好的标签策略能让 LangSmith 或日志系统按功能、用户组、模型版本筛选 trace。没有标签，线上问题只能靠时间和猜测搜索。</p>
+<p>metadata 不是放秘密的地方。它可能进入日志、tracer 或外部可观测平台。不要把 API key、完整用户隐私、原始身份证号放进 metadata。需要关联用户时，使用内部 request id、脱敏 id 或哈希，并遵守你的数据治理规则。</p>
 
-<span class="cm"># 用法见下方 config={"callbacks": [MyHandler()]}</span></pre>
-</div>
+<h2>LangSmith 与 tracer 的角色</h2>
+<p><span class="mono">BaseTracer</span> 记录 run 树：哪个链调用了哪个模型，哪个工具失败，耗时多少，输入输出摘要是什么。LangSmith 等平台消费这些 trace，帮助调试、评估和回放。它们不是模型能力的一部分，而是工程可观测性层。没有 trace，Agent 失败时你只能看最终回答；有 trace，你能看见每一步证据。</p>
+<p>追踪也要考虑隐私和成本。记录完整 prompt、工具结果和用户输入可能非常有用，也可能泄露敏感信息。生产环境通常需要采样、脱敏、字段过滤和权限控制。C 级设计会把“可观测”和“最小必要数据”一起考虑。</p>
 
-<h2>config：回调/标签如何传进去</h2>
-<p>回调、标签（tags）、元数据通过 <span class="inline">RunnableConfig</span> 这个配置字典在调用时一路传递。
-这就是第 8 课 <span class="mono">invoke(input, config)</span> 里 <span class="inline">config</span> 参数的用途：</p>
-<pre class="code">model.invoke(<span class="st">"你好"</span>, config={
-    <span class="st">"callbacks"</span>: [MyHandler()],
-    <span class="st">"tags"</span>: [<span class="st">"demo"</span>],
-    <span class="st">"metadata"</span>: {<span class="st">"user"</span>: <span class="st">"alice"</span>},
-})
-</pre>
+<h2>UI backpressure：显示速度也要被设计</h2>
+<p>流式 UI 不只是把 token print 出来。浏览器、终端、WebSocket、SSE 都有缓冲和 backpressure。模型每 20 毫秒来一个 chunk，但前端每个 chunk 都触发重排，可能导致卡顿。实践中常把 chunk 缓冲成小批次刷新，或按句子 / 时间窗口更新。</p>
+<p>还要处理用户取消。用户关闭页面或点击停止时，应取消下游 stream、关闭 provider 请求、记录 run canceled 或 error，而不是让后台继续消耗 token。流式体验越好，资源控制越重要。</p>
 
-<div class="card macro">
-  <div class="tag">🌍 宏观理解</div>
-  <ul>
-    <li><strong>Streaming 与 Callbacks 是横切能力</strong>：因为一切都是 Runnable，它们对模型、链、Agent <strong>一视同仁</strong>地生效。</li>
-    <li>更细粒度的 <span class="mono">astream_events</span>（<span class="mono">runnables/base.py</span>）能让你订阅<strong>链中每一步</strong>的事件流，是构建复杂 UI（如显示 Agent 思考过程）的基础。</li>
-    <li><span class="mono">RunnableConfig</span> 是"随调用流动的上下文信封"，把回调/标签/并发度一路带到底层。</li>
-  </ul>
-</div>
+<h2>错误事件不能忽略</h2>
+<p>流式场景中错误可能发生在已经输出一半之后。UI 必须知道这是“完整回答结束”还是“中途失败”。callback 的 <span class="mono">on_llm_error</span>、事件流中的 error、HTTP 连接关闭状态都需要被处理。否则用户可能看到半句话却以为回答完成，业务日志也无法复盘。</p>
+<p>工具或 parser 的错误同样重要。模型 token 正常流完，不代表整个链成功；后面的 parser 可能失败，工具可能超时。事件流应覆盖链的每个阶段，最终状态应明确 success、error 或 canceled。生产 UI 应展示可理解的失败提示，而不是永远停在“正在生成”。</p>
 
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入三个进阶话题。</p>
+<h2>Streaming 与工具调用</h2>
+<p>当模型支持工具调用时，流式 chunk 可能逐步给出工具名称和参数片段。不要在参数尚未完整时执行工具。执行器应等待工具调用结构完整、解析和校验通过，再执行真实代码。对于高风险工具，更应等最终消息和审批状态稳定。</p>
+<p>如果 Agent 中工具执行时间很长，可以通过 events 告诉 UI“正在查询订单系统”或“正在调用天气服务”。这比让用户只看到空白等待更好，也比伪造模型 token 更诚实。流式可观测性应该反映真实阶段，而不是只追求文字连续。</p>
 
-<details class="accordion">
-  <summary><span class="badge-num">1</span> stream 与 astream_events 有什么区别 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 两种粒度</div>
-      <div class="a">
-<pre class="code"><span class="cm"># stream：只拿"最终输出"的逐块结果</span>
-<span class="kw">for</span> chunk <span class="kw">in</span> chain.stream(x):
-    ...   <span class="cm"># 通常是最后一步 parser/model 的输出块</span>
+<h2>从 C 级视角选择接口</h2>
+<p>只需要最终回答，使用 invoke；需要逐字显示，使用 stream / astream；需要观察整个链的子步骤，使用 astream_events；需要接入日志或 tracing，使用 callbacks / tracers；需要生产评估和回放，接 LangSmith 或类似系统。接口选择应由观测目标决定。</p>
+<p>不要为了“高级”到处打开 streaming。批量后台任务可能更适合 invoke + trace；实时客服 UI 才强烈需要 streaming；调试 Agent 循环时 events 比 token 更有价值。可观测性也有成本，越细粒度越需要数据治理和性能预算。</p>
 
-<span class="cm"># astream_events：拿"链中每一步"的事件（开始/结束/token…）</span>
-<span class="kw">async</span> <span class="kw">for</span> ev <span class="kw">in</span> chain.astream_events(x):
-    ev[<span class="st">"event"</span>]   <span class="cm"># on_chat_model_stream / on_tool_end / ...</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 各自用在哪</div>
-      <div class="a"><span class="mono">stream</span> 够做"打字机"效果；而要展示 <strong>Agent 的思考过程</strong>
-        （正在调哪个工具、检索到什么），就需要 <span class="mono">astream_events</span> 这种<strong>逐步骤</strong>事件流。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 代码对应</div>
-      <div class="a">两者都在 <span class="mono">runnables/base.py</span>；<span class="mono">astream_events</span> 是构建复杂实时 UI 的基础。</div>
-    </div>
-  </div>
-</details>
+<h2>C 级排错清单：流式运行卡住时怎么拆</h2>
+<p>流式“没有输出”不等于模型没有工作。先看是否收到 run start，再看 prompt 是否完成，再看 chat model start 是否触发，再看 provider 是否返回 chunk，再看 callback 是否阻塞，再看 UI 是否缓冲。若 astream_events 显示工具正在运行，token 空白是正常等待；若连 model start 都没有，问题在上游 prompt 或输入；若 token 到达后 UI 不刷新，问题在前端 backpressure。</p>
+<p>流式“输出一半断掉”也要区分 provider 错误、网络断开、用户取消、parser 失败和工具错误。最终状态必须明确 success、error 或 canceled。不要只根据是否收到过 token 判断成功；半句回答加错误事件仍然是失败。UI 应展示“生成中断，可重试”，日志应保留 run id 和已输出片段，业务层不应把半成品当最终结论。</p>
+<p>如果 callback 导致变慢，检查 handler 是否做了阻塞 I/O、逐 token 写数据库、同步调用外部服务或打印大量日志。回调应轻量，重工作应入队或批量处理。一个 on_llm_new_token 每个 token 都执行慢操作，会直接拖慢用户看到的速度。可观测性不能反过来压垮被观察对象。</p>
+<h2>事件设计与 UI 体验</h2>
+<p>好的实时 UI 不只显示 token，还显示阶段：正在理解问题、正在检索、正在调用订单工具、正在生成回答、正在解析结果。token 流适合展示语言生成，events 适合展示任务进度。对于 Agent，工具运行可能占大部分时间，只显示空白会让用户以为系统卡死；展示真实事件能建立信任。</p>
+<p>但事件也不能过度暴露内部细节。用户不需要看到完整 prompt、工具参数里的内部 id、数据库错误或堆栈。面向用户的事件应脱敏、翻译成可理解阶段；面向工程师的 trace 可以更详细，但受权限控制。Streaming 和 callbacks 产生很多数据，必须区分用户体验层和调试层。</p>
+<p>UI 合并 chunk 时可以按时间窗口或标点刷新，而不是每个 token 都重绘。对 markdown、代码块和 JSON，过早渲染可能造成闪烁或格式错乱。可以在前端保留 raw buffer，周期性渲染安全片段，最终 end 后再做一次完整渲染。流式体验需要产品和工程一起设计，不是简单 for 循环 print。</p>
+<h2>run id、metadata 与跨系统关联</h2>
+<p>一次用户请求可能穿过前端、后端、LangChain、provider、工具服务和数据库。run id、request id、trace id 的映射要清楚。建议在 RunnableConfig.metadata 中放脱敏 request_id、tenant 或实验组，在应用日志中也记录同一 id。这样线上问题可以从用户反馈跳到 LangSmith trace，再跳到工具服务日志。</p>
+<p>metadata 的最小化很重要。为了关联，不需要记录完整邮箱、手机号、身份证或 API key。使用内部不可逆 id 或脱敏值即可。若 trace 平台在第三方环境，还要遵守公司数据策略。可观测性越强，越要尊重数据边界。C 级开发者不仅追求看得见，也要知道哪些不该被看见。</p>
+<h2>错误、取消与资源释放</h2>
+<p>用户取消生成时，后端应取消 provider 请求或停止消费 stream，释放连接，标记运行取消。若只是前端停止显示、后端继续生成，成本仍在消耗，工具也可能继续执行。对于长工具调用，要考虑取消信号是否能传到工具层；不能取消的工具至少要记录“用户已断开，结果不再发送”。</p>
+<p>错误事件也应进入统一收尾路径。无论是 provider error、tool error、parser error 还是 callback error，都要让 run tree 有结束状态。否则 trace 会出现永远 running 的节点，排查时很痛苦。handler 自身失败要特别小心：日志系统短暂不可用不应默认让用户请求失败，除非这是合规强制要求。</p>
+<h2>测试 streaming 与 callbacks</h2>
+<p>可以用 fake streaming model 产生固定 chunks，测试合并逻辑、UI 事件顺序和取消处理。不要用真实 provider 随机输出测试基础流式框架。callback handler 也可以单独测试：传入假 run id 和 token，断言它写出预期日志或调用队列。事件流测试应覆盖正常结束和错误结束。</p>
+<p>对 astream_events，可以记录事件名称序列：prompt_start、prompt_end、chat_model_start、chat_model_stream、chat_model_end、parser_start、parser_end。不同版本名称可能略有变化，但测试思想是检查阶段是否可见。若你的 UI 依赖某些事件名，升级 LangChain 前要跑兼容测试。</p>
+<p>最后，明确 streaming 的业务边界：它改善反馈和观测，不改变事实来源，不替代最终解析，不自动处理工具安全。半成品用于显示，最终消息用于回答，验证结果用于业务动作，trace 用于复盘。把这四件事分开，流式系统才既顺滑又可靠。</p>
 
-<details class="accordion">
-  <summary><span class="badge-num">2</span> callbacks 与 middleware 到底有什么不同 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 一句话区分</div>
-      <div class="a"><strong>callbacks = 观察</strong>（被动收到事件，做日志/追踪，不改流程）；
-        <strong>middleware = 干预</strong>（主动改写请求、拦截、加节点，<strong>会改变</strong>流程，第 13 课）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 何时用哪个</div>
-      <div class="a">要"记录 / 上报 / 监控" → 用 callbacks；要"修改行为 / 加人审 / 限流" → 用 middleware。
-        两者可同时存在，各司其职。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">观察与干预分离，职责清晰：观测代码不会意外改变业务流程，反之亦然。</div>
-    </div>
-  </div>
-</details>
+<h2>课堂复盘：可观测性也是用户 API 的一部分</h2>
+<p>Streaming 与 callbacks 看似是内部运行细节，其实直接影响用户体验和生产运维。用户希望知道系统有没有开始、是不是卡住、能不能取消；工程师希望知道慢在哪里、错在哪里、哪个 run 对应哪个日志。把这些需求留到最后补，会发现核心链路没有 run id、没有阶段事件、没有错误收尾，只能靠猜。</p>
+<p>设计实时链路时，建议同时定义三层输出：面向用户的进度事件，面向前端的 chunk 数据，面向工程的 trace 事件。三者内容不同、权限不同、保留时间不同。用户事件要简洁脱敏；前端 chunk 要适合增量渲染；工程 trace 要足够定位问题。不要把完整内部事件原样推给用户，也不要只为了用户体验而丢掉工程证据。</p>
+<p>最后，流式系统必须尊重最终性。chunk 是草稿，end 是完成，error 是失败，cancel 是用户或系统终止。只有最终状态明确，UI、日志、计费和业务动作才能一致。C 级掌握 streaming，不是会写 for chunk in model.stream，而是能设计一条从运行开始到收尾都可靠的可观测路径。</p>
 
-<details class="accordion">
-  <summary><span class="badge-num">3</span> chunk 相加的"+"到底合并了什么 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 合并的不只是文本</div>
-      <div class="a"><span class="mono">AIMessageChunk + AIMessageChunk</span> 会把<strong>正文拼接</strong>、
-        <strong>工具调用片段(ToolCallChunk)拼接</strong>、<strong>token 用量累加</strong>，
-        最终等价于一次性 <span class="mono">invoke</span> 拿到的完整 <span class="mono">AIMessage</span>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么要可相加</div>
-      <div class="a">流式天然是"碎片化"的。让 chunk 支持 <span class="mono">+</span>，你就能一边实时显示、一边在循环里
-        累加出"完整结果"，无需第二次请求。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 代码对应</div>
-      <div class="a">由 <span class="mono">BaseMessageChunk.__add__</span>（<span class="mono">messages/ai.py</span> 等）实现；
-        辅助函数 <span class="mono">generate_from_stream</span> 把整串 chunk 归并成最终结果。</div>
-    </div>
-  </div>
-</details>
+<h2>延伸练习：定义流式响应的完成协议</h2>
+<p>前后端之间最好有明确完成协议，而不是只靠连接关闭。事件可以包含 start、delta、progress、final、error、cancel。final 携带最终文本或最终结构，error 携带可展示错误和内部 run id，cancel 表示用户主动停止。这样前端能区分正常结束、失败和取消，后端也能统一资源释放。</p>
+<p>对于需要解析的流式输出，前端看到的文字不一定等于业务最终结果。可以先流式展示模型草稿，等待后端 parser 和验证通过后再发送 final 事件。如果验证失败，UI 应说明“生成内容未通过格式校验”，而不是展示一个看似完成但不能使用的结果。流式体验和最终契约必须同时存在。</p>
 
-<details class="accordion">
-  <summary><span class="badge-num">4</span> astream_events 的事件长什么样（v2 结构） <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 每个事件是一个统一结构的字典</div>
-      <div class="a">
-<pre class="code">{
-  <span class="st">"event"</span>: <span class="st">"on_chat_model_stream"</span>,   <span class="cm"># 事件类型：on_*_start/stream/end</span>
-  <span class="st">"name"</span>: <span class="st">"ChatOpenAI"</span>,             <span class="cm"># 哪个组件</span>
-  <span class="st">"run_id"</span>: <span class="st">"..."</span>,                  <span class="cm"># 本次运行 id（可关联父子）</span>
-  <span class="st">"tags"</span>: [], <span class="st">"metadata"</span>: {},
-  <span class="st">"data"</span>: {<span class="st">"chunk"</span>: AIMessageChunk(...)}  <span class="cm"># 负载（input/chunk/output）</span>
-}</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么 UI 开发者需要它</div>
-      <div class="a">要在界面上显示"正在调用哪个工具、模型在逐字输出什么"，就得订阅这些<strong>带类型的逐步骤事件</strong>。
-        按 <span class="mono">event</span> 类型和 <span class="mono">name</span> 过滤，即可驱动"Agent 思考过程"可视化。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">StreamEvent</span> / <span class="mono">EventData</span> 在 <span class="mono">runnables/schema.py</span>；
-        v2 实现 <span class="mono">tracers/event_stream.py</span>。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">5</span> 谁在背后上报：CallbackManager 与 LangChainTracer <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">❓ 什么是"Run / run 树"</div>
-      <div class="a">每次 <span class="mono">invoke</span> 都会生成一个 <strong>Run</strong> 对象（一次可观测的执行记录）；
-        链式的父子调用（链 → 模型 → 工具）层层嵌套，就形成一棵 <strong>run 树</strong>——
-        也就是你在 <strong>LangSmith</strong> 里看到的那棵可展开的调用树。</div>
-    </div>
-    <div class="qa">
-      <div class="q">🧪 事件的分发与上报链路</div>
-      <div class="a">
-<pre class="code">组件触发事件 → CallbackManager 把事件 fan-out 给所有已注册 handler
-                              ├─ 你的日志 handler
-                              └─ LangChainTracer → 上报 LangSmith（构建 run 树）</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 各自职责</div>
-      <div class="a"><span class="mono">CallbackManager</span>（<span class="mono">callbacks/manager.py</span>）负责"把一次事件<strong>广播</strong>给所有处理器"；
-        <span class="mono">LangChainTracer</span>（<span class="mono">tracers/langchain.py</span>）是其中一个处理器，专门把运行树<strong>上报 LangSmith</strong>——
-        这就是全书反复说的"LangSmith 追踪"的落地实现。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 进阶</div>
-      <div class="a"><span class="mono">dispatch_custom_event</span>（<span class="mono">callbacks/manager.py</span>）让你在自己的工具/链里<strong>发自定义事件</strong>，
-        一并出现在 <span class="mono">astream_events</span> 流里。</div>
-    </div>
-  </div>
-</details>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li><strong>chunk 可相加（__add__）</strong>：流式天然碎片化，相加即还原成完整消息。</li>
-    <li>Streaming/Callbacks 是<strong>横切能力</strong>，对所有 Runnable 一视同仁；<span class="mono">config</span> 是随调用流动的信封。</li>
-  </ul>
-</div>
-
+<h2>最后检查：把概念落到一次真实调用</h2>
+<p>完成本课后，请把概念重新放回一次真实调用中验证：输入从哪里来，经过哪个对象标准化，运行时配置如何传播，输出由谁解释，错误在哪里被看见，哪些信息进入 trace，哪些信息进入业务状态。只要能沿着这条线讲清楚，说明你掌握的不是 API 片段，而是可维护的系统边界。</p>
+<p>这也是 C 级课程反复强调的学习方法：每个抽象都要回答“它统一什么、它不负责什么、它失败时看什么证据”。抽象不是为了隐藏一切，而是为了让变化集中、证据清楚、责任可定位。后续课程继续读源码时，请始终用这三个问题检查自己的理解。</p>
+<h2>常见误解</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：Streaming 会让总生成时间一定更短。</div><div class="pf-correct">正确：它主要降低首 token 延迟和改善感知；总耗时仍取决于模型、网络、工具和解析。</div></div><div class="pitfall"><div class="pf-wrong">误解：chunk 就是最终消息。</div><div class="pf-correct">正确：chunk 是增量片段，必须合并并等待结束事件后才是稳定结果。</div></div><div class="pitfall"><div class="pf-wrong">误解：callbacks 可以当业务 middleware 用。</div><div class="pf-correct">正确：callbacks 是观察者；核心业务逻辑应在 Runnable、工具或图节点中显式表达。</div></div><div class="pitfall"><div class="pf-wrong">误解：日志越全越好，直接记录所有 prompt 和 metadata。</div><div class="pf-correct">正确：可观测性必须配合脱敏、采样和权限，避免泄露秘密和用户隐私。</div></div><div class="pitfall"><div class="pf-wrong">误解：只处理正常 end 就够了。</div><div class="pf-correct">正确：流式和事件系统必须处理 error、cancel、tool/parser 失败等非成功路径。</div></div></div>
+<h2>小实验：打印 chunks 和 event names</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 观察一个小链的运行过程</div><ol><li>构造 prompt | fake streaming chat model | StrOutputParser 这样的小链，避免真实网络依赖。</li><li>用 stream 或 astream 打印每个 chunk 的类型和 content，确认它们不是最终完整消息。</li><li>用 astream_events 打印 event 名称、name、run_id，观察 prompt、model、parser 的顺序。</li><li>添加一个自定义 BaseCallbackHandler，打印 on_chat_model_start、on_llm_new_token、on_llm_end。</li><li>故意让 parser 失败，确认 error 事件或异常能被看见并记录。</li></ol></div>
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li>Streaming：<span class="mono">stream()</span> 产出可相加的 <span class="mono">AIMessageChunk</span>，累加即得完整消息。</li>
-    <li>Callbacks：在 <span class="mono">on_llm_start / new_token / end</span> 等生命周期点触发，支撑追踪与监控。</li>
-    <li>两者通过 <span class="mono">RunnableConfig</span> 注入，且对所有 Runnable 通用。</li>
-    <li><strong>第三部分（内部源码）到此结束</strong>。最后一部分教你如何读源码、调试、测试与贡献。</li>
+    <li>stream / astream 暴露模型增量 chunk，astream_events 暴露更完整的 Runnable 运行事件。</li>
+    <li>callbacks、CallbackManager 和 tracer 是可观测性机制，应保持旁路、轻量、可审计。</li>
+    <li>tags、metadata、run id 让 trace 可关联，但不能记录秘密或未脱敏敏感数据。</li>
+    <li>流式 UI 必须处理 backpressure、取消、错误和最终合并，不能把半成品当最终结果。</li>
   </ul>
 </div>
-<div class="selftest">
+<div class="card version"><div class="tag">📌 版本锚点</div>本课以 BaseChatModel.stream、Runnable.astream_events、CallbackManager、BaseCallbackHandler 和 BaseTracer 为锚点。事件字段和平台集成会演进，但“运行开始、增量事件、结束或错误、trace 关联”的可观测性模型稳定适用。</div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. <code>stream()</code> 产出“可相加的 <code>AIMessageChunk</code>”，累加即得完整消息。把流式片段设计成“能用 + 拼得起来”，图什么？</div>
+  <div class="qn">1. stream 中的 chunk 与最终 <code>AIMessage</code> 是什么关系？</div>
   <ol class="opts">
-    <li>同一套消息抽象既能表达“完整结果”又能表达“流式片段”，下游处理流式和非流式可统一——累加就还原</li>
-    <li>炫技</li>
-    <li>更省内存</li>
-    <li>更快</li>
+    <li>chunk 是增量片段，通常需要合并后才得到完整消息和最终元数据</li>
+    <li>chunk 就是已经完成的最终消息，不能再合并</li>
+    <li>chunk 只用于日志，不会给 UI 使用</li>
+    <li>最终消息会自动执行所有 chunk 中的工具</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。“chunk 可相加”让流式不是另一套世界，而是“完整消息的增量形式”。统一抽象延伸到了流式，处理逻辑得以复用。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。流式输出让用户更早看到增量，但 chunk 边界不等于完整语义边界。最终消息仍是更稳定的结果对象。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. Callbacks 在 on_llm_start/new_token/end 等点触发，且“对所有 Runnable 通用”。把“追踪/监控”做成横切回调而非塞进每个组件，好处是？</div>
+  <div class="qn">2. callbacks 与 middleware 的边界更接近哪种描述？</div>
   <ol class="opts">
-    <li>回调更快</li>
-    <li>防止出错</li>
-    <li>减少组件</li>
-    <li>观测能力与业务逻辑解耦：一处挂钩子、处处生效，加监控不动核心代码</li>
+    <li>callbacks 负责业务权限，middleware 只能打印 token</li>
+    <li>二者完全等价，没有设计边界</li>
+    <li>callbacks 偏观察事件，middleware 偏改变或包裹运行行为</li>
+    <li>二者都只能在页面层工作</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。横切关注点（日志/追踪/监控）用回调统一接入，是“关注点分离”。这也是 LangSmith 能“无侵入”追踪整条链的原因。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。callbacks 适合 tracing、日志和 token 事件；middleware 更适合拦截、限流、重试或注入策略。混用会模糊责任。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 回调、标签、元数据都通过 <code>RunnableConfig</code> 这个“信封”在调用时一路传递。为什么用一个统一 config 携带，而不是给每个方法加一堆参数？</div>
+  <div class="qn">3. 为什么需要 <code>astream_events</code> 这类事件流，而不只看最终文本？</div>
   <ol class="opts">
-    <li>没有原因</li>
-    <li>参数太多难看</li>
-    <li>一个随调用流动的上下文信封，能把横切配置无侵入地带到链的每一层，接口保持干净</li>
-    <li>config 更快</li>
+    <li>事件流能展示链、模型、工具等内部步骤的 start/stream/end/error，支撑细粒度 UI 和排错</li>
+    <li>事件流会提高模型准确率</li>
+    <li>事件流会替代所有业务日志和数据库</li>
+    <li>事件流只包含最终答案，没有中间过程</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。用“上下文信封”承载横切数据，避免每层接口被这些参数污染——又是把横切关注点和核心接口解耦。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. <code>astream_events</code> 能订阅“链中每一步”的细粒度事件。为什么需要比 stream 更细的事件流？</div>
-  <ol class="opts">
-    <li>构建复杂 UI（如展示 Agent 的思考/工具调用过程）需要知道“内部每一步发生了什么”，而不只是最终 token 流</li>
-    <li>更准确</li>
-    <li>凑功能</li>
-    <li>更省钱</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。细粒度事件让你能“看见 Agent 内部”，是做“显示推理过程/工具进度”这类高级 UI 的基础。粒度是为表达力服务的。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。复杂链路中，最终文本不足以解释发生了什么。事件流把内部运行过程变成可观察证据。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>“把追踪做成无侵入的横切回调”让你随时加监控。但回调里如果做了重活（同步写日志/网络），会拖慢主流程。你会怎么设计回调以避免它反过来拖累性能？</li>
-    <li>流式让用户更早看到输出，但也让“输出还没完就被读到”成为可能（比如解析到一半的 JSON）。流式带来的这种“不完整可见性”在你的场景里是利还是弊？</li>
+    <li>设计一个 UI token stream：前端如何接收 chunk、节流渲染、处理最终消息和错误状态，避免把半截 JSON 当成完成结果？</li>
+    <li>如果 callbacks 要记录调试信息，如何避免把系统提示、用户隐私、工具返回的秘密写进日志？请写出脱敏或白名单策略。</li>
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="13-agent-internals.html"><div class="dir">← 上一课</div><div class="ttl">Agent 内部</div></a><a class="next" href="15-contributing.html"><div class="dir">下一课 →</div><div class="ttl">读源码 / 调试 / 测试 / 贡献</div></a></div>
+  <div class="footnav"><a class="prev" href="10-output-parsers.html"><div class="dir">← 上一课</div><div class="ttl">输出解析器 Output Parsers</div></a><a class="next" href="08-runnable.html"><div class="dir">下一课 →</div><div class="ttl">Runnable 协议</div></a></div>
 </div>
 
 </body></html>

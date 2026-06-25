@@ -3,7 +3,7 @@
 Layout produced (relative to the project root):
 
     index.html           entry point (table of contents)
-    lessons/NN-*.html    the 14 lesson pages
+    lessons/NN-*.html    lesson pages
 
 Pages use relative links so the site works via file:// or any static HTTP
 server. Index links to ``lessons/NN-*.html``; lesson pages link to siblings

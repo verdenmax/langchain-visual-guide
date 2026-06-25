@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>23 · 隔壁层学习地图：L5 推理 · L6 向量检索 — LangChain 图解教程</title>
-<meta name="description" content="第六部分 · 番外篇｜隔壁层学习地图：L5 推理 · L6 向量检索：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>45 · 后续学习地图 — LangChain 图解教程</title>
+<meta name="description" content="第九部分 · 生态与速查｜后续学习地图：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="23 · 隔壁层学习地图：L5 推理 · L6 向量检索 — LangChain 图解教程">
-<meta property="og:description" content="第六部分 · 番外篇｜隔壁层学习地图：L5 推理 · L6 向量检索：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="45 · 后续学习地图 — LangChain 图解教程">
+<meta property="og:description" content="第九部分 · 生态与速查｜后续学习地图：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="23 · 隔壁层学习地图：L5 推理 · L6 向量检索 — LangChain 图解教程">
-<meta name="twitter:description" content="第六部分 · 番外篇｜隔壁层学习地图：L5 推理 · L6 向量检索：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="45 · 后续学习地图 — LangChain 图解教程">
+<meta name="twitter:description" content="第九部分 · 生态与速查｜后续学习地图：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -256,197 +256,113 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
 </style>
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第六部分 · 番外篇</span>
-    <span class="pill">23 / 27</span>
+    <span class="pill">第九部分 · 生态与速查</span>
+    <span class="pill">45 / 46</span>
   </div>
-  <div class="progress"><span style="width:85%"></span></div>
+  <div class="progress"><span style="width:97%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第六部分 · 番外篇</div>
-    <h1>隔壁层学习地图：L5 推理 · L6 向量检索</h1>
+    <div class="part">第九部分 · 生态与速查</div>
+    <h1>后续学习地图</h1>
   </div>
-  
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-学完编排层（L7），想往下探一层？最值得动手的是<strong>紧挨着你的两层</strong>：
-<strong>L5 推理服务</strong>（让模型高效跑起来）和 <strong>L6 向量检索</strong>（RAG 的底座）。
-这一课给你一张<strong>"该读哪些项目、按什么顺序"</strong>的实战地图。
-</p>
-
-<div class="card analogy">
-  <div class="tag">🏭 一句话类比</div>
-  如果 <strong>L7（你已会）</strong>是"一个会用工具的工人"，那么
-  <strong>L5</strong> 是<strong>给工人配一台高效引擎</strong>（同样的活，更快更省）；
-  <strong>L6</strong> 是<strong>给工人一个随手可查的资料库</strong>（不靠死记，靠查）。
-</div>
-
-<div class="card warn">
-  <div class="tag">⚠️ 这是"地图"，不是"作业"</div>
-  下面项目<strong>不用全学</strong>。每层我都标了一个 <strong>⭐ 主攻项目</strong>和一条<strong>推荐主线</strong>——
-  先跟主线走通一条，建立体感，再按兴趣横向铺开。<strong>能跑 → 读核心 → 工程深度</strong>，三步走。
-</div>
-
-<h2>L5 · 推理 / 服务：让模型高效跑起来</h2>
-<p>这层解决一件事：<strong>同一个模型，怎么更快、更省、更高并发地对外提供</strong>。
-核心关键词：<span class="mono">KV-cache</span>、<span class="mono">PagedAttention</span>、
-<span class="mono">continuous batching</span>、<span class="mono">量化(quantization)</span>。</p>
-
-<table class="t">
-  <tr><th>项目</th><th>语言</th><th>难度</th><th>读它能学到</th></tr>
-  <tr><td class="mono">⭐ vLLM</td><td>Python/CUDA</td><td>中</td><td><strong>生产级推理引擎的范式</strong>：PagedAttention、continuous batching、OpenAI 兼容 server</td></tr>
-  <tr><td class="mono">SGLang</td><td>Python</td><td>中</td><td>vLLM 之外的前沿：<strong>RadixAttention</strong>、结构化输出、超高并发</td></tr>
-  <tr><td class="mono">llama.cpp</td><td>C/C++</td><td>中高</td><td>从底层吃透<strong>量化与推理</strong>：GGUF、纯 CPU 也能跑大模型</td></tr>
-  <tr><td class="mono">Ollama</td><td>Go</td><td>低</td><td>本地<strong>一键起模型</strong>（底层基于 llama.cpp / GGML）——最快练手</td></tr>
-  <tr><td class="mono">TensorRT-LLM · TGI</td><td>C++ · Rust</td><td>高</td><td>厂商级<strong>极致优化</strong>，进阶 / 特定硬件再看</td></tr>
-</table>
-
-<div class="card key">
-  <div class="tag">✅ L5 推荐主线</div>
-  <strong>① 用 Ollama 跑起来</strong>（10 分钟建立"模型在本地转"的直觉）→
-  <strong>② 主攻 vLLM</strong>（读懂生产级推理怎么做高吞吐，这是行业事实标准）→
-  <strong>③ 想深入底层再啃 llama.cpp</strong>（量化、算子）。
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 vLLM 想先读哪几处</div>
-  <ul>
-    <li><strong>PagedAttention / KV-cache 管理</strong>——它最核心的创新，把"显存碎片"问题用"分页"解决。</li>
-    <li><strong>Scheduler（continuous batching）</strong>——为什么它能把 GPU 利用率拉满。</li>
-    <li><strong>OpenAI 兼容 server 入口</strong>——看"一个请求进来后怎么被排队、批处理、流式返回"。</li>
-  </ul>
-</div>
-
-<h2>L6 · 检索 / 记忆：RAG 的底座</h2>
-<p>你在<strong>第 17 课</strong>已经用过 <span class="mono">VectorStore / Retriever</span>——这层就是它们的<strong>"引擎室"</strong>。
-核心关键词：<span class="mono">向量(embedding)</span>、<span class="mono">相似度</span>、
-<span class="mono">ANN 近邻索引(HNSW / IVF)</span>。它分三小块：①向量索引/库　②嵌入模型　③长期记忆。</p>
-
-<h3>① 向量索引 / 数据库</h3>
-<table class="t">
-  <tr><th>项目</th><th>语言</th><th>难度</th><th>读它能学到</th></tr>
-  <tr><td class="mono">⭐ hnswlib</td><td>C++/Python</td><td>中</td><td><strong>HNSW 算法本身</strong>（ANN 检索的核心）。代码极小，最适合读懂"向量检索到底怎么算"</td></tr>
-  <tr><td class="mono">FAISS</td><td>C++/Python</td><td>中高</td><td>工业级<strong>索引大全</strong>（IVF / PQ / HNSW），Meta 出品</td></tr>
-  <tr><td class="mono">pgvector</td><td>C</td><td>中</td><td>在 <strong>Postgres 里做向量检索</strong>——最贴近真实业务落地</td></tr>
-  <tr><td class="mono">Qdrant</td><td>Rust</td><td>中</td><td>生产级向量数据库的<strong>完整工程</strong>（过滤 + payload + 分布式）</td></tr>
-  <tr><td class="mono">Chroma</td><td>Python</td><td>低</td><td>最易上手，<strong>本地 RAG 原型</strong>首选（第 17 课就是它这类）</td></tr>
-  <tr><td class="mono">Milvus · Weaviate</td><td>Go</td><td>高</td><td>大规模<strong>分布式</strong>向量库，海量数据再看</td></tr>
-</table>
-
-<h3>② 嵌入模型　③ 长期记忆</h3>
-<table class="t">
-  <tr><th>项目</th><th>属于</th><th>读它能学到</th></tr>
-  <tr><td class="mono">BGE（bge-m3 等）</td><td>嵌入模型</td><td>把文本变向量，<strong>中文友好、开源</strong>，RAG 检索质量的关键一环</td></tr>
-  <tr><td class="mono">sentence-transformers</td><td>库</td><td>跑 / 微调嵌入模型的<strong>标准库</strong></td></tr>
-  <tr><td class="mono">Mem0 · Zep</td><td>记忆层</td><td>在向量库之上给 Agent 加<strong>"长期记忆"</strong>（跨会话记住用户）</td></tr>
-</table>
-
-<div class="card key">
-  <div class="tag">✅ L6 推荐主线</div>
-  <strong>① 读 hnswlib</strong>（2~3 个核心文件就能看懂 HNSW，从此"向量检索"不再是黑盒）→
-  <strong>② 用 pgvector 或 Chroma 落地一个 RAG</strong>（把第 17 课的玩具升级成能用的东西）→
-  <strong>③ 要工程深度再看 Qdrant / FAISS</strong>。嵌入选 <strong>BGE</strong>，要记忆看 <strong>Mem0 / Zep</strong>。
-</div>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点：为什么偏偏是这两层</div>
-  <ul>
-    <li>L5 和 L6 是<strong>"应用开发者最该下探的两层"</strong>——它们紧挨着你已会的 L7，学了立刻能用。</li>
-    <li><strong>懂 L5</strong>：你能解释"为什么慢 / 为什么贵"，能判断<strong>本地 vs API</strong> 怎么选。</li>
-    <li><strong>懂 L6</strong>：你的 RAG 才能从<strong>"能跑"进化到"答得准"</strong>（选对索引、选对嵌入、调对 chunk）。</li>
-    <li>再往下（L3 训练 / L1 硬件）是<strong>另一条职业路线</strong>了——不是不好，而是投入产出比对应用开发者没这么高，按需再说。</li>
-  </ul>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 术语速查：5 个高频词，一句话各拆一个</div>
-  <table class="t" style="margin-top:.6rem">
-    <tr><th>术语</th><th>一句话理解</th></tr>
-    <tr><td class="mono">PagedAttention</td><td>把 KV-cache 像操作系统的<strong>虚拟内存"分页"</strong>来管，消除显存碎片 → 同一张卡能跑更多并发</td></tr>
-    <tr><td class="mono">continuous batching</td><td>不等"整批"凑齐，谁先生成完就把<strong>新请求填进空位</strong> → GPU 不空转</td></tr>
-    <tr><td>量化 <span class="mono">quantization</span></td><td>用更低精度（int8/int4）存权重，<strong>省显存、提速</strong>，精度略有损失</td></tr>
-    <tr><td class="mono">HNSW</td><td>一种多层"跳表式"图索引，<strong>快速找到最近邻向量</strong>（hnswlib 就是它）</td></tr>
-    <tr><td class="mono">ANN</td><td>近似最近邻：<strong>牺牲一点点精度，换巨大的速度</strong>——向量检索能上规模的关键</td></tr>
-  </table>
-</div>
-
-<div class="card key">
-  <div class="tag">✅ 本课要点</div>
-  <ul>
-    <li><strong>L5 主攻 vLLM</strong>（先 Ollama 起步，深入再读 llama.cpp）；关键词 <span class="mono">PagedAttention / continuous batching / 量化</span>。</li>
-    <li><strong>L6 主攻 hnswlib</strong>（懂算法）+ <strong>pgvector / Chroma</strong>（会落地）；关键词 <span class="mono">HNSW / ANN / 嵌入</span>。</li>
-    <li>嵌入选 <strong>BGE</strong>，长期记忆看 <strong>Mem0 / Zep</strong>。</li>
-    <li>统一学习节奏：<strong>能跑 → 读核心 → 工程深度</strong>，先走通一条主线再横向铺开。</li>
-    <li>🎉 番外到此为止——你已从"LangChain 一个点"，缩放到了"整个 AI 生态的坐标系"，并拿到了往下探的地图。祝你走得更远。</li>
-  </ul>
-</div>
-<div class="selftest">
+<p class="lead">学完 LangChain、LangGraph、RAG、Agent、测试和生态边界后，下一步不是同时追所有新名词，而是按邻接层补能力。应用开发者最常遇到的瓶颈通常在四个方向：推理服务为什么慢和贵，向量数据库为什么召回不准，评测与可观测如何证明 Agent 没退化，协议与贡献如何让系统接入真实生态。本课给出后续学习地图：从本课程已学锚点出发，分阶段进入 inference engines、vector databases、eval/observability、agent protocols 和 contributing。每一阶段都包含读什么、做什么实验、怎样判断学会，以及什么时候不要深入。</p><div class="card analogy"><div class="tag">🧩 生活类比</div>把学习路线想成从市中心向外扩展地铁。你已经在 LangChain/LangGraph 这座枢纽站掌握换乘：消息、工具、Runnable、图、RAG、Agent、测试。下一站不该随机坐车，而是按工作需要选择支线：系统慢就去推理引擎线，回答找不到证据就去向量检索线，上线不放心就去评测观测线，要接外部工具和 agent 就去协议线，想理解框架本身就去贡献线。每条线先坐两站建立体感，再决定是否深入终点。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：从应用编排向相邻层扩展</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">已学地基</div><div class="mn-desc">Runnable、BaseMessage、BaseChatModel、BaseTool、StateGraph、RAG、AgentMiddleware</div></div><div class="map-node now"><div class="mn-label">推理引擎</div><div class="mn-desc">理解 KV cache、batching、并发、量化、延迟和吞吐的取舍</div></div><div class="map-node now"><div class="mn-label">向量数据库</div><div class="mn-desc">理解 embedding、ANN/HNSW、过滤、rerank、召回/精度评估</div></div><div class="map-node source"><div class="mn-label">评测观测</div><div class="mn-desc">把 trace、数据集、回归、成本、错误分类接成质量闭环</div></div><div class="map-node after"><div class="mn-label">协议贡献</div><div class="mn-desc">学习 MCP/A2A 边界，阅读源码并贡献小而可验证的改动</div></div></div></div><h2>源码入口：文件 + 符号名</h2><p>本课 source rows 指向课程内已经验证的锚点与上游主要符号。学习地图不是让你一次读完所有源码，而是告诉你每条支线从哪个已知概念出发，如何用小实验建立反馈。</p><table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">08-runnable.html</td><td class="mono">Runnable</td><td>所有组件可组合的应用层协议</td><td>后续学习任何框架时先问它的可组合契约是什么</td></tr><tr><td class="mono">11-chat-internals.html</td><td class="mono">BaseChatModel / provider adapter</td><td>模型 API 适配层</td><td>下探推理引擎前先分清 provider API 与 serving engine</td></tr><tr><td class="mono">37-embeddings-vectorstores.html</td><td class="mono">Embeddings / VectorStore</td><td>向量化与索引入口</td><td>进入 ANN、HNSW、过滤、混合检索和向量数据库</td></tr><tr><td class="mono">38-retrievers-rerankers.html</td><td class="mono">BaseRetriever</td><td>query -&gt; documents 的检索契约</td><td>学习召回、rerank、压缩和 RAG 评估</td></tr><tr><td class="mono">41-observability-ci.html</td><td class="mono">callbacks / run tree / CI</td><td>观测、回归和发布守卫</td><td>进入 eval、dataset、trace、成本和质量门</td></tr><tr><td class="mono">15-contributing.html</td><td class="mono">build/check loop</td><td>源码调试与贡献流程</td><td>把学习转成可复查实验和小 PR</td></tr></table><h2>状态流：四阶段后续学习计划</h2><div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>阶段一：复盘地基</h4><p>用课程 glossary 检查 Runnable、Message、Tool、StateGraph、Retriever 是否能讲清。</p><div class="mono">1-2 天</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>阶段二：相邻层实验</h4><p>分别做一个本地模型服务、一个向量库索引、一个 trace/eval 数据集。</p><div class="mono">1 周</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>阶段三：源码深读</h4><p>选择 vLLM/llama.cpp、hnswlib/Qdrant、LangSmith/OpenTelemetry、MCP/A2A SDK 中最贴近工作的一个。</p><div class="mono">2-4 周</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>阶段四：工程化项目</h4><p>把推理、检索、Agent、评测、协议适配接进一个端到端小系统。</p><div class="mono">1-2 月</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>阶段五：贡献</h4><p>修文档、补测试、提交 adapter 或教程示例，留下可复现证据。</p><div class="mono">长期</div></div></div></div><h2>Trace：把一次运行摊平成证据链</h2><table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. symptom</td><td>Agent 回答慢且费用高</td><td>先用 trace 判断时间花在模型、工具、检索还是外部 agent</td><td>若主要在模型，进入推理引擎支线</td></tr><tr><td>2. inference</td><td>高延迟/高并发</td><td>学习 KV cache、continuous batching、量化和 serving 配置</td><td>能解释吞吐、延迟、显存的三角关系</td></tr><tr><td>3. retrieval</td><td>答案缺证据或找错文档</td><td>学习 chunk、embedding、ANN、metadata filter、rerank 和 eval</td><td>能用数据集测召回与精度</td></tr><tr><td>4. eval</td><td>上线前担心退化</td><td>建立固定问题集、trace 断言、成本门和人工审阅样本</td><td>每次改动有质量信号</td></tr><tr><td>5. protocol/contrib</td><td>需要接外部工具或理解框架</td><td>写 adapter、读源码、补测试或贡献文档</td><td>学习成果沉淀为可复查资产</td></tr></table><h2>简化源码走读：保留契约，不背实现</h2><div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">个人学习计划伪码 :: choose_next_topic(symptom)</span><span class="ln">简化版</span></div><pre>def choose_next_topic(symptom):
+    if symptom in [&quot;slow&quot;, &quot;expensive&quot;, &quot;serving_capacity&quot;]:
+        return &quot;inference engines: KV cache, batching, quantization&quot;
+    if symptom in [&quot;bad_recall&quot;, &quot;missing_citation&quot;, &quot;stale_context&quot;]:
+        return &quot;vector databases: embeddings, ANN, filters, rerank&quot;
+    if symptom in [&quot;regression&quot;, &quot;hard_to_debug&quot;, &quot;unknown_quality&quot;]:
+        return &quot;eval/observability: datasets, traces, metrics&quot;
+    if symptom in [&quot;external_tools&quot;, &quot;multi_org_agents&quot;]:
+        return &quot;agent protocols: MCP, A2A, adapters&quot;
+    return &quot;contributing: read source, write focused tests, document evidence&quot;
+</pre><div class="cw-note">学习路线也应像工程系统一样由症状驱动。不要因为某个词热门就立刻深挖，先问它解决你当前哪一层问题，再用小实验验证投入产出比。</div></div><h2>先复盘应用层地基</h2><p>继续学习前，先确认本课程主线已经内化。你应能不用代码解释 Runnable 为什么是协议，BaseMessage 为什么是聊天中间表示，BaseChatModel 如何做 provider adapter，BaseTool 如何拆 schema 和执行，StateGraph 为什么需要 state/reducer/edge，Pregel 为什么按超步执行，create_agent 如何把模型和工具循环组装成图，BaseRetriever 与 VectorStore 如何支撑 RAG，AgentMiddleware 如何在循环边界插入策略。</p><p>如果这些概念还需要翻笔记，直接跳到推理引擎或向量库会很吃力。因为下游问题最终还会回到应用层：模型服务再快，也要被 BaseChatModel 适配；向量库再强，也要通过 Retriever 进入 RAG；协议再标准，也要映射成 Tool 或图节点；评测再复杂，也要断言消息、工具和 state。地基不稳，扩展层越多越混乱。</p><h2>推理引擎：理解慢和贵</h2><p>推理层关注的是模型如何被服务出来：请求排队、prefill、decode、KV cache、continuous batching、显存碎片、量化、并发、吞吐、首 token 延迟和总延迟。应用开发者不一定要写 CUDA kernel，但要能解释为什么上下文越长越慢，为什么并发高时 batching 重要，为什么量化能省显存但可能影响质量，为什么同一个模型在不同 serving engine 上表现不同。</p><p>推荐路线是先使用一个本地或托管推理服务跑同一组 prompt，记录首 token、总耗时、token 数和并发；再读一篇 serving engine 的架构文章或核心源码导览；最后回到 LangChain provider adapter，观察这些 serving 参数如何通过模型 API 暴露。目标不是成为底层工程师，而是能在应用层做合理容量、成本和降级决策。</p><h2>向量数据库：理解找得到和找得准</h2><p>RAG 的失败常被误怪模型，实际可能是 chunk 切错、embedding 不适合、metadata filter 漏掉权限、ANN 参数召回不足、rerank 排序错误、文档过期或引用没保存。向量数据库学习要围绕“query -> candidate documents -> rerank -> answer”这条链，而不是只背某个产品 API。先理解 embedding 语义，再理解 HNSW/ANN 为什么用近似搜索，最后理解过滤、混合检索和 rerank 如何影响最终上下文。</p><p>小实验可以从同一批文档开始：改变 chunk size、overlap、embedding 模型、top_k、metadata filter 和 reranker，记录召回率、精度、引用覆盖和回答质量。不要只看最终答案，要保存每次检索到的 Document id、score、metadata 和片段。这样你能判断问题在检索前、检索中、rerank 后还是生成阶段。</p><h2>评测与可观测：把感觉变成证据</h2><p>Agent 系统上线后，最可怕的不是单次失败，而是你不知道是否退化。评测与可观测要把课程里的 callbacks、run tree、trace_table、fake models 和 CI 连接起来：固定问题集验证核心场景，消息级断言验证工具循环，RAG 数据集验证召回，人工样本验证答案可用性，成本和延迟指标验证工程约束。每次修改 prompt、工具、检索或模型，都应有一组可重复信号。</p><p>观测不是只上报日志。一个有用 trace 应能回答：用户输入是什么，模型看到哪些消息，调用了哪些工具，工具参数和结果是什么，检索到了哪些文档，花了多少 token 和时间，错误在哪里发生，最终回答引用了什么证据。没有这些字段，debug 只能靠猜；有这些字段，评测失败可以快速归因。</p><h2>协议与贡献：从使用者变成维护者</h2><p>MCP、A2A、provider tool calling、OpenTelemetry、LangSmith、向量库 SDK 等协议和工具，会不断改变应用边界。学习它们的正确方式不是背字段，而是写 adapter：把外部工具映射成 BaseTool，把外部 agent 映射成 StateGraph 节点，把外部 trace 映射成统一 run id。adapter 写完后补测试，验证协议升级不会污染业务 state。</p><p>贡献则是最高质量的学习。你可以从文档错别字、教程示例、类型注解、测试补充、小 bug 修复开始。关键是遵守第八部分的工程循环：定位包边界，建立 editable 环境，写最小失败测试，修复，跑相关检查，提交小 PR。贡献不是为了显得资深，而是把你的理解变成别人也能复查的证据。</p><h2>阶段化阅读计划</h2><p>第一周复习本教程：每天选一个 Part，用 glossary 反查术语，再手画一次 source map。第二周做三个实验：本地模型服务压测、向量库检索评估、Agent trace 回归。第三到四周选一个最贴近工作的方向深读源码：推理层选 serving engine，检索层选小型 ANN 实现或向量库，观测层选 trace/eval 工具，协议层选 MCP/A2A adapter。第五周做端到端项目，把模型、检索、工具、评测和协议接在一起。</p><p>每阶段都要有产出：一张图、一组脚本、一份实验记录、一个测试或一篇短文。没有产出的学习很容易变成收藏链接。产出不需要宏大，但必须可复现：别人拿到你的 repo 或笔记，能知道你运行了什么、看到什么、得出什么结论、哪些结论依赖特定版本。</p><h2>边界情况：学习路线最容易踩的坑</h2><p>学习路线最常见的坑，是没有症状就追热点。看到一个新名词就深挖，却说不清它解决你当前哪一层问题，结果是收藏了一堆链接、跑了几个 demo，能力却没沉淀。第二个坑是只读不做：没有可运行的小实验、没有量化指标，学到的东西无法验证，也无法迁移到真实系统。第三个坑是错配投入：把大量时间花在你根本不会维护的底层内核上，反而忽略了离工作更近的相邻层。</p><p>还有一个误解是“应用开发者不需要懂推理或检索”。你确实不必写 CUDA kernel 或实现 HNSW，但你需要懂到足以解释成本、延迟、召回和降级的程度：为什么上下文越长越慢、为什么并发高时 batching 重要、为什么 chunk 和 embedding 选择会左右召回、什么时候该量化或换模型。懂得够用，才能在应用层做合理的容量、预算和取舍决策；完全不懂，就只能把问题笼统归给“模型不稳定”。</p><h2>常见误解：把当前工具版本当成长期事实</h2><p>推理引擎、向量库、评测平台的名字和排名变化很快，今天的“最佳实践”可能半年后就换了主角。把某个工具的当前版本当成长期事实去背，性价比很低。更值得学的是可迁移的原理：KV cache 和 batching 解释了几乎所有推理服务的吞吐与延迟取舍，ANN 与近似搜索解释了几乎所有向量库的召回与精度权衡，固定数据集加 trace 断言解释了几乎所有评测框架的质量信号，adapter 解释了几乎所有协议接入的演进策略。原理稳定，产品易变。</p><p>落地时建议先用成熟托管服务建立体感，再决定是否深入自建。先把一条链路用现成服务跑通、记录指标，理解它的形状和瓶颈，往往比一上来就读底层源码更高效；只有当托管方案在成本、延迟、合规或可控性上确实不够，再深入实现层。无论用什么，都要把判断依赖的版本和文档入口记下来，避免把一次临时验证当成永久结论。</p><h2>用 trace 把症状映射到学习方向</h2><p>举个具体例子：一个 Agent 既慢又答不准。打开 trace，发现大部分时间花在模型推理上，而答案里缺少应有的引用证据。这一条 trace 同时指向两个方向——慢指向推理引擎支线，缺证据指向向量检索支线。这时不要两条线一起铺，先按影响最大的那条投入：如果用户主要抱怨等待，先去推理层；如果主要抱怨答非所问，先去检索层。症状驱动能让有限的学习时间用在真正的瓶颈上。</p><p>每个学习 sprint 都应以一个能反哺真实系统的 artifact 收尾：一段压测脚本、一份检索评估数据集、一组 Agent 消息级回归测试、一个协议 adapter，或一篇说明取舍的短文。没有产出的学习很容易退化成消遣；有可复现产出的学习，才会变成团队能复查、能延续的工程能力。判断一条学习线值不值，最简单的标准就是：四周后，它有没有改变你项目里的某个配置、测试或架构决定。</p><h2>设计取舍：把学习当成有预算的工程</h2><p>把后续学习当成一个有预算的工程项目，方向选择会清晰很多。预算是你的时间和精力，需求是项目当前最痛的瓶颈，验收标准是一个能反哺系统的产出。像排期一样，先挑投入产出比最高的那条线，做出一个最小可验证的成果，再决定要不要追加投入。最怕的是没有预算意识：同时铺开五条线，每条都浅尝辄止，最后哪条都没有形成能用的能力，只剩一堆收藏夹里的链接。</p><p>第二个取舍是广度优先还是深度优先。对应用开发者，通常建议先在相邻层都建立够用的体感，能解释推理为什么慢、检索为什么不准、评测为什么必要、协议为什么要适配，再针对当前瓶颈深挖一条。过早深入某个底层实现，容易学到一堆暂时用不上的细节；完全只停在表面，又无法解决真实问题。广度建立坐标，深度解决瓶颈，两者按项目需要交替推进。</p><p>第三个取舍是自建还是托管。很多能力都有成熟托管方案，先用托管把链路跑通、把指标量出来，往往比一上来就自建更快形成判断。只有当托管在成本、延迟、合规或可控性上确实不够时，再投入自建。无论选哪条，都要给学习留下可复查的证据：一段脚本、一份数据、一组测试。证据让学习可以被团队复用，也让你在半年后还能想起当时为什么这么决定。</p><h2>给自己留一条复盘回路</h2><p>学习地图最后该补上的一环，是复盘回路。每完成一段学习，回到项目里问三个问题：它解决了我原来的哪个症状，我能不能用一个指标证明改善，这条经验能不能写进团队文档让别人复用。没有复盘，学习容易停在我大概懂了；有复盘，它才会沉淀成我能解释、能验证、能传授的能力。复盘不需要很长，但要诚实地面对投入和产出。</p><p>复盘也帮你修正方向。如果一条线学了两周却没改变项目里的任何配置、测试或决定，那很可能是方向选错了，或深度过头了，该及时止损换线。学习不是线性消耗时间，而是不断用真实反馈校准的循环。把症状驱动、最小实验、可复查产出和定期复盘连成回路，你的学习就有了和工程系统一样的自我纠错能力。</p><h2>课堂检查清单：判断是否该深入某方向</h2><p>一，这个方向是否解决你当前项目的真实瓶颈。二，你能否用课程概念连接它与应用层。三，是否有可运行小实验。四，是否能收集量化指标而不只看主观感觉。五，是否能找到源码入口或协议规范。六，是否有测试或数据集验证学习成果。七，是否会引入新的部署和安全成本。八，是否有团队成员能共同维护。九，是否已有成熟托管服务可先用。十，是否需要深入到底层实现，还是只需理解配置。十一，是否记录了版本依赖。十二，学习结束后能否反哺当前系统。</p><h2>后续学习路线表</h2><p>按症状选路线，能防止被技术热点牵着走。</p><table class="t"><tr><th>方向</th><th>先学关键词</th><th>小实验</th><th>学会的标志</th></tr><tr><td>推理引擎</td><td>KV cache、batching、量化、吞吐、延迟</td><td>同模型不同并发压测，记录首 token 和总耗时</td><td>能解释慢在哪里、贵在哪里、如何降级</td></tr><tr><td>向量数据库</td><td>embedding、HNSW/ANN、filter、rerank</td><td>固定问答集比较 chunk/top_k/rerank</td><td>能用召回和引用证据定位 RAG 失败</td></tr><tr><td>评测观测</td><td>dataset、trace、run tree、regression、cost</td><td>为 Agent 建消息级回归测试和成本门</td><td>每次改动有可复现质量信号</td></tr><tr><td>Agent 协议</td><td>MCP、A2A、adapter、capability discovery</td><td>把一个外部工具映射为 BaseTool</td><td>协议变化被 adapter 隔离</td></tr><tr><td>贡献</td><td>editable、focused test、CI、source map</td><td>修一个文档/测试/小 bug</td><td>PR 描述能让陌生人复现</td></tr></table><div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：先追最火项目，再找用途</div><div class="pf-correct">正确：学习应由症状和相邻层驱动；没有使用场景，很难形成可迁移理解。</div></div><div class="pitfall"><div class="pf-wrong">误解：应用开发者不需要懂推理或检索</div><div class="pf-correct">正确：不必写底层内核，但要懂足够多才能解释成本、延迟、召回和降级。</div></div><div class="pitfall"><div class="pf-wrong">误解：评测等上线后再补</div><div class="pf-correct">正确：没有基线就无法判断改动是否退化；评测应伴随 prompt、工具和检索演进。</div></div><div class="pitfall"><div class="pf-wrong">误解：贡献必须从大功能开始</div><div class="pf-correct">正确：最好的入门贡献往往是小测试、小文档和小修复，关键是证据完整。</div></div></div><div class="card lab"><div class="tag">🧪 小实验 · 制定一个四周学习 sprint</div><ol><li>列出当前项目最痛的一个问题：慢、贵、找不准、不可观测、协议集成或源码不熟。</li><li>从路线表选择一个方向，写出三条关键词和一个最小实验。</li><li>定义实验指标：延迟、召回、答案正确率、trace 完整度、adapter 兼容或 PR 检查。</li><li>每周产出一个可复查 artifact：脚本、图、测试、笔记或小 PR。</li><li>四周后回到项目，说明这条学习线如何改变架构、配置、测试或文档。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>学习地图中的项目和协议会变化，本文不承诺某个工具的当前排名或长期地位。请把它当作层次化方法：从已学应用层出发，按真实症状选择相邻层，用实验和版本证据校验。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>后续学习应从真实症状和相邻层出发，而不是追逐名词。</li><li>推理引擎解释延迟、吞吐、显存和成本；向量数据库解释召回、过滤和 RAG 质量。</li><li>评测与可观测把 Agent 质量从感觉变成可重复证据。</li><li>协议学习要落到 adapter；贡献学习要落到小而可验证的 PR。</li><li>每个阶段都要产出可复查 artifact，学习才会沉淀为工程能力。</li></ul></div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. 课里建议优先下探 L5(推理) 和 L6(检索)，而不是 L3(训练) 或 L1(硬件)。这个优先级的依据是？</div>
+  <div class="qn">1. 学完本教程后，选择下一个学习方向最应该依据什么？</div>
   <ol class="opts">
-    <li>随便选的</li>
-    <li>它们更简单</li>
-    <li>它们更火</li>
-    <li>投入产出比：L5/L6 紧挨着你已会的应用层、学了立刻能用（解释慢/贵、让 RAG 更准），而 L3/L1 是另一条职业路线</li>
+    <li>只收藏链接不做实验</li>
+    <li>真实项目症状与相邻层：慢/贵看推理，找不准看向量检索，不可控看评测观测，外部集成看协议</li>
+    <li>跳过应用层直接学硬件</li>
+    <li>哪个名词今天最热</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。学习路径应按“与你当前能力的邻接度 + 即时收益”排序。L5/L6 是应用开发者性价比最高的下探方向。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。学习路线应由问题驱动，并通过小实验形成反馈，而不是被热点牵着走。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. vLLM 的 PagedAttention 把 KV-cache 当“虚拟内存分页”来管。理解这个设计，能让你抓住推理引擎的核心矛盾是？</div>
+  <div class="qn">2. 向量数据库/RAG 支线的小实验最应记录什么？</div>
   <ol class="opts">
-    <li>模型太大</li>
-    <li>CPU 太弱</li>
-    <li>网络太慢</li>
-    <li>显存的高效利用：把“碎片化的显存”用分页管起来，同一张卡就能扛更多并发——推理优化常是“显存/吞吐”之争</li>
+    <li>只记录最终答案好不好听</li>
+    <li>只记录 UI 截图</li>
+    <li>检索到的 Document id、score、metadata、片段、rerank 后顺序和最终引用</li>
+    <li>只记录模型名称</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。借操作系统的成熟思想（分页）解决新问题（KV-cache 碎片），是好设计的共性。理解它，你就抓住了“推理服务”这层的核心矛盾。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。RAG 排障要沿检索证据链定位，不能只看最终文本。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 推荐主线都是“先用(Ollama/Chroma 起步)→再读核心(vLLM/hnswlib)→要深度再扩展”。这个学习节奏的意图是？</div>
+  <div class="qn">3. 评测与可观测学习的目标是什么？</div>
   <ol class="opts">
-    <li>先建立直觉再啃原理：能跑起来获得反馈，再深入实现，避免一上来啃硬骨头劝退</li>
-    <li>让你多学</li>
-    <li>没意图</li>
-    <li>拖时间</li>
+    <li>把 prompt 调整、工具变化、检索变化和模型升级的影响变成可重复质量信号</li>
+    <li>替代所有人工判断</li>
+    <li>隐藏 trace 细节</li>
+    <li>让所有回答都变长</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。“能跑→读核心→工程深度”是符合认知规律的路径：先有体感、再求甚解。这本身就是一种教学设计。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. hnswlib 被选为 L6 主攻，理由是“代码小、最适合读懂向量检索到底怎么算”。这种“选小而核心的项目入门”好在哪？</div>
-  <ol class="opts">
-    <li>它最快</li>
-    <li>用最小的代码量看清一个核心算法(HNSW/ANN)的本质，不被工程噪声淹没，学到可迁移的原理</li>
-    <li>省时间</li>
-    <li>它最流行</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。入门读“小而纯”的实现能聚焦核心思想；工程级大库(FAISS/Qdrant)留到要深度时再看。这是“先原理后工程”的选材智慧。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。固定数据集、trace 断言、成本延迟指标和人工样本共同帮助判断是否退化。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>课里按“与你能力的邻接度 + 即时收益”推荐先学 L5/L6。用同样标准，给你自己当前的技术栈排一个“接下来最该补的相邻一层”。</li>
-    <li>PagedAttention 借用了操作系统“分页”、HNSW 借用了“跳表/小世界图”。这种“把老领域的成熟思想搬到新问题”的套路，你在别处还见过哪些例子？</li>
+    <li>根据你当前项目的一个症状，选择推理引擎、向量数据库、评测观测、协议、贡献中的一个方向，写出四周学习 sprint。</li>
+    <li>为一次学习产出定义可复查 artifact：脚本、数据集、trace、测试或 PR，并说明它如何反哺现有系统。</li>
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="22-ai-stack.html"><div class="dir">← 上一课</div><div class="ttl">全栈坐标系：从 LangChain 缩放到整个生态</div></a><a class="next" href="24-langgraph-mental-model.html"><div class="dir">下一课 →</div><div class="ttl">深入 LangGraph：图 / 状态 / 节点 / 边</div></a></div>
+  <div class="footnav"><a class="prev" href="22-ai-stack.html"><div class="dir">← 上一课</div><div class="ttl">AI 全栈、MCP 与 A2A</div></a><a class="next" href="27-glossary.html"><div class="dir">下一课 →</div><div class="ttl">术语表与源码索引</div></a></div>
 </div>
 
 </body></html>

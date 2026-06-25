@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>06 · 工具 Tools — LangChain 图解教程</title>
-<meta name="description" content="第二部分 · 用户视角｜工具 Tools：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>08 · 工具 Tools — LangChain 图解教程</title>
+<meta name="description" content="第二部分 · 用户 API 基础｜工具 Tools：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="06 · 工具 Tools — LangChain 图解教程">
-<meta property="og:description" content="第二部分 · 用户视角｜工具 Tools：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="08 · 工具 Tools — LangChain 图解教程">
+<meta property="og:description" content="第二部分 · 用户 API 基础｜工具 Tools：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="06 · 工具 Tools — LangChain 图解教程">
-<meta name="twitter:description" content="第二部分 · 用户视角｜工具 Tools：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="08 · 工具 Tools — LangChain 图解教程">
+<meta name="twitter:description" content="第二部分 · 用户 API 基础｜工具 Tools：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -256,403 +256,210 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
 </style>
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第二部分 · 用户视角</span>
-    <span class="pill">06 / 27</span>
+    <span class="pill">第二部分 · 用户 API 基础</span>
+    <span class="pill">08 / 46</span>
   </div>
-  <div class="progress"><span style="width:22%"></span></div>
+  <div class="progress"><span style="width:17%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第二部分 · 用户视角</div>
+    <div class="part">第二部分 · 用户 API 基础</div>
     <h1>工具 Tools</h1>
   </div>
-  
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-工具（Tool）让模型<strong>突破"只会聊天"的边界</strong>——查数据库、调 API、做计算。
-神奇之处在于：你只写一个<strong>普通 Python 函数</strong>，LangChain 自动把它变成模型能理解、能"请求调用"的工具。
-</p>
+
+<p class="lead">工具把模型的“我想做某件事”连接到真实代码执行。LangChain 的 Tool 抽象不会让模型直接拥有数据库、网络或文件系统权限；它只是把 Python 函数、参数 schema、名称和描述变成模型可读的能力说明，再把模型返回的 <span class="mono">AIMessage.tool_calls</span> 交给程序执行，最后用 <span class="mono">ToolMessage</span> 把观察结果回灌。</p>
 
 <div class="card analogy">
-  <div class="tag">🧰 生活类比</div>
-  模型像个<strong>聪明但被关在房间里的顾问</strong>：它知识渊博，却拿不到实时信息、碰不到外部系统。
-  工具就是你递进房间的一部部<strong>专用电话</strong>——一部打给天气台、一部打给数据库。
-  你贴上"这部电话能干嘛、要拨什么号"的说明（schema），顾问就会在需要时<strong>请你帮他拨号</strong>。
+  <div class="tag">🧰 生活类比 · 前台工单系统</div>
+  模型像前台客服，可以填写“查订单”“查天气”“创建退款”这些工单，但不能自己冲进仓库拿货。工具 schema 像工单表格，docstring 像填写说明，type annotations 像字段类型，tool_call_id 像工单号。真正去仓库、查系统、执行退款的是后台程序；回执必须带工单号，前台才能知道哪张工单完成了。
 </div>
 
-<h2>把函数变成工具：@tool</h2>
-<p>最常用的方式是 <span class="inline">@tool</span> 装饰器。它会自动从你的函数里<strong>提取三样东西</strong>：</p>
+<h2>本课地图：schema 是承诺，执行是边界</h2>
+<p>工具学习最重要的分层是：函数先被转换成工具对象和参数 schema；模型绑定工具后只看到名称、描述和参数结构；模型返回 tool_calls 表示“请求执行”；程序验证与执行；执行结果作为 ToolMessage 回到消息列表。只要记住“schema 不是执行”，很多安全和调试问题都会清楚。</p>
+<div class="lesson-map"><div class="lm-title">🗺️ 工具调用的五段式</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">Python 函数</div><div class="mn-desc">业务代码定义纯函数或受控副作用函数</div></div><div class="map-node now"><div class="mn-label">工具 schema</div><div class="mn-desc">@tool / BaseTool 提取名称、描述、参数结构</div></div><div class="map-node now"><div class="mn-label">绑定模型</div><div class="mn-desc">bind_tools 或 create_agent 把 schema 暴露给模型</div></div><div class="map-node source"><div class="mn-label">模型意图</div><div class="mn-desc">AIMessage.tool_calls 给出 name、args、id</div></div><div class="map-node after"><div class="mn-label">执行观察</div><div class="mn-desc">程序执行工具并生成 ToolMessage 回灌</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>读工具源码时要把“定义工具”“转换 schema”“Agent 执行”“工具消息”分开。下面的入口覆盖了从装饰器到执行回执的主路径，仍然只引用文件 + 符号名，不绑定易漂移的行号。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/tools/convert.py</td><td class="mono">tool</td><td>把普通函数或 Runnable 转换为 Tool / StructuredTool，并读取名称、docstring 和参数 schema。</td><td>用户函数进入工具系统的便捷入口。</td></tr><tr><td class="mono">libs/core/langchain_core/tools/base.py</td><td class="mono">BaseTool</td><td>工具抽象基类，定义 name、description、args_schema、invoke、run、异常处理等行为。</td><td>具体工具实现和装饰器产物遵守它。</td></tr><tr><td class="mono">libs/core/langchain_core/utils/function_calling.py</td><td class="mono">convert_to_openai_tool</td><td>把 LangChain 工具或 schema 转为 OpenAI 风格 tool/function calling 描述。</td><td>provider adapter 生成工具 payload 时使用。</td></tr><tr><td class="mono">libs/langchain_v1/langchain/agents/factory.py</td><td class="mono">create_agent</td><td>把模型、工具和中间件组装成可执行 Agent 循环。</td><td>高层 API 负责工具请求与执行回灌的编排。</td></tr><tr><td class="mono">libs/core/langchain_core/messages/tool.py</td><td class="mono">ToolMessage</td><td>承载工具执行结果，并通过 tool_call_id 对齐模型提出的工具请求。</td><td>工具执行后回到消息状态。</td></tr></table>
+<h2>流程图：函数如何变成工具回合</h2>
+<div class="flow call-graph"><div class="node hl"><div class="nt">function</div><div class="nd">带类型标注和 docstring 的 Python 函数</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">schema</div><div class="nd">@tool / BaseTool 生成名称、描述、参数模型</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">bound model</div><div class="nd">bind_tools 把 schema 交给 provider</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">AIMessage.tool_calls</div><div class="nd">模型提出要调用哪个工具和参数</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">ToolMessage</div><div class="nd">执行器运行真实代码并回灌观察</div></div></div>
+<h2>代码走读：简化版 @tool 装饰器与 schema 提取</h2>
+<p>真实 <span class="mono">@tool</span> 支持更多参数、Runnable、协程、return_direct、response_format 和错误处理。这里保留最核心的机制：名称来自函数名或显式参数，描述来自 docstring，参数来自类型标注或 Pydantic schema，最后包装成实现 BaseTool 行为的对象。</p>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/core/langchain_core/tools/convert.py :: tool</span><span class="ln">简化版</span></div><pre>def tool(fn=None, *, name=None, args_schema=None, description=None):
+    def wrap(func):
+        tool_name = name or func.__name__
+        tool_description = description or inspect.getdoc(func)
+        schema = args_schema or create_schema_from_function(func)
+        return StructuredTool(
+            name=tool_name,
+            description=tool_description,
+            args_schema=schema,
+            func=func,
+        )
+    return wrap(fn) if fn is not None else wrap
 
-<pre class="code"><span class="kw">from</span> langchain_core.tools <span class="kw">import</span> tool
+@tool
+def lookup_order(order_id: str) -&gt; str:
+    &quot;&quot;&quot;查询订单当前物流状态。order_id 必须是系统订单号。&quot;&quot;&quot;
+    return read_order_status(order_id)</pre><div class="cw-note">这是教学伪代码：真实实现还会校验 docstring、过滤注入参数、支持 async 和更丰富的返回格式。</div></div>
+<h2>例子追踪：天气 / 订单查询工具调用</h2>
+<p>这个 trace 把 id、arguments、执行结果和 ToolMessage 明确分开。模型返回的 arguments 需要校验，不能直接信任；执行结果需要绑定 tool_call_id，不能只把字符串塞进对话。</p>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1 定义工具</td><td>def get_weather(city: str) -&gt; str</td><td>@tool 读取函数名、docstring、类型标注。</td><td>BaseTool(name=&#x27;get_weather&#x27;, args_schema=...)</td></tr><tr><td>2 绑定模型</td><td>model.bind_tools([get_weather])</td><td>工具 schema 被转换为 provider 支持的 tool 描述。</td><td>请求 payload 包含工具名称、说明和参数结构</td></tr><tr><td>3 模型请求</td><td>用户问：杭州明天天气？</td><td>模型返回 tool_calls。</td><td>{&#x27;id&#x27;:&#x27;call_weather_1&#x27;,&#x27;name&#x27;:&#x27;get_weather&#x27;,&#x27;args&#x27;:{&#x27;city&#x27;:&#x27;杭州&#x27;}}</td></tr><tr><td>4 程序执行</td><td>call_weather_1 / city=杭州</td><td>执行器校验参数、调用天气服务、捕获可预期错误。</td><td>多云，22 到 28 度</td></tr><tr><td>5 回灌观察</td><td>结果 + call_weather_1</td><td>包装 ToolMessage 并追加到 messages。</td><td>ToolMessage(content=&#x27;多云...&#x27;, tool_call_id=&#x27;call_weather_1&#x27;)</td></tr></table>
+<h2>docstring 是 prompt contract，不是随便写的注释</h2>
+<p>工具描述会进入模型上下文，直接影响模型何时调用工具、如何填参数、是否理解边界。一个好 docstring 应该说明工具做什么、什么时候用、参数含义、返回内容和限制。例如“查询订单状态”不如“根据内部订单号查询当前物流状态；不能查询退款进度；order_id 必须是形如 A123 的订单号”。描述越清楚，模型越少猜。</p>
+<p>docstring 不是安全控制。即使你写“不要删除数据”，模型仍可能在错误上下文里请求危险参数。安全必须在执行层完成：权限检查、参数白名单、幂等键、人工确认、审计日志、速率限制和回滚策略。工具描述帮助模型选择，执行器负责保护现实世界。</p>
 
-<span class="nb">@tool</span>
-<span class="kw">def</span> <span class="fn">get_weather</span>(city: str) -> str:
-    <span class="st">&quot;&quot;&quot;查询某城市的当前天气。&quot;&quot;&quot;</span>
-    <span class="kw">return</span> <span class="st">f"{city} 晴，25°C"</span>
-</pre>
+<h2>类型标注、Pydantic args_schema 与参数校验</h2>
+<p>类型标注让 LangChain 能推导简单 schema，例如 <span class="mono">city: str</span>、<span class="mono">limit: int</span>。复杂参数更适合显式 Pydantic schema：可以写字段说明、范围限制、枚举、默认值和嵌套结构。schema 越准确，provider 展示给模型的参数表越清楚，执行前的校验也越可靠。</p>
+<p>但是 schema 仍然不是业务验证的全部。Pydantic 可以检查 <span class="mono">amount</span> 是数字，却不知道当前用户是否有退款权限；可以检查 <span class="mono">order_id</span> 是字符串，却不知道订单是否属于该用户。工具函数内部或外层执行器仍要检查业务规则。C 级设计会把“结构校验”和“业务授权”分成两层。</p>
 
-<div class="flow">
-  <div class="node hl"><div class="nt">函数名</div><div class="nd">get_weather<br>→ 工具名</div></div>
-  <div class="arrow">+</div>
-  <div class="node hl"><div class="nt">docstring</div><div class="nd">"查询天气"<br>→ 工具描述</div></div>
-  <div class="arrow">+</div>
-  <div class="node hl"><div class="nt">类型注解</div><div class="nd">city: str<br>→ 参数 schema</div></div>
-</div>
+<h2>注入状态与 runtime：让工具看到必要上下文</h2>
+<p>某些工具需要用户 id、数据库连接、请求上下文或图状态。LangChain / LangGraph 生态里常见做法是通过注入参数、runtime、context 或 middleware 传入，而不是让模型自己填写这些敏感字段。模型可以提供“想查哪个订单”，不应该提供“当前用户是谁”“数据库连接是什么”。这些字段属于系统上下文，应由执行环境注入。</p>
+<p>这种设计也防止 prompt injection。用户可能说“把 user_id 改成管理员”，如果 user_id 是模型可填写的普通参数，系统就危险；如果 user_id 来自受信 runtime，模型只能请求“查订单”，执行器会用真实登录用户做权限过滤。工具 schema 要区分模型可控参数和系统注入参数。</p>
 
-<div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应</div>
-  <ul>
-    <li><span class="mono">@tool</span> 定义在 <span class="mono">core/tools/convert.py</span>，把函数包装成一个 <span class="mono">BaseTool</span>。</li>
-    <li>实际生成的是 <span class="mono">StructuredTool</span>（<span class="mono">core/tools/structured.py</span>），
-      它用 <span class="mono">create_schema_from_function</span> 从函数签名<strong>自动推断出 pydantic 参数 schema</strong>。</li>
-    <li>所以"写好类型注解 + docstring"很重要——它们直接决定模型看到的工具说明。</li>
-  </ul>
-</div>
+<h2>错误表面：让模型知道可恢复错误，让系统记录不可恢复错误</h2>
+<p>工具执行会失败：参数缺失、权限不足、外部服务超时、业务对象不存在、返回格式异常。不是所有错误都应该被吞掉。可恢复、可解释的错误可以变成 ToolMessage，让模型告诉用户“没有找到订单”或“需要补充城市”；系统错误则应该记录 trace、触发重试或返回受控失败，而不是让模型编造结果。</p>
+<p>广泛捕获 <span class="mono">Exception</span> 并返回“工具失败”会让排错困难，也会训练模型在缺少事实时继续编故事。更好的做法是区分验证错误、权限错误、外部依赖错误和未知错误。每类错误决定是否回灌给模型、是否重试、是否中断、是否报警。</p>
 
-<h2>工具自己也能被调用</h2>
-<p>包装后的工具是个对象，有 <span class="inline">name</span>、<span class="inline">description</span>、
-<span class="inline">args_schema</span>，并且可以像函数一样 <span class="inline">invoke</span>：</p>
-<pre class="code">print(get_weather.name)         <span class="cm"># "get_weather"</span>
-print(get_weather.description)  <span class="cm"># "查询某城市的当前天气。"</span>
-print(get_weather.invoke({<span class="st">"city"</span>: <span class="st">"北京"</span>}))  <span class="cm"># "北京 晴，25°C"</span>
-</pre>
+<h2>工具副作用与生产安全</h2>
+<p>查询天气和查询订单是低风险工具；退款、发邮件、写数据库、执行 shell 命令是高风险工具。模型提出 tool_call 不应自动意味着执行。高风险工具至少需要权限、确认、幂等、防重复、审计和速率限制。有些动作适合拆成两步：模型先生成计划，系统展示给人确认，人确认后才调用真实副作用工具。</p>
+<p>副作用工具还要考虑重试。模型调用或网络层重试可能导致同一个退款请求执行两次，因此工具参数里需要幂等键，执行器需要识别重复 tool_call_id 或业务请求 id。不要把“模型只会调用一次”当作生产假设；流式、中断、恢复和 fallback 都可能让边界更复杂。</p>
 
-<h2>模型如何"使用"工具：完整往返</h2>
-<p>关键认知：<strong>模型不会自己执行工具</strong>，它只会"请求"。真正的执行由你的程序（或 Agent）完成。
-这一来一回是整个工具机制的核心：</p>
+<h2>create_agent 与手写执行器的选择</h2>
+<p><span class="mono">create_agent</span> 帮你把模型、工具和循环组装起来，适合常见 Agent 场景。它会读取 AIMessage.tool_calls，执行工具，把 ToolMessage 加回状态，并继续调用模型。手写执行器则适合你需要严格控制审批、并行策略、错误分类或业务事务时。两者不是谁高级谁低级，而是控制权不同。</p>
+<p>无论使用哪种方式，工具边界不变：模型只产生请求，程序执行真实代码，ToolMessage 回灌观察。理解这条边界后，你可以放心使用高层 Agent，也知道何时下探到 LangGraph 节点或自定义执行器。</p>
 
-<div class="vflow">
-  <div class="step"><div class="num">1</div><div class="sc"><h4>绑定</h4><p><span class="mono">model.bind_tools([get_weather])</span>：把工具的 schema 告诉模型。</p></div></div>
-  <div class="step"><div class="num">2</div><div class="sc"><h4>请求</h4><p>模型回一条 <span class="mono">AIMessage</span>，其中 <span class="mono">tool_calls=[{name, args, id}]</span>——"我想调 get_weather('北京')"。</p></div></div>
-  <div class="step"><div class="num">3</div><div class="sc"><h4>执行</h4><p>你的程序按请求真正运行 <span class="mono">get_weather.invoke(args)</span>，拿到结果。</p></div></div>
-  <div class="step"><div class="num">4</div><div class="sc"><h4>回传</h4><p>把结果包成 <span class="mono">ToolMessage</span>（带上对应的 <span class="mono">tool_call_id</span>）追加到消息列表。</p></div></div>
-  <div class="step"><div class="num">5</div><div class="sc"><h4>再问</h4><p>把更新后的消息再喂给模型，它据此给出最终自然语言回答。</p></div></div>
-</div>
+<h2>工具名称与参数设计</h2>
+<p>工具名称要短、明确、动词化，例如 <span class="mono">lookup_order</span>、<span class="mono">get_weather</span>、<span class="mono">create_refund_draft</span>。不要把多个动作塞进一个工具名，例如 <span class="mono">manage_order</span>，否则模型不知道何时用它，参数 schema 也会变成万能表单。一个工具最好完成一个清晰能力，复杂业务流程交给 Agent 或图编排。</p>
+<p>参数也要面向模型理解，而不是面向内部数据库表。让模型填写 <span class="mono">order_id</span>、<span class="mono">city</span>、<span class="mono">date</span> 通常合理；让模型填写 <span class="mono">sql</span>、<span class="mono">internal_user_pk</span>、<span class="mono">raw_payload</span> 就很危险。工具 schema 是模型能触碰的接口，接口越窄，系统越安全。</p>
 
-<div class="card macro">
-  <div class="tag">🌍 宏观理解</div>
-  这套"请求 → 执行 → 回传 → 再问"的循环，<strong>手写也能实现，但很繁琐</strong>。
-  第 7 课的 <span class="mono">create_agent</span> 就是把这整个循环<strong>自动化</strong>。
-  也就是说：<strong>工具 + 这个循环 = Agent</strong>。
-</div>
+<h2>C 级排错清单：工具层的五个证据</h2>
+<p>工具问题不要只看最终回答，要收集五个证据。第一，工具对象的 name、description、args_schema 是否符合预期；第二，绑定到模型的 schema 是否包含这个工具；第三，AIMessage.tool_calls 是否真的请求了该工具，args 是否通过校验；第四，执行器是否运行了正确函数并记录成功或错误；第五，ToolMessage 是否带着匹配 tool_call_id 回到消息列表。缺任何一环，最终回答都可能偏离事实。</p>
+<p>如果模型不调用工具，先看描述是否清楚、工具名是否表达动作、prompt 是否允许或要求使用工具、模型本身是否支持工具调用。不要第一反应在执行函数里加逻辑，因为函数根本没被调用。如果模型调用了错误工具，检查工具之间是否职责重叠，例如 search_order、lookup_order、get_order_info 同时存在会让模型困惑。工具集合越像清晰菜单，模型越容易选择。</p>
+<p>如果工具参数错，检查字段描述和类型。<span class="mono">id</span> 这种字段名不如 <span class="mono">order_id</span> 清楚；自由字符串不如枚举；一个万能 query 字段不如几个明确字段。模型不是你的后端同事，它依赖 schema 理解接口。参数设计越贴近用户意图和业务语言，越少需要后处理猜测。</p>
+<p>如果工具执行错，检查注入上下文和权限。当前用户、租户、数据库连接、request id、幂等键不应由模型填写。执行器应从受信 runtime 注入这些值，并在工具内部验证资源归属。模型提供的 order_id 只表示“用户提到了哪个订单”，不表示“用户有权查看该订单”。这条边界是生产 Agent 安全的底线。</p>
+<h2>工具设计的粒度取舍</h2>
+<p>工具太粗会让模型难以判断，太细会让模型需要规划很多步骤。一个好工具通常对应用户可理解的一项能力，并有清晰输入输出。比如 <span class="mono">lookup_order_status</span> 比 <span class="mono">run_sql</span> 安全，比 <span class="mono">lookup_order_city</span>、<span class="mono">lookup_order_time</span>、<span class="mono">lookup_order_carrier</span> 三个碎工具更容易使用。粒度要服务于任务，而不是服务于内部函数拆分。</p>
+<p>读写工具应分开。查询类工具可以让模型较自由地请求；写入类工具应更加窄、可审计、可确认。例如不要给模型一个 <span class="mono">update_order</span> 万能工具，而是提供 <span class="mono">create_refund_draft</span>、<span class="mono">send_address_change_request</span> 这类受控动作，并要求人工确认或业务规则通过后才提交。工具名里出现 draft、request、preview 往往比直接 execute 更安全。</p>
+<p>工具返回也要设计。返回给模型的内容应足够回答用户，但不要泄露内部字段、密钥、SQL、堆栈或无关个人信息。错误返回要可理解，例如“订单不存在或不属于当前用户”，但内部日志可以保留更详细原因。ToolMessage 是给模型看的观察，不是给工程师的完整日志；工程日志应走 trace 和安全日志。</p>
+<h2>工具测试与演练</h2>
+<p>每个工具至少应有纯函数或受控环境测试：合法参数返回预期结果，非法参数被拒绝，权限不足不执行，外部服务失败时返回分类错误。工具 schema 也要测试：name、description、必填字段和字段说明是否存在。很多工具 bug 不是函数逻辑错，而是 schema 让模型填错参数。</p>
+<p>还可以写“假 tool_call 执行测试”。手动构造 AIMessage.tool_calls，交给执行器，断言它调用正确工具、生成 ToolMessage、保留 tool_call_id、错误时产生可追踪状态。这样不用真实模型也能验证工具执行链。等执行链可靠后，再用真实模型做少量端到端评估：模型是否在正确场景调用工具，参数质量如何，错误时是否追问。</p>
+<p>最后建立工具风险分级。低风险查询工具可以自动执行；中风险工具需要权限和速率限制；高风险副作用工具需要确认、幂等和审计；极高风险工具不应暴露给模型。LangChain 提供工具抽象，但风险分级属于你的业务架构。C 级开发者必须能说明每个工具的副作用、权限来源、失败模式和回滚策略。</p>
+<p>如果你无法用一句话解释某个工具何时应该被模型调用，说明这个工具还没有准备好进入 Agent。先改名、拆分、补 description、收窄参数，再绑定给模型，比事后调 prompt 更可靠。</p>
 
-<h3>手写一次完整往返（可跑）</h3>
-<pre class="code"><span class="kw">from</span> langchain.chat_models <span class="kw">import</span> init_chat_model
-<span class="kw">from</span> langchain_core.messages <span class="kw">import</span> HumanMessage, ToolMessage
 
-model = init_chat_model(<span class="st">"openai:gpt-5.1"</span>).bind_tools([get_weather])
+<h2>课堂复盘：工具是最小可信执行面</h2>
+<p>把工具看成模型能触碰的最小可信执行面。工具名、描述和参数 schema 告诉模型“可以请求什么”；执行器、权限和业务规则决定“是否真的做”。如果工具暴露得过宽，模型一次错误理解就可能影响真实系统；如果工具暴露得过窄，模型需要很多轮才能完成简单任务。好的工具设计是在可用性和安全性之间画清边界。</p>
+<p>代码审查时要特别关注副作用。查询工具可以返回事实，写入工具应尽量返回草稿、预览或请求编号，让人或规则确认后再提交。工具函数内部不要信任模型参数，要重新校验用户、租户、资源归属和幂等键。即使工具由 Agent 自动调用，审计日志也应能回答：哪个 run、哪个 tool_call_id、哪个用户、哪个参数、哪个结果。</p>
+<p>工具教学里最容易被忽略的是“返回给模型什么”。返回太少，模型无法回答；返回太多，可能泄露内部细节或让上下文膨胀。建议返回面向用户任务的摘要，把详细诊断写入 trace。ToolMessage 是给下一轮模型的观察，不是数据库记录，也不是安全日志。分清这三种输出，工具系统会更稳。</p>
 
-msgs = [HumanMessage(<span class="st">"北京天气怎么样？"</span>)]
-ai = model.invoke(msgs)                    <span class="cm"># ① 模型请求调用工具</span>
-msgs.append(ai)
+<h2>延伸练习：为每个工具写风险说明</h2>
+<p>工具清单旁边应有风险说明：是否读取敏感数据，是否产生副作用，是否依赖外部服务，是否需要用户权限，是否支持幂等，失败时是否能安全重试。这个说明不一定进入模型上下文，但应进入工程文档和代码审查。模型看到的是简洁 description，工程师需要的是完整风险边界。</p>
+<p>对于高风险工具，建议把执行拆成计划、预览、确认、提交四步。模型可以生成计划和调用预览工具；系统展示预览；用户或规则确认后，提交工具才执行真实副作用。LangChain 的工具抽象足够灵活，关键在于你不要把所有步骤压成一个“do_anything”工具。工具越窄，越容易审计和恢复。</p>
 
-<span class="kw">for</span> call <span class="kw">in</span> ai.tool_calls:                  <span class="cm"># ② 你来执行（可能不止一个）</span>
-    result = get_weather.invoke(call[<span class="st">"args"</span>])
-    msgs.append(ToolMessage(result, tool_call_id=call[<span class="st">"id"</span>]))  <span class="cm"># ③ 回传，靠 id 配对</span>
-
-final = model.invoke(msgs)                 <span class="cm"># ④ 再问 → 自然语言答复</span>
-<span class="nb">print</span>(final.content)
-</pre>
-<p style="color:var(--muted);font-size:.9rem">这正是 <span class="mono">create_agent</span> 内部循环的<strong>手写版</strong>——把它自动化（再加多轮与错误处理）就是一个 Agent。</p>
-
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入三个进阶用法。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> @tool 的几种写法与定制 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">
-<pre class="code"><span class="cm"># 1) 最简：函数名=工具名，docstring=描述</span>
-<span class="nb">@tool</span>
-<span class="kw">def</span> <span class="fn">get_weather</span>(city: str) -> str:
-    <span class="st">&quot;&quot;&quot;查询天气&quot;&quot;&quot;</span>
-    ...
-
-<span class="cm"># 2) 自定义名字 + 直接返回（不再回模型）</span>
-<span class="nb">@tool</span>(<span class="st">"weather"</span>, return_direct=True)
-<span class="kw">def</span> <span class="fn">get_weather</span>(city: str) -> str: ...
-
-<span class="cm"># 3) 用 pydantic 显式定义参数 schema</span>
-<span class="nb">@tool</span>(args_schema=WeatherInput)
-<span class="kw">def</span> <span class="fn">get_weather</span>(city: str) -> str: ...</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ return_direct 是什么</div>
-      <div class="a">默认工具结果会<strong>回传给模型</strong>再让它总结。设 <span class="mono">return_direct=True</span> 后，
-        工具一旦执行，其结果<strong>直接作为最终输出</strong>返回给用户，不再多走一轮模型——省时省 token，适合"查到即答"的工具。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">同一个装饰器覆盖从"零配置"到"精细控制"的全谱：能自动推断时省心，需要时又能完全接管 name/description/schema。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> ToolMessage 不只是文本：content / artifact / status <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 字段一览</div>
-      <div class="a">
-<pre class="code">ToolMessage(
-    content=<span class="st">"北京 晴 25°C"</span>,        <span class="cm"># 给模型看的文本结果</span>
-    tool_call_id=<span class="st">"call_abc"</span>,       <span class="cm"># 与请求配对的 id</span>
-    artifact={<span class="st">"raw"</span>: {...}},       <span class="cm"># 不给模型、留给程序用的原始数据</span>
-    status=<span class="st">"success"</span>,            <span class="cm"># success / error</span>
-)</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ artifact 有什么用</div>
-      <div class="a">有时工具返回的"完整原始数据"（如一张图、一个大 JSON）<strong>不适合塞给模型</strong>（费 token 又没必要），
-        但你的程序后续要用。<span class="mono">artifact</span> 就是"<strong>给程序、不给模型</strong>"的那一份，
-        靠 <span class="mono">response_format="content_and_artifact"</span> 启用。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">把"给模型的摘要"和"给程序的原始数据"分离，既省上下文又不丢信息；<span class="mono">status</span> 还能让 Agent 感知工具失败。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> 写好工具的关键：类型注解 + docstring <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 好 vs 差</div>
-      <div class="a">
-<pre class="code"><span class="cm"># ✅ 好：类型清晰、描述明确，模型才知道何时/如何调用</span>
-<span class="nb">@tool</span>
-<span class="kw">def</span> <span class="fn">search_orders</span>(user_id: str, status: str) -> list:
-    <span class="st">&quot;&quot;&quot;按用户 id 和订单状态查询订单。status 可选: paid/shipped。&quot;&quot;&quot;</span>
-
-<span class="cm"># ❌ 差：无注解、无说明，模型只能瞎猜</span>
-<span class="nb">@tool</span>
-<span class="kw">def</span> <span class="fn">f</span>(a, b): ...</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">模型<strong>看不到函数体</strong>，它只能根据"工具名 + 描述 + 参数 schema"决定要不要调、传什么参。
-        注解和 docstring 直接变成模型看到的"说明书"，写得含糊，模型就用得糟。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 经验法则</div>
-      <div class="a">每个参数都加类型注解；docstring 一句话说清"做什么 + 关键参数取值范围"；
-        工具名用动词短语（<span class="mono">get_weather</span> 而非 <span class="mono">gw</span>）。</div>
-    </div>
-  </div>
-</details>
-
-<h2>🧰 进阶专题：让工具更强大、更安全</h2>
-<p>真实工具不只是"输入→输出"。它们常需要：出错时优雅处理、读取 Agent 的运行时状态、
-危险操作前人审、工具太多时先筛选。这些大多在 Agent / 工具节点层提供。</p>
-
-<table class="t">
-  <tr><th>需求</th><th>机制</th></tr>
-  <tr><td>工具抛异常不崩溃</td><td class="mono">ToolNode 错误处理 · ToolRetryMiddleware · status="error"</td></tr>
-  <tr><td>工具读取 Agent 状态</td><td class="mono">InjectedState · InjectedToolCallId</td></tr>
-  <tr><td>危险工具先人审</td><td class="mono">HumanInTheLoopMiddleware</td></tr>
-  <tr><td>工具太多先筛一遍</td><td class="mono">LLMToolSelectorMiddleware</td></tr>
-</table>
-
-<h2>🔍 工具进阶 · 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，逐个吃透进阶能力。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 工具出错了，Agent 怎么不崩 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 错误被转成消息，而非异常</div>
-      <div class="a">在 Agent 里，工具抛异常时 <span class="mono">ToolNode</span> 会把它<strong>捕获并转成一条 <span class="mono">ToolMessage</span></strong>
-        （<span class="mono">status="error"</span>），让模型"看到错误"并自行调整：
-<pre class="code">ToolMessage(content=<span class="st">"Error: 城市不存在"</span>, status=<span class="st">"error"</span>, tool_call_id=...)
-<span class="cm"># 模型读到后可改参数重试，或换个工具，而不是整个程序崩掉</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么这样设计</div>
-      <div class="a">Agent 是自动循环，单个工具失败不该让整条流程挂掉。把错误<strong>反馈给模型</strong>，
-        它往往能自我纠正（如换个查询）。要"自动重试"则叠加 <span class="mono">ToolRetryMiddleware</span>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">把"异常"变成"对话信号"，让 Agent 具备一定的自愈能力；是否捕获/如何捕获可在 ToolNode 配置。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> 让工具读取 Agent 状态：InjectedState <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">
-<pre class="code"><span class="kw">from</span> typing <span class="kw">import</span> Annotated
-<span class="kw">from</span> langchain.tools <span class="kw">import</span> InjectedState
-
-<span class="nb">@tool</span>
-<span class="kw">def</span> <span class="fn">summarize_history</span>(state: Annotated[dict, InjectedState]) -> str:
-    <span class="st">&quot;&quot;&quot;总结当前对话。&quot;&quot;&quot;</span>
-    msgs = state[<span class="st">"messages"</span>]   <span class="cm"># 工具能拿到 Agent 状态</span>
-    ...</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要 / 妙在哪</div>
-      <div class="a">有些工具需要"对话上下文"或"运行时数据"才能工作，但这些<strong>不该由模型来填参数</strong>
-        （模型也填不对）。<span class="mono">InjectedState</span> 标记的参数会被<strong>框架自动注入</strong>，
-        且<strong>不会出现在给模型看的 schema 里</strong>——模型根本不知道它存在。
-        类似地 <span class="mono">InjectedToolCallId</span> 注入当前调用 id。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">InjectedState / InjectedToolCallId</span> 都从 <span class="mono">langchain.tools</span> 统一导出
-        （<span class="mono">InjectedState</span> 来自 <span class="mono">langgraph.prebuilt</span>，<span class="mono">InjectedToolCallId</span> 来自 <span class="mono">langchain_core.tools</span>）。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> 危险工具人审 + 工具太多先筛 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 两个中间件</div>
-      <div class="a">
-<pre class="code"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> (
-    HumanInTheLoopMiddleware,     <span class="cm"># 执行敏感工具前暂停等批准</span>
-    LLMToolSelectorMiddleware,    <span class="cm"># 工具很多时，先让模型挑出相关子集</span>
-)
-agent = create_agent(model, tools=large_toolset, middleware=[
-    LLMToolSelectorMiddleware(...),
-    HumanInTheLoopMiddleware(...),
-])</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 各自解决什么</div>
-      <div class="a"><strong>工具太多</strong>（几十上百个）会撑爆上下文、降低选择准确率，
-        <span class="mono">LLMToolSelectorMiddleware</span> 先按当前任务筛出相关工具再交给模型。
-        <strong>危险工具</strong>则用 <span class="mono">HumanInTheLoopMiddleware</span> 加人审闸门。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">安全性与可扩展性都以"装中间件"获得：工具集再大也能用，危险操作也可控，核心代码不变。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">4</span> 工具集 Toolkit 与注入参数基类 InjectedToolArg <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 BaseToolkit：把一组相关工具打包</div>
-      <div class="a">数据库、文件系统等常有"一组配套工具"。<span class="mono">BaseToolkit</span> 把它们打成一包：
-<pre class="code">toolkit = SomeDatabaseToolkit(db=db)
-agent = create_agent(model, tools=toolkit.get_tools())   <span class="cm"># 一次性给一组工具</span></pre>
-        位置：<span class="mono">core/tools/base.py</span>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ InjectedToolArg 是什么</div>
-      <div class="a">它是<strong>所有"注入参数"的基类</strong>（<span class="mono">tools/base.py</span>）：本课的
-        <span class="mono">InjectedState</span>、<span class="mono">InjectedToolCallId</span> 都继承它。
-        被它标记的参数<strong>由框架注入、不出现在给模型的 schema 里</strong>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 为什么有用</div>
-      <div class="a">Toolkit 让"成套能力"即插即用；<span class="mono">InjectedToolArg</span> 提供统一机制，把"运行时数据"安全喂给工具而不暴露给模型。</div>
-    </div>
-  </div>
-</details>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li><strong>函数签名即 schema</strong>：写好类型注解 + docstring，模型的"说明书"自动生成。</li>
-    <li><strong>模型只请求、不执行</strong>：执行权留在你手里——这是安全与可控的关键边界。</li>
-  </ul>
-</div>
-
+<h2>最后检查：把概念落到一次真实调用</h2>
+<p>完成本课后，请把概念重新放回一次真实调用中验证：输入从哪里来，经过哪个对象标准化，运行时配置如何传播，输出由谁解释，错误在哪里被看见，哪些信息进入 trace，哪些信息进入业务状态。只要能沿着这条线讲清楚，说明你掌握的不是 API 片段，而是可维护的系统边界。</p>
+<p>这也是 C 级课程反复强调的学习方法：每个抽象都要回答“它统一什么、它不负责什么、它失败时看什么证据”。抽象不是为了隐藏一切，而是为了让变化集中、证据清楚、责任可定位。后续课程继续读源码时，请始终用这三个问题检查自己的理解。</p>
+<h2>常见误解</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：把 schema 暴露给模型就等于工具已经执行。</div><div class="pf-correct">正确：schema 只是能力说明；AIMessage.tool_calls 出现后，程序才决定是否执行。</div></div><div class="pitfall"><div class="pf-wrong">误解：docstring 只是给人看的注释。</div><div class="pf-correct">正确：工具描述会进入模型上下文，是模型选择工具和填参数的 prompt contract。</div></div><div class="pitfall"><div class="pf-wrong">误解：模型请求任何副作用都可以直接执行。</div><div class="pf-correct">正确：副作用必须经过权限、确认、幂等和审计，模型只能提出请求。</div></div><div class="pitfall"><div class="pf-wrong">误解：ToolMessage 可以省略 tool_call_id。</div><div class="pf-correct">正确：工具观察必须对齐具体调用 id，尤其在多工具和并行场景。</div></div><div class="pitfall"><div class="pf-wrong">误解：捕获所有异常并返回空字符串最稳。</div><div class="pf-correct">正确：吞错会隐藏系统故障并诱导模型编造结果，应分类处理错误表面。</div></div></div>
+<h2>小实验：写一个纯工具并观察 schema</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 检查 @tool 产物</div><ol><li>定义一个无副作用函数 add_tax(price: float, rate: float) -&gt; float，并写清 docstring。</li><li>用 @tool 装饰后打印 tool.name、tool.description、tool.args_schema。</li><li>故意删除类型标注，比较 schema 信息如何变差。</li><li>构造一个假的 AIMessage.tool_calls，手动校验 args 后调用工具函数。</li><li>把执行结果包装为 ToolMessage，确认 tool_call_id 与假调用 id 一致。</li></ol></div>
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li><span class="mono">@tool</span> 把普通函数变成工具，自动提取<strong>名字 / 描述(docstring) / 参数 schema(类型注解)</strong>。</li>
-    <li>底层是 <span class="mono">StructuredTool</span>，用 pydantic 从函数签名推断 schema。</li>
-    <li>模型只<strong>请求</strong>调用（写在 <span class="mono">AIMessage.tool_calls</span>），<strong>执行靠你的程序</strong>，结果用 <span class="mono">ToolMessage</span> 回传。</li>
-    <li>进阶：错误转消息（自愈）、<span class="mono">InjectedState</span>（读状态不暴露给模型）、人审、工具筛选。</li>
-    <li>把这个往返自动化，就得到了 Agent —— 下一课登场。</li>
+    <li>工具把函数能力转为模型可读 schema，但真实执行始终由程序控制。</li>
+    <li>高质量 docstring、类型标注和 Pydantic args_schema 会显著改善模型调用质量。</li>
+    <li>模型可控参数、系统注入状态和业务权限必须分开，不能让 prompt 决定敏感上下文。</li>
+    <li><span class="mono">AIMessage.tool_calls</span>、执行器和 <span class="mono">ToolMessage.tool_call_id</span> 构成完整工具回合。</li>
   </ul>
 </div>
-<div class="selftest">
+<div class="card version"><div class="tag">📌 版本锚点</div>本课以 LangChain core tools、function_calling 转换和 v1 create_agent 的边界为锚点。provider 工具格式会变化，但“函数 → schema → tool_calls → 执行 → ToolMessage”的工程契约是阅读新版工具系统的主线。</div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. <code>@tool</code> 从函数的“名字 / docstring / 类型注解”自动生成给模型看的 schema。这种“让代码自己描述自己”图什么？</div>
+  <div class="qn">1. 工具的 schema 与工具执行之间的关系是什么？</div>
   <ol class="opts">
-    <li>少写文档</li>
-    <li>单一事实来源：工具说明直接来自函数本身，改了签名描述自动同步，避免“代码和 schema 两处维护、对不上”</li>
-    <li>让模型更聪明</li>
-    <li>纯属方便</li>
+    <li>schema 一生成，工具就会自动执行</li>
+    <li>schema 只给人类看，模型不会读取</li>
+    <li>执行结果应该写回 schema，供下次复用</li>
+    <li>schema 告诉模型可填哪些参数；执行是应用校验参数后调用真实函数</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。从函数推断 schema，消除了“手写 schema 与实现脱节”的经典 bug；代价是你必须写好类型注解和 docstring（它们成了模型的“说明书”）。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。schema 是模型可见接口，执行是程序控制的副作用边界。把二者分开，才能审批、限流、记录和处理错误。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. 底层用 pydantic 当“函数↔JSON Schema”的中间层。为什么挑 pydantic 而不是手写转换？</div>
+  <div class="qn">2. 为什么工具函数的 docstring 和类型注解会影响模型调用质量？</div>
   <ol class="opts">
-    <li>因为没有别的库</li>
-    <li>因为它最快</li>
-    <li>因为它流行</li>
-    <li>它一举两得：既能从类型生成 JSON Schema（给模型看），又能在执行时校验模型传回的参数（挡住脏数据）</li>
+    <li>它们会替代权限检查</li>
+    <li>它们能保证工具永远不会失败</li>
+    <li>它们通常会变成工具名称、参数 schema 和描述，直接指导模型如何填参</li>
+    <li>它们只影响 Python 编辑器提示，不会进入工具 schema</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。“生成 + 校验”两件事共用一套类型定义，天然一致、避免重复——选 pydantic 是为了让“描述”和“校验”共用一个事实来源。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。工具说明是模型的操作手册。含糊 docstring 或缺类型注解会让 schema 变窄、变错或难以让模型正确选择。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 模型只把工具调用“写进 <code>AIMessage.tool_calls</code>”，执行交给你的程序。把“决定调用”与“实际执行”分开，最关键的好处是？</div>
+  <div class="qn">3. 为什么 <code>ToolMessage.tool_call_id</code> 必须和原始 tool call id 配对？</div>
   <ol class="opts">
-    <li>代码好看</li>
-    <li>减少调用次数</li>
-    <li>因为模型不会写代码</li>
-    <li>在“提议”和“执行”之间留出了插入审批、改参、限流、记录的空间——安全与可控</li>
+    <li>让工具名更短</li>
+    <li>让 ToolMessage 可以替代 AIMessage</li>
+    <li>让 token 计费更便宜</li>
+    <li>让模型和 trace 知道哪条工具观察对应哪次请求，尤其支持并行、失败和重试</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。这个“缝隙”正是人审（HITL）、错误自愈、工具限流等护栏的落点。分离不是麻烦，而是为可控性留的接口。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. 进阶里“错误转消息（自愈）”：工具报错不抛异常，而是把错误包成 <code>ToolMessage</code> 回灌给模型。这让 Agent 获得了什么能力？</div>
-  <ol class="opts">
-    <li>永不出错</li>
-    <li>更快失败</li>
-    <li>隐藏所有错误</li>
-    <li>“试错→读报错→改对再来”的自我纠正能力：错误成了模型的新观察，而不是让程序崩溃</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。把异常变成“对话里的一条反馈”，闭环就从“崩溃”变成“纠正”。这是 Agent 鲁棒性的重要来源（第 12 课看实现）。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。tool_call_id 是工具回合的连接键。缺它时，多工具场景中的观察结果会失去归属，错误恢复也难以审计。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>“让代码自己描述自己”很优雅，但也把“写好类型注解和 docstring”变成了硬要求。如果团队里有人偷懒不写，会怎样？你会用什么机制保证质量？</li>
-    <li>工具出错时“把错误回灌给模型让它自己改”很聪明，但也可能让模型陷入“反复试错烧钱”。你会怎么给这种自愈加上“<strong>刹车</strong>”？</li>
+    <li>设计一个安全工具：写出函数名、参数、docstring 应表达的约束，以及执行前需要做的权限、范围和速率检查。</li>
+    <li>工具执行失败时，不要让错误无声消失。说明你会何时抛异常，何时构造带同一 <code>tool_call_id</code> 的 ToolMessage 把错误显式交给模型。</li>
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="05-chat-models.html"><div class="dir">← 上一课</div><div class="ttl">聊天模型</div></a><a class="next" href="07-agents-intro.html"><div class="dir">下一课 →</div><div class="ttl">Agent 入门</div></a></div>
+  <div class="footnav"><a class="prev" href="05-chat-models.html"><div class="dir">← 上一课</div><div class="ttl">聊天模型</div></a><a class="next" href="16-prompts.html"><div class="dir">下一课 →</div><div class="ttl">提示词 Prompts</div></a></div>
 </div>
 
 </body></html>

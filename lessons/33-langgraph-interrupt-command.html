@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>25 · interrupt、Command 与人在回路 — LangChain 图解教程</title>
+<meta name="description" content="第五部分 · LangGraph 执行引擎｜interrupt、Command 与人在回路：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="theme-color" content="#1a7f64">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="LangChain 图解教程">
+<meta property="og:title" content="25 · interrupt、Command 与人在回路 — LangChain 图解教程">
+<meta property="og:description" content="第五部分 · LangGraph 执行引擎｜interrupt、Command 与人在回路：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="25 · interrupt、Command 与人在回路 — LangChain 图解教程">
+<meta name="twitter:description" content="第五部分 · LangGraph 执行引擎｜interrupt、Command 与人在回路：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f0f2f5; --ink: #1d2129;
+  --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
+  --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
+  --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116; --panel: #161b22; --panel-2: #1c232c; --ink: #e6edf3;
+    --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
+    --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
+    --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+    "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg); color: var(--ink); line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
+
+/* ---- top progress bar ---- */
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: var(--panel);
+  border-bottom: 1px solid var(--line); backdrop-filter: blur(8px);
+}
+.topbar-inner {
+  max-width: 960px; margin: 0 auto; padding: .7rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.topbar .home { font-size: .82rem; color: var(--muted); font-weight: 600; display:flex; gap:.5rem; align-items:center; }
+.topbar .home b { color: var(--accent); }
+.topbar .pill { font-size: .72rem; color: var(--muted); background: var(--panel-2);
+  padding: .2rem .6rem; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.progress { height: 3px; background: var(--panel-2); }
+.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue)); }
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 2.4rem 1.25rem 5rem; }
+
+/* ---- hero ---- */
+.hero { margin-bottom: 2rem; }
+.hero .part { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin-bottom: .55rem; }
+.hero h1 { font-size: 2.05rem; line-height: 1.2; letter-spacing: -.01em; font-weight: 750; }
+.hero .lead { margin-top: .9rem; font-size: 1.06rem; color: var(--muted); }
+
+h2 { font-size: 1.32rem; margin: 2.4rem 0 .9rem; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: .55rem; }
+h2::before { content: ""; width: 4px; height: 1.05em; background: var(--accent); border-radius: 3px; display: inline-block; }
+h3 { font-size: 1.05rem; margin: 1.4rem 0 .5rem; }
+p { margin: .7rem 0; }
+ul, ol { margin: .6rem 0 .6rem 1.3rem; }
+li { margin: .3rem 0; }
+strong { color: var(--ink); font-weight: 680; }
+.inline { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: .08em .4em; font-size: .9em; color: var(--accent-ink); }
+
+/* ---- callout cards ---- */
+.card { border-radius: var(--radius); padding: 1.05rem 1.2rem; margin: 1.2rem 0;
+  border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+.card .tag { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+.card.macro { border-left: 4px solid var(--blue); }
+.card.macro .tag { color: var(--blue); }
+.card.detail { border-left: 4px solid var(--purple); }
+.card.detail .tag { color: var(--purple); }
+.card.analogy { border-left: 4px solid var(--amber); background: var(--amber-soft); }
+.card.analogy .tag { color: var(--amber); }
+.card.key { border-left: 4px solid var(--accent); background: var(--accent-soft); }
+.card.key .tag { color: var(--accent-ink); }
+.card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
+.card.warn .tag { color: var(--red); }
+.card.spark { border-left: 4px solid #e0a000;
+  background: linear-gradient(100deg, rgba(224,160,0,.12), transparent 70%); }
+.card.spark .tag { color: #c98a00; }
+@media (prefers-color-scheme: dark) { .card.spark .tag { color: #f0c050; } }
+
+/* ---- code file callout ---- */
+.codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
+  box-shadow: var(--shadow); }
+.codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
+  background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
+.codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
+.codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
+  overflow-x: auto; font-size: .82rem; line-height: 1.6; }
+.codefile pre .cm { color: #7d8aa3; }
+.codefile pre .kw { color: #c792ea; }
+.codefile pre .fn { color: #82aaff; }
+.codefile pre .st { color: #c3e88d; }
+.codefile pre .nb { color: #f78c6c; }
+
+pre.code { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem; border-radius: 12px;
+  overflow-x: auto; font-size: .83rem; line-height: 1.6; margin: 1.1rem 0; box-shadow: var(--shadow); }
+pre.code .cm { color: #7d8aa3; } pre.code .kw { color: #c792ea; }
+pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb { color: #f78c6c; }
+
+/* ---- collapsible accordion (details/summary) ---- */
+.accordion { border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+  margin: .7rem 0; box-shadow: var(--shadow); overflow: hidden; }
+.accordion > summary { cursor: pointer; padding: .85rem 1.1rem; font-weight: 650; font-size: .96rem;
+  list-style: none; display: flex; align-items: center; gap: .6rem; user-select: none; }
+.accordion > summary::-webkit-details-marker { display: none; }
+.accordion > summary::after { content: "▶"; font-size: .68rem; color: var(--accent);
+  margin-left: auto; transition: transform .15s ease; }
+.accordion[open] > summary::after { transform: rotate(90deg); }
+.accordion > summary:hover { background: var(--panel-2); }
+.accordion[open] > summary { border-bottom: 1px solid var(--line); }
+.accordion .badge-num { background: var(--accent-soft); color: var(--accent-ink);
+  width: 1.6rem; height: 1.6rem; border-radius: 7px; display: inline-flex; align-items: center;
+  justify-content: center; font-size: .82rem; font-weight: 700; flex-shrink: 0; }
+.accordion .hint { font-size: .72rem; color: var(--faint); font-weight: 400; }
+.acc-body { padding: .9rem 1.1rem 1.1rem; }
+.acc-intro { color: var(--muted); font-size: .9rem; margin: .2rem 0 .4rem; }
+.qa { margin: 1rem 0; }
+.qa:first-child { margin-top: .3rem; }
+.qa .q { font-weight: 680; font-size: .9rem; display: flex; gap: .45rem; align-items: center; margin-bottom: .3rem; }
+.qa .a { color: var(--muted); font-size: .9rem; }
+.qa .a strong { color: var(--ink); }
+.qa pre.code { margin: .5rem 0 0; font-size: .78rem; }
+
+/* ---- flow diagram ---- */
+.flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 1.3rem 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1.2rem 1rem; box-shadow: var(--shadow); }
+.flow .node { flex: 1 1 0; min-width: 110px; text-align: center; padding: .7rem .5rem;
+  border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.flow .node .nt { font-weight: 700; font-size: .92rem; }
+.flow .node .nd { font-size: .76rem; color: var(--muted); margin-top: .2rem; }
+.flow .node.hl { background: var(--accent-soft); border-color: var(--accent); }
+.flow .arrow { align-self: center; color: var(--faint); font-size: 1.3rem; padding: 0 .35rem; }
+
+/* vertical flow */
+.vflow { margin: 1.3rem 0; }
+.vflow .step { display: flex; gap: .9rem; position: relative; padding-bottom: 1.1rem; }
+.vflow .step:not(:last-child)::before { content:""; position:absolute; left: 15px; top: 34px; bottom: -2px;
+  width: 2px; background: var(--line); }
+.vflow .num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; z-index:1; }
+.vflow .sc h4 { margin: .25rem 0 .2rem; font-size: 1rem; }
+.vflow .sc p { margin: .15rem 0; font-size: .92rem; color: var(--muted); }
+.vflow .sc .mono { font-size: .8rem; color: var(--accent-ink); }
+
+/* layered architecture */
+.layers { margin: 1.3rem 0; display: flex; flex-direction: column; gap: .55rem; }
+.layer { border-radius: 12px; padding: .85rem 1.1rem; border: 1px solid var(--line); background: var(--panel);
+  box-shadow: var(--shadow); }
+.layer .lh { display: flex; align-items: center; gap: .6rem; }
+.layer .lh .badge { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; }
+.layer .lh .name { font-weight: 700; font-family: ui-monospace, monospace; }
+.layer .ld { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.layer.l-core { border-left: 4px solid var(--accent); } .layer.l-core .badge { background: var(--accent-soft); color: var(--accent-ink); }
+.layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
+.layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
+.layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+
+/* two-column compare */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
+.col h4 { margin: 0 0 .4rem; font-size: .95rem; }
+
+table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
+  background: var(--panel); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+table.t th, table.t td { padding: .6rem .8rem; text-align: left; border-bottom: 1px solid var(--line); }
+table.t th { background: var(--panel-2); font-size: .8rem; letter-spacing: .02em; }
+table.t tr:last-child td { border-bottom: none; }
+table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-size: .82rem; color: var(--accent-ink); }
+@media (max-width: 640px) {
+  /* Wide multi-column tables: scroll within their own box instead of
+     forcing page-level horizontal overflow (which clipped right columns). */
+  table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.t th, table.t td { padding: .5rem .6rem; }
+  /* Code-file header: let a long path wrap and the right-side caption drop to
+     its own line instead of being pushed off-screen and silently clipped by
+     html{overflow-x:hidden}. */
+  .codefile .cf-head { flex-wrap: wrap; }
+  .codefile .cf-head .ln { margin-left: 0; }
+}
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
+
+/* footer nav */
+.footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
+  padding-top: 1.4rem; border-top: 1px solid var(--line); }
+.footnav a { flex: 1; padding: .85rem 1.1rem; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--panel); box-shadow: var(--shadow); transition: .15s; }
+.footnav a:hover { border-color: var(--accent); transform: translateY(-1px); }
+.footnav a.next { text-align: right; }
+.footnav .dir { font-size: .72rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.footnav .ttl { font-weight: 700; color: var(--ink); margin-top: .15rem; }
+.footnav a.disabled { opacity: .35; pointer-events: none; }
+
+/* index page */
+.toc { display: grid; gap: .7rem; margin-top: 1.6rem; }
+.toc-part { font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--accent); margin: 1.4rem 0 .2rem; }
+.toc a { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.05rem; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); transition: .15s; }
+.toc a:hover { border-color: var(--accent); transform: translateX(3px); }
+.toc .n { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
+.toc .tt { font-weight: 650; color: var(--ink); }
+.toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.toc-search { position: relative; margin: 1.6rem 0 -.4rem; }
+.toc-search input { width: 100%; box-sizing: border-box; padding: .75rem 2.8rem .75rem 1rem;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font-size: .98rem; box-shadow: var(--shadow); }
+.toc-search input:focus { outline: none; border-color: var(--accent); }
+.toc-search .qcount { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+  color: var(--faint); font-size: .8rem; pointer-events: none; }
+.toc a.hide, .toc .toc-part.hide { display: none; }
+.toc-empty { display: none; color: var(--muted); padding: 1rem; text-align: center; }
+.toc-empty.show { display: block; }
+.hero.index h1 { font-size: 2.3rem; }
+.legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
+.legend span { display:flex; align-items:center; gap:.4rem; }
+.legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }
+.pdf-btn { display:inline-flex; align-items:center; gap:.4rem; padding:.55rem 1.1rem;
+  background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
+  box-shadow:var(--shadow); transition:.15s; }
+.pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
+</style>
+</head><body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第五部分 · LangGraph 执行引擎</span>
+    <span class="pill">25 / 46</span>
+  </div>
+  <div class="progress"><span style="width:54%"></span></div>
+</div>
+<div class="wrap">
+  <div class="hero">
+    <div class="part">第五部分 · LangGraph 执行引擎</div>
+    <h1>interrupt、Command 与人在回路</h1>
+  </div>
+
+<p class="lead">复杂 Agent 不应该把所有决定都交给模型自动执行。LangGraph 用 <span class="mono">interrupt</span> 暂停图，把需要人工或外部系统确认的信息交还给调用方；调用方再用 <span class="mono">Command</span> 把 resume payload、状态更新和跳转意图送回运行时。interrupt 不是普通异常，Command 也不是随便返回的 dict：前者是受控暂停，后者是“恢复值、更新状态、选择去向”的控制原语。本课用审批流程追踪 node interrupt、caller 返回 <span class="mono">Command(resume={"approved": True, "comment": "ok"})</span>、图继续执行的全过程。</p>
+<div class="card analogy"><div class="tag">🧩 生活类比</div>把 interrupt 想成医院手术室的暂停核对。医生准备进行高风险步骤时，不是把流程崩溃掉，而是按下暂停铃，请家属或主治医生确认；确认单上可能写同意、备注和下一步安排，这张确认单就是 Command。手术团队收到确认单后，从安全的记录点恢复，更新病历，再决定继续原计划、改去观察室，还是终止手术。暂停不是失败，而是把自动流程交给人类判断的一道闸门。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：中断、恢复与控制命令</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">interrupt</div><div class="mn-desc">节点内声明需要外部输入，运行时捕获为 GraphInterrupt 并把值返回给调用方</div></div><div class="map-node source"><div class="mn-label">GraphInterrupt</div><div class="mn-desc">不是业务失败，而是可恢复暂停信号，需要 checkpoint 支撑</div></div><div class="map-node now"><div class="mn-label">Command.resume</div><div class="mn-desc">调用方把人工输入交回 interrupt 调用点</div></div><div class="map-node now"><div class="mn-label">Command.update/goto</div><div class="mn-desc">同一个原语还能写状态、改变下一跳，表达人审后的控制流</div></div><div class="map-node after"><div class="mn-label">CompiledStateGraph</div><div class="mn-desc">高层状态图编译后通过 Pregel.stream/invoke 暴露这些能力</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>interrupt/Command 的源码阅读要把 types、errors、Pregel.stream 和 CompiledStateGraph 连起来。文件 + 符号名能帮助区分“用户节点如何发出暂停”“运行时如何传播暂停”“调用方如何恢复”。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">langgraph/types.py</td><td class="mono">interrupt</td><td>节点内部调用的暂停原语，向外暴露需要人工或外部系统提供的值</td><td>节点执行中触发，运行时把信息交给 stream/invoke 调用者</td></tr><tr><td class="mono">langgraph/types.py</td><td class="mono">Command</td><td>控制原语，可携带 resume、update、goto 等字段，表达恢复输入、状态更新和跳转</td><td>调用方或节点返回 Command，Pregel 解释并继续调度</td></tr><tr><td class="mono">langgraph/errors.py</td><td class="mono">GraphInterrupt</td><td>运行时用于区别受控中断与普通异常的信号</td><td>interrupt 触发后沿 Pregel 执行边界传播</td></tr><tr><td class="mono">langgraph/pregel/main.py</td><td class="mono">Pregel.stream</td><td>流式运行入口，能把 interrupt、debug、values、updates 等事件交给调用方</td><td>调用方观察到暂停事件后决定是否返回 Command</td></tr><tr><td class="mono">langgraph/graph/state.py</td><td class="mono">CompiledStateGraph</td><td>用户编译后的状态图对象，对外提供 invoke/stream/get_state/update_state 等接口</td><td>高层图 API 最终复用 Pregel 的中断恢复能力</td></tr></table>
+<h2>状态流：审批节点暂停再恢复</h2>
+<div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>准备高风险动作</h4><p>节点发现将要退款、发邮件或执行交易，需要人工确认。它把待审批摘要放进 interrupt payload。</p><div class="mono">interrupt({&#x27;action&#x27;: &#x27;refund&#x27;, &#x27;amount&#x27;: 500})</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>运行时暂停</h4><p>GraphInterrupt 被 Pregel 捕获。因为有 checkpointer，当前线程停在可恢复 checkpoint 上。</p><div class="mono">state.next includes approval node</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>调用方展示</h4><p>stream 把暂停信息交给 UI/API。人类审核员看到金额、理由、上下文，填写同意和备注。</p><div class="mono">UI form -&gt; approved/comment</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>Command 恢复</h4><p>调用方用同一 thread_id 继续调用，并传入 Command(resume={&#x27;approved&#x27;: True, &#x27;comment&#x27;: &#x27;ok&#x27;})。</p><div class="mono">Command(resume=...)</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>图继续执行</h4><p>interrupt 调用点获得 resume 值，节点写入 approval，再 goto 执行实际退款或拒绝分支。</p><div class="mono">update approval -&gt; goto execute_refund</div></div></div></div>
+<h2>Trace：approval workflow</h2>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. model proposes</td><td>用户要求退款 500 元，risk_score=&#x27;high&#x27;</td><td>route 进入 approval 节点</td><td>next=&#x27;approval&#x27;</td></tr><tr><td>2. node interrupts</td><td>approval 节点读取 refund_request</td><td>调用 interrupt({&#x27;amount&#x27;: 500, &#x27;reason&#x27;: &#x27;high risk&#x27;})</td><td>GraphInterrupt，stream 返回待审批 payload</td></tr><tr><td>3. human reviews</td><td>UI 展示 payload 和历史 state</td><td>审核员点击通过并填写 ok</td><td>Command(resume={&#x27;approved&#x27;: True, &#x27;comment&#x27;: &#x27;ok&#x27;})</td></tr><tr><td>4. resume</td><td>同一 thread_id + Command.resume</td><td>运行时从 checkpoint 恢复，interrupt 返回 resume payload</td><td>approval_result={&#x27;approved&#x27;: True, &#x27;comment&#x27;: &#x27;ok&#x27;}</td></tr><tr><td>5. continue</td><td>approval_result approved</td><td>节点返回 Command(update={&#x27;approval&#x27;: ...}, goto=&#x27;execute_refund&#x27;)</td><td>下一超步执行退款节点</td></tr></table>
+<h2>简化源码走读：interrupt 与 Command</h2>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">langgraph/types.py :: interrupt / Command</span><span class="ln">简化版</span></div><pre>def approval_node(state):
+    decision = interrupt({
+        &#x27;kind&#x27;: &#x27;refund_approval&#x27;,
+        &#x27;amount&#x27;: state[&#x27;amount&#x27;],
+    })
+    if decision[&#x27;approved&#x27;]:
+        return Command(
+            update={&#x27;approval&#x27;: decision},
+            goto=&#x27;execute_refund&#x27;,
+        )
+    return Command(update={&#x27;approval&#x27;: decision}, goto=&#x27;reject&#x27;)
+</pre><div class="cw-note">真实恢复依赖 checkpointer 和同一 thread_id。interrupt 第一次运行时暂停；恢复时同一调用点得到 Command.resume 中的值。Command 可以从调用方传入，也可以由节点返回，用统一结构表达更新与跳转。</div></div><h2>interrupt 不是普通异常</h2><p>普通异常表示程序遇到未处理失败，通常要回滚或终止。GraphInterrupt 表示图主动把控制权交还给外部世界，等待一个值后可以继续。二者的处理策略完全不同：异常要修 bug 或走失败分支；interrupt 要保存状态、展示问题、收集输入、用同一线程恢复。</p><p>这也是为什么 interrupt 几乎总是和 checkpointer 一起使用。没有 checkpoint，暂停后就没有可靠位置可以恢复。你可以把 interrupt 看成“可恢复异常”，但更准确地说，它是运行时协议：节点发出暂停请求，Pregel 记录停点，调用方返回 Command，运行时把 resume 值送回原调用点。</p><p>调试时要区分“节点抛错导致失败”和“节点中断等待人”。如果 UI 把 GraphInterrupt 当成 500 错误，用户会以为系统崩了；如果日志把它当成正常事件，就能展示审批卡片并保持线程等待。</p><h2>Command 为什么同时包含 resume、update、goto</h2><p>人审后的动作通常不只是一段输入。审批通过时，你要把审批结果写入 state，可能跳去 execute 节点；审批拒绝时，要写入拒绝原因，跳去 reject 节点；需要补充信息时，可能回到 ask_user。Command 把这些控制意图放在同一个结构里，避免调用方先 update_state、再手动改边、再 invoke 的多步脆弱流程。</p><p>resume 的语义是“把这个值交回正在等待的 interrupt 调用点”。update 的语义是“向图状态写入这些增量”。goto 的语义是“下一步去这个节点或这些节点”。三者正交，可以单独用，也可以组合。理解这个正交性，就能把 human-in-the-loop、agent handoff、修补状态和路由控制看成同一套机制。</p><p>不过 Command 不是万能遥控器。goto 必须指向图里合法节点，update 必须符合 state schema，resume 必须匹配等待点需要的数据形状。调用方传入任意 dict 不会自动变成安全业务流程；你仍要做权限校验、payload 校验和审计记录。</p><h2>恢复会重新执行什么</h2><p>interrupt 的一个重要边界是恢复语义。常见心智模型是：恢复后运行时会回到包含 interrupt 的节点，让 interrupt 调用返回 resume 值，然后节点继续计算。由于实现需要重建调用栈，interrupt 之前的代码可能重新执行。具体行为要看版本和节点结构，但工程上应按“interrupt 之前不要做不可重复副作用”来设计。</p><p>高风险副作用应放在审批之后。例如不要先扣款再 interrupt 等待确认；应先 interrupt，拿到 approved=True 后再进入 execute_refund 节点扣款。若必须在中断前做外部调用，必须保证幂等，例如使用业务 idempotency key，或把副作用结果写入 checkpoint 后让恢复逻辑检测已执行。</p><p>这个规则看似保守，却能避免真实事故。人工审批常发生在退款、发信、删数据、下单、创建工单等副作用前。把 interrupt 放在副作用之前，配合 Command.goto 到执行节点，是最清晰也最安全的结构。</p><h2>设计 human-in-the-loop 的数据边界</h2><p>interrupt payload 应该足够让人做决定，但不应该泄露不必要的敏感信息。审批卡片通常包含动作类型、金额、原因、模型证据、相关消息摘要和可选建议；不应把整份内部 state 原样暴露给前端，尤其是包含密钥、系统提示词或其他用户数据时。</p><p>resume payload 应该结构化。不要只传 'yes' 或 'ok'，而应传 {'approved': True, 'comment': 'ok', 'reviewer_id': '...'} 这类可审计字段。节点收到后先校验字段，再写入 approval channel。结构化 payload 让后续节点能清楚地区分通过、拒绝、要求修改和超时。</p><p>还要定义超时和取消。如果审核员一直不处理，线程是否保持等待？是否自动拒绝？是否通知用户？这些不是 LangGraph 自动替你决定的业务规则。interrupt 只提供暂停点，产品规则仍要在图结构和外部服务里明确。</p><h2>stream 视角下的中断</h2><p>Pregel.stream 的价值在于调用方可以逐步观察事件，而不是等 invoke 最终返回。中断发生时，stream 可以把 interrupt 信息作为事件交出，UI 立即渲染审批表单；debug 模式还可以显示中断发生在哪个 step、哪个 task、哪个节点。</p><p>恢复时仍要使用同一 thread_id。很多失败来自调用方拿到 interrupt 后丢失 config，下一次把 Command 发到新线程。运行时在新线程里找不到等待点，自然无法把 resume 值交回原 interrupt。把 thread_id 和 checkpoint namespace 存在审批任务记录里，是生产系统必须做的事情。</p><p>如果一个图可能同时有多个 interrupt，要记录每个 interrupt 的上下文和路径。不要只在前端保存“当前有个审批”。多用户、多标签页、多 agent handoff 场景下，审批事件必须能回到准确线程和准确等待点。</p><h2>工程复盘：人审流程的安全边界</h2><p>human-in-the-loop 的核心不是让人点一个按钮，而是把自动系统的风险边界显式化。哪些动作必须审批，审批人需要哪些证据，审批结果如何影响后续节点，审批记录如何审计，这些问题都应在图和外部系统里有明确答案。interrupt 只负责暂停，不负责替产品定义规则。</p><p>审批 payload 要做到足够但最小。足够是指审核员能判断动作是否合理，例如金额、对象、理由、模型证据、工具结果、风险分数；最小是指不暴露与决策无关的内部提示、其他用户信息或密钥。很多安全问题不是模型自动执行造成的，而是人审 UI 泄露了过多 state。</p><p>resume payload 要可验证。approved=True 只是一个布尔值，通常不够。更好的结构包括 reviewer_id、approved、comment、reviewed_at、policy_version，必要时还要包含签名或后端生成的审批记录 id。节点收到 resume 后应校验字段，而不是把前端传来的任意对象写进 state。</p><p>Command.update 和 Command.goto 让审批结果进入图语义。通过时写 approval 并去 execute，拒绝时写 rejection 并去 notify_user，需要补件时写 request_more_info 并回到 ask_user。不要在调用方外部偷偷执行退款再让图继续，否则 trace 会看不到真正的副作用。</p><p>副作用节点应独立且幂等。审批节点只负责收集决定，execute_refund 节点负责调用支付系统，并使用 refund_id 或 operation_id 防重复。这样即使恢复、重试或 worker 崩溃，也能通过外部幂等键避免重复扣款。把审批和执行写在一个节点里，会让恢复边界变得模糊。</p><p>超时策略必须提前设计。审批可能几分钟，也可能几天。线程等待期间 checkpoint 要保留多久，用户是否能取消，系统是否提醒审批人，超时后默认拒绝还是升级，这些都不是 interrupt 自动提供的。可以用外部任务队列或调度器在超时后向同一 thread 发送 Command。</p><p>多审批人场景要避免竞态。两个人同时打开审批页面，一个通过一个拒绝，哪个生效？可以让后端审批服务先完成乐观锁或状态机判断，再只向 LangGraph 发送一个最终 Command。不要让多个前端直接向同一等待点竞争写 resume。</p><p>中断恢复的权限检查不能只靠 thread_id。攻击者如果猜到 thread_id，不应能提交 Command。恢复 API 要验证当前用户是否有权审批该 action、该 checkpoint 是否仍在等待、payload 是否符合当前 policy。LangGraph 是运行时，不是权限系统。</p><p>调试人审问题时，先看三个对象：等待时的 StateSnapshot、审批系统保存的 decision record、恢复时传入的 Command。三者应该能互相对应。如果 state 有 approval 但审批系统没有记录，说明有人绕过了流程；如果审批系统有记录但图没继续，说明 Command 没有送回正确线程。</p><p>一个成熟的人审图会把自动化和人工判断都纳入 trace。模型提出动作、路由进入审批、人类给出决定、图执行副作用，每一步都有 checkpoint 和 metadata。这样事故发生后，团队能回答谁在什么时候基于什么信息批准了什么，而不是只看到一个最终退款结果。</p>
+<h2>常见误解与边界情况</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：interrupt 就是 raise Exception</div><div class="pf-correct">正确：它是受控暂停信号，预期由调用方收集输入后恢复。</div></div><div class="pitfall"><div class="pf-wrong">误解：Command(resume=...) 会自动更新 state</div><div class="pf-correct">正确：resume 只返回给等待点；要持久记录审批结果，节点或 Command 还需要 update。</div></div><div class="pitfall"><div class="pf-wrong">误解：可以在 interrupt 前执行扣款</div><div class="pf-correct">正确：恢复可能重跑前置代码，高风险副作用应放在审批通过后的独立节点，并做幂等。</div></div><div class="pitfall"><div class="pf-wrong">误解：前端随便传 thread_id 就能恢复</div><div class="pf-correct">正确：恢复需要同一线程、权限校验和匹配等待点，生产系统必须保存并验证 config。</div></div></div><h2>实践提示：审批图的端到端验收</h2><p>验收审批图时，不要只测 approved=True 的快乐路径。还要测试拒绝、补充信息、审批超时、审批人无权限、重复提交 Command、恢复时 thread_id 错误、执行节点失败等场景。</p><p>通过路径应证明三件事：interrupt payload 足够审核，resume payload 被校验并写入 approval，execute 节点只在批准后运行。任何一个条件缺失，都可能让人审流于形式。</p><p>拒绝路径应证明副作用没有发生。比如退款审批拒绝后，支付系统不应收到 refund 请求，state 中应记录拒绝原因，用户通知节点应能解释结果。</p><p>重复提交场景尤其重要。用户双击按钮、浏览器重试、审批服务超时重发，都可能让同一个决定被发送两次。后端和副作用节点都应使用幂等键。</p><p>恢复错线程场景可以暴露 config 管理问题。Command 如果被发到新 thread，运行时找不到等待点；如果被发到别人的 thread，则是严重安全事故。审批任务记录必须保存并校验 thread_id、namespace 和 checkpoint。</p><p>审批 UI 还应展示足够上下文，但隐藏敏感内部字段。测试时可以故意在 state 放入不应展示的字段，确认 payload 构造函数不会泄露它。</p><p>执行节点失败后，图应有可解释状态：审批已经通过，但副作用执行失败，需要重试或人工处理。不要把执行失败伪装成审批未发生。</p><p>这些验收让 interrupt 与 Command 从 API 用法变成可靠流程。人审不是一个按钮，而是一条带权限、审计、幂等和恢复语义的状态机。</p><h2>补充推演：Command 让控制流保持可审计</h2><p>如果没有 Command，审批系统可能会分散成三段：前端调用一个接口保存审批结果，后端再手动改数据库，最后另一个接口触发图继续。三段之间任何一步失败，图状态和业务记录都可能不一致。Command 的价值是把恢复输入、状态更新和下一跳放在同一个运行时事件里。</p><p>例如通过审批时，Command.resume 把表单值交回 interrupt，节点校验后返回 Command(update={'approval': decision}, goto='execute_refund')。trace 里能看到审批结果写入，也能看到为什么下一步去执行退款。拒绝时同理写 rejection 并 goto notify_user。</p><p>这种可审计性对合规场景很重要。事后复盘时，你可以从 checkpoint 看到模型提出退款，从 interrupt 看到等待人工，从 Command 看到审核员决定，从 execute 节点看到外部退款请求。每一步都有状态证据，而不是散落在多个服务日志里。</p><p>Command 也让多 Agent handoff 更朴素。所谓交接给另一个 agent，本质上是更新共享状态并 goto 另一个节点或子图。理解这一点后，就不需要为每种交接发明新机制，只要把交接原因、上下文和目标写清楚。</p><p>不过，Command 的集中表达不等于绕过业务校验。恢复 API 仍应确认当前 checkpoint 正在等待审批，审批人有权限，payload 符合 schema，goto 目标合法。运行时负责执行命令，应用负责决定谁可以发命令。</p><p>因此，在代码评审中看到 Command 时，应同时问三个问题：resume 值是否可信，update 是否符合审计要求，goto 是否让副作用边界更清晰。能回答这三点，Command 才是安全控制原语。</p><h2>上线校验：把人审流做成可恢复状态机</h2><p>Interrupt/Command 页的最后检查应从状态机开始：哪些节点可能暂停，暂停 payload 暴露哪些字段，等待期间状态里记录什么，Command.resume 的 schema 怎样校验，通过、拒绝、补充信息和超时分别 goto 哪里。只有把这些路径列全，人审才不是一个临时弹窗，而是图中的正式控制流。</p><p>高风险副作用必须有独立边界。审批前节点只收集证据并 interrupt；审批通过后的 execute 节点才调用外部系统，并使用业务 idempotency key。测试要覆盖恢复重跑、重复提交 Command、浏览器刷新、worker 重启和外部 API 超时，证明不会因为 LangGraph 重新执行等待点前代码而重复扣款、发信或下单。</p><p>权限和审计不能依赖前端自觉。恢复接口要校验 thread_id、namespace、checkpoint 是否处于等待点，审批人是否有权限处理该业务对象，resume/update/goto 是否符合后端允许的转移。Command 是运行时原语，不是授权系统；应用必须在发出 Command 前完成业务校验。</p><p>最终验收应能从 history 复盘完整链路：模型或规则为什么请求审批，interrupt 给了审核员哪些上下文，Command 写入了什么决定，副作用节点是否执行成功，失败后如何重试或通知。能复盘，才说明人审流真正可恢复、可审计、可维护。</p><div class="card lab"><div class="tag">🧪 小实验 · 设计退款审批图</div><ol><li>列出 state key：refund_request、risk_score、approval、messages，并决定哪些需要 reducer。</li><li>让 route 节点在 risk_score 高时进入 approval，否则直接进入 execute_refund。</li><li>approval 节点调用 interrupt，payload 只包含审批必需字段。</li><li>调用方返回 Command(resume={&#x27;approved&#x27;: True, &#x27;comment&#x27;: &#x27;ok&#x27;}) 后，节点写 approval 并 goto execute_refund。</li><li>把 execute_refund 设计成幂等副作用节点，使用 refund_id 作为 idempotency key。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>LangGraph 的 interrupt API、Command 字段和 stream 事件格式可能随版本扩展，但“中断是可恢复暂停、Command 是恢复/更新/跳转原语、checkpoint/thread_id 是恢复前提”的心智模型稳定。读新版源码时重点跟踪 types.py、errors.py 与 Pregel.stream 的交界。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>interrupt 用来把图暂停在可恢复边界，不应被当成普通失败异常。</li><li>Command.resume 把人工输入交回等待点，Command.update/goto 表达状态更新和控制流跳转。</li><li>人审流程必须依赖稳定 thread_id/checkpoint，并做好权限、结构化 payload 和审计。</li><li>高风险副作用放在 interrupt 之后，并使用幂等键防止恢复或重试造成重复执行。</li></ul></div><div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. interrupt 与普通异常最大的语义差别是什么？</div>
+  <ol class="opts">
+    <li>interrupt 只能在测试里使用</li>
+    <li>interrupt 表示受控暂停，预期通过 checkpoint 和 Command.resume 恢复；普通异常通常表示失败</li>
+    <li>interrupt 不需要 thread_id 或 checkpointer</li>
+    <li>interrupt 会自动执行所有高风险副作用</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。GraphInterrupt 是运行时协议的一部分，用来把控制权交给调用方；它不是未处理错误。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. Command(resume={...})、Command(update={...})、Command(goto='x') 分别表达什么？</div>
+  <ol class="opts">
+    <li>resume 给等待的 interrupt 返回值，update 写状态增量，goto 指定后续控制流去向</li>
+    <li>它们只影响前端 UI，不影响图运行</li>
+    <li>resume 只能删除 checkpoint，update 只能改配置，goto 只能结束图</li>
+    <li>三者完全等价，只是字段名不同</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。Command 把恢复输入、状态更新和跳转控制放在一个正交原语里，适合人审、handoff 和修补流程。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 在退款审批节点中，为什么高风险副作用通常应放在 interrupt 之后？</div>
+  <ol class="opts">
+    <li>因为 interrupt 之后不能再运行任何节点</li>
+    <li>因为 Command 不能携带审批备注</li>
+    <li>因为审批前执行扣款更容易通过测试</li>
+    <li>因为恢复/重试可能重新执行 interrupt 前代码，副作用提前执行会造成重复扣款或重复发信</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。恢复语义要求副作用边界清晰。先暂停审批，通过后再 goto 幂等执行节点，是更安全的设计。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>设计一个退款 approval flow：interrupt payload 包含哪些字段？resume payload 怎样结构化？哪些字段要写入 state 供审计？</li>
+    <li>如果一个节点在 interrupt 前已经调用了外部发邮件 API，恢复时可能出现什么事故？请提出两种修复：移动副作用或做幂等。</li>
+  </ul>
+</div>
+</div>
+  <div class="footnav"><a class="prev" href="26-langgraph-persistence-control.html"><div class="dir">← 上一课</div><div class="ttl">Checkpoint 与持久化</div></a><a class="next" href="34-langgraph-time-travel-debug.html"><div class="dir">下一课 →</div><div class="ttl">时间旅行、回放与调试</div></a></div>
+</div>
+
+</body></html>

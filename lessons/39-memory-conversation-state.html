@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>36 · 记忆、会话历史与状态 — LangChain 图解教程</title>
+<meta name="description" content="第七部分 · RAG 与记忆｜记忆、会话历史与状态：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="theme-color" content="#1a7f64">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="LangChain 图解教程">
+<meta property="og:title" content="36 · 记忆、会话历史与状态 — LangChain 图解教程">
+<meta property="og:description" content="第七部分 · RAG 与记忆｜记忆、会话历史与状态：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="36 · 记忆、会话历史与状态 — LangChain 图解教程">
+<meta name="twitter:description" content="第七部分 · RAG 与记忆｜记忆、会话历史与状态：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f0f2f5; --ink: #1d2129;
+  --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
+  --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
+  --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116; --panel: #161b22; --panel-2: #1c232c; --ink: #e6edf3;
+    --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
+    --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
+    --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+    "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg); color: var(--ink); line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
+
+/* ---- top progress bar ---- */
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: var(--panel);
+  border-bottom: 1px solid var(--line); backdrop-filter: blur(8px);
+}
+.topbar-inner {
+  max-width: 960px; margin: 0 auto; padding: .7rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.topbar .home { font-size: .82rem; color: var(--muted); font-weight: 600; display:flex; gap:.5rem; align-items:center; }
+.topbar .home b { color: var(--accent); }
+.topbar .pill { font-size: .72rem; color: var(--muted); background: var(--panel-2);
+  padding: .2rem .6rem; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.progress { height: 3px; background: var(--panel-2); }
+.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue)); }
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 2.4rem 1.25rem 5rem; }
+
+/* ---- hero ---- */
+.hero { margin-bottom: 2rem; }
+.hero .part { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin-bottom: .55rem; }
+.hero h1 { font-size: 2.05rem; line-height: 1.2; letter-spacing: -.01em; font-weight: 750; }
+.hero .lead { margin-top: .9rem; font-size: 1.06rem; color: var(--muted); }
+
+h2 { font-size: 1.32rem; margin: 2.4rem 0 .9rem; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: .55rem; }
+h2::before { content: ""; width: 4px; height: 1.05em; background: var(--accent); border-radius: 3px; display: inline-block; }
+h3 { font-size: 1.05rem; margin: 1.4rem 0 .5rem; }
+p { margin: .7rem 0; }
+ul, ol { margin: .6rem 0 .6rem 1.3rem; }
+li { margin: .3rem 0; }
+strong { color: var(--ink); font-weight: 680; }
+.inline { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: .08em .4em; font-size: .9em; color: var(--accent-ink); }
+
+/* ---- callout cards ---- */
+.card { border-radius: var(--radius); padding: 1.05rem 1.2rem; margin: 1.2rem 0;
+  border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+.card .tag { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+.card.macro { border-left: 4px solid var(--blue); }
+.card.macro .tag { color: var(--blue); }
+.card.detail { border-left: 4px solid var(--purple); }
+.card.detail .tag { color: var(--purple); }
+.card.analogy { border-left: 4px solid var(--amber); background: var(--amber-soft); }
+.card.analogy .tag { color: var(--amber); }
+.card.key { border-left: 4px solid var(--accent); background: var(--accent-soft); }
+.card.key .tag { color: var(--accent-ink); }
+.card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
+.card.warn .tag { color: var(--red); }
+.card.spark { border-left: 4px solid #e0a000;
+  background: linear-gradient(100deg, rgba(224,160,0,.12), transparent 70%); }
+.card.spark .tag { color: #c98a00; }
+@media (prefers-color-scheme: dark) { .card.spark .tag { color: #f0c050; } }
+
+/* ---- code file callout ---- */
+.codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
+  box-shadow: var(--shadow); }
+.codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
+  background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
+.codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
+.codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
+  overflow-x: auto; font-size: .82rem; line-height: 1.6; }
+.codefile pre .cm { color: #7d8aa3; }
+.codefile pre .kw { color: #c792ea; }
+.codefile pre .fn { color: #82aaff; }
+.codefile pre .st { color: #c3e88d; }
+.codefile pre .nb { color: #f78c6c; }
+
+pre.code { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem; border-radius: 12px;
+  overflow-x: auto; font-size: .83rem; line-height: 1.6; margin: 1.1rem 0; box-shadow: var(--shadow); }
+pre.code .cm { color: #7d8aa3; } pre.code .kw { color: #c792ea; }
+pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb { color: #f78c6c; }
+
+/* ---- collapsible accordion (details/summary) ---- */
+.accordion { border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+  margin: .7rem 0; box-shadow: var(--shadow); overflow: hidden; }
+.accordion > summary { cursor: pointer; padding: .85rem 1.1rem; font-weight: 650; font-size: .96rem;
+  list-style: none; display: flex; align-items: center; gap: .6rem; user-select: none; }
+.accordion > summary::-webkit-details-marker { display: none; }
+.accordion > summary::after { content: "▶"; font-size: .68rem; color: var(--accent);
+  margin-left: auto; transition: transform .15s ease; }
+.accordion[open] > summary::after { transform: rotate(90deg); }
+.accordion > summary:hover { background: var(--panel-2); }
+.accordion[open] > summary { border-bottom: 1px solid var(--line); }
+.accordion .badge-num { background: var(--accent-soft); color: var(--accent-ink);
+  width: 1.6rem; height: 1.6rem; border-radius: 7px; display: inline-flex; align-items: center;
+  justify-content: center; font-size: .82rem; font-weight: 700; flex-shrink: 0; }
+.accordion .hint { font-size: .72rem; color: var(--faint); font-weight: 400; }
+.acc-body { padding: .9rem 1.1rem 1.1rem; }
+.acc-intro { color: var(--muted); font-size: .9rem; margin: .2rem 0 .4rem; }
+.qa { margin: 1rem 0; }
+.qa:first-child { margin-top: .3rem; }
+.qa .q { font-weight: 680; font-size: .9rem; display: flex; gap: .45rem; align-items: center; margin-bottom: .3rem; }
+.qa .a { color: var(--muted); font-size: .9rem; }
+.qa .a strong { color: var(--ink); }
+.qa pre.code { margin: .5rem 0 0; font-size: .78rem; }
+
+/* ---- flow diagram ---- */
+.flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 1.3rem 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1.2rem 1rem; box-shadow: var(--shadow); }
+.flow .node { flex: 1 1 0; min-width: 110px; text-align: center; padding: .7rem .5rem;
+  border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.flow .node .nt { font-weight: 700; font-size: .92rem; }
+.flow .node .nd { font-size: .76rem; color: var(--muted); margin-top: .2rem; }
+.flow .node.hl { background: var(--accent-soft); border-color: var(--accent); }
+.flow .arrow { align-self: center; color: var(--faint); font-size: 1.3rem; padding: 0 .35rem; }
+
+/* vertical flow */
+.vflow { margin: 1.3rem 0; }
+.vflow .step { display: flex; gap: .9rem; position: relative; padding-bottom: 1.1rem; }
+.vflow .step:not(:last-child)::before { content:""; position:absolute; left: 15px; top: 34px; bottom: -2px;
+  width: 2px; background: var(--line); }
+.vflow .num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; z-index:1; }
+.vflow .sc h4 { margin: .25rem 0 .2rem; font-size: 1rem; }
+.vflow .sc p { margin: .15rem 0; font-size: .92rem; color: var(--muted); }
+.vflow .sc .mono { font-size: .8rem; color: var(--accent-ink); }
+
+/* layered architecture */
+.layers { margin: 1.3rem 0; display: flex; flex-direction: column; gap: .55rem; }
+.layer { border-radius: 12px; padding: .85rem 1.1rem; border: 1px solid var(--line); background: var(--panel);
+  box-shadow: var(--shadow); }
+.layer .lh { display: flex; align-items: center; gap: .6rem; }
+.layer .lh .badge { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; }
+.layer .lh .name { font-weight: 700; font-family: ui-monospace, monospace; }
+.layer .ld { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.layer.l-core { border-left: 4px solid var(--accent); } .layer.l-core .badge { background: var(--accent-soft); color: var(--accent-ink); }
+.layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
+.layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
+.layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+
+/* two-column compare */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
+.col h4 { margin: 0 0 .4rem; font-size: .95rem; }
+
+table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
+  background: var(--panel); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+table.t th, table.t td { padding: .6rem .8rem; text-align: left; border-bottom: 1px solid var(--line); }
+table.t th { background: var(--panel-2); font-size: .8rem; letter-spacing: .02em; }
+table.t tr:last-child td { border-bottom: none; }
+table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-size: .82rem; color: var(--accent-ink); }
+@media (max-width: 640px) {
+  /* Wide multi-column tables: scroll within their own box instead of
+     forcing page-level horizontal overflow (which clipped right columns). */
+  table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.t th, table.t td { padding: .5rem .6rem; }
+  /* Code-file header: let a long path wrap and the right-side caption drop to
+     its own line instead of being pushed off-screen and silently clipped by
+     html{overflow-x:hidden}. */
+  .codefile .cf-head { flex-wrap: wrap; }
+  .codefile .cf-head .ln { margin-left: 0; }
+}
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
+
+/* footer nav */
+.footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
+  padding-top: 1.4rem; border-top: 1px solid var(--line); }
+.footnav a { flex: 1; padding: .85rem 1.1rem; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--panel); box-shadow: var(--shadow); transition: .15s; }
+.footnav a:hover { border-color: var(--accent); transform: translateY(-1px); }
+.footnav a.next { text-align: right; }
+.footnav .dir { font-size: .72rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.footnav .ttl { font-weight: 700; color: var(--ink); margin-top: .15rem; }
+.footnav a.disabled { opacity: .35; pointer-events: none; }
+
+/* index page */
+.toc { display: grid; gap: .7rem; margin-top: 1.6rem; }
+.toc-part { font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--accent); margin: 1.4rem 0 .2rem; }
+.toc a { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.05rem; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); transition: .15s; }
+.toc a:hover { border-color: var(--accent); transform: translateX(3px); }
+.toc .n { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
+.toc .tt { font-weight: 650; color: var(--ink); }
+.toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.toc-search { position: relative; margin: 1.6rem 0 -.4rem; }
+.toc-search input { width: 100%; box-sizing: border-box; padding: .75rem 2.8rem .75rem 1rem;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font-size: .98rem; box-shadow: var(--shadow); }
+.toc-search input:focus { outline: none; border-color: var(--accent); }
+.toc-search .qcount { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+  color: var(--faint); font-size: .8rem; pointer-events: none; }
+.toc a.hide, .toc .toc-part.hide { display: none; }
+.toc-empty { display: none; color: var(--muted); padding: 1rem; text-align: center; }
+.toc-empty.show { display: block; }
+.hero.index h1 { font-size: 2.3rem; }
+.legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
+.legend span { display:flex; align-items:center; gap:.4rem; }
+.legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }
+.pdf-btn { display:inline-flex; align-items:center; gap:.4rem; padding:.55rem 1.1rem;
+  background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
+  box-shadow:var(--shadow); transition:.15s; }
+.pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
+</style>
+</head><body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第七部分 · RAG 与记忆</span>
+    <span class="pill">36 / 46</span>
+  </div>
+  <div class="progress"><span style="width:78%"></span></div>
+</div>
+<div class="wrap">
+  <div class="hero">
+    <div class="part">第七部分 · RAG 与记忆</div>
+    <h1>记忆、会话历史与状态</h1>
+  </div>
+<p class="lead">Memory 不是一个单一对象，而是一组围绕会话状态的策略：ChatMessageHistory 保存多轮 Human/AI/Tool 消息；LangGraph 的 add_messages reducer 把增量消息合并进 state；checkpoint saver 让线程可恢复、可 time travel；summary memory 把长历史压缩成短上下文；长期记忆则保存跨会话偏好或事实。本课追踪 conversation turn → append messages → checkpoint/state → retrieval or summary memory → next turn context，重点区分 short-term、long-term 与 LangGraph state。</p><div class="card analogy"><div class="tag">🧩 生活类比</div>把对话系统想成医生接诊。病历本里的本次问诊记录是短期历史，能解释刚才问了什么、做了什么检查；医院系统的存档 checkpoint 能让医生中断后恢复；病人长期档案记录过敏史和长期偏好，但写入需要谨慎、可删除、可追溯。不能把一次闲聊当永久病史，也不能在下一次问诊时忘掉刚刚开的检查单。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：一轮对话如何变成下一轮上下文</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">Turn input</div><div class="mn-desc">用户新消息进入线程，带 thread_id/context</div></div><div class="map-node now"><div class="mn-label">Chat history</div><div class="mn-desc">HumanMessage、AIMessage、ToolMessage 追加到 messages</div></div><div class="map-node now"><div class="mn-label">Checkpoint</div><div class="mn-desc">state 按线程保存，可恢复、回放和调试</div></div><div class="map-node source"><div class="mn-label">Memory policy</div><div class="mn-desc">选择最近窗口、摘要、长期检索或拒绝写入</div></div><div class="map-node after"><div class="mn-label">Next context</div><div class="mn-desc">下一轮 prompt 读取合适的历史、摘要和长期记忆</div></div></div></div><h2>源码入口：文件 + 符号名</h2><p>当前 chat history 核心抽象和内存实现均可在 langchain_core.chat_history 验证；旧 community in_memory 路径在当前 master 中变成 classic re-export。LangGraph 消息合并与内存 checkpoint 仍是理解 Agent state 的关键。</p><table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/chat_history.py</td><td class="mono">BaseChatMessageHistory</td><td>定义 add/get/clear 消息历史接口</td><td>会话历史存储抽象</td></tr><tr><td class="mono">libs/core/langchain_core/chat_history.py</td><td class="mono">InMemoryChatMessageHistory</td><td>核心包内可验证的内存消息历史实现</td><td>教学、小规模或测试场景使用</td></tr><tr><td class="mono">langgraph/graph/message.py</td><td class="mono">add_messages</td><td>LangGraph 常用 messages reducer，按 id 合并消息列表</td><td>图节点返回增量消息后写回 state</td></tr><tr><td class="mono">langgraph/checkpoint/memory/__init__.py</td><td class="mono">InMemorySaver</td><td>内存 checkpoint saver，保存线程状态快照</td><td>图编译和运行时持久化入口</td></tr><tr><td class="mono">libs/langchain_v1/langchain/agents/factory.py</td><td class="mono">create_agent</td><td>高层 Agent 工厂，使用图状态、messages 和 checkpoint 组织循环</td><td>用户 API 到 LangGraph state 的桥</td></tr></table><h2>状态流：一次会话回合进入记忆</h2><div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>用户发言</h4><p>HumanMessage 进入当前 thread，运行时知道 user_id 和 thread_id。</p><div class="mono">input</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>追加消息</h4><p>add_messages 把 HumanMessage、AIMessage、ToolMessage 增量合并到 state[&#x27;messages&#x27;]。</p><div class="mono">messages</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>保存 checkpoint</h4><p>InMemorySaver 或生产 saver 按 thread_id 保存状态快照。</p><div class="mono">checkpoint</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>执行记忆策略</h4><p>短历史保留最近窗口；长历史生成摘要；长期偏好经过过滤和同意后写入 store。</p><div class="mono">policy</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>下一轮上下文</h4><p>Prompt 读取最近消息、摘要和检索到的长期记忆，但不泄漏无关隐私。</p><div class="mono">context</div></div></div></div><h2>Trace：把一次运行摊平成证据链</h2><table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. turn</td><td>用户：以后回答尽量用中文，并记住我在学 LangGraph</td><td>创建 HumanMessage，附 thread/user context</td><td>messages 增量</td></tr><tr><td>2. append</td><td>旧 messages + 新 HumanMessage</td><td>add_messages 按 id 合并</td><td>state[&#x27;messages&#x27;] 增长</td></tr><tr><td>3. checkpoint</td><td>完整 state</td><td>saver.put 写入 thread 快照</td><td>checkpoint_id 可恢复</td></tr><tr><td>4. memory</td><td>本轮内容</td><td>判断“中文偏好”可长期保存，“正在学 LangGraph”可短期或带过期保存</td><td>summary/long-term records</td></tr><tr><td>5. next</td><td>下一轮问题</td><td>读取最近窗口 + 摘要 + 相关长期偏好</td><td>模型获得合适上下文</td></tr></table><h2>简化源码走读：保留契约，不背实现</h2><div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">langgraph/graph/message.py + langgraph/checkpoint/memory/__init__.py :: add_messages + InMemorySaver</span><span class="ln">简化版</span></div><pre>class State(TypedDict):
+    messages: Annotated[list[AnyMessage], add_messages]
+    summary: str
+
+checkpointer = InMemorySaver()
+app = graph.compile(checkpointer=checkpointer)
+
+app.invoke(
+    {&quot;messages&quot;: [HumanMessage(&quot;请记住我偏好中文解释&quot;)]},
+    config={&quot;configurable&quot;: {&quot;thread_id&quot;: &quot;u1-thread&quot;}},
+)
+</pre><div class="cw-note">教学版展示 state、messages reducer 和 checkpoint 的分工：add_messages 决定如何合并消息，checkpointer 决定如何按线程保存状态。长期记忆是否写入，需要额外策略，不应默认把所有历史永久保存。</div></div><h2>短期历史、状态和长期记忆不是一回事</h2><p>Chat history 关注对话消息序列，解决“刚才说了什么”。LangGraph state 关注图运行时的业务状态，除 messages 外还可以有 summary、当前任务、工具结果、审批标记。Checkpoint 关注某个 thread 的状态快照，解决中断恢复、time travel 和调试。长期记忆关注跨会话可复用信息，例如稳定偏好或用户授权保存的事实。</p><p>这四层生命周期不同。最近消息可能几分钟后就没必要进入 prompt；checkpoint 可能按线程保留用于恢复；长期偏好可能跨月有效但必须可删除；摘要可能只是为了压缩窗口而生成。把它们都叫 memory 会导致错误设计：把 checkpoint 当画像、把临时任务当偏好、把摘要当原始证据。</p><h2>add_messages 的合并语义</h2><p>LangGraph 的 add_messages reducer 让节点只返回增量消息，运行时负责把它们合并到 state['messages']。它不仅是 list append；消息有 id 时可以按 id 覆盖，配合工具调用、人工修改和重放更稳定。理解 reducer 的意义，才能解释为什么多个节点可以共同写 messages，而不是每个节点手工复制整段历史。</p><p>新版本消息合并还支持删除哨兵一类的控制语义，例如用特殊消息表达移除历史中的某条记录。即使具体 API 会随版本演进，原则不变：消息状态不是随便拼接字符串，而是带角色、id、tool_call_id 和元数据的结构化列表。裁剪历史时要保持工具请求和 ToolMessage 的因果配对，不能只删中间一半。</p><h2>Checkpoint 负责可恢复，不负责画像</h2><p>InMemorySaver 适合教学，因为它把 checkpoint 概念变得很轻：给 graph.compile 传入 checkpointer，再用 thread_id 调用，运行时就能保存状态快照。生产 saver 可能写数据库或对象存储，但核心问题一样：按哪个 thread 命名，什么时候保存，如何列出历史，如何恢复到某个 checkpoint。</p><p>checkpoint 记录的是执行状态，不等于同意长期记住。用户在一次任务里提供的地址、验证码、身份证号，可能会出现在 checkpoint 中用于恢复本次流程，但不应自动写入长期 memory store。隐私治理需要定义 checkpoint 保留期、访问权限和删除策略；长期记忆还要额外经过写入判断和用户可控删除。</p><h2>Summary memory 是压缩，不是事实来源</h2><p>摘要解决上下文窗口问题：历史太长时，把早期对话压缩成短说明，再保留最近几轮原始消息。摘要应该标注生成时间和覆盖范围，最好保留可回溯的 checkpoint 或消息范围。模型下一轮可以读摘要理解背景，但关键事实、工具结果和承诺仍应能回到原始消息。</p><p>摘要会丢细节，也可能引入偏差。比如用户说“不要记住我的手机号，只用于本次验证”，摘要若写成“用户手机号是...”就造成隐私泄漏。生成摘要时要有规则：敏感信息脱敏，临时信息不进入长期摘要，用户纠正后的事实覆盖旧事实，过期任务从摘要中移除。</p><h2>长期记忆更像可检索资料库</h2><p>长期记忆可以存用户偏好、项目背景、稳定身份信息或跨会话任务进展，但它应该像小型知识库一样有 schema：key、value、source、reason、created_at、updated_at、expires_at、confidence、delete_policy。没有这些字段，系统无法解释为什么记住、何时该忘、用户要求删除时删哪条。</p><p>长期记忆的读取也应按相关性和权限过滤，而不是每轮全部塞进 prompt。用户问代码问题时，读取“偏好中文解释”有用；读取上周一次性订单号没有用。长期记忆越多，越需要 retriever 或规则选择当前相关记录。否则 memory 会变成噪声源，甚至把旧偏好压过用户本轮明确指令。</p><h2>记忆系统的隐私排障</h2><p>当用户发现系统记住了不该记的内容，要沿写入路径排查：原始 HumanMessage 是否进入 chat history，summary 是否复制了敏感字段，long-term store 是否写入，checkpoint 是否仍保留旧状态，日志或评测样例是否另存一份。只删一个表往往不够，需要明确哪些存储属于产品记忆，哪些属于审计或调试记录。</p><p>设计记忆策略时最好把每条信息分成四类：本轮任务必要、短期会话有用、长期偏好可保存、禁止保存。用户说“以后都用中文”通常可保存；用户上传合同要求本次总结，合同内容不应变成长期记忆；用户纠正“我现在不是 A 项目成员”应更新或删除旧记录。记忆的智能不在于多记，而在于只记该记的。</p><h2>常见误解与边界情况：记得越多不等于越智能</h2><p>常见误解是把所有历史都保存并塞回 prompt。这样会迅速带来 token 成本、隐私风险和上下文噪声。用户当前问题可能只需要最近两轮和一个长期偏好，没必要读取半年前的闲聊。记忆系统的质量体现在筛选和遗忘，而不是无限追加。</p><p>边界情况是用户纠正自己或改变偏好。长期记忆里旧偏好必须能被更新或废弃；摘要里也要反映最新纠正。若系统同时读到“用户喜欢英文回答”和“用户现在要求中文”，应优先本轮明确指令，并考虑更新长期记录。记忆不是不可变事实，而是带来源和时间的记录。</p><h2>源码排障清单：messages、checkpoint、store</h2><p>如果模型忘记上一轮工具结果，先查看 state['messages'] 是否包含对应 ToolMessage，tool_call_id 是否和 AIMessage.tool_calls 配对。若消息存在但 prompt 没看到，检查 MessagesPlaceholder 或 state 到 prompt 的映射。若消息根本没进 state，检查节点返回值和 add_messages reducer。</p><p>如果线程恢复失败，检查 config 中 thread_id 是否稳定、checkpointer 是否传入 graph.compile、checkpoint saver 是否持久化到预期位置。若跨会话偏好没有出现，检查长期 store 的写入策略和读取 retriever，而不是只看 checkpoint。短期恢复和长期画像是两条路径。</p><h2>RemoveMessage 与历史裁剪</h2><p>长对话必须裁剪，但裁剪不能破坏消息因果。工具请求 AIMessage 和对应 ToolMessage 应成对保留或成对移除；否则模型可能看到工具结果却不知道它回答哪个请求，或看到请求却没有观察结果。支持删除消息的 reducer 语义让系统可以显式移除旧消息，而不是粗暴截断列表。</p><p>裁剪策略应优先保留系统规则、最近用户目标、未完成工具链和关键决策。早期寒暄、重复确认和过期工具观察可以摘要或删除。每次裁剪最好记录原因和覆盖范围，这样用户追问“你为什么忘了”时，工程团队能解释是窗口策略而非随机丢失。</p><h2>Checkpoint 写入与中断恢复</h2><p>LangGraph checkpoint 不只是最后状态快照；执行过程中还可能记录中间 writes，用于恢复并发节点、interrupt 和 time travel。理解 put 与 put_writes 的差异有助于排查“节点执行了但状态没恢复”的问题。教学页不展开底层存储实现，但要知道 checkpoint 是图运行时的一部分。</p><p>人审 interrupt 场景尤其依赖 checkpoint。模型准备执行敏感工具时，图中断并保存当前 state；人工批准后，系统从同一 thread 的 checkpoint 继续，而不是重新让模型生成一次请求。若没有稳定 checkpoint，审批前后的消息和工具调用 id 可能对不上。</p><h2>BaseStore 与长期记忆</h2><p>长期记忆更接近 key-value 或文档 store，而不是 checkpointer。它按用户、命名空间或主题保存可检索记录，并在下一轮根据相关性读取。LangGraph 生态常把 checkpointer 用于 short-term thread state，把 store 用于跨线程 long-term memory；这个分工能避免把所有线程快照当成用户画像。</p><p>写长期 store 前应有 memory policy：哪些信息自动保存，哪些需要确认，哪些禁止保存，哪些带过期时间。读取时也要按 namespace 和用户权限过滤。否则一个用户的偏好可能泄漏到另一个用户，或临时任务信息在未来无关对话中被模型误用。</p><h2>摘要策略与事实校验</h2><p>摘要 memory 应把长历史压缩成当前任务需要的背景，而不是改写成永久事实。摘要中出现的事实最好保留来源消息范围，例如“来自第 3-8 轮”。当用户纠正摘要内容时，系统应更新摘要并保留修正依据。没有来源的摘要会变成另一个不可解释的模型输出。</p><p>摘要还要处理工具结果。工具观察通常比模型自然语言更接近事实，不能在摘要中被随意弱化或改写。若工具返回“余额不足，交易失败”，摘要不能写成“用户完成了支付”。对关键业务状态，宁可保留结构化字段，也不要只依赖自然语言摘要。</p><h2>隐私删除的实际范围</h2><p>用户要求删除记忆时，要区分产品长期记忆、当前线程历史、checkpoint、日志、备份和评测样本。产品承诺应明确哪些会立即删除，哪些因审计或安全需要按策略保留，哪些会在备份周期后消失。技术实现上，要能根据 user_id 和 memory id 找到相关记录。</p><p>不要把删除请求交给模型解释后就结束。模型可以生成确认话术，但真正删除必须由确定性代码执行，并返回可审计结果。对于敏感信息，最好在写入前就阻止进入长期 memory，降低后续删除复杂度。记忆系统越克制，隐私治理越简单。</p><h2>删除策略演练</h2><p>设计 memory 功能时，应提前演练一次删除请求。给定 user_id 和 memory_id，列出要清理的长期 store 记录、索引记录、摘要片段、活跃 thread checkpoint、可搜索缓存和评测样本；再标出哪些属于产品可立即删除，哪些属于审计日志按保留期处理。演练输出应是确定性清单，而不是“让模型忘记”。</p><p>删除后还要验证读取路径。下一轮 prompt 不应再出现该记忆，长期记忆 retriever 不应命中相关记录，摘要若曾包含敏感片段也要重写或作废。若系统支持多设备或多线程，会话缓存也要失效。删除策略只有覆盖写入、读取、缓存和审计边界，用户的“忘记我说过”才真正可信。</p><h2>多线程会话与身份</h2><p>同一个用户可能同时有多个 thread：学习课程、处理订单、调试代码。thread_id 决定短期状态隔离，user_id 决定长期记忆归属。把二者混用会造成串话：一个线程的工具结果进入另一个线程，或一个用户的偏好被另一个用户读取。</p><p>运行时 config 应稳定传入 thread_id、user_id 和必要权限上下文。模型不应自己填写这些安全字段。记忆读取和写入都要使用系统侧身份，而不是用户消息里的自称。这样才能防止提示注入要求“把我当成另一个用户”。</p><h2>工具消息与记忆</h2><p>ToolMessage 通常包含外部系统事实，例如订单状态、搜索结果或执行错误。它适合短期对话和 checkpoint，但不一定适合长期记忆。一次订单查询结果过几天可能过期，长期保存会误导未来回答。记忆策略要按事实有效期决定是否保存。</p><p>有些工具结果可以提炼成长期偏好，例如用户每次都选择中文文档；有些只能作为本次任务证据，例如支付失败原因。模型可以建议写入，但最终应由确定性策略判断。不要把工具返回 JSON 原样塞进长期 store。</p><h2>摘要触发时机</h2><p>摘要不应每轮都重写，否则成本高且容易累积漂移。常见触发条件包括消息 token 超过阈值、完成一个任务阶段、工具链结束或用户显式切换主题。触发时要把最近未总结消息和旧摘要一起生成新摘要，并记录摘要版本。</p><p>摘要更新后，最近窗口仍要保留若干原始消息，尤其是用户最新目标和未完成工具结果。只保留摘要会让模型失去语气、约束和细节。摘要是压缩层，不是当前上下文的唯一来源。</p><h2>记忆评测</h2><p>记忆系统也需要评测样例。例一：用户要求以后中文回答，下一轮应使用中文；例二：用户提供一次性验证码，下一轮不应复述；例三：用户纠正偏好，旧偏好应被覆盖；例四：另一个 thread 不应看到当前任务细节。</p><p>评测断言应检查结构记录，而不只是最终回答。长期 store 是否新增正确 key，敏感信息是否未写入，checkpoint 是否按 thread 隔离，summary 是否脱敏，删除请求后记录是否消失。结构断言能防止记忆功能表面可用、底层泄漏。</p><h2>记忆与 RAG 的交界</h2><p>长期记忆可以被看作一类私有 RAG 数据源：它有记录、有 metadata、有写入来源，也需要检索和引用。区别在于记忆往往更敏感、更个人化、更容易过期。读取长期记忆时应像检索文档一样记录命中的 memory id 和使用原因。</p><p>当记忆和外部文档冲突时，本轮用户指令和权威资料通常优先于旧记忆。例如长期记忆说用户在学旧版本 API，但本轮用户明确说切到 v1 新文档，系统应更新或忽略旧记忆。优先级规则能减少“越记越固执”的问题。</p><p>每条长期记忆还应能解释来源、时间和用途。用户问“你为什么知道这个偏好”时，系统应能回到某次明确授权或可保存事件，而不是只说历史里出现过。可解释性让记忆从神秘画像变成可审计记录。</p><div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：Memory 就是把所有历史塞进 prompt</div><div class="pf-correct">正确：历史需要窗口、摘要、检索和隐私策略，否则成本高且容易泄漏。</div></div><div class="pitfall"><div class="pf-wrong">误解：checkpoint 等于长期记忆</div><div class="pf-correct">正确：checkpoint 是线程状态快照，长期记忆是跨会话可检索记录，生命周期不同。</div></div><div class="pitfall"><div class="pf-wrong">误解：摘要可以完全替代原始消息</div><div class="pf-correct">正确：摘要会丢细节和证据；关键工具结果和可审计消息仍要保留。</div></div><div class="pitfall"><div class="pf-wrong">误解：用户说记住就必须永久保存</div><div class="pf-correct">正确：长期写入要考虑同意、敏感信息、过期、可删除和最小化原则。</div></div></div><div class="card lab"><div class="tag">🧪 小实验 · 制定一条安全记忆策略</div><ol><li>写 5 条用户发言：偏好、临时任务、敏感信息、事实纠正和闲聊。</li><li>分别判断每条进入最近窗口、摘要、长期记忆、还是拒绝保存。</li><li>为长期记忆记录写 source、reason、created_at、expires_at 和 delete 方式。</li><li>设计下一轮 prompt：哪些历史直接放入，哪些通过检索放入，哪些不能放入。</li><li>模拟用户要求删除记忆，写出应该清理的长期记录和 checkpoint/日志边界。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>当前可验证路径中 InMemoryChatMessageHistory 位于 langchain_core.chat_history；langchain_classic/memory/chat_message_histories/in_memory.py 只是 re-export。学习时优先理解 core 抽象和 LangGraph state/checkpoint，而不是旧 Memory 类名。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>短期历史、checkpoint、摘要和长期记忆是不同层，不应混用。</li><li>add_messages 负责把节点产出的消息增量合并进 state。</li><li>checkpoint 让线程可恢复和可调试，但不等于用户长期画像。</li><li>长期记忆要有写入理由、隐私过滤、过期和删除机制。</li><li>下一轮上下文应只读取相关且允许使用的记忆。</li></ul></div><div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. Chat history、summary memory、checkpoint 的区别哪项最准确？</div>
+  <ol class="opts">
+    <li>summary memory 必须永久保存所有敏感信息</li>
+    <li>checkpoint 只能保存向量，不能保存消息</li>
+    <li>Chat history 保存消息；summary 压缩长历史；checkpoint 保存线程状态快照以便恢复和调试</li>
+    <li>三者完全相同，只是不同包的名字</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。三者生命周期和用途不同：消息服务当前对话，摘要服务窗口压缩，checkpoint 服务状态恢复。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. LangGraph 中 <code>add_messages</code> 常用于什么？</div>
+  <ol class="opts">
+    <li>把所有用户偏好写入公开网页</li>
+    <li>把 retriever 自动变成 loader</li>
+    <li>把向量相似度改成余弦距离</li>
+    <li>把节点返回的消息增量合并进 state['messages']，并按消息 id 处理追加/覆盖</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。add_messages 是 messages 状态的 reducer，帮助多轮 Agent loop 保持结构化消息历史。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 长期记忆写入最应该遵守哪条原则？</div>
+  <ol class="opts">
+    <li>最小化、可解释、可删除，并过滤敏感或临时信息</li>
+    <li>把 checkpoint 当作公开知识库</li>
+    <li>为了个性化可以忽略删除请求</li>
+    <li>只要用户说过就永久保存</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。长期记忆涉及隐私和陈旧风险，必须有写入理由、过期/删除机制和使用边界。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>为学习助手设计 memory policy：哪些内容进入最近窗口、摘要、长期偏好或拒绝保存？说明写入和删除规则。</li>
+    <li>分析一次隐私泄漏风险：用户临时提供身份证号完成任务。系统在 chat history、checkpoint、summary、long-term memory 中应如何处理？</li>
+  </ul>
+</div>
+</div>
+  <div class="footnav"><a class="prev" href="38-retrievers-rerankers.html"><div class="dir">← 上一课</div><div class="ttl">Retriever、压缩与 Rerank</div></a><a class="next" href="15-contributing.html"><div class="dir">下一课 →</div><div class="ttl">本地开发、源码调试与贡献</div></a></div>
+</div>
+
+</body></html>

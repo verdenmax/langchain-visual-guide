@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>14 · 并行、分支与映射 — LangChain 图解教程</title>
+<meta name="description" content="第三部分 · Runnable 与 LCEL｜并行、分支与映射：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="theme-color" content="#1a7f64">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="LangChain 图解教程">
+<meta property="og:title" content="14 · 并行、分支与映射 — LangChain 图解教程">
+<meta property="og:description" content="第三部分 · Runnable 与 LCEL｜并行、分支与映射：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="14 · 并行、分支与映射 — LangChain 图解教程">
+<meta name="twitter:description" content="第三部分 · Runnable 与 LCEL｜并行、分支与映射：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f0f2f5; --ink: #1d2129;
+  --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
+  --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
+  --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116; --panel: #161b22; --panel-2: #1c232c; --ink: #e6edf3;
+    --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
+    --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
+    --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+    "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg); color: var(--ink); line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
+
+/* ---- top progress bar ---- */
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: var(--panel);
+  border-bottom: 1px solid var(--line); backdrop-filter: blur(8px);
+}
+.topbar-inner {
+  max-width: 960px; margin: 0 auto; padding: .7rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.topbar .home { font-size: .82rem; color: var(--muted); font-weight: 600; display:flex; gap:.5rem; align-items:center; }
+.topbar .home b { color: var(--accent); }
+.topbar .pill { font-size: .72rem; color: var(--muted); background: var(--panel-2);
+  padding: .2rem .6rem; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.progress { height: 3px; background: var(--panel-2); }
+.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue)); }
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 2.4rem 1.25rem 5rem; }
+
+/* ---- hero ---- */
+.hero { margin-bottom: 2rem; }
+.hero .part { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin-bottom: .55rem; }
+.hero h1 { font-size: 2.05rem; line-height: 1.2; letter-spacing: -.01em; font-weight: 750; }
+.hero .lead { margin-top: .9rem; font-size: 1.06rem; color: var(--muted); }
+
+h2 { font-size: 1.32rem; margin: 2.4rem 0 .9rem; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: .55rem; }
+h2::before { content: ""; width: 4px; height: 1.05em; background: var(--accent); border-radius: 3px; display: inline-block; }
+h3 { font-size: 1.05rem; margin: 1.4rem 0 .5rem; }
+p { margin: .7rem 0; }
+ul, ol { margin: .6rem 0 .6rem 1.3rem; }
+li { margin: .3rem 0; }
+strong { color: var(--ink); font-weight: 680; }
+.inline { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: .08em .4em; font-size: .9em; color: var(--accent-ink); }
+
+/* ---- callout cards ---- */
+.card { border-radius: var(--radius); padding: 1.05rem 1.2rem; margin: 1.2rem 0;
+  border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+.card .tag { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+.card.macro { border-left: 4px solid var(--blue); }
+.card.macro .tag { color: var(--blue); }
+.card.detail { border-left: 4px solid var(--purple); }
+.card.detail .tag { color: var(--purple); }
+.card.analogy { border-left: 4px solid var(--amber); background: var(--amber-soft); }
+.card.analogy .tag { color: var(--amber); }
+.card.key { border-left: 4px solid var(--accent); background: var(--accent-soft); }
+.card.key .tag { color: var(--accent-ink); }
+.card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
+.card.warn .tag { color: var(--red); }
+.card.spark { border-left: 4px solid #e0a000;
+  background: linear-gradient(100deg, rgba(224,160,0,.12), transparent 70%); }
+.card.spark .tag { color: #c98a00; }
+@media (prefers-color-scheme: dark) { .card.spark .tag { color: #f0c050; } }
+
+/* ---- code file callout ---- */
+.codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
+  box-shadow: var(--shadow); }
+.codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
+  background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
+.codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
+.codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
+  overflow-x: auto; font-size: .82rem; line-height: 1.6; }
+.codefile pre .cm { color: #7d8aa3; }
+.codefile pre .kw { color: #c792ea; }
+.codefile pre .fn { color: #82aaff; }
+.codefile pre .st { color: #c3e88d; }
+.codefile pre .nb { color: #f78c6c; }
+
+pre.code { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem; border-radius: 12px;
+  overflow-x: auto; font-size: .83rem; line-height: 1.6; margin: 1.1rem 0; box-shadow: var(--shadow); }
+pre.code .cm { color: #7d8aa3; } pre.code .kw { color: #c792ea; }
+pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb { color: #f78c6c; }
+
+/* ---- collapsible accordion (details/summary) ---- */
+.accordion { border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+  margin: .7rem 0; box-shadow: var(--shadow); overflow: hidden; }
+.accordion > summary { cursor: pointer; padding: .85rem 1.1rem; font-weight: 650; font-size: .96rem;
+  list-style: none; display: flex; align-items: center; gap: .6rem; user-select: none; }
+.accordion > summary::-webkit-details-marker { display: none; }
+.accordion > summary::after { content: "▶"; font-size: .68rem; color: var(--accent);
+  margin-left: auto; transition: transform .15s ease; }
+.accordion[open] > summary::after { transform: rotate(90deg); }
+.accordion > summary:hover { background: var(--panel-2); }
+.accordion[open] > summary { border-bottom: 1px solid var(--line); }
+.accordion .badge-num { background: var(--accent-soft); color: var(--accent-ink);
+  width: 1.6rem; height: 1.6rem; border-radius: 7px; display: inline-flex; align-items: center;
+  justify-content: center; font-size: .82rem; font-weight: 700; flex-shrink: 0; }
+.accordion .hint { font-size: .72rem; color: var(--faint); font-weight: 400; }
+.acc-body { padding: .9rem 1.1rem 1.1rem; }
+.acc-intro { color: var(--muted); font-size: .9rem; margin: .2rem 0 .4rem; }
+.qa { margin: 1rem 0; }
+.qa:first-child { margin-top: .3rem; }
+.qa .q { font-weight: 680; font-size: .9rem; display: flex; gap: .45rem; align-items: center; margin-bottom: .3rem; }
+.qa .a { color: var(--muted); font-size: .9rem; }
+.qa .a strong { color: var(--ink); }
+.qa pre.code { margin: .5rem 0 0; font-size: .78rem; }
+
+/* ---- flow diagram ---- */
+.flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 1.3rem 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1.2rem 1rem; box-shadow: var(--shadow); }
+.flow .node { flex: 1 1 0; min-width: 110px; text-align: center; padding: .7rem .5rem;
+  border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.flow .node .nt { font-weight: 700; font-size: .92rem; }
+.flow .node .nd { font-size: .76rem; color: var(--muted); margin-top: .2rem; }
+.flow .node.hl { background: var(--accent-soft); border-color: var(--accent); }
+.flow .arrow { align-self: center; color: var(--faint); font-size: 1.3rem; padding: 0 .35rem; }
+
+/* vertical flow */
+.vflow { margin: 1.3rem 0; }
+.vflow .step { display: flex; gap: .9rem; position: relative; padding-bottom: 1.1rem; }
+.vflow .step:not(:last-child)::before { content:""; position:absolute; left: 15px; top: 34px; bottom: -2px;
+  width: 2px; background: var(--line); }
+.vflow .num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; z-index:1; }
+.vflow .sc h4 { margin: .25rem 0 .2rem; font-size: 1rem; }
+.vflow .sc p { margin: .15rem 0; font-size: .92rem; color: var(--muted); }
+.vflow .sc .mono { font-size: .8rem; color: var(--accent-ink); }
+
+/* layered architecture */
+.layers { margin: 1.3rem 0; display: flex; flex-direction: column; gap: .55rem; }
+.layer { border-radius: 12px; padding: .85rem 1.1rem; border: 1px solid var(--line); background: var(--panel);
+  box-shadow: var(--shadow); }
+.layer .lh { display: flex; align-items: center; gap: .6rem; }
+.layer .lh .badge { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; }
+.layer .lh .name { font-weight: 700; font-family: ui-monospace, monospace; }
+.layer .ld { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.layer.l-core { border-left: 4px solid var(--accent); } .layer.l-core .badge { background: var(--accent-soft); color: var(--accent-ink); }
+.layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
+.layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
+.layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+
+/* two-column compare */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
+.col h4 { margin: 0 0 .4rem; font-size: .95rem; }
+
+table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
+  background: var(--panel); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+table.t th, table.t td { padding: .6rem .8rem; text-align: left; border-bottom: 1px solid var(--line); }
+table.t th { background: var(--panel-2); font-size: .8rem; letter-spacing: .02em; }
+table.t tr:last-child td { border-bottom: none; }
+table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-size: .82rem; color: var(--accent-ink); }
+@media (max-width: 640px) {
+  /* Wide multi-column tables: scroll within their own box instead of
+     forcing page-level horizontal overflow (which clipped right columns). */
+  table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.t th, table.t td { padding: .5rem .6rem; }
+  /* Code-file header: let a long path wrap and the right-side caption drop to
+     its own line instead of being pushed off-screen and silently clipped by
+     html{overflow-x:hidden}. */
+  .codefile .cf-head { flex-wrap: wrap; }
+  .codefile .cf-head .ln { margin-left: 0; }
+}
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
+
+/* footer nav */
+.footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
+  padding-top: 1.4rem; border-top: 1px solid var(--line); }
+.footnav a { flex: 1; padding: .85rem 1.1rem; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--panel); box-shadow: var(--shadow); transition: .15s; }
+.footnav a:hover { border-color: var(--accent); transform: translateY(-1px); }
+.footnav a.next { text-align: right; }
+.footnav .dir { font-size: .72rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.footnav .ttl { font-weight: 700; color: var(--ink); margin-top: .15rem; }
+.footnav a.disabled { opacity: .35; pointer-events: none; }
+
+/* index page */
+.toc { display: grid; gap: .7rem; margin-top: 1.6rem; }
+.toc-part { font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--accent); margin: 1.4rem 0 .2rem; }
+.toc a { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.05rem; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); transition: .15s; }
+.toc a:hover { border-color: var(--accent); transform: translateX(3px); }
+.toc .n { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
+.toc .tt { font-weight: 650; color: var(--ink); }
+.toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.toc-search { position: relative; margin: 1.6rem 0 -.4rem; }
+.toc-search input { width: 100%; box-sizing: border-box; padding: .75rem 2.8rem .75rem 1rem;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font-size: .98rem; box-shadow: var(--shadow); }
+.toc-search input:focus { outline: none; border-color: var(--accent); }
+.toc-search .qcount { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+  color: var(--faint); font-size: .8rem; pointer-events: none; }
+.toc a.hide, .toc .toc-part.hide { display: none; }
+.toc-empty { display: none; color: var(--muted); padding: 1rem; text-align: center; }
+.toc-empty.show { display: block; }
+.hero.index h1 { font-size: 2.3rem; }
+.legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
+.legend span { display:flex; align-items:center; gap:.4rem; }
+.legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }
+.pdf-btn { display:inline-flex; align-items:center; gap:.4rem; padding:.55rem 1.1rem;
+  background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
+  box-shadow:var(--shadow); transition:.15s; }
+.pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
+</style>
+</head><body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第三部分 · Runnable 与 LCEL</span>
+    <span class="pill">14 / 46</span>
+  </div>
+  <div class="progress"><span style="width:30%"></span></div>
+</div>
+<div class="wrap">
+  <div class="hero">
+    <div class="part">第三部分 · Runnable 与 LCEL</div>
+    <h1>并行、分支与映射</h1>
+  </div>
+
+<p class="lead">顺序链解决“先做 A 再做 B”，但真实应用常常需要“同一个输入同时走几条路，再汇合”，或“根据输入选择一条路”。RunnableParallel、RunnableBranch、RunnablePassthrough、RunnableMap / RunnableEach 共同负责这些形状。本课把它们放在 RAG 场景里理解：问题一边送去检索得到 context，一边原样保留为 question，二者合并成 prompt 需要的字典；如果问题类型不同，还可以用 Branch 路由到不同链。</p>
+
+<div class="card analogy">
+  <div class="tag">🛣️ 生活类比</div>
+  把并行和分支想成<strong>机场行李系统</strong>：同一件行李进入系统后，可以同时被扫描重量、识别目的地、检查安检标签，最后这些结果汇总到登机口；如果标签显示“超大件”，它会被分流到特殊通道。并行不是大家抢同一个箱子乱改，而是每条通道拿到自己的输入副本；分支也不是随便猜路，而是根据清晰、便宜、可重复的规则选择通道。</div>
+<div class="lesson-map"><div class="lm-title">🗺️ 本课地图：扇出、路由、汇合</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">Parallel</div><div class="mn-desc">同一个输入扇出到多个 Runnable，输出按键汇合成字典</div></div><div class="map-node now"><div class="mn-label">Branch</div><div class="mn-desc">按谓词选择第一个匹配分支，或走默认分支</div></div><div class="map-node now"><div class="mn-label">Passthrough/assign</div><div class="mn-desc">保留原输入并在字典上补充字段</div></div><div class="map-node source"><div class="mn-label">Map/Each</div><div class="mn-desc">把同一 Runnable 应用于列表中的每个元素，理解 batch/map 语义</div></div><div class="map-node after"><div class="mn-label">RAG 模式</div><div class="mn-desc">retriever + question 并行，prompt 接收 context/question</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>并行和分支都在 Runnable 协议内部实现，因此它们也能 invoke、stream、batch、with_config。源码阅读要注意两个方向：Parallel 是“同输入多输出再合并”，Branch 是“多候选只执行一个”。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">RunnableParallel</td><td>同一输入并发调用多个步骤，结果以字典键汇合</td><td>上游输入扇出到各子 Runnable</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/branch.py</td><td class="mono">RunnableBranch</td><td>按条件谓词选择匹配分支，支持默认分支</td><td>输入先给谓词，再给被选中的 Runnable</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/passthrough.py</td><td class="mono">RunnablePassthrough</td><td>原样返回输入，并可 assign 新字段</td><td>保留 question 或原始 dict</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">RunnableMap</td><td>RunnableParallel 的映射形态，强调键到 Runnable 的映射</td><td>把分支结果收集成 dict</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">RunnableEach</td><td>把单输入 Runnable 应用于输入列表的每一项</td><td>列表输入逐项调用并收集</td></tr></table>
+<h2>状态流：RAG 中的并行扇出与汇合</h2>
+<p>一个典型 RAG chain 需要 prompt 同时拿到 <span class="mono">context</span> 和 <span class="mono">question</span>。检索器会把 question 变成文档列表，Passthrough 会保留原问题。Parallel 把两路汇合成字典，prompt 再按模板变量读取。</p>
+<div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>用户问题进入</h4><p>输入是一句自然语言问题，尚未包含 context。</p><div class="mono">question = &#x27;RunnableConfig 是什么？&#x27;</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>并行扇出</h4><p>同一 question 同时送给 retriever 和 passthrough；两边不共享可变状态。</p><div class="mono">{&#x27;context&#x27;: retriever, &#x27;question&#x27;: passthrough}</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>检索分支</h4><p>retriever 返回相关文档，通常还要 format_docs 成 prompt 可读文本。</p><div class="mono">context = &#x27;文档片段...&#x27;</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>透传分支</h4><p>RunnablePassthrough 返回原 question，避免检索器输出覆盖问题。</p><div class="mono">question = 原输入</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>字典汇合</h4><p>Parallel 用键名合并结果，prompt 收到完整变量字典。</p><div class="mono">{&#x27;context&#x27;: ..., &#x27;question&#x27;: ...}</div></div></div></div>
+<h2>Parallel：并发是实现细节，数据形状才是 API</h2>
+<p><span class="mono">RunnableParallel</span> 的公开语义是“同一个输入喂给多个分支，输出组成字典”。它可能用线程、协程或 executor 并发执行，也可能因配置、环境或子组件限制而表现得不完全并行。应用代码不应该依赖“必然同时开始”这种细节，而应该依赖稳定的数据形状：每个键对应一个分支结果，下游 prompt 或函数按键读取。换句话说，Parallel 的 API 是 fan-out/fan-in，不是共享内存并发库。</p>
+<p>Parallel 的另一个重要边界是错误传播。任何分支失败，默认会让整个并行结构失败，因为下游需要完整字典。如果检索分支超时而 question 分支成功，prompt 仍然缺少 context。生产系统要么给检索分支加重试或 fallback，要么让分支返回一个明确的空 context 和错误标记，再让下游 prompt 或业务层处理降级。</p>
+
+<h2>Branch：条件路由应便宜、确定、可解释</h2>
+<p><span class="mono">RunnableBranch</span> 把 if/elif/else 做成 Runnable。每个候选通常由“谓词 + 目标 Runnable”组成，输入先给谓词，匹配后只执行对应目标。谓词最好是便宜且确定的：例如检查输入字段、语言、用户选择、是否带附件。不要让谓词本身调用昂贵模型又产生随机判断，否则你会把路由变成新的不稳定依赖。Branch 的好 trace 应该能回答：为什么走这条路？哪些条件没有匹配？默认分支是什么？</p>
+<p>分支还有一个容易忽略的契约：所有分支最好返回相同输出 schema。如果“中文问题分支”返回字符串，“代码问题分支”返回 dict，“默认分支”返回消息对象，下游就必须写大量类型判断，链的可组合性会下降。分支可以改变执行路径，但不应该让后续步骤无法预测输入形状。</p>
+
+<h2>Passthrough 与 assign：保留输入，再补字段</h2>
+<p>顺序链会不断替换当前值，因此保留原始输入是一件需要显式表达的事。<span class="mono">RunnablePassthrough</span> 原样返回输入；<span class="mono">assign</span> 常用于在已有字典上增加新键。例如输入已经是 <span class="mono">{'question': '...'}</span>，你可以 assign 一个 <span class="mono">context</span> 字段，而不是重建整个字典。这个风格让链路更局部：每一步只声明“我要新增什么”，不必复制所有旧字段。</p>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. 输入</td><td>&#x27;如何配置 callbacks？&#x27;</td><td>Parallel 接收单个 question</td><td>准备扇出</td></tr><tr><td>2. context 分支</td><td>同一 question</td><td>retriever.invoke 查询文档，format_docs 拼接片段</td><td>context 文本</td></tr><tr><td>3. question 分支</td><td>同一 question</td><td>RunnablePassthrough.invoke 原样返回</td><td>question 文本</td></tr><tr><td>4. 汇合</td><td>两个分支结果</td><td>RunnableParallel 按键构造 dict</td><td>{&#x27;context&#x27;: ..., &#x27;question&#x27;: ...}</td></tr><tr><td>5. 下游</td><td>完整 dict</td><td>prompt.invoke 读取 context/question 变量</td><td>可发送给模型的消息</td></tr></table>
+<h2>简化源码走读：Parallel 和 Branch 的执行形状</h2>
+<p>下面的伪代码把并发调度简化成循环，把回调省略掉。真实实现会处理异步、配置 patch、错误聚合和 streaming。教学重点是：Parallel 执行全部步骤并合并；Branch 只执行第一个匹配目标。</p>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/core/langchain_core/runnables/base.py / branch.py :: RunnableParallel / RunnableBranch</span><span class="ln">简化版</span></div><pre>class RunnableParallel(Runnable):
+    def invoke(self, input, config=None):
+        result = {}
+        for key, step in self.steps.items():
+            result[key] = step.invoke(input, config=config)
+        return result
+
+class RunnableBranch(Runnable):
+    def invoke(self, input, config=None):
+        for predicate, runnable in self.branches:
+            if predicate.invoke(input, config=config):
+                return runnable.invoke(input, config=config)
+        return self.default.invoke(input, config=config)
+</pre><div class="cw-note">Parallel 的抽象输出是 dict；Branch 的抽象输出来自被选中的单个分支。二者都保持 Runnable 外观，所以能继续接 prompt、model、parser 或 retry。</div></div>
+<h2>RunnableMap / RunnableEach：映射语义与 batch 语义</h2>
+<p><span class="mono">RunnableMap</span> 在很多语境中就是强调“键到 Runnable 的映射”，实际心智模型与 RunnableParallel 接近：同输入、多分支、字典输出。<span class="mono">RunnableEach</span> 则把一个 Runnable 应用于列表里的每个元素。它们都容易被误解成“Python map 一定惰性”或“batch 一定合并成单个 provider 请求”。在 LangChain 里，关键仍是协议：列表中的每个元素都按单次输入契约运行，配置和回调要能区分子调用，结果顺序要能对应输入顺序。</p>
+<p>如果每个元素会触发外部副作用，例如写数据库、扣费、发邮件，就不要只因为 RunnableEach 很方便就并发跑。并行适合独立、可重复、无共享可变状态的任务；涉及副作用时，要明确幂等键、事务边界和失败补偿。</p>
+
+<h2>常见误解与边界情况</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：parallel 就能共享并修改同一个状态</div><div class="pf-correct">正确：Parallel 的心智模型是同输入扇出、结果汇合；共享可变状态会制造竞态。</div></div><div class="pitfall"><div class="pf-wrong">误解：branch 谓词可以很重、很随机</div><div class="pf-correct">正确：路由谓词应便宜、确定、可解释，昂贵模型判断要谨慎包装。</div></div><div class="pitfall"><div class="pf-wrong">误解：下游 prompt 会自动补缺失键</div><div class="pf-correct">正确：Prompt 需要的 context/question 缺一不可，缺键会在下游模板处失败。</div></div><div class="pitfall"><div class="pf-wrong">误解：所有分支可以返回任意形状</div><div class="pf-correct">正确：分支输出 schema 应尽量一致，否则后续链会变成类型判断迷宫。</div></div></div>
+<h2>小结前的实验</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 设计 RAG 扇出链</div><ol><li>画出 {&#x27;context&#x27;: retriever | format_docs, &#x27;question&#x27;: RunnablePassthrough()} 的输入输出。</li><li>让 prompt 故意引用 missing_key，观察错误发生在汇合后还是 prompt 渲染时。</li><li>写一个 Branch：如果问题包含代码块走代码解释链，否则走普通问答链，并保证输出 schema 一致。</li><li>用 batch 跑三个问题，记录每个子 run 的 tags 或 run_name，确认 trace 能区分它们。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>RunnableParallel 与 RunnableBranch 的公开语义比内部调度细节更稳定。阅读源码时以 base.py、branch.py、passthrough.py 中的符号为锚点，不要把某一版 executor 实现当成 API 承诺。</div>
+
+<h2>深入拆解：并行的核心是独立性</h2>
+<p>RunnableParallel 让链看起来像“同时做很多事”，但真正决定它是否可靠的不是同时，而是独立。每个分支都应能在不修改共享可变状态的情况下，根据同一输入计算自己的结果。检索分支读取向量库，透传分支保留问题，分类分支判断语言，这些都相对独立；如果两个分支同时写同一张订单表、同时更新同一个缓存键、同时修改同一个 Python 对象，就会把 LCEL 的声明式并行变成竞态条件。并行组合的第一条审查规则就是：分支之间是否有隐式依赖？</p>
+<p>独立性还关系到错误处理。一个分支失败是否应该让整体失败？如果 prompt 必须同时拥有 context 和 question，context 缺失就应该失败；如果某个分支只是附加推荐信息，失败也许可以返回空列表并记录降级。RunnableParallel 默认更偏严格，因为下游通常期待完整 dict。生产链可以在单个分支内部做 fallback，把失败局部化，而不是让整个并行结构吞掉错误。</p>
+<h3>扇出和汇合的命名设计</h3>
+<p>Parallel 输出是 dict，因此键名就是下游契约。键名不要随意取。<span class="mono">context</span>、<span class="mono">question</span>、<span class="mono">language</span>、<span class="mono">citations</span> 这种名字能表达业务含义；<span class="mono">a</span>、<span class="mono">result1</span>、<span class="mono">tmp</span> 会让 prompt 模板和调试信息难读。键名一旦被 prompt、parser 或后续函数依赖，就相当于公共接口，改名需要同步修改下游。</p>
+<p>汇合后最好尽快进入一个明确消费这些键的组件，例如 prompt 或命名函数。不要让一个巨大 dict 在很多步骤之间漂流，每一步都偷偷读写几个键。那会让链退化成弱类型状态包，和“config 当业务状态”一样难维护。如果确实需要长时间携带多字段状态，考虑用 LangGraph 的显式 state schema，而不是把 Parallel 输出无限传下去。</p>
+<h3>Branch 的谓词设计</h3>
+<p>Branch 谓词是路由逻辑，不是业务主体。它应该快、确定、可测试。快，意味着不要每次路由都调用昂贵模型，除非你明确接受成本；确定，意味着同一输入在同一条件下应走同一路径；可测试，意味着你能列出样例验证每个分支会被选中。基于字段存在、用户选择、文件类型、语言标签、模型置信度阈值的谓词通常比较适合。基于自由文本模型判断的谓词也能用，但要给它单独的观测、缓存和失败策略。</p>
+<p>Branch 的默认分支不能随便写。没有默认分支时，未匹配输入可能抛出难懂错误；默认分支太宽时，又可能掩盖路由配置错误。推荐把默认分支设计成明确的安全路径：要么返回可解释的“不支持该类型”，要么走保守通用链，并在 metadata 或输出中标注“未命中特定路由”。这样既不让系统无声失败，也不给用户一个看似正常但完全错误的答案。</p>
+<h3>RAG fan-out 的完整责任链</h3>
+<p>RAG 中的并行结构通常不止两条线。最小版本是 question 透传和 context 检索；稍复杂时还会并行生成查询改写、语言检测、用户画像摘要、权限过滤参数。每加一条分支，都要回答三个问题：它读取什么输入？它输出哪个键？下游如果缺少这个键会怎样？不能回答这些问题，就说明分支边界还没设计清楚。</p>
+<p>检索分支尤其需要注意权限和格式。retriever 返回的文档不一定都能直接进入 prompt，可能还要做权限过滤、去重、截断、排序和引用编号。format_docs 不只是把 Document 变成字符串，它也是把检索世界翻译成 prompt 世界的边界。这个边界出错，下游模型可能看到过长、重复、无权限或缺少来源的上下文。把 format_docs 命名为独立 Runnable 或函数，会比把它藏在 lambda 里更容易审查。</p>
+
+
+<h2>并行结构的测试策略</h2>
+<p>测试 RunnableParallel 时，不要只测最终答案。先测汇合字典是否包含下游需要的全部键，再测每个键的值是否符合契约。对于 RAG，至少要断言 context 是字符串或文档列表的约定格式，question 没有被检索器覆盖，引用编号和文档 ID 能对应。很多线上错误不是模型答错，而是 prompt 收到的变量缺失、为空或格式不对。并行汇合处是最适合加测试的边界。</p>
+<p>Branch 的测试则要覆盖每个谓词路径和默认路径。每个样例都应说明为什么会走这条路，而不是只断言返回结果。比如“包含代码块的问题走代码解释链”“带 image 字段的输入走多模态链”“都不匹配时走通用问答链”。如果谓词依赖模型分类，就要用假分类器或固定输出测试路由，不要让测试被真实模型随机性影响。路由逻辑越清晰，生产问题越容易复现。</p>
+<h2>性能与并发的现实边界</h2>
+<p>Parallel 能降低延迟，但不是免费午餐。多个分支可能同时占用模型额度、数据库连接、向量库 QPS、线程池和内存。max_concurrency 可以限制批量和并行压力，但你仍然需要理解外部系统的容量。一个本地 demo 中并行三路很快，到了生产多租户流量下可能触发限流。设计并行链时，要把“理论并发”翻译成“实际依赖能承受的并发”。</p>
+<p>并发还会影响观测。多个分支日志交错出现，如果没有 run_id、parent_run_id 和清晰 run_name，就很难拼回时间线。使用 Parallel 时更应该给关键分支命名，例如 retrieve_context、pass_question、classify_intent。这样当某个分支慢或失败时，trace 能直接显示责任，而不是让你在一堆匿名 Runnable 中猜测。</p>
+<h2>从 LCEL 过渡到 LangGraph 的信号</h2>
+<p>Parallel 和 Branch 能表达很多数据流，但当你开始需要循环、长期状态、多轮人工审批、复杂重入、节点间条件跳转和持久化时，LCEL 可能不再是最合适的层。一个信号是：你开始把一个巨大 dict 当状态在很多 Runnable 之间传来传去，并不断 assign 新字段；另一个信号是：分支结果还要回到前面步骤形成循环。此时 LangGraph 的显式状态、节点和边会更清楚。</p>
+<p>这并不意味着 Parallel 和 Branch 只适合简单场景。它们是链式编排中非常重要的中层抽象：比手写并发和 if/else 更可观察，比完整图更轻量。关键是选择合适复杂度。确定的 RAG fan-out、简单意图路由、独立特征并行计算，用 LCEL 很合适；需要可恢复状态机时，再升级到图。好的架构不是只用一种工具，而是在复杂度上逐层递进。</p>
+
+<h2>缺键失败的真实来源</h2>
+<p>并行汇合后的缺键错误经常不是 prompt 写错，而是上游约定漂移。检索分支原来叫 context，后来有人改成 documents；透传分支原来返回 question，后来输入变成了包含 question 的 dict，却忘了取字段；assign 原来在字典上补键，后来输入变成字符串，导致无法补。解决这类问题不能只在 prompt 处捕获异常，而要回到汇合边界，给每个键建立清楚契约。</p>
+<p>一个实用习惯是在并行结构后加一个轻量校验步骤，确认必要键存在、类型正确、空值可接受。这个步骤可以是命名 RunnableLambda，也可以是业务层校验函数。它不会让模型更聪明，却能让错误更早、更清楚地发生。对 RAG 来说，“没有检索到文档”与“检索分支根本没返回 context”是两种不同情况，前者可以降级回答，后者说明链路坏了。</p>
+
+<h2>并行输出也需要版本意识</h2>
+<p>当并行结构被多个 prompt 或下游服务复用时，它的输出字典就像一个小型 API。API 会演进，字段会新增、废弃或改名，因此也需要版本意识。可以在 metadata 中记录链版本，在代码中把构造输入的 Runnable 命名为 build_rag_inputs_v2，或者在校验步骤里明确兼容哪些字段。这样当下游 prompt 仍期待旧字段时，错误会更容易定位。</p>
+<p>不要把“再加一个 assign”当成无成本操作。字段越多，下游越可能依赖隐式状态；字段来源越分散，越难判断谁负责生成。对于核心字段，例如 context、question、citations、user_scope，最好集中在一个清晰的构造边界完成，并配上测试。对于临时调试字段，则不要长期留在业务输入里，避免它们被后续步骤误用。</p>
+<p>Branch 也有版本问题。新增一个更靠前的谓词，可能会截走原来走默认分支的流量；修改默认分支，可能改变所有未匹配输入的行为。每次调整路由，都应该用一组代表性样本跑一遍，确认路径变化是预期的，而不是悄悄改变产品体验。</p>
+
+<h2>最后的判断标准</h2>
+<p>并行和分支的好坏，不看语法是否漂亮，而看输入是否独立、输出是否稳定、失败是否可解释。只要每个分支职责清楚、键名可靠、路由样例覆盖充分，Parallel 和 Branch 就能让复杂数据流保持清晰。</p>
+<p>当你不确定该用 Parallel 还是普通函数时，问一句：这些分支是否值得被分别观察、限流、重试和命名？如果值得，就用并行结构；如果只是局部计算，普通函数更简单。</p>
+<div class="card keypoints">
+  <div class="tag">✅ 本课要点</div>
+  <ul>
+    <li>RunnableParallel 表达 fan-out/fan-in：同输入多分支，结果按键汇合。</li>
+    <li>RunnableBranch 表达条件路由：谓词选择路径，未匹配走默认分支。</li>
+    <li>Passthrough 和 assign 用来保留原输入、给字典补字段，是 RAG 链常用胶水。</li>
+    <li>并行不是共享可变状态；分支也不应该破坏下游输出 schema。</li>
+    <li>RunnableMap / RunnableEach 延续 Runnable 协议，重点是列表与映射的输入输出契约。</li>
+  </ul>
+</div>
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. <code>RunnableParallel</code> 的 fan-out/fan-in 语义是什么？</div>
+  <ol class="opts">
+    <li>把所有分支输出拼成一个字符串</li>
+    <li>每个分支依次修改同一个共享状态对象</li>
+    <li>只执行第一个最快返回的分支</li>
+    <li>同一输入送到多个分支，结果按键汇合成字典</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。Parallel 的稳定语义是同输入、多分支、dict 汇合；是否真正并发是实现和配置细节。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. <code>RunnableBranch</code> 的谓词最好具备什么特征？</div>
+  <ol class="opts">
+    <li>越随机越好，避免固定路径</li>
+    <li>可以返回任意输出 schema</li>
+    <li>便宜、确定、可解释，能清楚说明为什么选择某条路径</li>
+    <li>必须每次调用最贵的模型来判断</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。路由谓词是控制流边界。便宜、确定、可测试的谓词能让分支行为稳定且可追踪。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. RAG 链里 <code>RunnablePassthrough</code> / <code>assign</code> 常用来解决什么问题？</div>
+  <ol class="opts">
+    <li>禁用 retriever 的 callbacks</li>
+    <li>自动提升模型准确率</li>
+    <li>保留原问题，并在字典上补充 context 等下游 prompt 需要的键</li>
+    <li>把所有字段写进 config</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。检索会把问题变成文档上下文，Passthrough/assign 用来保留或补齐 prompt 所需变量。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>设计一个 RAG fan-out：问题如何同时进入 retriever 和 passthrough，format_docs 放在哪里，prompt 最终收到哪些键？</li>
+    <li>下游 prompt 报缺少 <code>context</code>：你会检查 Parallel、assign、键名还是 prompt 模板？写出定位顺序。</li>
+  </ul>
+</div>
+</div>
+  <div class="footnav"><a class="prev" href="09-runnable-compose.html"><div class="dir">← 上一课</div><div class="ttl">LCEL 管道与 Sequence</div></a><a class="next" href="13-runnable-config-callbacks.html"><div class="dir">下一课 →</div><div class="ttl">配置、回调与运行树</div></a></div>
+</div>
+
+</body></html>

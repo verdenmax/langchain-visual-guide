@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>16 · 提示词 Prompts — LangChain 图解教程</title>
-<meta name="description" content="第五部分 · 自己动手做 Agent｜提示词 Prompts：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>09 · 提示词 Prompts — LangChain 图解教程</title>
+<meta name="description" content="第二部分 · 用户 API 基础｜提示词 Prompts：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="16 · 提示词 Prompts — LangChain 图解教程">
-<meta property="og:description" content="第五部分 · 自己动手做 Agent｜提示词 Prompts：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="09 · 提示词 Prompts — LangChain 图解教程">
+<meta property="og:description" content="第二部分 · 用户 API 基础｜提示词 Prompts：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="16 · 提示词 Prompts — LangChain 图解教程">
-<meta name="twitter:description" content="第五部分 · 自己动手做 Agent｜提示词 Prompts：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="09 · 提示词 Prompts — LangChain 图解教程">
+<meta name="twitter:description" content="第二部分 · 用户 API 基础｜提示词 Prompts：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -256,267 +256,216 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
 </style>
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第五部分 · 自己动手做 Agent</span>
-    <span class="pill">16 / 27</span>
+    <span class="pill">第二部分 · 用户 API 基础</span>
+    <span class="pill">09 / 46</span>
   </div>
-  <div class="progress"><span style="width:59%"></span></div>
+  <div class="progress"><span style="width:19%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第五部分 · 自己动手做 Agent</div>
+    <div class="part">第二部分 · 用户 API 基础</div>
     <h1>提示词 Prompts</h1>
   </div>
-  
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-前面我们用一个 <span class="inline">system_prompt</span> 字符串就把 Agent 的"人设"定了。
-但真实应用里，提示词往往需要<strong>带变量、插入对话历史、给模型示范</strong>——这就要用到
-LangChain 的<strong>提示词模板（Prompt Template）</strong>系统。
-</p>
+
+<p class="lead">Prompt 不是一段随手拼接的字符串，而是结构化消息工厂。<span class="mono">ChatPromptTemplate</span> 负责声明系统消息、人类消息、历史占位、少样本示例和变量；调用时校验变量、合并 partial、格式化内容，最后产出 <span class="mono">ChatPromptValue</span>，再转换为消息列表交给聊天模型。把 prompt 当 Runnable 看，才能把它稳定地接进链、解析器和 Agent。</p>
 
 <div class="card analogy">
-  <div class="tag">✉️ 生活类比</div>
-  提示词模板就像<strong>邮件模板 / 填空题</strong>：你预先写好骨架，留几个空
-  （<span class="mono">{name}</span>、<span class="mono">{question}</span>），用的时候把变量填进去，
-  就生成一封"具体的信"。它把"提示词的结构"和"每次的具体内容"分开了。
+  <div class="tag">📝 生活类比 · 表单模板和会议议程</div>
+  字符串 prompt 像把会议要求写在便签上，谁先说、历史记录放哪、哪些字段必填都靠人记。ChatPromptTemplate 像正式会议议程和表单：主持人开场、参会人问题、历史发言、示例材料各有位置；开会前检查必填项，固定信息可以提前盖章，真正开会时再填本次问题。
 </div>
 
-<h2>从字符串到模板</h2>
-<p>最常用的是 <span class="inline">ChatPromptTemplate</span>，它用一组"角色 + 模板字符串"构建一串消息：</p>
-
-<pre class="code"><span class="kw">from</span> langchain_core.prompts <span class="kw">import</span> ChatPromptTemplate, MessagesPlaceholder
+<h2>本课地图：模板声明到模型消息</h2>
+<p>Prompt 的核心价值是保持结构。系统消息放规则，人类消息放本轮问题，历史用 <span class="mono">MessagesPlaceholder</span> 插入消息列表，少样本示例放在合适位置，partial variables 绑定稳定上下文。最终输出不是字符串，而是可转换为消息的 PromptValue。</p>
+<div class="lesson-map"><div class="lm-title">🗺️ Prompt 作为消息工厂</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">模板声明</div><div class="mn-desc">定义 system/human/history/example 等消息片段</div></div><div class="map-node now"><div class="mn-label">变量校验</div><div class="mn-desc">确认 role、question、history 等输入齐全且形状正确</div></div><div class="map-node now"><div class="mn-label">partial 绑定</div><div class="mn-desc">把稳定变量提前固定，减少每次调用参数</div></div><div class="map-node source"><div class="mn-label">格式化</div><div class="mn-desc">将变量填入模板，保留消息边界</div></div><div class="map-node after"><div class="mn-label">交给模型</div><div class="mn-desc">ChatPromptValue.to_messages() 成为 BaseMessage 列表</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>读 prompt 源码要同时看模板、占位符、PromptValue 和 Runnable。这样你会发现 prompt 并不是模型前面的字符串拼接函数，而是链里第一个可调用组件。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/prompts/chat.py</td><td class="mono">ChatPromptTemplate</td><td>声明并格式化聊天消息模板，支持 from_messages、partial、invoke 等接口。</td><td>用户模板进入 Runnable 链。</td></tr><tr><td class="mono">libs/core/langchain_core/prompts/chat.py</td><td class="mono">MessagesPlaceholder</td><td>在模板中插入已有消息列表，常用于 history、agent_scratchpad 或工具轨迹。</td><td>把外部消息状态注入 prompt。</td></tr><tr><td class="mono">libs/core/langchain_core/prompt_values.py</td><td class="mono">ChatPromptValue</td><td>格式化后的聊天 prompt 值，可转换为 BaseMessage 列表或字符串表示。</td><td>prompt 与模型输入之间的桥。</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">Runnable</td><td>统一 invoke、batch、stream、config 组合协议，PromptTemplate 也实现它。</td><td>允许 prompt | model | parser 组合。</td></tr><tr><td class="mono">libs/core/langchain_core/prompts/base.py</td><td class="mono">BasePromptTemplate</td><td>Prompt 模板公共基类，处理输入变量、partial variables、校验和格式化入口。</td><td>聊天模板和字符串模板共享基础行为。</td></tr></table>
+<h2>状态流：声明、校验、partial、format、messages</h2>
+<div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>模板声明</h4><p>用 from_messages 写出 system、人类消息和历史占位，变量名成为契约。</p><div class="mono">ChatPromptTemplate</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>变量校验</h4><p>invoke 时检查必填变量是否存在，placeholder 是否接收消息列表。</p><div class="mono">input_variables</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>partial 绑定</h4><p>把固定角色、产品名、格式要求提前绑定到模板。</p><div class="mono">partial_variables</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>格式化</h4><p>把本次 question 填入对应消息，保持 system/human/history 分离。</p><div class="mono">format_messages</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>消息输出</h4><p>返回 ChatPromptValue，再由模型转换为 BaseMessage 列表。</p><div class="mono">ChatPromptValue</div></div></div></div>
+<h2>代码走读：简化版 ChatPromptTemplate.invoke</h2>
+<p>真实实现支持更多消息表示、模板格式、校验选项和 Runnable config。下面的伪代码突出三件事：先合并 partial 和本次输入；再验证变量；最后逐个消息模板格式化，placeholder 直接展开消息列表。</p>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/core/langchain_core/prompts/chat.py :: ChatPromptTemplate.invoke</span><span class="ln">简化版</span></div><pre>class ChatPromptTemplate(BasePromptTemplate):
+    def invoke(self, input, config=None):
+        values = merge(self.partial_variables, normalize_input(input))
+        self._validate_input(values)
+        messages = []
+        for part in self.messages:
+            if isinstance(part, MessagesPlaceholder):
+                messages.extend(values.get(part.variable_name, []))
+            else:
+                messages.append(part.format(values))
+        return ChatPromptValue(messages=messages)
 
 prompt = ChatPromptTemplate.from_messages([
-    (<span class="st">"system"</span>, <span class="st">"你是 {domain} 领域的助手，回答要简洁。"</span>),
-    MessagesPlaceholder(<span class="st">"history"</span>),     <span class="cm"># ← 这里会插入整段对话历史</span>
-    (<span class="st">"human"</span>, <span class="st">"{question}"</span>),
-])
+    (&quot;system&quot;, &quot;你是{role}，回答要简洁。&quot;),
+    MessagesPlaceholder(&quot;history&quot;, optional=True),
+    (&quot;human&quot;, &quot;{question}&quot;),
+])</pre><div class="cw-note">这是教学伪代码：真实源码还会处理可选占位符、不同模板引擎、单变量快捷输入和错误信息。</div></div>
+<h2>例子追踪：role、question 与 history 如何变成消息</h2>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1 声明模板</td><td>system: 你是{role}; history placeholder; human: {question}</td><td>模板记录变量 role、question、history。</td><td>ChatPromptTemplate</td></tr><tr><td>2 无历史调用</td><td>{role:&#x27;客服助手&#x27;, question:&#x27;订单多久到？&#x27;}</td><td>optional history 缺省为空，格式化 system 和 human。</td><td>[SystemMessage, HumanMessage]</td></tr><tr><td>3 有历史调用</td><td>history=[HumanMessage(&#x27;订单 123&#x27;), AIMessage(&#x27;请稍等&#x27;)]</td><td>MessagesPlaceholder 展开已有消息，不把历史拼成字符串。</td><td>[SystemMessage, HumanMessage, AIMessage, HumanMessage]</td></tr><tr><td>4 交给模型</td><td>ChatPromptValue</td><td>模型调用前转换为 messages。</td><td>BaseMessage 列表</td></tr><tr><td>5 下游稳定</td><td>prompt | model | parser</td><td>prompt 作为 Runnable 输出模型可接受的输入。</td><td>链式组合保持类型边界</td></tr></table>
+<h2>系统、人类、历史分离的意义</h2>
+<p>系统消息用于放角色、任务边界、输出约束和安全提醒；人类消息用于放本轮用户问题；历史消息用于保留真实对话上下文。三者分离后，provider adapter 可以按角色翻译，裁剪逻辑可以优先保留系统消息，工具循环可以把 ToolMessage 放在正确位置。混成一个字符串后，模型也许能读懂，但框架无法再可靠处理。</p>
+<p>分离也有助于排错。回答跑偏时，你可以检查系统消息是否过长、历史是否污染、本轮 question 是否被错误转义、few-shot 示例是否离用户问题太远。字符串拼接让这些问题都变成“prompt 好像不行”；结构化模板则能定位是哪一段不行。</p>
 
-messages = prompt.invoke({
-    <span class="st">"domain"</span>: <span class="st">"天气"</span>,
-    <span class="st">"history"</span>: [],
-    <span class="st">"question"</span>: <span class="st">"北京今天热吗？"</span>,
-})
-<span class="cm"># 得到一串标准消息，可直接喂给模型</span>
-</pre>
+<h2>partial variables：把稳定上下文提前绑定</h2>
+<p>partial 适合固定产品名、角色、格式说明、语言偏好等稳定变量。例如一个客服 prompt 可以提前绑定 <span class="mono">role='耐心的售后客服'</span> 和 <span class="mono">brand='示例商城'</span>，每次调用只传 question 和 history。这样上层链更简单，也减少漏传变量。</p>
+<p>但 partial 不应变成隐藏业务状态。用户权限、订单状态、实时库存这类会变化的数据，应来自工具、检索或图状态，而不是在 prompt 构造时永久绑定。否则一次请求的上下文可能污染后续请求，尤其在长生命周期服务中。</p>
 
-<div class="card key">
-  <div class="tag">🔑 核心认知</div>
-  <strong>提示词模板本身也是 Runnable</strong>（第 8 课）。所以它能用 <span class="inline">|</span> 直接接到模型后面，
-  组成最经典的链：<span class="inline">prompt | model | parser</span>。
-</div>
+<h2>可选 placeholder 与 history 形状</h2>
+<p><span class="mono">MessagesPlaceholder(optional=True)</span> 表示没有历史时可以为空。有历史时，它期望的是消息列表，不是一段“用户：...AI：...”字符串。把 history 当字符串传入会丢失角色和工具消息，甚至把旧系统提示伪装成用户内容。C 级检查要确认每个 placeholder 的变量名、是否 optional、传入值类型都符合预期。</p>
+<p>Agent 场景中还会看到 scratchpad 或 intermediate steps 的 placeholder。它们本质上也是结构化消息插入点。不要把工具轨迹塞进普通 human 文本；如果轨迹里包含 ToolMessage，就让 placeholder 展开消息对象，让模型和 tracer 看到正确边界。</p>
 
-<div class="flow">
-  <div class="node">变量 dict</div><div class="arrow">→</div>
-  <div class="node hl">prompt<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">填空→消息</span></div><div class="arrow">→</div>
-  <div class="node hl">model</div><div class="arrow">→</div>
-  <div class="node">AIMessage</div>
-</div>
+<h2>few-shot 示例放哪里</h2>
+<p>少样本示例可以提升格式稳定性，但位置很重要。放在系统消息里会让规则和例子混杂；放在历史里会让模型误以为示例是真实对话；放在单独的示例消息序列里，通常更清楚。示例应覆盖你希望模型模仿的输入输出模式，而不是堆很多无关问答占满上下文。</p>
+<p>示例也要和输出解析器配合。如果后面接 JSON parser，示例输出就必须是合法 JSON；如果后面用工具调用，示例应强调何时调用工具、何时直接回答。prompt 不是孤立文本，它和模型能力、工具 schema、parser 契约一起决定系统行为。</p>
 
-<div class="card detail">
-  <div class="tag">🔬 代码对应</div>
-  <ul>
-    <li><span class="mono">ChatPromptTemplate</span> / <span class="mono">MessagesPlaceholder</span> → <span class="mono">core/prompts/chat.py</span></li>
-    <li><span class="mono">PromptTemplate</span>（纯字符串提示，给非聊天模型用）→ <span class="mono">core/prompts/prompt.py</span></li>
-  </ul>
-</div>
+<h2>Prompt 作为 Runnable 的组合价值</h2>
+<p>因为 prompt 实现 Runnable，你可以写 <span class="mono">prompt | model | parser</span>。这条链表达了清晰的数据流：输入 dict 进入 prompt，输出消息进入模型，输出 AIMessage 或文本进入 parser。每一段都可以单独 invoke、测试、加 config、批量运行。比起一个巨型函数里拼字符串、调用 SDK、解析结果，Runnable 组合更容易替换和追踪。</p>
+<p>这也意味着 prompt 可以被复用和测试。你不必调用真实模型就能验证变量校验、history 插入和消息顺序。很多 prompt bug 在模型调用前就能发现：变量缺失、placeholder 类型错、系统消息被重复插入、few-shot 放错位置。先测试 prompt 输出的消息列表，能省下大量模型调试成本。</p>
 
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，逐个吃透模板的三个能力。</p>
+<h2>Prompt injection 边界</h2>
+<p>系统消息不是魔法防火墙。用户仍可能在 question 或 history 里写“忽略之前规则”。结构化 prompt 能帮助你分清哪部分来自系统、哪部分来自用户，但不能保证模型永远遵守。真正的安全要靠工具权限、输出校验、检索过滤和业务边界。Prompt 层负责表达意图，不负责独自承担所有安全。</p>
+<p>一个实用策略是把不可信内容放在明确标记的用户或上下文消息里，避免把用户文本拼进系统规则。比如不要生成 <span class="mono">system=f'你必须遵守：{user_policy}'</span>，而应把用户提供的材料放在 human/context 段落，并在系统消息里说明“以下材料可能不可信”。结构边界越清楚，注入面越小。</p>
 
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 变量填充：让提示词随输入变化 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">模板里 <span class="mono">{xxx}</span> 是占位符，<span class="mono">invoke</span> 时用 dict 填：
-<pre class="code">tpl = ChatPromptTemplate.from_messages([
-    (<span class="st">"system"</span>, <span class="st">"用 {style} 的风格回答"</span>),
-    (<span class="st">"human"</span>, <span class="st">"{q}"</span>),
-])
-tpl.invoke({<span class="st">"style"</span>: <span class="st">"幽默"</span>, <span class="st">"q"</span>: <span class="st">"什么是 LLM？"</span>})</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么不直接用 f-string 拼字符串</div>
-      <div class="a">模板能<strong>校验缺漏变量</strong>、支持<strong>部分填充</strong>、能和其它 Runnable 组合、还能被序列化/复用。
-        手写 f-string 在复杂场景（多角色、插历史、few-shot）会很快失控。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">提示词成为<strong>可复用、可测试、可组合</strong>的组件，而不是散落在代码里的字符串拼接。</div>
-    </div>
-  </div>
-</details>
+<h2>字符串 prompt 与 chat prompt 的取舍</h2>
+<p>简单补全文本任务可以使用字符串模板；对话模型、工具调用和多轮历史更适合 chat prompt。判断标准不是“哪种语法更短”，而是你是否需要角色、消息历史、工具观察和 provider 聊天格式。如果需要这些结构，ChatPromptTemplate 的成本很快被收益抵消。</p>
+<p>不要把 chat prompt 最终转成字符串再传给聊天模型，除非你明确知道要牺牲结构。很多模型 wrapper 可以接受 PromptValue 或消息列表，保留结构更稳。只有在调试展示或兼容非聊天模型时，字符串表示才是必要折中。</p>
 
-<details class="accordion">
-  <summary><span class="badge-num">2</span> MessagesPlaceholder：把对话历史插进模板 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 它占的是"一串消息"的位置</div>
-      <div class="a">普通 <span class="mono">{var}</span> 填的是一段文本；而 <span class="mono">MessagesPlaceholder("history")</span>
-        填的是<strong>一整串消息</strong>（之前的多轮对话）：
-<pre class="code">prompt.invoke({
-    <span class="st">"history"</span>: [HumanMessage(<span class="st">"上一轮问题"</span>), AIMessage(<span class="st">"上一轮回答"</span>)],
-    <span class="st">"question"</span>: <span class="st">"接着问"</span>,
-})</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">多轮对话要把"历史消息"原样塞进提示词的中间位置。占位符让你能<strong>动态注入任意长度的历史</strong>，
-        正好衔接第 4 课的"上下文管理"——你裁剪/摘要后的历史，就从这里放进去。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">把"系统设定 + 历史 + 当前问题"清晰分层，历史的拼装与裁剪逻辑和提示词结构解耦。</div>
-    </div>
-  </div>
-</details>
+<h2>模板变量命名与维护</h2>
+<p>变量名应表达业务语义，例如 <span class="mono">question</span>、<span class="mono">history</span>、<span class="mono">customer_tier</span>，不要使用 <span class="mono">x</span>、<span class="mono">input</span> 混装所有数据。命名清楚后，链的输入 schema 也更清楚，调用者知道要传什么。变量越随意，prompt 越像隐式函数，维护者只能读模板猜契约。</p>
+<p>当 prompt 变长时，不要只继续追加系统规则。可以拆出检索上下文、工具说明、输出格式示例、业务策略摘要，分别放在合适消息或上游 Runnable 中。过度膨胀的系统 prompt 会降低可读性，也让模型难以判断哪条规则优先。</p>
 
-<details class="accordion">
-  <summary><span class="badge-num">3</span> few-shot：用示范教模型怎么答 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 思路</div>
-      <div class="a">在提示词里塞几组"输入→理想输出"的<strong>范例</strong>，模型会照着学：
-<pre class="code">examples = [
-    (<span class="st">"human"</span>, <span class="st">"2+2"</span>), (<span class="st">"ai"</span>, <span class="st">"4"</span>),
-    (<span class="st">"human"</span>, <span class="st">"3+5"</span>), (<span class="st">"ai"</span>, <span class="st">"8"</span>),
-]
-prompt = ChatPromptTemplate.from_messages([
-    (<span class="st">"system"</span>, <span class="st">"只输出数字结果"</span>), *examples, (<span class="st">"human"</span>, <span class="st">"{q}"</span>),
-])</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么有效</div>
-      <div class="a">大模型擅长<strong>模仿示范</strong>。给几个例子（few-shot），常比写一大段规则更能稳定输出格式与风格——
-        这是"提示工程"里性价比最高的技巧之一。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 进阶</div>
-      <div class="a">LangChain 还有 <span class="mono">FewShotChatMessagePromptTemplate</span> 与"示例选择器"，能按当前问题<strong>动态挑最相关的范例</strong>。</div>
-    </div>
-  </div>
-</details>
+<h2>C 级排错清单：Prompt 层如何定位问题</h2>
+<p>Prompt 问题首先看格式化后的消息，而不是看模板源码。打印 <span class="mono">prompt.invoke(input).to_messages()</span>，检查消息顺序、类型、变量替换、history 展开和示例位置。很多错误一眼可见：系统消息重复插入，history 作为字符串进入 human 消息，question 为空，partial 绑定了旧用户信息，few-shot 示例被放在本轮问题之后。</p>
+<p>其次检查变量契约。模板需要哪些 input_variables，哪些是 optional placeholder，哪些来自 partial，调用者是否都知道。若链的输入叫 <span class="mono">input</span>，模板里叫 <span class="mono">question</span>，上游 mapper 又改成 <span class="mono">query</span>，缺变量错误就会频繁出现。变量名是接口，不是局部随意命名。接口越清楚，链越容易组合。</p>
+<p>第三检查上下文来源。检索文档、用户历史、工具观察和业务规则不应都塞进一个 system prompt。检索内容可能不可信，适合单独上下文段；用户历史是消息列表；工具观察是 ToolMessage；稳定业务规则才适合 system。把来源分开后，你才能针对注入、裁剪和过期信息分别处理。</p>
+<p>第四检查输出契约。Prompt 要告诉模型输出格式，但真正的约束在 parser 或 structured output。若模型输出格式不稳，不要只在系统消息里继续加“必须必须必须”；应加示例、缩短无关规则、使用 JsonOutputParser 或 with_structured_output，并让解析错误反馈到修复流程。Prompt 是契约说明，不是契约执行器。</p>
+<h2>Prompt 版本管理</h2>
+<p>生产 prompt 应像代码一样版本化。每次修改系统规则、示例、变量名或输出格式，都可能影响模型行为。建议给关键 prompt 标注名称、版本、适用模型、输出 parser 和评估集。这样线上回答变化时，你能知道是模型升级、prompt 改动、检索变化还是工具 schema 变化。</p>
+<p>Prompt 版本不一定需要复杂平台，最小做法是在代码中集中定义模板，配套小型 golden cases。每个 case 包含输入、history、期望消息形状和关键输出性质。修改模板后先跑这些测试，确认没有丢变量、没有把历史拼错、没有破坏 JSON 示例。不要把 prompt 散落在业务函数字符串里，否则查找和回滚都困难。</p>
+<p>多语言场景也要明确。中文优先的系统提示、英文工具名、用户混合语言输入可能同时出现。Prompt 应说明回答语言策略，工具 description 也要让模型理解。不要依赖模型自动猜；如果业务要求中文回答，就把语言要求放在稳定位置，并在输出评估里检查。</p>
+<h2>长 Prompt 的治理</h2>
+<p>当系统 prompt 越写越长时，通常说明多个责任混在一起：角色设定、政策、格式、示例、上下文、拒答规则、工具说明。可以把稳定政策压缩成短规则，把示例移到 few-shot，把动态上下文放到 placeholder，把工具说明交给 tool schema，把输出格式交给 parser。Prompt 越短越不一定越好，但责任越清楚越好。</p>
+<p>上下文裁剪也要尊重结构。删除历史时不要删除系统消息；压缩历史时不要把工具 id 和观察关系抹掉；截断检索材料时保留来源和边界。Prompt 层的每一次拼接和裁剪，都会改变模型看到的世界。C 级开发者要能解释“模型这次到底看到了什么”，而不是只说“我们传了上下文”。</p>
+<p>Prompt injection 防护应采用多层策略：不可信内容单独标记，系统规则不拼接用户文本，工具执行做权限检查，解析器做输出校验，检索内容保留来源，敏感动作需要确认。结构化模板只是第一层，它让边界可见；真正安全来自每层都不越权。</p>
+<h2>Prompt 的可测试性</h2>
+<p>不要等真实模型回答后才测试 prompt。先断言格式化后的 messages：第一条是 SystemMessage，history 展开数量正确，最后一条是 HumanMessage，必填变量缺失会报错，optional history 不传时为空。再用 fake model 测链组合，用固定输出测 parser。真实模型评估应关注语义质量，而不是承担基础格式测试。</p>
+<p>这种分层测试能让 prompt 迭代更快。模板改动如果导致变量缺失，单元测试立刻失败；模型升级如果导致回答风格变化，评估集再捕捉。把所有问题都留到人工读最终回答，会让 prompt 工程变成玄学。结构化 prompt 的价值之一，就是把玄学部分压缩到真正需要模型判断的地方。</p>
+<p>最后，把 prompt 看成 API：它有输入变量、输出形状、版本、适用场景和失败模式。API 需要文档和测试，prompt 也一样。C 级掌握 prompt，不是写更长的咒语，而是把模型上下文设计成可维护、可替换、可验证的组件。</p>
 
-<h2>🔬 实现细节与亮点</h2>
-<p>看清提示词模板在源码里是怎么把"变量 + 模板"变成"一串消息"的，以及它聪明在哪。</p>
 
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/prompts/chat.py</span><span class="ln">invoke → format_prompt → ChatPromptValue</span></div>
-<pre><span class="kw">class</span> <span class="fn">ChatPromptTemplate</span>(BaseChatPromptTemplate):   <span class="cm"># ← 它是 Runnable</span>
-    <span class="kw">def</span> <span class="fn">format_messages</span>(self, **kwargs) -> list[BaseMessage]:
-        result = []
-        <span class="kw">for</span> part <span class="kw">in</span> self.messages:        <span class="cm"># 逐个模板片段</span>
-            <span class="kw">if</span> isinstance(part, MessagesPlaceholder):
-                result.extend(kwargs[part.variable_name])  <span class="cm"># 展开成"一串消息"</span>
-            <span class="kw">else</span>:
-                result.append(part.format(**kwargs))        <span class="cm"># 填变量→一条消息</span>
-        <span class="kw">return</span> result
-    <span class="kw">def</span> <span class="fn">format_prompt</span>(self, **kwargs) -> ChatPromptValue:
-        <span class="kw">return</span> ChatPromptValue(messages=self.format_messages(**kwargs))
-</pre>
-</div>
+<h2>课堂复盘：Prompt 模板是一份可执行接口文档</h2>
+<p>如果把 Prompt 当成接口文档，就会自然关心输入变量、消息顺序、可选字段、输出契约和版本。调用者不应该猜模板里需要什么；模板也不应该偷偷读取全局状态。清晰的 ChatPromptTemplate 会告诉你：我需要 question，我可以接收 history，我已经 partial 绑定 role，我输出 ChatPromptValue。这样的 prompt 才能被组合、测试和替换。</p>
+<p>Prompt 维护的难点往往不是写第一版，而是多人长期修改。有人加安全规则，有人加输出格式，有人加业务政策，有人加 few-shot 示例，最后系统消息变成一堵墙。C 级做法是定期拆分责任：稳定规则留在 system，动态材料走 placeholder，格式交给 parser，工具能力写进 tool schema，示例只保留最能说明模式的几条。Prompt 不是垃圾桶。</p>
+<p>评估 Prompt 时，不要只看模型最终回答。先看格式化后的消息列表是否符合预期，再看模型是否遵守主要指令，再看 parser 是否通过，最后看业务指标。每层都可单独改进。这样 Prompt 工程就从“调咒语”变成“维护一个结构化、可执行、可观测的模型输入接口”。</p>
 
-<div class="card detail">
-  <div class="tag">🔬 实现流程</div>
-  <ol>
-    <li><span class="mono">invoke(vars)</span> → <span class="mono">format_prompt</span> → 返回一个 <strong>PromptValue</strong>（<span class="mono">ChatPromptValue</span>）。</li>
-    <li><span class="mono">format_messages</span> 遍历每个模板片段：普通片段<strong>填变量得一条消息</strong>，
-      <span class="mono">MessagesPlaceholder</span> 则把变量里的<strong>一串消息整段展开</strong>。</li>
-    <li><span class="mono">from_messages([(role, tmpl), ...])</span> 在构建时由 <span class="mono">_convert_to_message_template</span>
-      把 <span class="mono">("system","…")</span> 这类元组解析成对应的<strong>消息模板对象</strong>。</li>
-  </ol>
-</div>
+<h2>延伸练习：建立 Prompt 变更评审问题</h2>
+<p>每次修改 prompt 前，可以问一组固定问题：新增内容属于系统规则、用户上下文、检索材料、示例还是输出格式？是否引入新变量？是否影响 parser？是否让 history 位置改变？是否增加 token 成本？是否扩大 prompt injection 面？这些问题能让 prompt 变更像普通代码变更一样被审查，而不是凭感觉追加句子。</p>
+<p>Prompt 还应配合评估样本。样本不需要一开始很多，但要覆盖核心路径：无历史、有历史、有工具观察、用户注入、缺少上下文、需要拒答、需要 JSON 输出。每次模板变化都跑一遍，记录输出差异。这样你会知道改动影响了哪里，而不是等线上用户告诉你模型变得奇怪。</p>
 
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li><strong>提示词是 Runnable</strong>：所以能直接 <span class="mono">prompt | model</span> 拼链——又一次复用第 8 课的统一抽象，无需任何"胶水"。</li>
-    <li><strong>PromptValue 作中间层</strong>：同一份模板既能 <span class="mono">.to_messages()</span>（喂聊天模型）又能 <span class="mono">.to_string()</span>（喂纯文本 LLM），<strong>一套模板适配两类模型</strong>。</li>
-    <li><strong>占位符是一等公民</strong>：<span class="mono">MessagesPlaceholder</span> 让"插入任意长度历史"成为模板语法的一部分，把第 4 课的上下文管理与提示词结构干净地解耦。</li>
-  </ul>
-</div>
-
+<h2>最后检查：把概念落到一次真实调用</h2>
+<p>完成本课后，请把概念重新放回一次真实调用中验证：输入从哪里来，经过哪个对象标准化，运行时配置如何传播，输出由谁解释，错误在哪里被看见，哪些信息进入 trace，哪些信息进入业务状态。只要能沿着这条线讲清楚，说明你掌握的不是 API 片段，而是可维护的系统边界。</p>
+<p>这也是 C 级课程反复强调的学习方法：每个抽象都要回答“它统一什么、它不负责什么、它失败时看什么证据”。抽象不是为了隐藏一切，而是为了让变化集中、证据清楚、责任可定位。后续课程继续读源码时，请始终用这三个问题检查自己的理解。</p>
+<h2>常见误解</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：Prompt 就是一段字符串模板。</div><div class="pf-correct">正确：ChatPromptTemplate 是结构化消息工厂，输出 ChatPromptValue / messages。</div></div><div class="pitfall"><div class="pf-wrong">误解：历史记录拼成一个字符串最省事。</div><div class="pf-correct">正确：history 应保留为消息列表，否则角色、工具观察和裁剪边界会丢失。</div></div><div class="pitfall"><div class="pf-wrong">误解：缺变量时模型会自己补。</div><div class="pf-correct">正确：模板应在调用前校验变量，缺失应尽早报错。</div></div><div class="pitfall"><div class="pf-wrong">误解：系统 prompt 越长越安全。</div><div class="pf-correct">正确：过长系统消息会掩盖重点；安全还需要工具权限、输出校验和业务边界。</div></div><div class="pitfall"><div class="pf-wrong">误解：防注入只靠在 prompt 里写不要被注入。</div><div class="pf-correct">正确：结构化 prompt 只是边界之一，不能替代执行层安全控制。</div></div></div>
+<h2>小实验：有无 history 的格式化结果对比</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 观察 ChatPromptValue.to_messages()</div><ol><li>创建包含 system、MessagesPlaceholder(&#x27;history&#x27;, optional=True)、human 的 ChatPromptTemplate。</li><li>第一次只传 role 和 question，打印 prompt.invoke(...).to_messages() 的类型顺序。</li><li>第二次传入 history=[HumanMessage(&#x27;订单 123&#x27;), AIMessage(&#x27;我来查询&#x27;)]，再次打印消息顺序。</li><li>把 history 改成普通字符串，观察错误或输出差异，并解释为什么消息列表更稳。</li><li>把 role 用 partial 预绑定，确认每次调用只需要传 question 和 history。</li></ol></div>
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li>提示词模板把"结构"与"具体内容"分离：<span class="mono">ChatPromptTemplate.from_messages([...])</span>。</li>
-    <li><span class="mono">{var}</span> 填文本，<span class="mono">MessagesPlaceholder</span> 填一整串历史消息。</li>
-    <li>模板是 <strong>Runnable</strong>，可直接 <span class="mono">prompt | model | parser</span>。</li>
-    <li>few-shot（给范例）是稳定输出格式的利器。</li>
-    <li>下一课：给 Agent 接一个它没学过的<strong>知识库</strong>——RAG。</li>
+    <li>Prompt 是结构化消息工厂，也是 Runnable；它输出 ChatPromptValue，而不只是字符串。</li>
+    <li>system、human、history、few-shot 和工具轨迹应保持消息边界，方便模型适配、裁剪和追踪。</li>
+    <li>partial variables 适合稳定上下文，不适合隐藏会变化的业务状态。</li>
+    <li>Prompt injection 需要结构边界和执行层安全共同处理，不能只靠一句系统规则。</li>
   </ul>
 </div>
-<div class="selftest">
+<div class="card version"><div class="tag">📌 版本锚点</div>本课以 langchain_core.prompts 的 ChatPromptTemplate、MessagesPlaceholder、ChatPromptValue 和 Runnable 组合为锚点。模板语法会扩展，但“声明变量 → 校验输入 → 格式化消息 → 交给模型”的路径是长期稳定的。</div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. ChatPromptTemplate 把“提示的结构”和“具体内容”分离（模板 + 变量）。这种分离图什么？</div>
+  <div class="qn">1. 为什么说 prompt template 也是一个 <code>Runnable</code>？</div>
   <ol class="opts">
-    <li>让提示更短</li>
-    <li>看起来工整</li>
-    <li>省 token</li>
-    <li>结构固定、内容可变：同一个提示骨架能复用于不同输入，避免到处拼字符串、易维护易测试</li>
+    <li>它会自动保存所有聊天历史</li>
+    <li>它能接收输入并产出 PromptValue / 消息，再和 model、parser 组成同一条管道</li>
+    <li>它只能返回普通字符串，不能进入链</li>
+    <li>它会直接调用 provider SDK</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。“把会变的（内容）和不变的（结构）分开”是模板的通用价值——和第 6 课“代码自描述”、第 3 课“中间表示”一样，都是隔离变化点。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。Runnable 化让提示渲染成为链的一步：prompt | model | parser 可以共享 invoke、stream、config 等组合方式。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. MessagesPlaceholder 专门为“一整串历史消息”留一个插槽。为什么不直接把历史拼成一段文本塞进去？</div>
+  <div class="qn">2. <code>MessagesPlaceholder</code> 相比把 history 拼成字符串，关键优势是什么？</div>
   <ol class="opts">
-    <li>占位符更快</li>
-    <li>没区别</li>
-    <li>文本太长</li>
-    <li>历史是结构化消息（带角色/工具调用），用占位符保留其结构，模型才能正确理解多轮对话，而非一团文本</li>
+    <li>把所有历史都改成 SystemMessage</li>
+    <li>让模型无法看到用户输入</li>
+    <li>让历史永远不会超出上下文窗口</li>
+    <li>保留每条历史消息的角色、工具调用和元数据结构</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。呼应第 4 课——消息的结构化是有意义的。MessagesPlaceholder 保住了这份结构，而不是把它压扁成字符串。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。消息列表是结构化上下文。压平成字符串会丢失角色和 tool_call_id，影响多轮、工具回合和裁剪策略。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 提示模板也是 Runnable，能直接 <code>prompt | model | parser</code>。把模板纳入 Runnable 体系，好处是？</div>
+  <div class="qn">3. partial variables 最适合解决什么问题？</div>
   <ol class="opts">
-    <li>凑数</li>
-    <li>减少代码</li>
-    <li>模板更准</li>
-    <li>提示渲染成了管道的第一节，和模型/解析无缝串联，整条链统一可组合</li>
+    <li>让用户输入绕过模板校验</li>
+    <li>替代所有 runtime config</li>
+    <li>把稳定但重复的变量预先绑定到 prompt，调用时只传剩余动态输入</li>
+    <li>把模型输出提前写死</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。又是闭包性的回报——连“填提示”这步都是 Runnable，整条“提示→模型→解析”就是一条同质的链。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. few-shot（在提示里给几个范例）被称为“稳定输出格式的利器”。从设计角度，它本质上在做什么？</div>
-  <ol class="opts">
-    <li>训练模型</li>
-    <li>让提示更长</li>
-    <li>用“示范”替代“说教”：给模型看几个‘输入→期望输出’的例子，比纯文字描述更能稳定它的行为</li>
-    <li>增加 token 浪费</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。few-shot 是“用例子定义期望”。它不改模型权重，只在上下文里用范例引导——一种轻量、即时的“行为塑造”。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。partial 把固定上下文或格式说明预先填入模板，减少调用端重复，同时保留剩余变量的显式输入边界。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>“结构与内容分离”让提示可复用，但提示工程里“一字之差结果大不同”。当模板化遇上“提示很敏感”，你会怎么管理和测试不同版本的提示？</li>
-    <li>few-shot 用范例稳定格式，但范例占 token、也可能让模型过拟合到例子。你会怎么权衡“给几个例子”和“成本/泛化”？</li>
+    <li>比较两种历史传入方式：一段 history 字符串 vs <code>MessagesPlaceholder</code> 消息列表。分别说明它们在角色保留、工具回合和裁剪上的后果。</li>
+    <li>说明 prompt injection 的边界：系统提示、开发者模板、用户变量和检索内容各自应如何隔离，哪些内容不能被用户输入覆盖？</li>
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="15-contributing.html"><div class="dir">← 上一课</div><div class="ttl">读源码 / 调试 / 测试 / 贡献</div></a><a class="next" href="17-rag.html"><div class="dir">下一课 →</div><div class="ttl">RAG 检索增强</div></a></div>
+  <div class="footnav"><a class="prev" href="06-tools.html"><div class="dir">← 上一课</div><div class="ttl">工具 Tools</div></a><a class="next" href="10-output-parsers.html"><div class="dir">下一课 →</div><div class="ttl">输出解析器 Output Parsers</div></a></div>
 </div>
 
 </body></html>

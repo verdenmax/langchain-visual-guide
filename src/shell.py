@@ -1,6 +1,8 @@
 """Shared HTML shell (CSS design system + navigation) for the LangChain tutorial."""
 
 import base64
+import html as _html
+import re
 
 # ---- favicon (inline SVG, base64) ----
 _FAVICON_SVG = (
@@ -14,13 +16,14 @@ FAVICON = "data:image/svg+xml;base64," + base64.b64encode(_FAVICON_SVG.encode())
 
 def head_meta(title, description, og_type="website"):
     """SEO / social meta tags + favicon for a page <head>."""
-    t = title.replace('"', "&quot;")
-    d = description.replace('"', "&quot;")
+    t = esc(title)
+    d = esc(description)
+    typ = esc(og_type)
     return (
         f'<meta name="description" content="{d}">\n'
         f'<meta name="theme-color" content="#1a7f64">\n'
         f'<link rel="icon" type="image/svg+xml" href="{FAVICON}">\n'
-        f'<meta property="og:type" content="{og_type}">\n'
+        f'<meta property="og:type" content="{typ}">\n'
         f'<meta property="og:site_name" content="LangChain 图解教程">\n'
         f'<meta property="og:title" content="{t}">\n'
         f'<meta property="og:description" content="{d}">\n'
@@ -30,36 +33,295 @@ def head_meta(title, description, og_type="website"):
     )
 
 
+def esc(s):
+    """Escape plain text for HTML text/attribute contexts."""
+    return _html.escape(str(s), quote=True)
+
+
+_ATTR_NAME_RE = re.compile(r"^[a-z][a-z0-9-]*$")
+_BLOCKED_ATTR_NAMES = {
+    "style",
+    "href",
+    "src",
+    "srcset",
+    "action",
+    "formaction",
+    "xlink-href",
+}
+_LESSON_MAP_KINDS = {"now", "before", "after", "source"}
+_UNSAFE_SVG_TOKENS = ("<script", "</script", "javascript:", "<foreignobject")
+_UNSAFE_SVG_EVENT_ATTR_RE = re.compile(r"(?:^|[\s<])on[a-z0-9_-]+\s*=", re.I)
+
+
+def _validate_attr_name(key):
+    name = str(key).rstrip("_").replace("_", "-").lower()
+    if (
+        not _ATTR_NAME_RE.fullmatch(name)
+        or name.startswith("on")
+        or name in _BLOCKED_ATTR_NAMES
+    ):
+        raise ValueError(f"Unsafe HTML attribute name: {key!r}")
+    return name
+
+
+def _attrs(**kwargs):
+    """Build attributes with escaped values for code-controlled safe names."""
+    parts = []
+    for key, value in kwargs.items():
+        if value is None or value is False:
+            continue
+        name = _validate_attr_name(key)
+        if value is True:
+            parts.append(name)
+        else:
+            parts.append(f'{name}="{esc(value)}"')
+    return (" " + " ".join(parts)) if parts else ""
+
+
+def lesson_map(title, nodes):
+    items = []
+    for label, desc, kind in nodes:
+        kind_name = str(kind)
+        if kind_name not in _LESSON_MAP_KINDS:
+            allowed = ", ".join(sorted(_LESSON_MAP_KINDS))
+            raise ValueError(
+                f"Invalid lesson_map node kind {kind_name!r}; allowed kinds: {allowed}"
+            )
+        items.append(
+            f'<div class="map-node {kind_name}">'
+            f'<div class="mn-label">{esc(label)}</div>'
+            f'<div class="mn-desc">{esc(desc)}</div>'
+            f'</div>'
+        )
+    return (
+        '<div class="lesson-map">'
+        f'<div class="lm-title">🗺️ {esc(title)}</div>'
+        f'<div class="lm-grid">{"".join(items)}</div>'
+        '</div>'
+    )
+
+
+def source_map(rows):
+    body = []
+    for row in rows:
+        body.append(
+            '<tr>'
+            f'<td class="mono">{esc(row["file"])}</td>'
+            f'<td class="mono">{esc(row["symbol"])}</td>'
+            f'<td>{esc(row["role"])}</td>'
+            f'<td>{esc(row["direction"])}</td>'
+            '</tr>'
+        )
+    return (
+        '<table class="t source-map">'
+        '<tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr>'
+        f'{"".join(body)}'
+        '</table>'
+    )
+
+
+def call_graph(steps):
+    parts = []
+    for i, (title, detail, highlight) in enumerate(steps):
+        cls = "node hl" if highlight else "node"
+        parts.append(
+            f'<div class="{cls}"><div class="nt">{esc(title)}</div>'
+            f'<div class="nd">{esc(detail)}</div></div>'
+        )
+        if i + 1 < len(steps):
+            parts.append('<div class="arrow">-&gt;</div>')
+    return f'<div class="flow call-graph">{"".join(parts)}</div>'
+
+
+def state_flow(steps):
+    parts = []
+    for idx, (title, detail, code_label) in enumerate(steps, 1):
+        code = f'<div class="mono">{esc(code_label)}</div>' if code_label else ""
+        parts.append(
+            '<div class="step">'
+            f'<div class="num">{idx}</div>'
+            f'<div class="sc"><h4>{esc(title)}</h4><p>{esc(detail)}</p>{code}</div>'
+            '</div>'
+        )
+    return f'<div class="vflow state-flow">{"".join(parts)}</div>'
+
+
+def trace_table(rows):
+    body = []
+    for row in rows:
+        body.append(
+            '<tr>'
+            f'<td>{esc(row["step"])}</td>'
+            f'<td>{esc(row["input"])}</td>'
+            f'<td>{esc(row["action"])}</td>'
+            f'<td>{esc(row["output"])}</td>'
+            '</tr>'
+        )
+    return (
+        '<table class="t trace-table">'
+        '<tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr>'
+        f'{"".join(body)}'
+        '</table>'
+    )
+
+
+def code_walkthrough(path, symbol, code, note):
+    return (
+        '<div class="codefile code-walkthrough">'
+        '<div class="cf-head"><span class="dot"></span>'
+        f'<span class="path">{esc(path)} :: {esc(symbol)}</span>'
+        '<span class="ln">简化版</span></div>'
+        f'<pre>{esc(code)}</pre>'
+        f'<div class="cw-note">{esc(note)}</div>'
+        '</div>'
+    )
+
+
+def pitfall_grid(items):
+    cards = []
+    for wrong, correct in items:
+        cards.append(
+            '<div class="pitfall">'
+            f'<div class="pf-wrong">误解：{esc(wrong)}</div>'
+            f'<div class="pf-correct">正确：{esc(correct)}</div>'
+            '</div>'
+        )
+    return f'<div class="pitfall-grid">{"".join(cards)}</div>'
+
+
+def lab_card(title, steps):
+    lis = "".join(f'<li>{esc(step)}</li>' for step in steps)
+    return (
+        '<div class="card lab">'
+        f'<div class="tag">🧪 小实验 · {esc(title)}</div>'
+        f'<ol>{lis}</ol>'
+        '</div>'
+    )
+
+
+def version_note(text):
+    return (
+        '<div class="card version">'
+        '<div class="tag">📌 版本锚点</div>'
+        f'{esc(text)}'
+        '</div>'
+    )
+
+
+def svg_diagram(title, svg_body):
+    """Render repo-authored SVG only; do not pass untrusted/user-provided SVG."""
+    body = str(svg_body)
+    lowered = body.lower()
+    if any(token in lowered for token in _UNSAFE_SVG_TOKENS):
+        raise ValueError("Unsafe SVG body token")
+    if _UNSAFE_SVG_EVENT_ATTR_RE.search(body):
+        raise ValueError("Unsafe SVG event-handler attribute")
+    return (
+        '<figure class="svg-diagram">'
+        f'<figcaption>{esc(title)}</figcaption>'
+        f'{body}'
+        '</figure>'
+    )
+
+
 # Ordered list of all pages: (filename, short title, part label)
 PAGES = [
-    ("01-what-is-langchain.html", "LangChain 是什么", "第一部分 · 宏观全景"),
-    ("02-monorepo.html", "Monorepo 全景", "第一部分 · 宏观全景"),
-    ("03-lifecycle.html", "一次调用的生命周期", "第一部分 · 宏观全景"),
-    ("04-messages.html", "消息系统", "第二部分 · 用户视角"),
-    ("05-chat-models.html", "聊天模型", "第二部分 · 用户视角"),
-    ("06-tools.html", "工具 Tools", "第二部分 · 用户视角"),
-    ("07-agents-intro.html", "Agent 入门", "第二部分 · 用户视角"),
-    ("08-runnable.html", "Runnable 万物之基", "第三部分 · 内部源码"),
-    ("09-runnable-compose.html", "Runnable 如何组合", "第三部分 · 内部源码"),
-    ("10-output-parsers.html", "输出解析器 Output Parsers", "第三部分 · 内部源码"),
-    ("11-chat-internals.html", "聊天模型内部", "第三部分 · 内部源码"),
-    ("12-tool-internals.html", "工具调用内部", "第三部分 · 内部源码"),
-    ("13-agent-internals.html", "Agent 内部", "第三部分 · 内部源码"),
-    ("14-streaming-callbacks.html", "Streaming 与 Callbacks", "第三部分 · 内部源码"),
-    ("15-contributing.html", "读源码 / 调试 / 测试 / 贡献", "第四部分 · 进阶"),
-    ("16-prompts.html", "提示词 Prompts", "第五部分 · 自己动手做 Agent"),
-    ("17-rag.html", "RAG 检索增强", "第五部分 · 自己动手做 Agent"),
-    ("18-custom-middleware.html", "写自己的中间件", "第五部分 · 自己动手做 Agent"),
-    ("19-runtime-context.html", "运行时上下文与健壮性", "第五部分 · 自己动手做 Agent"),
-    ("20-capstone.html", "端到端实战：拼一个客服 Agent", "第五部分 · 自己动手做 Agent"),
-    ("21-langchain-vs-autogen.html", "横向对比：LangChain vs AutoGen", "第六部分 · 番外篇"),
-    ("22-ai-stack.html", "全栈坐标系：从 LangChain 缩放到整个生态", "第六部分 · 番外篇"),
-    ("23-learning-map.html", "隔壁层学习地图：L5 推理 · L6 向量检索", "第六部分 · 番外篇"),
-    ("24-langgraph-mental-model.html", "深入 LangGraph：图 / 状态 / 节点 / 边", "第七部分 · 深入 LangGraph"),
-    ("25-langgraph-pregel-engine.html", "执行引擎：Pregel 与超步", "第七部分 · 深入 LangGraph"),
-    ("26-langgraph-persistence-control.html", "持久化 · 中断 · 控制流", "第七部分 · 深入 LangGraph"),
-    ("27-glossary.html", "术语表 · 概念索引", "第八部分 · 速查"),
+    ("01-what-is-langchain.html", "LangChain 是什么", "第一部分 · 全局地图"),
+    ("02-monorepo.html", "项目与包结构", "第一部分 · 全局地图"),
+    ("03-lifecycle.html", "一次调用的全链路", "第一部分 · 全局地图"),
+    ("04-source-reading-map.html", "源码阅读地图", "第一部分 · 全局地图"),
+    ("05-learning-path.html", "学习路径与实验方法", "第一部分 · 全局地图"),
+    ("04-messages.html", "消息系统", "第二部分 · 用户 API 基础"),
+    ("05-chat-models.html", "聊天模型", "第二部分 · 用户 API 基础"),
+    ("06-tools.html", "工具 Tools", "第二部分 · 用户 API 基础"),
+    ("16-prompts.html", "提示词 Prompts", "第二部分 · 用户 API 基础"),
+    ("10-output-parsers.html", "输出解析器 Output Parsers", "第二部分 · 用户 API 基础"),
+    ("14-streaming-callbacks.html", "Streaming 与 Callbacks", "第二部分 · 用户 API 基础"),
+    ("08-runnable.html", "Runnable 协议", "第三部分 · Runnable 与 LCEL"),
+    ("09-runnable-compose.html", "LCEL 管道与 Sequence", "第三部分 · Runnable 与 LCEL"),
+    ("12-runnable-parallel-branch.html", "并行、分支与映射", "第三部分 · Runnable 与 LCEL"),
+    ("13-runnable-config-callbacks.html", "配置、回调与运行树", "第三部分 · Runnable 与 LCEL"),
+    ("15-runnable-retry-fallback.html", "重试、Fallback 与健壮链", "第三部分 · Runnable 与 LCEL"),
+    ("24-langgraph-mental-model.html", "为什么需要 LangGraph", "第四部分 · LangGraph 心智模型"),
+    ("28-langgraph-state-schema.html", "State 与 Schema", "第四部分 · LangGraph 心智模型"),
+    ("29-langgraph-nodes-edges.html", "Node、Edge 与路由", "第四部分 · LangGraph 心智模型"),
+    ("30-langgraph-reducers-channels.html", "Reducer 与 Channel", "第四部分 · LangGraph 心智模型"),
+    ("31-langgraph-compile-runtime.html", "compile 与 Runtime", "第四部分 · LangGraph 心智模型"),
+    ("25-langgraph-pregel-engine.html", "Pregel 与超步", "第五部分 · LangGraph 执行引擎"),
+    ("32-langgraph-tasks-channels.html", "Tasks、Channels 与调度", "第五部分 · LangGraph 执行引擎"),
+    ("26-langgraph-persistence-control.html", "Checkpoint 与持久化", "第五部分 · LangGraph 执行引擎"),
+    ("33-langgraph-interrupt-command.html", "interrupt、Command 与人在回路", "第五部分 · LangGraph 执行引擎"),
+    ("34-langgraph-time-travel-debug.html", "时间旅行、回放与调试", "第五部分 · LangGraph 执行引擎"),
+    ("07-agents-intro.html", "Agent 循环心智模型", "第六部分 · Agent 内部"),
+    ("13-agent-internals.html", "create_agent 构图内部", "第六部分 · Agent 内部"),
+    ("18-custom-middleware.html", "Middleware 生命周期", "第六部分 · Agent 内部"),
+    ("19-runtime-context.html", "Runtime Context 与结构化响应", "第六部分 · Agent 内部"),
+    ("35-agent-control-errors.html", "控制边界、递归限制与错误恢复", "第六部分 · Agent 内部"),
+    ("17-rag.html", "RAG 全链路", "第七部分 · RAG 与记忆"),
+    ("36-documents-splitters.html", "Document、Loader 与 Splitter", "第七部分 · RAG 与记忆"),
+    ("37-embeddings-vectorstores.html", "Embeddings 与 VectorStore", "第七部分 · RAG 与记忆"),
+    ("38-retrievers-rerankers.html", "Retriever、压缩与 Rerank", "第七部分 · RAG 与记忆"),
+    ("39-memory-conversation-state.html", "记忆、会话历史与状态", "第七部分 · RAG 与记忆"),
+    ("15-contributing.html", "本地开发、源码调试与贡献", "第八部分 · 工程化与实战"),
+    ("40-testing-debugging.html", "测试、Fake 模型与回归", "第八部分 · 工程化与实战"),
+    ("41-observability-ci.html", "观测、CI、PDF 与发布", "第八部分 · 工程化与实战"),
+    ("20-capstone.html", "端到端客服 Agent 工程化", "第八部分 · 工程化与实战"),
+    ("11-chat-internals.html", "ChatModel Provider 内部", "第九部分 · 生态与速查"),
+    ("12-tool-internals.html", "Tool Schema 与执行内部", "第九部分 · 生态与速查"),
+    ("21-langchain-vs-autogen.html", "LangChain、LangGraph 与多 Agent 生态", "第九部分 · 生态与速查"),
+    ("22-ai-stack.html", "AI 全栈、MCP 与 A2A", "第九部分 · 生态与速查"),
+    ("23-learning-map.html", "后续学习地图", "第九部分 · 生态与速查"),
+    ("27-glossary.html", "术语表与源码索引", "第九部分 · 生态与速查"),
 ]
+
+SUBTITLES = {
+    "01-what-is-langchain.html": "LangChain / LangGraph / 生态边界 · 全书路线",
+    "02-monorepo.html": "langchain-core / langchain / langgraph / partners",
+    "03-lifecycle.html": "从用户代码到 provider API 的完整调用链",
+    "04-source-reading-map.html": "读源码先看哪些文件、类、函数和调用方向",
+    "05-learning-path.html": "如何按主线学习、调试、做实验和复习",
+    "04-messages.html": "BaseMessage · Human/AI/System/Tool · tool_calls · usage_metadata",
+    "05-chat-models.html": "init_chat_model · BaseChatModel.invoke · provider wrapper",
+    "06-tools.html": "@tool · BaseTool · schema 生成 · ToolMessage 回填",
+    "07-agents-intro.html": "model node · tools node · tool_calls · loop termination",
+    "08-runnable.html": "RunnableSerializable · invoke/ainvoke/stream/batch · 标准协议",
+    "09-runnable-compose.html": "LCEL `|` · RunnableSequence · 输入输出契约",
+    "10-output-parsers.html": "StrOutputParser · JsonOutputParser · structured output · repair loop",
+    "11-chat-internals.html": "BaseChatModel · provider adapter · payload/response normalization",
+    "12-runnable-parallel-branch.html": "RunnableParallel · RunnableBranch · assign/map/passthrough",
+    "12-tool-internals.html": "BaseTool · args_schema · convert_to_openai_tool · ToolMessage",
+    "13-runnable-config-callbacks.html": "RunnableConfig · ensure_config · callbacks/tags/metadata",
+    "13-agent-internals.html": "create_agent · StateGraph · _make_model_to_tools_edge · ToolNode",
+    "14-streaming-callbacks.html": "stream/astream_events · callback manager · run tree",
+    "15-runnable-retry-fallback.html": "with_retry · with_fallbacks · RunnableWithFallbacks",
+    "15-contributing.html": "uv/monorepo · editable install · source breakpoints · contribution loop",
+    "16-prompts.html": "ChatPromptTemplate · MessagesPlaceholder · PromptValue · partial",
+    "17-rag.html": "query -> retrieve -> stuff/map-rerank -> answer · Retriever as Runnable",
+    "18-custom-middleware.html": "AgentMiddleware · before/after/wrap hooks · dynamic prompt",
+    "19-runtime-context.html": "context_schema · Runtime · response_format · structured response",
+    "20-capstone.html": "prompts + tools + RAG + middleware + context + tests",
+    "21-langchain-vs-autogen.html": "LangGraph vs actor/pubsub frameworks · handoff · orchestration styles",
+    "22-ai-stack.html": "hardware→inference→retrieval→orchestration · MCP/A2A protocol boundaries",
+    "23-learning-map.html": "inference engines · vector databases · eval/observability · next repositories",
+    "24-langgraph-mental-model.html": "为什么 LCEL 不够 · 有状态图 · Pregel 之前的心智模型",
+    "28-langgraph-state-schema.html": "TypedDict/Pydantic state · context_schema · state keys",
+    "29-langgraph-nodes-edges.html": "add_node · add_edge · conditional edges · START/END",
+    "30-langgraph-reducers-channels.html": "Annotated reducer · add_messages · LastValue/Topic/Aggregate",
+    "31-langgraph-compile-runtime.html": "compile() · CompiledStateGraph · runtime/context · Runnable",
+    "25-langgraph-pregel-engine.html": "Pregel · superstep · Plan/Execution/Update",
+    "32-langgraph-tasks-channels.html": "PregelTask · channels · writes · fan-in/fan-out",
+    "26-langgraph-persistence-control.html": "Checkpoint · checkpointer · thread_id · resume",
+    "33-langgraph-interrupt-command.html": "interrupt · Command · human-in-the-loop · goto/update",
+    "34-langgraph-time-travel-debug.html": "StateSnapshot · get_state_history · replay · debug workflow",
+    "35-agent-control-errors.html": "recursion_limit · tool errors · fallback/retry · safe control",
+    "36-documents-splitters.html": "Document · metadata · TextSplitter · chunk overlap",
+    "37-embeddings-vectorstores.html": "Embeddings · VectorStore · similarity search · indexing",
+    "38-retrievers-rerankers.html": "BaseRetriever · contextual compression · rerank · recall/precision",
+    "39-memory-conversation-state.html": "chat history · summary memory · LangGraph state · long-term memory",
+    "40-testing-debugging.html": "fake models · deterministic tools · trace assertions · regression cases",
+    "41-observability-ci.html": "callbacks · LangSmith/run tree · build checks · PDF/deploy workflow",
+    "27-glossary.html": "concept index · source anchors · where to read next",
+}
 
 INDEX_FILE = "index.html"
 
@@ -306,6 +568,38 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
 """
 
 SEARCH_JS = """
@@ -403,7 +697,7 @@ def page(filename, content, standalone=False, home_href=None):
     <div class="part">{part}</div>
     <h1>{title}</h1>
   </div>
-  {content}
+{content}
   <div class="footnav">{prev_link}{next_link}</div>
 </div>
 {script_tag}
@@ -423,39 +717,10 @@ def index_page(standalone=False, lesson_prefix=""):
         parts[part].append((i + 1, fname, title))
 
     blocks = []
-    subtitles = {
-        "01-what-is-langchain.html": "解决什么问题 · 核心心智模型",
-        "02-monorepo.html": "core / langchain / partners 三层",
-        "03-lifecycle.html": "从你的代码到 LLM 的完整数据流",
-        "04-messages.html": "Human / AI / Tool / System 消息",
-        "05-chat-models.html": "init_chat_model · invoke / stream / batch",
-        "06-tools.html": "@tool 装饰器 · 工具调用",
-        "07-agents-intro.html": "create_agent · Agent 循环",
-        "08-runnable.html": "invoke/stream/batch · LCEL 管道 |",
-        "09-runnable-compose.html": "Sequence / Parallel / Branch 组合",
-        "10-output-parsers.html": "StrOutputParser · JsonOutputParser · 闭环",
-        "11-chat-internals.html": "BaseChatModel 调用链",
-        "12-tool-internals.html": "函数 → JSON Schema → tool_calls",
-        "13-agent-internals.html": "LangGraph 状态图 · Send/Command · add_messages reducer",
-        "14-streaming-callbacks.html": "流式输出与回调追踪",
-        "15-contributing.html": "uv · 测试 · 调试 · 贡献",
-        "16-prompts.html": "ChatPromptTemplate · MessagesPlaceholder · few-shot",
-        "17-rag.html": "Document → 切块 → Embeddings → VectorStore → Retriever",
-        "18-custom-middleware.html": "AgentMiddleware 钩子 · before/after/wrap",
-        "19-runtime-context.html": "context_schema · with_fallbacks · stream_mode",
-        "20-capstone.html": "把所有零件拼成一个完整可跑的 Agent",
-        "21-langchain-vs-autogen.html": "两种范式对照：图/管道 vs 多 Agent 对话",
-        "22-ai-stack.html": "Agent 编排 5 流派 · AI 全栈 7 层 · 你在哪",
-        "23-learning-map.html": "vLLM/llama.cpp/Ollama · hnswlib/pgvector/Qdrant",
-        "24-langgraph-mental-model.html": "为什么 LCEL 不够 · State/Node/Edge/compile",
-        "25-langgraph-pregel-engine.html": "Pregel/BSP 超步 · Plan→Execution→Update · channels",
-        "26-langgraph-persistence-control.html": "Checkpoint/StateSnapshot · interrupt · Send/Command",
-        "27-glossary.html": "全书术语一句话查 + 点链接跳到对应课",
-    }
     for part in order:
         blocks.append(f'<div class="toc-part">{part}</div>')
         for num, fname, title in parts[part]:
-            sub = subtitles.get(fname, "")
+            sub = SUBTITLES.get(fname, "")
             blocks.append(
                 f'<a data-nav="{lesson_prefix}{fname}"><span class="n">{num:02d}</span>'
                 f'<span class="tt">{title}</span>'

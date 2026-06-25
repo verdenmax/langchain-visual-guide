@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>17 · RAG 检索增强 — LangChain 图解教程</title>
-<meta name="description" content="第五部分 · 自己动手做 Agent｜RAG 检索增强：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>32 · RAG 全链路 — LangChain 图解教程</title>
+<meta name="description" content="第七部分 · RAG 与记忆｜RAG 全链路：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="17 · RAG 检索增强 — LangChain 图解教程">
-<meta property="og:description" content="第五部分 · 自己动手做 Agent｜RAG 检索增强：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="32 · RAG 全链路 — LangChain 图解教程">
+<meta property="og:description" content="第七部分 · RAG 与记忆｜RAG 全链路：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="17 · RAG 检索增强 — LangChain 图解教程">
-<meta name="twitter:description" content="第五部分 · 自己动手做 Agent｜RAG 检索增强：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="32 · RAG 全链路 — LangChain 图解教程">
+<meta name="twitter:description" content="第七部分 · RAG 与记忆｜RAG 全链路：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -256,358 +256,111 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
 </style>
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第五部分 · 自己动手做 Agent</span>
-    <span class="pill">17 / 27</span>
+    <span class="pill">第七部分 · RAG 与记忆</span>
+    <span class="pill">32 / 46</span>
   </div>
-  <div class="progress"><span style="width:62%"></span></div>
+  <div class="progress"><span style="width:69%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第五部分 · 自己动手做 Agent</div>
-    <h1>RAG 检索增强</h1>
+    <div class="part">第七部分 · RAG 与记忆</div>
+    <h1>RAG 全链路</h1>
   </div>
-  
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-模型只懂它训练时见过的东西，<strong>不知道你的私有文档、公司知识库、最新资料</strong>。
-RAG（检索增强生成）解决这个问题：<strong>先去知识库里检索相关片段，再把它塞进提示词让模型据此回答</strong>。
-这是绝大多数真实 Agent 的标配。
-</p>
-
-<div class="card analogy">
-  <div class="tag">📖 生活类比</div>
-  RAG 就是把"闭卷考试"变成"<strong>开卷考试</strong>"：不靠模型死记硬背，而是每次答题前
-  先翻书找到相关那几页（检索），再照着这几页作答（生成）。模型负责"会读会写"，知识库负责"提供资料"。
-</div>
-
-<h2>RAG 的五个零件 + 一条流水线</h2>
-<p>把文档变成"可被检索的知识"，再到"喂给模型"，要经过五个零件。记住这条流水线，RAG 就不神秘了：</p>
-
-<div class="vflow">
-  <div class="step"><div class="num">1</div><div class="sc"><h4>Document：装载文档</h4>
-    <p>把原始资料读成 <span class="mono">Document</span>（含 <span class="mono">page_content</span> + <span class="mono">metadata</span>）。</p>
-    <p class="mono">core/documents/base.py</p></div></div>
-  <div class="step"><div class="num">2</div><div class="sc"><h4>Splitter：切成小块</h4>
-    <p>长文档切成若干小片（chunk），便于精准检索与控制 token。</p>
-    <p class="mono">langchain_text_splitters</p></div></div>
-  <div class="step"><div class="num">3</div><div class="sc"><h4>Embeddings：变成向量</h4>
-    <p>把每个文本块编码成一串数字（向量），<strong>语义相近 → 向量相近</strong>。</p>
-    <p class="mono">core/embeddings/embeddings.py</p></div></div>
-  <div class="step"><div class="num">4</div><div class="sc"><h4>VectorStore：存入向量库</h4>
-    <p>把"文本块 + 向量"存起来，支持按相似度快速搜索。</p>
-    <p class="mono">core/vectorstores/base.py</p></div></div>
-  <div class="step"><div class="num">5</div><div class="sc"><h4>Retriever：按问题召回</h4>
-    <p>把用户问题也编码成向量，找出<strong>最相近的几个文本块</strong>返回。</p>
-    <p class="mono">core/retrievers.py</p></div></div>
-</div>
-
-<h2>代码：十几行搭一个 RAG</h2>
-<div class="card warn">
-  <div class="tag">⚠️ 这是骨架示意</div>
-  下面 <span class="mono">docs</span> / <span class="mono">embeddings</span> / <span class="mono">SomeVectorStore</span> 是<strong>占位</strong>，
-  请替换成真实对象（下方"深入理解"里有<strong>可直接运行</strong>的完整版）。
-</div>
-<pre class="code"><span class="kw">from</span> langchain_text_splitters <span class="kw">import</span> RecursiveCharacterTextSplitter
-
-<span class="cm"># 0) docs：上一步加载好的文档 list[Document]；embeddings = OpenAIEmbeddings() 之类</span>
-<span class="cm"># 1~2) 文档 → 切块</span>
-splits = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50).split_documents(docs)
-
-<span class="cm"># 3~4) 嵌入 + 存入向量库（SomeVectorStore 换成真实实现，如 InMemoryVectorStore / Chroma）</span>
-vectorstore = SomeVectorStore.from_documents(splits, embedding=embeddings)
-
-<span class="cm"># 5) 得到一个检索器</span>
-retriever = vectorstore.as_retriever(search_kwargs={<span class="st">"k"</span>: 4})
-
-hits = retriever.invoke(<span class="st">"北京的退货政策是什么？"</span>)   <span class="cm"># → list[Document]，最相关的 4 块</span>
-</pre>
-
-<div class="card key">
-  <div class="tag">🔑 核心认知</div>
-  <strong>Retriever 本身就是一个 Runnable</strong>（<span class="mono">retriever.invoke(query)</span>）。
-  所以它能像积木一样：① 直接拼进 LCEL 链（<span class="mono">{"context": retriever, ...} | prompt | model</span>），
-  或 ② 包成一个<strong>工具</strong>交给 Agent，让 Agent 自己决定"何时该查知识库"。
-</div>
-
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，吃透 RAG 的关键细节。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 为什么要"切块"和"嵌入" <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">❓ 为什么要切块（chunking）</div>
-      <div class="a">整篇文档太长，既塞不进上下文，也让检索不精准。切成小块后，能<strong>只召回真正相关的那几段</strong>，
-        省 token 又更准。<span class="mono">chunk_overlap</span> 让相邻块有重叠，避免把一句话从中间切断丢失语义。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 嵌入(Embeddings)到底在做什么</div>
-      <div class="a">把文本映射成向量，使<strong>语义相近的文本向量也相近</strong>。于是"检索相关内容"就变成了
-        "在向量空间里找最近邻"——这叫<strong>语义检索</strong>，比关键词匹配能理解"意思相近但用词不同"。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">Embeddings</span> 抽象（<span class="mono">embed_query</span> / <span class="mono">embed_documents</span>）在
-        <span class="mono">core/embeddings/embeddings.py</span>；具体实现（如 <span class="mono">OpenAIEmbeddings</span>）在对应 partner 包。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> 两种用法：拼进链 vs 当作工具 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 用法 A：固定的 RAG 链（每次都先检索）</div>
-      <div class="a">
-<pre class="code"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnablePassthrough
-rag = (
-    {<span class="st">"context"</span>: retriever, <span class="st">"question"</span>: RunnablePassthrough()}
-    | prompt | model | parser
+<p class="lead">RAG（Retrieval-Augmented Generation）把“查资料”和“生成回答”拆成可追踪流水线：用户问题先被保留或改写成检索 query，Retriever 作为 Runnable 返回 Document，格式化器把文档内容和 metadata 变成 context，ChatPromptTemplate 把问题与 context 填入消息，模型生成答案，最后用引用和核验守住事实边界。本课重点看端到端路径，以及为什么 Retriever 既能放进 LCEL 链，也能被包装成 Agent 工具。</p><div class="card analogy"><div class="tag">🧩 生活类比</div>把 RAG 想成开卷考试。学生不是把整座图书馆背下来，而是先根据题目去目录系统查资料，拿到几页相关书摘，再在答题纸上引用页码作答。Retriever 是查目录的人，Document 是书摘，Prompt 是答题纸模板，模型是组织语言的学生。老师真正关心的不是学生说得多流畅，而是答案有没有依据、依据是不是题目需要的那几页。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：RAG 从问题到可引用回答</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">用户问题</div><div class="mn-desc">保留原问题，并可选改写成更适合检索的 query</div></div><div class="map-node now"><div class="mn-label">Retriever</div><div class="mn-desc">作为 Runnable 接收 query，返回带 metadata 的 Document 列表</div></div><div class="map-node now"><div class="mn-label">格式化 context</div><div class="mn-desc">把 page_content、source、score 整理成模型可读资料区</div></div><div class="map-node source"><div class="mn-label">Prompt + Model</div><div class="mn-desc">ChatPromptTemplate 明确区分系统规则、用户问题和检索资料</div></div><div class="map-node after"><div class="mn-label">引用核验</div><div class="mn-desc">答案必须能回指 Document；证据不足时承认不知道</div></div></div></div><h2>源码入口：文件 + 符号名</h2><p>RAG 的源码锚点要覆盖数据对象、检索契约、存储契约、提示模板和组合协议。下面路径均按当前 LangChain monorepo/package 验证；这些文件名能帮助你在源码里确认每一步的责任边界。</p><table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/documents/base.py</td><td class="mono">Document</td><td>承载 page_content 与 metadata，是检索证据的最小单位</td><td>由 loader/splitter/vectorstore 产生，传给 retriever 和 prompt 格式化器</td></tr><tr><td class="mono">libs/core/langchain_core/retrievers.py</td><td class="mono">BaseRetriever</td><td>定义输入 query、输出 Document 列表的检索 Runnable 契约</td><td>RAG 链调用入口，也可被包装成工具</td></tr><tr><td class="mono">libs/core/langchain_core/vectorstores/base.py</td><td class="mono">VectorStore</td><td>定义 add/search/as_retriever 等向量检索存储接口</td><td>索引阶段写入，运行阶段被 retriever 查询</td></tr><tr><td class="mono">libs/core/langchain_core/prompts/chat.py</td><td class="mono">ChatPromptTemplate</td><td>把系统规则、问题和 context 渲染为结构化聊天消息</td><td>retriever 之后、model 之前</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">Runnable</td><td>统一 invoke/stream/batch/config，使 retriever 能进入 LCEL</td><td>贯穿 prompt、retriever、model、parser 组合</td></tr></table><h2>状态流：一次带可选改写的 RAG 调用</h2><div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>接收问题</h4><p>用户问“LangGraph checkpoint 有什么作用？”系统保留原问题和会话信息。</p><div class="mono">question</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>可选改写</h4><p>若问题依赖上下文，把“它有什么作用”改写成独立 query；不需要时保持原文。</p><div class="mono">rewrite?</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>检索文档</h4><p>BaseRetriever.invoke(query) 返回若干 Document，每个文档带 source、section、score。</p><div class="mono">docs</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>格式化上下文</h4><p>把文档编号、摘要、来源拼成资料区，并明确资料不能覆盖系统规则。</p><div class="mono">context</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>模型回答</h4><p>Prompt + model 生成答案，要求只使用资料区事实，并在段落后给引用。</p><div class="mono">answer</div></div></div><div class="step"><div class="num">6</div><div class="sc"><h4>引用核验</h4><p>检查引用是否来自本轮 docs；证据不足则降级为不知道或追加检索。</p><div class="mono">verified</div></div></div></div><h2>Trace：把一次运行摊平成证据链</h2><table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. question</td><td>用户问题：为什么 checkpoint 重要？</td><td>记录原问题，判断是否需要根据聊天历史改写</td><td>独立 query：LangGraph checkpoint 作用</td></tr><tr><td>2. retrieve</td><td>query + search_kwargs={&#x27;k&#x27;:4}</td><td>Retriever 调用底层向量库或其他检索器</td><td>4 个 Document，带 source 和 score</td></tr><tr><td>3. format</td><td>Document.page_content + metadata</td><td>生成带编号的 context，保留文件名和段落号</td><td>[{1}] checkpoint 保存状态...</td></tr><tr><td>4. answer</td><td>system + question + context</td><td>模型基于资料组织自然语言</td><td>回答含 [1][3] 引用</td></tr><tr><td>5. verify</td><td>答案引用 + 本轮 docs</td><td>确认引用编号存在，且关键断言能在文档中找到</td><td>通过；否则触发补检索或拒答</td></tr></table><h2>简化源码走读：保留契约，不背实现</h2><div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/core/langchain_core/retrievers.py :: BaseRetriever as Runnable</span><span class="ln">简化版</span></div><pre>rag_chain = (
+    {&quot;context&quot;: retriever | format_docs, &quot;question&quot;: RunnablePassthrough()}
+    | prompt
+    | model
+    | parser
 )
-rag.invoke(<span class="st">"退货政策？"</span>)   <span class="cm"># 一定会先检索再回答</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">🧪 用法 B：把检索器变成工具，交给 Agent</div>
-      <div class="a">
-<pre class="code"><span class="kw">from</span> langchain_core.tools <span class="kw">import</span> tool
-<span class="nb">@tool</span>
-<span class="kw">def</span> <span class="fn">search_kb</span>(query: str) -> str:
-    <span class="st">&quot;&quot;&quot;在公司知识库中检索相关资料。&quot;&quot;&quot;</span>
-    <span class="kw">return</span> <span class="st">"\n"</span>.join(d.page_content <span class="kw">for</span> d <span class="kw">in</span> retriever.invoke(query))
 
-agent = create_agent(model, tools=[search_kb])   <span class="cm"># Agent 自己决定要不要查</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 怎么选</div>
-      <div class="a">问答场景"每次都该查" → 用<strong>固定 RAG 链</strong>（简单、可控）；
-        通用 Agent"有时要查、有时不用" → 把检索<strong>做成工具</strong>，让模型按需调用，更灵活。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> Retriever 不止向量库 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 统一抽象 BaseRetriever</div>
-      <div class="a"><span class="mono">BaseRetriever</span>（<span class="mono">core/retrievers.py</span>）只规定一件事：
-        "给一个查询，返回一串 <span class="mono">Document</span>"。向量库检索只是它最常见的一种实现。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 还能是什么</div>
-      <div class="a">关键词检索（BM25）、数据库查询、搜索引擎 API、甚至混合检索（向量 + 关键词），
-        都能包装成同一个 <span class="mono">Retriever</span> 接口。对上层而言，"怎么检索的"被隐藏了。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">因为 <span class="mono">BaseRetriever</span> 是 Runnable，任何检索来源都能无缝接进链或做成工具——又一次体现统一抽象的威力。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">4</span> 上手不用装库：InMemoryVectorStore + 增量索引 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 零依赖向量库（教学/测试首选）</div>
-      <div class="a">不想先装一个向量数据库？core 自带一个纯内存实现，几行就能跑通整条 RAG：
-<pre class="code"><span class="kw">from</span> langchain_core.vectorstores <span class="kw">import</span> InMemoryVectorStore
-
-vs = InMemoryVectorStore.from_texts(["北京晴", "上海雨"], embedding=embeddings)
-vs.similarity_search("北京天气", k=1)</pre>
-        位置：<span class="mono">core/vectorstores/in_memory.py</span>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 真实项目：怎么避免每次全量重嵌入</div>
-      <div class="a">文档会更新，但大部分没变。core 的<strong>索引 API</strong> 用一个 <span class="mono">RecordManager</span> 记录"哪些文档已入库"，
-        <span class="mono">index()</span> 只对<strong>新增/变更</strong>的文档重新嵌入入库，并清理已删除的：
-<pre class="code"><span class="kw">from</span> langchain_core.indexing <span class="kw">import</span> index   <span class="cm"># indexing/api.py</span>
-index(docs, record_manager, vectorstore, cleanup=<span class="st">"incremental"</span>)</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 为什么重要</div>
-      <div class="a">这正是"<strong>玩具 RAG</strong> ↔ <strong>可维护 RAG</strong>"的分水岭：避免重复嵌入（省钱省时）、自动去重、同步删除。
-        <span class="mono">RecordManager</span> 在 <span class="mono">indexing/base.py</span>（含内存版 <span class="mono">InMemoryRecordManager</span>）。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">5</span> 别手写：create_retriever_tool + 嵌入缓存 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 一行把检索器变成 Agent 工具</div>
-      <div class="a">前面"用法 B"我们手写了 <span class="mono">@tool</span>，其实有现成助手：
-<pre class="code"><span class="kw">from</span> langchain_core.tools <span class="kw">import</span> create_retriever_tool
-
-kb_tool = create_retriever_tool(
-    retriever, name=<span class="st">"search_kb"</span>, description=<span class="st">"检索公司知识库"</span>)
-agent = create_agent(model, tools=[kb_tool])</pre>
-        位置：<span class="mono">core/tools/retriever.py</span>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 嵌入太贵？给它加缓存</div>
-      <div class="a"><span class="mono">CacheBackedEmbeddings</span>（<span class="mono">langchain_classic/embeddings/cache.py</span>）
-        把"文本 → 向量"的结果缓存起来，<strong>相同文本不再重复调用嵌入 API</strong>，显著省钱（尤其重复构建索引时）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 小结</div>
-      <div class="a">真实 RAG 的"省心三件套"：<span class="mono">create_retriever_tool</span>（少写胶水）、
-        嵌入缓存（省钱）、索引 API（增量更新）。</div>
-    </div>
-  </div>
-</details>
-
-<h2>🔬 实现细节与亮点</h2>
-<p>RAG 的三个零件在源码里各有精巧之处——看 Retriever 如何"白嫖"Runnable 能力，以及切分器如何在语义边界下刀。</p>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/retrievers.py</span><span class="ln">BaseRetriever.invoke（含回调）</span></div>
-<pre><span class="kw">class</span> <span class="fn">BaseRetriever</span>(RunnableSerializable, ABC):   <span class="cm"># ← 检索器也是 Runnable</span>
-    <span class="kw">def</span> <span class="fn">invoke</span>(self, input, config=None):
-        run_manager = callback_manager.on_retriever_start(...)   <span class="cm"># 追踪开始</span>
-        result = self._get_relevant_documents(input, ...)        <span class="cm"># ← 子类只实现这个</span>
-        run_manager.on_retriever_end(result)                     <span class="cm"># 追踪结束</span>
-        <span class="kw">return</span> result
-</pre>
-</div>
-
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">text-splitters/langchain_text_splitters/character.py</span><span class="ln">递归切分</span></div>
-<pre><span class="kw">class</span> <span class="fn">RecursiveCharacterTextSplitter</span>(TextSplitter):
-    <span class="cm"># 默认分隔符：从"粗"到"细"</span>
-    separators = [<span class="st">"\n\n"</span>, <span class="st">"\n"</span>, <span class="st">" "</span>, <span class="st">""</span>]   <span class="cm"># 段落 → 行 → 词 → 字符</span>
-    <span class="kw">def</span> <span class="fn">_split_text</span>(self, text, separators):
-        <span class="cm"># 先用最粗的分隔符切；某块仍太大，就用更细的分隔符"递归"再切</span>
-        ... <span class="kw">then</span> _merge_splits(...)   <span class="cm"># 按 chunk_size 合并，相邻块留 overlap</span>
-</pre>
-</div>
-
-<div class="card detail">
-  <div class="tag">🔬 实现要点</div>
-  <ul>
-    <li><strong>Retriever</strong>：子类只需实现 <span class="mono">_get_relevant_documents</span>，<span class="mono">invoke</span> 自动包上回调/追踪/异步。</li>
-    <li><strong>VectorStore.search</strong>（<span class="mono">vectorstores/base.py</span>）按 <span class="mono">search_type</span> 分发：
-      <span class="mono">similarity</span> / <span class="mono">similarity_score_threshold</span> / <span class="mono">mmr</span>；
-      <span class="mono">VectorStoreRetriever</span>（<span class="mono">同文件</span>）只是<strong>委托</strong>调用它。</li>
-    <li><strong>切分器</strong>：递归用越来越细的分隔符切，再 <span class="mono">_merge_splits</span> 按 <span class="mono">chunk_size</span> 打包、留 <span class="mono">chunk_overlap</span>。</li>
-  </ul>
-</div>
-
-<details class="accordion">
-  <summary><span class="badge-num">6</span> 从"能跑"到"答得准"：RAG 调优清单 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 四个最该调的旋钮</div>
-      <div class="a">
-<pre class="code">chunk_size / chunk_overlap   <span class="cm"># 切太大→噪声多，切太小→语义碎；常见 300~800 字 + 10~15% 重叠</span>
-k（检索条数）                <span class="cm"># 太少漏召回，太多塞爆上下文；常从 4~8 起调</span>
-重排序 reranking            <span class="cm"># 先粗召回 ~20 条，再用 reranker 精排取前几条，准确率显著提升</span>
-嵌入模型                    <span class="cm"># 中文优先 BGE / bge-m3；换更强的嵌入往往比改 prompt 更有效</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 怎么知道调好了：要评估</div>
-      <div class="a">别凭感觉。准备一组"问题 → 应命中的文档"，量<strong>召回率</strong>（该召回的有没有召回）和
-        <strong>答案正确率</strong>。工具如 <span class="mono">Ragas</span>（第 22 课"横切带"提到过）可自动打分。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 常见翻车点</div>
-      <div class="a">① 文档没清洗（页眉页脚/乱码也进了向量）；② 切块把表格/代码拦腰斩断；
-        ③ 只调 prompt 不调检索——<strong>RAG 的上限通常卡在"检索"而非"生成"</strong>。</div>
-    </div>
-  </div>
-</details>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li><strong>检索器"白嫖"Runnable 能力</strong>：只写 <span class="mono">_get_relevant_documents</span> 一个方法，就免费获得回调追踪、异步、可拼链——典型的"模板方法 + 统一抽象"。</li>
-    <li><strong>递归切分保语义</strong>：优先在<strong>段落</strong>边界下刀，不行才退到行、词、字符。尽量不把一句话拦腰斩断，这对检索质量至关重要。</li>
-    <li><strong>召回策略可切换</strong>：<span class="mono">search_type="mmr"</span> 能在"相关"之外兼顾"<strong>多样性</strong>"（避免召回一堆near-重复片段），一个检索器多副面孔。</li>
-  </ul>
-</div>
-
-<div class="card key">
-  <div class="tag">✅ 本课要点</div>
-  <ul>
-    <li>RAG = <strong>先检索、再生成</strong>：把私有/最新知识喂给模型，突破"只懂训练数据"的局限。</li>
-    <li>流水线五件套：<span class="mono">Document → Splitter → Embeddings → VectorStore → Retriever</span>。</li>
-    <li>切块控制精度与 token；嵌入实现<strong>语义检索</strong>（按意思找，不只按词）。</li>
-    <li><span class="mono">Retriever</span> 是 Runnable：可拼进链，也可包成工具交给 Agent。</li>
-    <li>下一课：当内置中间件不够用，<strong>写你自己的中间件</strong>来定制 Agent。</li>
-  </ul>
-</div>
-<div class="selftest">
+answer = rag_chain.invoke(&quot;LangGraph checkpoint 有什么作用？&quot;)
+</pre><div class="cw-note">教学版展示了 Retriever 作为 Runnable 的意义：它可以直接出现在 LCEL 字典分支中，输入问题，输出 Document，再被 format_docs 转成 prompt context。真实项目还会加入 query rewrite、metadata filter、引用核验和降级策略。</div></div><h2>RAG 的职责边界：取证和写作分开</h2><p>RAG 最重要的边界是：检索层负责把可用证据找出来，生成层负责把证据组织成回答。Retriever 不应该替模型写结论，模型也不应该凭空决定某个事实存在。这个边界让排障很清晰：如果正确文档没有进入候选池，问题在 query、索引、filter 或 retriever；如果文档已经进入 context 但答案仍然编造，问题在 prompt 约束、引用核验或模型评测。</p><p>在 LCEL 中，retriever 能作为 Runnable 出现在字典分支里，意味着它和 prompt、model、parser 一样拥有可配置、可追踪、可批处理的运行接口。这个设计不是语法糖，而是让检索成为链的一等节点：可以给它加 config、callback、重试、并行分支，也可以把同一个 retriever 包装成 Agent 工具，让模型在任务流中决定何时查资料。</p><h2>Query rewrite 不是必须，但必须可见</h2><p>多轮问答里，用户常说“它支持吗”“刚才那个方案怎么配”。直接拿这句话检索，向量库很难知道“它”指 LangGraph checkpoint 还是 VectorStore。可选的 query rewrite 会把上下文依赖问题改写成独立问题，例如“LangGraph InMemorySaver 是否支持跨进程持久化”。改写能显著提升召回，但也可能引入错误意图，所以原问题、改写问题和改写理由都应进入 trace。</p><p>不是所有请求都要改写。单轮明确问题可以直接检索；带强约束的问题可以只补全指代；含有用户隐私或权限字段的问题要避免把敏感值扩散进不必要的检索 query。好的 RAG 链会把 rewrite 当成可观测步骤，而不是隐藏在 prompt 里。出现错答时，先看改写后的 query 是否已经偏题，往往比盲目调 top_k 更快。</p><h2>Query rewrite 审计</h2><p>上线后要抽查 query rewrite 的“保真度”：改写是否保留用户真正问的实体、时间范围、否定条件和权限范围。一个好的审计样本同时保存原问题、最近历史、改写 query、改写理由和检索结果。若改写把“不能做什么”改成“怎么做”，RAG 会检索到相反证据，最终答案再流畅也不可信。</p><p>审计还要区分改写失败和检索失败。同一个原问题可分别用原文 query 与改写 query 跑候选池，比较黄金文档是否进入 top-k。若原文能召回、改写不能召回，优先修 rewrite；若两者都不能召回，再看切块、embedding、filter 或语料覆盖。这样调参不会把所有责任推给 retriever。</p><h2>Context formatting 决定模型看到什么</h2><p>Document 返回后不能把 page_content 简单拼成一坨文本。格式化器应给每段资料编号，展示必要 metadata，例如 source、title、page、chunk_id、score，并用清楚的提示说明“下面是资料，不是系统指令”。这样既能帮助模型引用，也能降低检索内容中的提示注入风险。资料里的“忽略上文规则”只能被当成被引用文本，不能提升为开发者或系统指令。</p><p>context 的顺序也会影响回答。常见策略是按 rerank 分数排序，把高置信短段放前；也可以按文档结构排序，避免同一章节被拆散。若问题需要综合多个来源，格式化器要保留不同来源之间的边界，不能把互相矛盾的段落揉成一个摘要。引用核验依赖这些边界：最终答案里的 [2] 必须能回到本轮第二个 Document，而不是回到某个历史缓存。</p><h2>引用核验和拒答是 RAG 的安全阀</h2><p>引用不是给页面增添可信感的装饰，而是系统判断“这句话有没有证据”的主键。一个基本核验器可以检查引用编号是否存在、引用段落是否包含关键实体、答案是否把多个文档的结论混在一起。更严格的系统会对每个关键断言做 entailment 或二次模型检查，但即使只做结构校验，也能发现很多无来源回答。</p><p>证据不足时，RAG 不应该强行给出完整答案。可选降级包括：明确说明当前资料没有覆盖、请求用户补充范围、扩大检索条件、转人工、或给出带不确定性的部分答案。是否降级应写入产品策略，而不是让模型临场发挥。对于合规、医疗、财务和内部权限资料，宁可少答，也不要把相似但错误的片段包装成确定事实。</p><h2>什么时候不要优先用 RAG</h2><p>如果任务需要学习一种稳定格式或风格，而不是访问外部事实，微调或少样本提示可能比 RAG 更合适。比如让模型按公司固定语气改写客服回复，检索知识库不是关键。若任务要求执行实时动作，例如退款、订票、改数据库，工具调用比 RAG 更直接，因为系统需要的是状态变更和返回码，不是文档段落。</p><p>RAG 也不适合替代权限系统。不能因为用户问到了某个主题，就把所有相似内部文档拿出来让模型自己判断能否展示。权限过滤应发生在检索前或检索时，并作为 metadata filter 进入 retriever。模型可以解释权限不足，但不应该拿到无权资料后再被要求忘记。</p><h2>评测 RAG 要分层</h2><p>只看最终答案分数无法知道问题出在哪里。建议至少分三层评测：第一层看正确证据是否被 retriever 召回，第二层看 context 是否保留足够证据且噪声可控，第三层看模型答案是否忠实引用。某次参数调整让最终答案变好，可能是因为召回更全，也可能只是模型运气更好；分层指标才能指导下一步改动。</p><p>日志也要对应分层指标。记录 query、filter、top_k、doc ids、scores、context 字符数、引用编号和核验结果。上线后用户反馈“答案不准”时，团队可以直接定位：是没有查到、查到了没放进 prompt、放进 prompt 但没引用，还是引用了过期文档。这样的证据链比反复改一句 prompt 更可靠。</p><h2>常见误解与边界情况：RAG 不是万能知识外挂</h2><p>常见误解是“只要接了知识库，模型就会自动只说真话”。事实上 RAG 只能把候选证据送到模型面前，不能保证候选一定完整，也不能保证模型一定忠实使用。问题可能出在 query 改写、切块、向量空间、权限过滤、context 排序、prompt 边界或最终核验。把所有问题都归因于模型，会掩盖检索链路里的真实缺陷。</p><p>另一个边界是资料冲突。两个 Document 可能来自不同版本、不同租户或不同发布时间，并给出相反结论。格式化 context 时应保留版本和日期，让模型知道哪份资料更新；必要时直接告诉用户资料冲突并列出来源，而不是让模型自行合成一个看似确定的答案。冲突处理是产品策略，不是语言润色。</p><h2>源码排障清单：从 Runnable 到 Document</h2><p>排查 RAG 时先确认 retriever.invoke 的输入是不是预期 query，再确认返回值是否真的是 Document 列表。若返回空列表，查看 search_kwargs、filter、向量库命名空间和 embedding 版本；若返回文档但没有 source，回到 loader 和 splitter；若文档有 source 但答案不引用，检查 prompt 模板和输出格式约束。</p><p>Runnable 的好处是每个节点都可以单独 invoke。不要一开始就运行整条链；先单测 rewrite，单测 retriever，单测 format_docs，再把 prompt 渲染出来人工检查。只有每个节点输出可信，整条链的问题才会收敛。LCEL 让组件组合很短，但排障仍要按组件边界拆开。</p><h2>引用格式设计：让用户和工程都能读</h2><p>面向用户的引用应简短，例如 [政策手册 §3.2] 或 [source#chunk]；面向工程的引用应包含 doc_id、chunk_id、score、version 和检索时间。两者可以从同一 metadata 生成，只是展示层不同。不要把工程 id 直接扔给普通用户，也不要为了界面简洁而丢掉工程 id。</p><p>引用还应覆盖“不引用”的情况。若答案是基于系统规则、工具观察或用户本轮输入，而不是检索资料，引用格式应能区分。否则所有回答都强行挂知识库来源，用户会误以为资料支持了模型的推理。证据类型越清楚，RAG 越容易被信任。</p><h2>Agent 中的 RAG 工具</h2><p>当 retriever 被包装成工具交给 Agent，检索不再每轮必做，而变成模型可选择的动作。此时工具描述要清楚说明适用范围：查内部政策、查产品文档、查历史工单，还是查公开网页。描述太宽，模型会频繁检索增加成本；描述太窄，模型可能在需要证据时直接回答。</p><p>Agent RAG 还要记录“为什么查”。固定链只需说明每次都会检索；Agent 需要知道模型为什么决定调用 retriever，使用了什么 query，是否把结果用于最终回答。若模型查了资料却忽略结果，可能是工具返回格式不适合模型阅读；若模型不查资料就答，可能是系统提示没有明确证据要求。</p><h2>RAG 与微调的配合</h2><p>微调适合改变稳定行为，例如输出风格、领域术语格式、工具调用习惯；RAG 适合注入变化快、私有或需要引用的事实。二者不是互斥：可以用微调让模型更会遵守引用格式和拒答策略，同时用 RAG 提供最新资料。把事实硬塞进微调会导致更新慢，把行为全交给 RAG 又会让提示很重。</p><p>选择时问三个问题：知识是否频繁变化，是否需要逐条引用，是否受权限控制。三个答案越偏是，越应优先 RAG；如果知识稳定且更多是表达习惯，微调或模板更合适。这个判断也应写进架构文档，避免团队在每个需求里重复争论。</p><h2>上线观测：不要只看满意度</h2><p>RAG 上线后至少监控无结果率、低分结果率、引用缺失率、引用冲突率、平均 context token、检索延迟和拒答率。用户满意度下降时，这些结构指标能告诉你是资料没覆盖、检索太慢、还是模型引用不稳定。没有结构指标，团队只会看到“回答不好”这一团雾。</p><p>还要抽样保存失败案例，但要注意脱敏和权限。失败样例应包含 query、候选 doc id、最终 context、答案和用户反馈，不应随意保存完整私密文档。评测集来自真实失败，真实失败又受隐私约束；这正是 RAG 工程需要治理而不只是写链的原因。</p><h2>端到端测试：不要只断最终文本</h2><p>RAG 测试最好把链路拆成结构断言。给定一个问题，先断言 rewrite 输出是否保留关键实体；再断言 retriever 至少召回某个 doc_id；再断言 context 含 source 和 chunk_id；最后才断言答案包含引用。这样模型措辞变化不会让测试脆弱，但证据链断裂会被及时发现。</p><p>还要测试负例。准备一个知识库没有覆盖的问题，期望系统拒答或要求澄清；准备一个带提示注入的文档，期望系统把它当资料而不是指令；准备两个版本冲突的文档，期望系统指出冲突或选择最新版本。负例能证明 RAG 边界真的被执行。</p><h2>上下文窗口的预算分配</h2><p>RAG context 不是越长越安全。系统提示、开发者规则、用户问题、聊天历史、工具观察、检索资料和输出空间都争夺同一个窗口。若检索资料占满窗口，模型可能丢掉用户本轮限定；若历史占太多，正确资料进不来。预算应按任务显式分配。</p><p>一种实用策略是先给系统规则和用户问题保底，再给最近历史和检索 context 设置上限。超过上限时，优先保留高分且来源多样的资料，而不是保留同一文档的重复块。预算分配也应写进 trace，让调参时能看到谁挤掉了谁。</p><h2>权限过滤的确定性</h2><p>权限过滤必须发生在 retriever 或 vector store 查询阶段，而不是最终回答阶段。模型不应该先看到无权文档再被要求不要泄漏，因为 prompt 注入、摘要或日志都可能让内容外溢。tenant、role、document_acl 等字段应作为 filter 进入检索调用，并在 trace 中记录。</p><p>权限和相关性有时冲突：最相似的文档可能无权访问，第二相似的文档才可用。系统应先过滤权限再排序，或在向量库支持的情况下把 filter 下推。若先全局排序再过滤，top-k 名额可能被无权文档占掉，导致可用结果不足。</p><h2>从 RAG 到可运营知识库</h2><p>课程里的 RAG 链只是运行时一半，另一半是知识库运营。资料谁负责更新，多久同步一次，删除如何生效，错误引用谁修，评测集如何扩充，这些流程决定系统能否长期可信。没有运营流程，第一次 demo 准确不代表一个月后仍准确。</p><p>建议把每次用户反馈映射到知识库动作：缺资料就补 source，资料过期就更新版本，召回错就调切块或 metadata，回答乱编就加强核验。RAG 的迭代对象不只是 prompt，而是资料、索引、检索和生成共同组成的闭环。</p><div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：RAG 会自动保证答案正确</div><div class="pf-correct">正确：RAG 只提供证据通道；仍需召回评测、prompt 约束和引用核验。</div></div><div class="pitfall"><div class="pf-wrong">误解：Retriever 只能在固定链里用</div><div class="pf-correct">正确：BaseRetriever 是 Runnable，也能转换成工具供 Agent 自主调用。</div></div><div class="pitfall"><div class="pf-wrong">误解：context 越多越好</div><div class="pf-correct">正确：过多上下文会增加噪声、成本和注入风险，应按质量与证据覆盖调参。</div></div><div class="pitfall"><div class="pf-wrong">误解：引用只是 UI 装饰</div><div class="pf-correct">正确：引用是事实核验入口，应能回指本轮 Document 的 source 与 chunk。</div></div></div><div class="card lab"><div class="tag">🧪 小实验 · 手工追踪一条 RAG 证据链</div><ol><li>选一个问题，写下原问题和可选改写后的检索 query。</li><li>列出 3 个模拟 Document：每个包含 page_content、source、chunk_id、score。</li><li>把 Document 格式化成 context，给每段编号，保留来源。</li><li>写一个只允许使用 context 的 prompt，并生成带引用的短答案。</li><li>检查答案里的每个事实能否在编号文档中找到，不能找到的句子必须删除或标成不确定。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>当前 LangChain 中 BaseRetriever 位于 langchain_core.retrievers，并继承 RunnableSerializable；这就是 retriever 可以进入 LCEL 的原因。旧教程可能把 RAG 只讲成 chain 类型，本课按 Runnable 时代的组合方式理解。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>RAG 的本质是运行时取证，不是重新训练模型。</li><li>Retriever 输入 query、输出 Document，是可组合 Runnable。</li><li>Document 的 metadata 是引用、权限和排障的关键，不是附属字段。</li><li>Prompt 必须区分系统规则、用户问题和检索资料，防止资料覆盖指令。</li><li>生产 RAG 要有引用核验和证据不足时的降级策略。</li></ul></div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. RAG 的本质是“先检索、再生成”。它为什么能突破“模型只懂训练数据”的局限？</div>
+  <div class="qn">1. RAG 端到端链路中，哪一步最直接负责把外部知识变成模型可读上下文？</div>
   <ol class="opts">
-    <li>它重新训练了模型</li>
-    <li>把私有/最新知识在“运行时”检索出来塞进上下文，让模型基于“现查的资料”作答，而不依赖记在权重里的旧知识</li>
-    <li>它让模型更大</li>
-    <li>它缓存了答案</li>
+    <li>直接微调模型权重，让知识永久进入参数</li>
+    <li>只把用户问题原样发给模型，不做任何资料处理</li>
+    <li>让输出解析器随机选择一个引用编号</li>
+    <li>Retriever 返回 Document 后，由格式化步骤把 page_content 和 metadata 整理进 prompt context</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。RAG 不改模型，而是改“喂给模型的上下文”。知识的新鲜与私有性靠外挂检索解决——这是性价比极高的设计。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。Retriever 只返回 Document；真正进入模型的是格式化后的 context，里面应保留 source、编号和边界说明。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. RAG 流水线是 Document → Splitter → Embeddings → VectorStore → Retriever 五件套。拆成五个清晰阶段，好处是？</div>
+  <div class="qn">2. 为什么说 <code>BaseRetriever</code> 可以被放进 LCEL 链？</div>
   <ol class="opts">
-    <li>每个阶段职责单一、可独立替换/调优（换嵌入、换库、调切块），整条管道清晰可维护</li>
-    <li>减少代码</li>
-    <li>显得复杂</li>
-    <li>运行更快</li>
+    <li>因为它只能返回字符串，不能返回 Document</li>
+    <li>因为它负责训练 embedding 模型</li>
+    <li>因为它继承 Runnable 契约，能用 invoke/stream/config 等统一接口接收 query 并返回 Document</li>
+    <li>因为它会自动调用所有工具</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。把“知识检索”拆成正交阶段，每步都能单独优化或替换。这又是“分阶段流水线”的可维护性回报。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。Retriever as Runnable 让检索成为链中的普通节点，也能被包装成 Agent 工具复用。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 课里强调“切块控制精度与 token”。为什么要先“切块”，而不是把整篇文档直接嵌入？</div>
+  <div class="qn">3. 当 RAG 没检索到足够证据时，最稳妥的回答策略是什么？</div>
   <ol class="opts">
-    <li>切块更快</li>
-    <li>文档太大存不下</li>
-    <li>嵌入不支持长文本</li>
-    <li>检索要的是“最相关的片段”：切块让检索更精准、只把相关小段塞进上下文，省 token 又减噪声</li>
+    <li>把 top_k 调成 1，让答案更短</li>
+    <li>让模型凭常识补全缺失事实</li>
+    <li>承认证据不足、要求澄清或扩大检索，而不是编造带引用答案</li>
+    <li>删除所有 metadata，避免用户看到来源</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。块太大→噪声多且费 token，太小→语义碎。切块是 RAG 质量的关键旋钮，本质是“检索粒度”的权衡。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. Retriever 被设计成 Runnable，既能拼进链、也能“包成工具交给 Agent”。这种双重身份图什么？</div>
-  <ol class="opts">
-    <li>减少类</li>
-    <li>炫技</li>
-    <li>同一个检索器，既能用在确定的 RAG 链里，也能当工具让 Agent“自己决定何时查”——一份能力两种用法</li>
-    <li>让检索更准</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。因为它是 Runnable，所以能无缝进入两种范式（固定管道 / Agent 自主）。统一抽象让组件复用面最大化。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。RAG 的可信度来自证据链。证据不足时应降级或补检索，不能把流畅文本伪装成有来源的事实。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>RAG 用“运行时检索”代替“重新训练”来获得新知识。什么情况下你反而应该选择微调/训练，而不是 RAG？两者怎么配合？</li>
-    <li>切块大小、检索条数 k、嵌入模型——RAG 一堆旋钮且互相影响。如果你的 RAG“答得不准”，你会按什么<strong>顺序</strong>排查这些旋钮？</li>
+    <li>设计一条 RAG trace：从用户问题、可选 query rewrite、retriever 返回 Document、context 格式化到最终引用核验，说明每一步记录哪些字段。</li>
+    <li>列出三个不适合优先使用 RAG 的场景，并说明这些场景更适合微调、规则系统、工具调用还是直接拒答。</li>
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="16-prompts.html"><div class="dir">← 上一课</div><div class="ttl">提示词 Prompts</div></a><a class="next" href="18-custom-middleware.html"><div class="dir">下一课 →</div><div class="ttl">写自己的中间件</div></a></div>
+  <div class="footnav"><a class="prev" href="35-agent-control-errors.html"><div class="dir">← 上一课</div><div class="ttl">控制边界、递归限制与错误恢复</div></a><a class="next" href="36-documents-splitters.html"><div class="dir">下一课 →</div><div class="ttl">Document、Loader 与 Splitter</div></a></div>
 </div>
 
 </body></html>

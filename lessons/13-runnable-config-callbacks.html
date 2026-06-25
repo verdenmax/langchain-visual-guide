@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>15 · 配置、回调与运行树 — LangChain 图解教程</title>
+<meta name="description" content="第三部分 · Runnable 与 LCEL｜配置、回调与运行树：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="theme-color" content="#1a7f64">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="LangChain 图解教程">
+<meta property="og:title" content="15 · 配置、回调与运行树 — LangChain 图解教程">
+<meta property="og:description" content="第三部分 · Runnable 与 LCEL｜配置、回调与运行树：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="15 · 配置、回调与运行树 — LangChain 图解教程">
+<meta name="twitter:description" content="第三部分 · Runnable 与 LCEL｜配置、回调与运行树：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f0f2f5; --ink: #1d2129;
+  --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
+  --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
+  --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116; --panel: #161b22; --panel-2: #1c232c; --ink: #e6edf3;
+    --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
+    --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
+    --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+    "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg); color: var(--ink); line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
+
+/* ---- top progress bar ---- */
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: var(--panel);
+  border-bottom: 1px solid var(--line); backdrop-filter: blur(8px);
+}
+.topbar-inner {
+  max-width: 960px; margin: 0 auto; padding: .7rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.topbar .home { font-size: .82rem; color: var(--muted); font-weight: 600; display:flex; gap:.5rem; align-items:center; }
+.topbar .home b { color: var(--accent); }
+.topbar .pill { font-size: .72rem; color: var(--muted); background: var(--panel-2);
+  padding: .2rem .6rem; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.progress { height: 3px; background: var(--panel-2); }
+.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue)); }
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 2.4rem 1.25rem 5rem; }
+
+/* ---- hero ---- */
+.hero { margin-bottom: 2rem; }
+.hero .part { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin-bottom: .55rem; }
+.hero h1 { font-size: 2.05rem; line-height: 1.2; letter-spacing: -.01em; font-weight: 750; }
+.hero .lead { margin-top: .9rem; font-size: 1.06rem; color: var(--muted); }
+
+h2 { font-size: 1.32rem; margin: 2.4rem 0 .9rem; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: .55rem; }
+h2::before { content: ""; width: 4px; height: 1.05em; background: var(--accent); border-radius: 3px; display: inline-block; }
+h3 { font-size: 1.05rem; margin: 1.4rem 0 .5rem; }
+p { margin: .7rem 0; }
+ul, ol { margin: .6rem 0 .6rem 1.3rem; }
+li { margin: .3rem 0; }
+strong { color: var(--ink); font-weight: 680; }
+.inline { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: .08em .4em; font-size: .9em; color: var(--accent-ink); }
+
+/* ---- callout cards ---- */
+.card { border-radius: var(--radius); padding: 1.05rem 1.2rem; margin: 1.2rem 0;
+  border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+.card .tag { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+.card.macro { border-left: 4px solid var(--blue); }
+.card.macro .tag { color: var(--blue); }
+.card.detail { border-left: 4px solid var(--purple); }
+.card.detail .tag { color: var(--purple); }
+.card.analogy { border-left: 4px solid var(--amber); background: var(--amber-soft); }
+.card.analogy .tag { color: var(--amber); }
+.card.key { border-left: 4px solid var(--accent); background: var(--accent-soft); }
+.card.key .tag { color: var(--accent-ink); }
+.card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
+.card.warn .tag { color: var(--red); }
+.card.spark { border-left: 4px solid #e0a000;
+  background: linear-gradient(100deg, rgba(224,160,0,.12), transparent 70%); }
+.card.spark .tag { color: #c98a00; }
+@media (prefers-color-scheme: dark) { .card.spark .tag { color: #f0c050; } }
+
+/* ---- code file callout ---- */
+.codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
+  box-shadow: var(--shadow); }
+.codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
+  background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
+.codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
+.codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
+  overflow-x: auto; font-size: .82rem; line-height: 1.6; }
+.codefile pre .cm { color: #7d8aa3; }
+.codefile pre .kw { color: #c792ea; }
+.codefile pre .fn { color: #82aaff; }
+.codefile pre .st { color: #c3e88d; }
+.codefile pre .nb { color: #f78c6c; }
+
+pre.code { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem; border-radius: 12px;
+  overflow-x: auto; font-size: .83rem; line-height: 1.6; margin: 1.1rem 0; box-shadow: var(--shadow); }
+pre.code .cm { color: #7d8aa3; } pre.code .kw { color: #c792ea; }
+pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb { color: #f78c6c; }
+
+/* ---- collapsible accordion (details/summary) ---- */
+.accordion { border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+  margin: .7rem 0; box-shadow: var(--shadow); overflow: hidden; }
+.accordion > summary { cursor: pointer; padding: .85rem 1.1rem; font-weight: 650; font-size: .96rem;
+  list-style: none; display: flex; align-items: center; gap: .6rem; user-select: none; }
+.accordion > summary::-webkit-details-marker { display: none; }
+.accordion > summary::after { content: "▶"; font-size: .68rem; color: var(--accent);
+  margin-left: auto; transition: transform .15s ease; }
+.accordion[open] > summary::after { transform: rotate(90deg); }
+.accordion > summary:hover { background: var(--panel-2); }
+.accordion[open] > summary { border-bottom: 1px solid var(--line); }
+.accordion .badge-num { background: var(--accent-soft); color: var(--accent-ink);
+  width: 1.6rem; height: 1.6rem; border-radius: 7px; display: inline-flex; align-items: center;
+  justify-content: center; font-size: .82rem; font-weight: 700; flex-shrink: 0; }
+.accordion .hint { font-size: .72rem; color: var(--faint); font-weight: 400; }
+.acc-body { padding: .9rem 1.1rem 1.1rem; }
+.acc-intro { color: var(--muted); font-size: .9rem; margin: .2rem 0 .4rem; }
+.qa { margin: 1rem 0; }
+.qa:first-child { margin-top: .3rem; }
+.qa .q { font-weight: 680; font-size: .9rem; display: flex; gap: .45rem; align-items: center; margin-bottom: .3rem; }
+.qa .a { color: var(--muted); font-size: .9rem; }
+.qa .a strong { color: var(--ink); }
+.qa pre.code { margin: .5rem 0 0; font-size: .78rem; }
+
+/* ---- flow diagram ---- */
+.flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 1.3rem 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1.2rem 1rem; box-shadow: var(--shadow); }
+.flow .node { flex: 1 1 0; min-width: 110px; text-align: center; padding: .7rem .5rem;
+  border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.flow .node .nt { font-weight: 700; font-size: .92rem; }
+.flow .node .nd { font-size: .76rem; color: var(--muted); margin-top: .2rem; }
+.flow .node.hl { background: var(--accent-soft); border-color: var(--accent); }
+.flow .arrow { align-self: center; color: var(--faint); font-size: 1.3rem; padding: 0 .35rem; }
+
+/* vertical flow */
+.vflow { margin: 1.3rem 0; }
+.vflow .step { display: flex; gap: .9rem; position: relative; padding-bottom: 1.1rem; }
+.vflow .step:not(:last-child)::before { content:""; position:absolute; left: 15px; top: 34px; bottom: -2px;
+  width: 2px; background: var(--line); }
+.vflow .num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; z-index:1; }
+.vflow .sc h4 { margin: .25rem 0 .2rem; font-size: 1rem; }
+.vflow .sc p { margin: .15rem 0; font-size: .92rem; color: var(--muted); }
+.vflow .sc .mono { font-size: .8rem; color: var(--accent-ink); }
+
+/* layered architecture */
+.layers { margin: 1.3rem 0; display: flex; flex-direction: column; gap: .55rem; }
+.layer { border-radius: 12px; padding: .85rem 1.1rem; border: 1px solid var(--line); background: var(--panel);
+  box-shadow: var(--shadow); }
+.layer .lh { display: flex; align-items: center; gap: .6rem; }
+.layer .lh .badge { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; }
+.layer .lh .name { font-weight: 700; font-family: ui-monospace, monospace; }
+.layer .ld { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.layer.l-core { border-left: 4px solid var(--accent); } .layer.l-core .badge { background: var(--accent-soft); color: var(--accent-ink); }
+.layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
+.layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
+.layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+
+/* two-column compare */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
+.col h4 { margin: 0 0 .4rem; font-size: .95rem; }
+
+table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
+  background: var(--panel); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+table.t th, table.t td { padding: .6rem .8rem; text-align: left; border-bottom: 1px solid var(--line); }
+table.t th { background: var(--panel-2); font-size: .8rem; letter-spacing: .02em; }
+table.t tr:last-child td { border-bottom: none; }
+table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-size: .82rem; color: var(--accent-ink); }
+@media (max-width: 640px) {
+  /* Wide multi-column tables: scroll within their own box instead of
+     forcing page-level horizontal overflow (which clipped right columns). */
+  table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.t th, table.t td { padding: .5rem .6rem; }
+  /* Code-file header: let a long path wrap and the right-side caption drop to
+     its own line instead of being pushed off-screen and silently clipped by
+     html{overflow-x:hidden}. */
+  .codefile .cf-head { flex-wrap: wrap; }
+  .codefile .cf-head .ln { margin-left: 0; }
+}
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
+
+/* footer nav */
+.footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
+  padding-top: 1.4rem; border-top: 1px solid var(--line); }
+.footnav a { flex: 1; padding: .85rem 1.1rem; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--panel); box-shadow: var(--shadow); transition: .15s; }
+.footnav a:hover { border-color: var(--accent); transform: translateY(-1px); }
+.footnav a.next { text-align: right; }
+.footnav .dir { font-size: .72rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.footnav .ttl { font-weight: 700; color: var(--ink); margin-top: .15rem; }
+.footnav a.disabled { opacity: .35; pointer-events: none; }
+
+/* index page */
+.toc { display: grid; gap: .7rem; margin-top: 1.6rem; }
+.toc-part { font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--accent); margin: 1.4rem 0 .2rem; }
+.toc a { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.05rem; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); transition: .15s; }
+.toc a:hover { border-color: var(--accent); transform: translateX(3px); }
+.toc .n { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
+.toc .tt { font-weight: 650; color: var(--ink); }
+.toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.toc-search { position: relative; margin: 1.6rem 0 -.4rem; }
+.toc-search input { width: 100%; box-sizing: border-box; padding: .75rem 2.8rem .75rem 1rem;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font-size: .98rem; box-shadow: var(--shadow); }
+.toc-search input:focus { outline: none; border-color: var(--accent); }
+.toc-search .qcount { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+  color: var(--faint); font-size: .8rem; pointer-events: none; }
+.toc a.hide, .toc .toc-part.hide { display: none; }
+.toc-empty { display: none; color: var(--muted); padding: 1rem; text-align: center; }
+.toc-empty.show { display: block; }
+.hero.index h1 { font-size: 2.3rem; }
+.legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
+.legend span { display:flex; align-items:center; gap:.4rem; }
+.legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }
+.pdf-btn { display:inline-flex; align-items:center; gap:.4rem; padding:.55rem 1.1rem;
+  background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
+  box-shadow:var(--shadow); transition:.15s; }
+.pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
+</style>
+</head><body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第三部分 · Runnable 与 LCEL</span>
+    <span class="pill">15 / 46</span>
+  </div>
+  <div class="progress"><span style="width:32%"></span></div>
+</div>
+<div class="wrap">
+  <div class="hero">
+    <div class="part">第三部分 · Runnable 与 LCEL</div>
+    <h1>配置、回调与运行树</h1>
+  </div>
+
+<p class="lead">如果 Runnable 是“怎么执行”的协议，RunnableConfig 和 callbacks 就是“这次执行如何被观察、标记和约束”的协议。一个父 chain 调 prompt、model、parser 时，不只是数据往下传，配置也会往下传：tags、metadata、callbacks、run_name、run_id、max_concurrency 等被标准化、patch、派生成子运行。理解这一课，你就能读懂 LangSmith trace 为什么是一棵树，也能知道哪些信息应该进入 metadata，哪些绝不能写进观测系统。</p>
+
+<div class="card analogy">
+  <div class="tag">🎫 生活类比</div>
+  把 RunnableConfig 想成<strong>演唱会后台通行证</strong>：通行证上有场次标签、工作人员备注、摄像机编号和进出记录。歌手唱什么歌是业务数据；通行证只决定这场演出如何被记录、谁能跟拍、归到哪个活动。callbacks 就像摄像和场记，负责记录开场、换场、结束和事故，但不应该冲上舞台替歌手改歌词。</div>
+<div class="lesson-map"><div class="lm-title">🗺️ 本课地图：配置、事件、运行树</div><div class="lm-grid"><div class="map-node source"><div class="mn-label">ensure_config</div><div class="mn-desc">把 None、局部 dict、继承配置标准化成完整 RunnableConfig</div></div><div class="map-node source"><div class="mn-label">patch_config</div><div class="mn-desc">进入子 Runnable 时追加 run_name、callbacks、tags、metadata 等</div></div><div class="map-node now"><div class="mn-label">CallbackManager</div><div class="mn-desc">管理 on_chain_start/on_llm_end/on_chain_error 等事件</div></div><div class="map-node now"><div class="mn-label">BaseTracer</div><div class="mn-desc">把事件组织成 run tree，可被 LangSmith 或本地 tracer 消费</div></div><div class="map-node after"><div class="mn-label">观测边界</div><div class="mn-desc">callbacks 观察运行，不应承载业务状态或秘密</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>配置和回调的代码分散在 config、callbacks、tracers 与 Runnable 基类之间。请把它们当成一条横切链路：入口标准化配置，父运行创建 callback manager，子 Runnable 派生 child callbacks，tracer 记录 run tree。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/runnables/config.py</td><td class="mono">ensure_config</td><td>补齐默认配置并合并上下文配置</td><td>Runnable.invoke 开始时调用</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/config.py</td><td class="mono">patch_config</td><td>为子步骤派生/覆盖 callbacks、tags、metadata、run_name 等</td><td>父 Runnable 调用子 Runnable 前使用</td></tr><tr><td class="mono">libs/core/langchain_core/callbacks/manager.py</td><td class="mono">CallbackManager</td><td>分发 start/stream/end/error 等回调事件</td><td>Runnable 运行时触发事件</td></tr><tr><td class="mono">libs/core/langchain_core/tracers/base.py</td><td class="mono">BaseTracer</td><td>把回调事件转换成可查询的运行记录与父子关系</td><td>CallbackManager 调用 tracer 钩子</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">Runnable.invoke</td><td>标准执行入口，围绕子类逻辑创建 run 与配置传播</td><td>用户调用与子 Runnable 嵌套调用</td></tr></table>
+<h2>运行树：父 chain 与三个子 run</h2>
+<p>一条 <span class="mono">prompt | model | parser</span> 链在 trace 里通常不是一条扁平日志，而是一棵树。父 run 表示整条链，子 run 表示 prompt、model、parser。这个结构让你能回答“整条请求耗时多少”“模型耗时多少”“解析失败是不是发生在最后一步”“哪些 tags 从父级传下来了”。</p>
+<div class="flow call-graph"><div class="node hl"><div class="nt">Parent Chain Run</div><div class="nd">run_id=A，tags=[&#x27;prod&#x27;,&#x27;rag&#x27;]</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">Prompt Child</div><div class="nd">parent=A，渲染模板，记录输入变量</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">Model Child</div><div class="nd">parent=A，记录 token、provider、响应元数据</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">Parser Child</div><div class="nd">parent=A，解析文本，成功或抛出错误</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">Trace Tree</div><div class="nd">BaseTracer 汇总父子关系、时间、错误</div></div></div>
+<h2>RunnableConfig 里到底放什么</h2>
+<p><span class="mono">RunnableConfig</span> 常见字段包括 callbacks、tags、metadata、run_name、run_id、max_concurrency、recursion_limit、configurable 等。它们的共同特征是“影响运行方式或观测方式”，而不是“成为模型输入的一部分”。tags 适合放 <span class="mono">['prod', 'checkout', 'experiment-a']</span> 这种低敏标记，metadata 适合放请求来源、版本、非敏感业务 ID、模型路由策略等。run_name 让 trace 中步骤更可读，run_id 用于关联一次明确运行。max_concurrency 影响 batch/parallel 调度，recursion_limit 防止递归链或图无限展开。</p>
+<p>反过来，用户密码、完整 system prompt、私有文档原文、信用卡号、访问 token 都不应该随手进 metadata。metadata 很容易被发送到日志、tracer、LangSmith 或公司内部观测平台；一旦记录，就会进入更长的保留周期和更广的访问面。观测数据要采用白名单，而不是“把所有上下文都 dump 进去”。</p>
+
+<h2>ensure_config 与 patch_config：父子配置如何连续</h2>
+<p><span class="mono">ensure_config</span> 做的是入口标准化：如果用户没传 config，就给一个空但结构完整的配置；如果当前上下文已有配置，就合并；如果字段缺失，就补默认值。这样后续代码不用到处判断 None。<span class="mono">patch_config</span> 做的是局部改写：进入 prompt 子步骤时可以设置 run_name 为 prompt；进入 model 子步骤时可以派生 child callback manager；某一步也可以追加 tags 或 metadata。二者配合，让配置既能继承父级，又能在子级显示自己的身份。</p>
+
+<h2>callbacks：观察事件，而不是改业务数据</h2>
+<p>CallbackManager 负责把运行事件分发给 handler。典型事件包括 chain start/end/error、LLM start/new_token/end/error、tool start/end/error、retriever start/end 等。handler 可以打印日志、更新进度条、把事件发送到 LangSmith、统计 token、度量耗时。它们应当是“旁路观察者”：看到输入输出、记录必要信息、在错误时留下证据。不要把关键业务逻辑写在 callback 里，例如“on_chain_end 时扣库存”或“on_llm_new_token 时修改订单状态”。回调可能被禁用、替换、采样或因观测系统故障而失败，业务正确性不能依赖它。</p>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. 父入口</td><td>chain.invoke(input, config={&#x27;tags&#x27;:[&#x27;demo&#x27;]})</td><td>ensure_config 标准化配置，CallbackManager 创建父 run</td><td>parent run_id=A</td></tr><tr><td>2. prompt 子 run</td><td>父 config + run_name=&#x27;prompt&#x27;</td><td>patch_config 派生 child callbacks，触发 on_chain_start/end</td><td>child run parent=A</td></tr><tr><td>3. model 子 run</td><td>消息 + 继承 tags/metadata</td><td>on_llm_start、on_llm_new_token、on_llm_end 记录模型事件</td><td>AIMessage + token/metadata</td></tr><tr><td>4. parser 子 run</td><td>AIMessage</td><td>解析成功触发 end；失败触发 error</td><td>结构化结果或异常</td></tr><tr><td>5. tracer 汇总</td><td>所有事件</td><td>BaseTracer 保存父子关系、时间线、错误</td><td>LangSmith / 本地 trace 中的 run tree</td></tr></table>
+<h2>简化源码走读：配置进入、子配置派生、事件上报</h2>
+<p>真实 Runnable.invoke 的实现会比这里复杂得多，尤其要处理泛型、contextvars、schema、streaming、异步和异常。伪代码只保留可观察性主线：标准化配置、创建 manager、触发 start/end/error、给子步骤派生 callbacks。</p>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/core/langchain_core/runnables/base.py + config.py :: Runnable.invoke with config/callbacks</span><span class="ln">简化版</span></div><pre>def invoke(self, input, config=None):
+    config = ensure_config(config)
+    manager = CallbackManager.configure(
+        config.get(&quot;callbacks&quot;),
+        tags=config.get(&quot;tags&quot;),
+        metadata=config.get(&quot;metadata&quot;),
+    )
+    run = manager.on_chain_start(name=self.get_name(), inputs=input)
+    try:
+        child_config = patch_config(config, callbacks=run.get_child())
+        output = self._call_with_config(input, child_config)
+    except Exception as exc:
+        run.on_chain_error(exc)
+        raise
+    run.on_chain_end(output)
+    return output
+</pre><div class="cw-note">教学版把许多细节合并了。重点是父 run 与 child callbacks 的关系：子 Runnable 不是另起炉灶，而是挂在同一棵运行树下。</div></div>
+<h2>LangSmith 与本地日志：边界不同，责任相同</h2>
+<p>LangSmith 可以把 run tree、输入输出、token、错误、metadata 可视化，是调试复杂链路的强工具。但是否使用 LangSmith，不改变 callbacks 的边界：观测层收集证据，业务层决定结果。对于生产系统，建议先定义观测白名单：哪些输入可以记录，哪些字段必须脱敏，哪些环境禁用完整 payload，哪些 tags 用于筛选，保留周期多长。否则“为了方便调试”很容易演变成“把所有用户数据永久写到日志”。</p>
+<p>本地开发时，callbacks 也要保持克制。打印整个 prompt 可能泄漏系统提示；打印检索文档可能泄漏私有知识库；打印 metadata 可能包含内部账号。更安全的做法是记录哈希、长度、文档 ID、非敏感类别、模型名称、耗时和错误类型。需要复现问题时，再通过受控权限查看原始数据。</p>
+
+<h2>常见误解与边界情况</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：config 是业务状态容器</div><div class="pf-correct">正确：config 承载运行与观测信息；业务数据应走 input/output、图 state 或数据库。</div></div><div class="pitfall"><div class="pf-wrong">误解：tags 可以当认证权限</div><div class="pf-correct">正确：tags 只是观测标签，不能替代鉴权、租户隔离或访问控制。</div></div><div class="pitfall"><div class="pf-wrong">误解：metadata 随便放，反正只给自己看</div><div class="pf-correct">正确：metadata 常进入日志和 LangSmith，必须避免秘密与隐私泄漏。</div></div><div class="pitfall"><div class="pf-wrong">误解：callbacks 可以顺便改业务结果</div><div class="pf-correct">正确：callbacks 应观察和记录，业务变更应在显式 Runnable、工具或服务层完成。</div></div></div>
+<h2>小结前的实验</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 画出你的运行树</div><ol><li>给 prompt | model | parser 设置 run_name、tags、metadata，运行后在 trace 中确认父子关系。</li><li>写一个只记录事件名和耗时的 callback handler，不记录原始 prompt 或用户输入。</li><li>故意让 parser 抛错，确认父 run 和子 run 的 error 事件都能定位到解析步骤。</li><li>列出 metadata 白名单和禁止字段，解释为什么 tags 不能用于权限判断。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>RunnableConfig、CallbackManager、BaseTracer 的字段和 handler 细节会随版本演进，但父子 run、配置传播、事件观察这三个概念是 LangChain 可观测性的稳定骨架。</div>
+
+<h2>深入拆解：可观测性不是事后打印日志</h2>
+<p>很多系统在出问题后才补日志，结果只能看到“最终失败”，看不到哪一步失败、输入形状是什么、哪次 fallback 被触发、模型耗时多少。LangChain 把 callbacks 和 run tree 放进 Runnable 协议，是为了让可观测性从一开始就是运行结构的一部分。父链、prompt、model、parser、retriever、tool 都能形成父子 run，事件顺序和耗时天然保留下来。调试复杂链时，这比散落的 print 更可靠。</p>
+<p>但可观测性不是越多越好。记录完整 prompt、完整用户输入、完整检索文档确实方便复现，却也可能泄漏系统提示、用户隐私和公司知识库。成熟系统会把观测分成层级：默认记录结构化摘要、耗时、状态码、模型名、token 数、文档 ID；在受控调试环境中临时打开更详细 payload；对生产敏感字段做脱敏、哈希或完全不记录。callbacks 提供能力，治理规则决定用到什么程度。</p>
+<h3>run tree 如何帮助定位问题</h3>
+<p>一棵好的运行树能把“链失败了”拆成具体证据。prompt 子 run 失败，常见是变量缺失或模板格式错误；model 子 run 失败，可能是 provider、限流、鉴权、上下文过长；parser 子 run 失败，通常是输出格式不符合 schema；retriever 子 run 慢，说明检索后端或网络有瓶颈。没有 run tree，你只能看到外层异常；有 run tree，你能把责任定位到步骤，甚至比较同类步骤在不同请求中的耗时分布。</p>
+<p>run tree 还支持产品层面的分析。tags 可以标记环境、功能、实验组；metadata 可以记录非敏感版本号、路由策略、文档集合 ID；run_name 可以让仪表盘按步骤聚合。这样你能问：“实验 A 是否让 parser 错误率上升？”“某个文档集合是否导致检索变慢？”“备用模型被触发的比例是多少？”这些问题不是单次调试，而是持续运营。</p>
+<h3>配置传播的边界审查</h3>
+<p>每当你准备往 config 里放一个字段，先问：如果这个字段消失，业务结果是否应该变化？如果会变化，它可能不是 config，而是 input 或 state。如果它只是帮助观察、筛选、调度、限制并发，那么 config 合适。这个简单问题能避免很多隐藏依赖。比如 <span class="mono">tenant_id</span> 如果用于权限过滤，就应该进入业务输入并由服务层验证；如果只是用于 trace 聚合，并且已经完成鉴权，可以作为脱敏 metadata 记录。</p>
+<p>tags 也要避免语义过载。它们适合做低基数标签，如 <span class="mono">prod</span>、<span class="mono">eval</span>、<span class="mono">rag</span>、<span class="mono">fallback</span>。不要把每个用户 ID、每个订单号都塞进 tags，否则筛选维度会爆炸，还可能造成隐私问题。高基数字段如果确实需要记录，应进入受控 metadata，并经过脱敏或访问控制。</p>
+<h3>callbacks 不应改变业务事实</h3>
+<p>把业务副作用写进 callback 是一个诱人的捷径：模型结束后顺手写数据库，工具结束后顺手发通知，解析失败后顺手改状态。问题是 callback 的生命周期服务于观测，不服务于事务。它可能因为配置不同而不注册，可能在测试中被替换，可能在观测后端故障时被禁用，也可能被采样。业务事实必须由显式链路步骤、工具或服务层负责，callback 最多记录“某事发生了”。</p>
+<p>如果你确实需要根据运行事件触发外部动作，应该把它设计成明确的 Runnable 或业务服务调用，并让它的输入输出、重试、错误处理和权限都可见。然后 callbacks 记录这个动作是否发生，而不是替代动作本身。这个边界能让测试更稳定，也能让审计更清楚：业务代码改变业务，观测代码观察业务。</p>
+
+
+<h2>观测数据的最小披露原则</h2>
+<p>配置和回调最容易在“为了调试”时越界。最小披露原则要求你只记录完成观测目标所需的信息。如果目标是统计延迟，不需要记录完整 prompt；如果目标是分析检索质量，可能只需要文档 ID、分数和集合名；如果目标是排查 parser 错误，可以记录 schema 名称、错误字段和输出长度，而不是完整用户内容。每多记录一个字段，就多一个泄漏面、多一份合规责任、多一个未来需要清理的数据副本。</p>
+<p>实践中可以把 metadata 分成三类。第一类是安全低敏字段，例如环境、功能名、版本、模型名、非敏感实验组。第二类是受控字段，例如内部请求 ID、租户哈希、文档集合 ID，需要访问权限和保留周期。第三类是禁止字段，例如密钥、token、密码、完整身份证件、完整私有文档、系统提示原文。把分类写进团队规范，比依赖每个开发者临时判断更可靠。</p>
+<h2>回调失败时业务应该怎样</h2>
+<p>观测系统也会失败：网络断开、LangSmith 不可用、日志服务限流、handler 自己抛异常。业务链不应该因为非关键观测失败而错误扣款或返回错误答案；但也不应该完全无视观测失败。常见做法是把观测 handler 做成尽量不抛出业务异常的旁路，失败时记录本地告警或指标，同时不改变主链输出。对于强审计场景，则应把审计写入设计成显式业务步骤，而不是普通 callback。</p>
+<p>这再次说明 callbacks 的边界：它们适合观察，不适合承诺业务事实。如果某个行业要求“没有审计记录就不能完成交易”，那审计写入必须是交易流程的一部分，有明确输入、输出、重试和失败策略。然后 callback 可以观察审计步骤是否成功。不要把合规要求隐藏在可选 handler 里。</p>
+<h2>让 trace 服务于学习和协作</h2>
+<p>好的 run tree 不只是排障工具，也是团队沟通工具。新人可以通过 trace 理解一条链包含哪些步骤；产品经理可以看到一次请求为什么慢；安全同学可以检查 metadata 是否越界；评测同学可以对比不同实验组的错误率。为了让 trace 可读，开发者需要主动命名关键节点，保持 tags 体系稳定，避免匿名 lambda 泛滥，避免把无结构大文本塞进 metadata。</p>
+<p>在课程学习中，你可以把每条链都当成“会生成运行树的程序”。写完链后，不只看最终答案，还要看 trace 是否解释得清楚：父子关系是否正确，prompt、model、parser 是否分别出现，错误是否落在预期节点，tags 是否继承，metadata 是否安全。如果 trace 自己都看不懂，说明链的结构或命名还需要整理。</p>
+
+<h2>从 trace 反推配置质量</h2>
+<p>检查配置设计是否健康，一个简单方法是看 trace。打开一次运行，如果你能从父 run 的 tags 看出环境和功能，从子 run 的名字看出 prompt、model、parser，从 metadata 看出非敏感版本信息和路由策略，说明配置服务了理解。如果 trace 里全是匿名步骤、重复标签、大段不可搜索文本和可疑秘密，说明配置正在变成垃圾抽屉。可观测性需要设计，不是自动发生的。</p>
+<p>配置还应支持对比。今天的模型版本、prompt 版本、检索集合、实验组如果没有进入安全 metadata，明天答案质量变化时就很难追溯。相反，如果把每次请求的完整用户资料都写入 metadata，虽然看似更全，却会造成隐私和噪声问题。好的 metadata 是“足以解释运行差异，但不足以泄漏敏感内容”。</p>
+
+<h2>把配置规范写成团队契约</h2>
+<p>如果每个开发者随意发明 tags 和 metadata，观测很快会失去可聚合性。今天有人用 prod，明天有人用 production；今天模型版本写 model，明天写 llm；同一个含义多个名字，仪表盘就会变得不可信。团队应该约定固定标签集合、metadata 字段名、脱敏方式和禁止字段，并在代码评审中检查。</p>
+<p>配置规范还要考虑环境差异。开发环境可以记录更详细样本，但仍不能记录真实秘密；测试环境应使用假数据验证 trace 形状；生产环境默认最小披露，只在授权排障窗口打开更详细记录。LangChain 提供的是配置通道，具体治理必须由应用团队负责。</p>
+<p>当你把这些规范落实后，callbacks 的价值会明显提升。它不再只是“打印点东西”，而是形成稳定的运行证据：哪条链、哪个版本、哪个模型、哪个分支、哪个错误、耗时多少。这样的证据能支持调试、评测、成本控制和安全审计。</p>
+
+<h2>最后的判断标准</h2>
+<p>配置和回调的好坏，不看记录了多少字段，而看能否在不泄漏秘密的前提下解释运行。一次失败发生后，你应该能从 trace 看出父子步骤、耗时、错误位置、模型版本和安全 metadata；同时看不到密码、token、完整隐私文本和不该外传的系统提示。达到这个平衡，观测才真正服务工程，而不是制造新风险。</p>
+<p>对大型团队来说，可观测字段还应有生命周期：谁能新增字段，谁能查看字段，字段保留多久，何时删除。没有生命周期的日志会越积越多，既增加成本，也增加泄漏风险。把这些规则和 RunnableConfig 一起设计，才能让 tracing 在项目变大后仍然可信。</p>
+<p>如果某个字段既影响权限又进入 metadata，要特别小心：权限判断必须在业务层完成，metadata 只能记录已脱敏、已授权的观测副本。把同一个值的业务用途和观测用途分开，是避免越权和泄漏的基本习惯。配置设计越早规范，后期排查和合规成本越低。</p>
+<p>安全的观测永远是选择性记录，而不是完整复制运行现场。记录越克制，证据越可信；字段越规范，协作越轻松。观测要帮助定位问题，也要尊重数据边界和用户信任：少记秘密，多记结构，问题才好查。安全观测不是一次性整理，而是长期纪律，它同时保护用户数据、团队效率和系统可信度。</p>
+<div class="card keypoints">
+  <div class="tag">✅ 本课要点</div>
+  <ul>
+    <li>RunnableConfig 传播运行控制与观测信息，不承载业务状态。</li>
+    <li>ensure_config 标准化入口配置，patch_config 为子 Runnable 派生局部配置。</li>
+    <li>callbacks 通过 CallbackManager 分发事件，tracer 把事件组织成 run tree。</li>
+    <li>LangSmith 展示的是观测证据，不应成为业务正确性的依赖。</li>
+    <li>tags、metadata 要遵守最小披露原则，避免把秘密写进日志和 trace。</li>
+  </ul>
+</div>
+<div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. 父 Runnable 调子 Runnable 时，callbacks 通常如何传播？</div>
+  <ol class="opts">
+    <li>父 run 派生 child callbacks，子 run 挂到同一棵运行树下</li>
+    <li>callbacks 只在 parser 中运行</li>
+    <li>callbacks 会把业务输入改写成 metadata</li>
+    <li>子 Runnable 会完全丢弃父级 callbacks</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。CallbackManager / tracer 的关键就是维护父子 run 关系，让链、prompt、model、parser 形成可观察运行树。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. tags 与 metadata 最适合承载哪类信息？</div>
+  <ol class="opts">
+    <li>环境、实验组、非敏感版本、路由策略等观测/筛选信息</li>
+    <li>购物车状态和订单明细</li>
+    <li>替代鉴权结果的权限标签</li>
+    <li>用户密码和访问 token</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。tags/metadata 是观测字段，必须遵守最小披露原则，不能承载秘密、隐私或业务权限。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. run tree 对排查 <code>prompt | model | parser</code> 失败有什么帮助？</div>
+  <ol class="opts">
+    <li>它会自动修复 parser 错误</li>
+    <li>它会把 tags 当成认证系统</li>
+    <li>它显示父链和子步骤的 start/end/error、耗时与父子关系，能定位失败发生在哪一步</li>
+    <li>它让所有子步骤合并成一条不可分日志</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。运行树把复杂链路拆成可观察节点。你能看出是 prompt、model 还是 parser 失败，而不是只看到外层异常。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>为一条 RAG chain 设计 tracing 方案：哪些 run_name、tags、metadata 必须有，哪些 payload 不记录？</li>
+    <li>如果 metadata 里可能出现系统提示、用户隐私或 token，你会用白名单、脱敏、哈希还是禁记策略？说明规则。</li>
+  </ul>
+</div>
+</div>
+  <div class="footnav"><a class="prev" href="12-runnable-parallel-branch.html"><div class="dir">← 上一课</div><div class="ttl">并行、分支与映射</div></a><a class="next" href="15-runnable-retry-fallback.html"><div class="dir">下一课 →</div><div class="ttl">重试、Fallback 与健壮链</div></a></div>
+</div>
+
+</body></html>

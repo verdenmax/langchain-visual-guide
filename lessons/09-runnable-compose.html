@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>09 · Runnable 如何组合 — LangChain 图解教程</title>
-<meta name="description" content="第三部分 · 内部源码｜Runnable 如何组合：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>13 · LCEL 管道与 Sequence — LangChain 图解教程</title>
+<meta name="description" content="第三部分 · Runnable 与 LCEL｜LCEL 管道与 Sequence：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="09 · Runnable 如何组合 — LangChain 图解教程">
-<meta property="og:description" content="第三部分 · 内部源码｜Runnable 如何组合：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="13 · LCEL 管道与 Sequence — LangChain 图解教程">
+<meta property="og:description" content="第三部分 · Runnable 与 LCEL｜LCEL 管道与 Sequence：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="09 · Runnable 如何组合 — LangChain 图解教程">
-<meta name="twitter:description" content="第三部分 · 内部源码｜Runnable 如何组合：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="13 · LCEL 管道与 Sequence — LangChain 图解教程">
+<meta name="twitter:description" content="第三部分 · Runnable 与 LCEL｜LCEL 管道与 Sequence：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -256,281 +256,210 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
 </style>
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第三部分 · 内部源码</span>
-    <span class="pill">09 / 27</span>
+    <span class="pill">第三部分 · Runnable 与 LCEL</span>
+    <span class="pill">13 / 46</span>
   </div>
-  <div class="progress"><span style="width:33%"></span></div>
+  <div class="progress"><span style="width:28%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第三部分 · 内部源码</div>
-    <h1>Runnable 如何组合</h1>
+    <div class="part">第三部分 · Runnable 与 LCEL</div>
+    <h1>LCEL 管道与 Sequence</h1>
   </div>
-  
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-上一课我们用 <span class="inline">a | b | c</span> 拼了链。那么——<strong>拼出来的到底是什么？</strong>
-答案是一个 <span class="inline">RunnableSequence</span> 对象。这一课拆解"顺序"与"并行"两种核心组合，
-以及几个最常用的"胶水" Runnable。
-</p>
+
+<p class="lead">LCEL 的 <span class="mono">|</span> 看起来像把几个对象排成一行，实质是在构造 <span class="mono">RunnableSequence</span>：前一步输出成为后一步输入，整条链本身仍是 Runnable。本课的重点不是记住“prompt | model | parser”这句示例，而是掌握三件事：管道如何从左到右传递数据，已有 Runnable、普通 callable/generator-like 和 dict/mapping 如何被 <span class="mono">coerce_to_runnable</span> 变成可组合组件，以及为什么类型不匹配会让链在中途失败。注意，普通 list 不会被它自动提升；列表式批量输入属于 <span class="mono">batch</span> / <span class="mono">RunnableEach</span>，多步顺序组合则要显式串成 Sequence。</p>
 
 <div class="card analogy">
-  <div class="tag">🏭 生活类比</div>
-  <strong>顺序组合</strong>像<strong>流水线</strong>：上一站的产出是下一站的原料，一站接一站。
-  <strong>并行组合</strong>像<strong>多个窗口同时办理</strong>：同一份输入分发给几条线<strong>同时</strong>处理，最后把各自结果汇总成一张表。
-</div>
+  <div class="tag">🚚 生活类比</div>
+  把 RunnableSequence 想成<strong>装配线</strong>：第一站把零件盒整理成半成品，第二站加工，第三站质检。传送带不是 shell 管道那种“字节流”，而是把上一站的完整产物交给下一站。上一站如果交出一箱螺丝，下一站却期待一块主板，传送带不会自动发明转接件；你必须显式加一个 RunnableLambda、Passthrough 或 parser 来改变形状。</div>
+<div class="lesson-map"><div class="lm-title">🗺️ 本课地图：LCEL 顺序组合</div><div class="lm-grid"><div class="map-node now"><div class="mn-label">| 运算符</div><div class="mn-desc">Runnable.__or__ 把左右两侧合成 RunnableSequence</div></div><div class="map-node now"><div class="mn-label">顺序数据流</div><div class="mn-desc">每一步的 output 直接作为下一步 input</div></div><div class="map-node now"><div class="mn-label">自动提升</div><div class="mn-desc">Runnable、callable/generator-like、dict/mapping 通过 coerce_to_runnable 进入协议世界；plain list 不属于这里</div></div><div class="map-node source"><div class="mn-label">胶水组件</div><div class="mn-desc">RunnableLambda 和 RunnablePassthrough 修补形状、保留原输入</div></div><div class="map-node after"><div class="mn-label">后续扩展</div><div class="mn-desc">并行、分支、重试都依赖“组合结果仍是 Runnable”</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>LCEL 的入口在 Runnable 基类而不是某个独立 DSL 解释器里。原因很直接：只有 Runnable 自己知道如何保持“组合后仍是 Runnable”。看源码时，请把 <span class="mono">__or__</span>、<span class="mono">RunnableSequence</span> 和 <span class="mono">coerce_to_runnable</span> 连起来读。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">Runnable.__or__</td><td>重载 |，把左 Runnable 与右侧可运行对象组合</td><td>用户写 a | b 时触发</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">RunnableSequence</td><td>顺序执行多个步骤，保存 first/middle/last 或 steps</td><td>依次调用每个子 Runnable</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">coerce_to_runnable</td><td>把 callable、dict 等普通对象提升为 Runnable</td><td>组合前标准化右侧对象</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/base.py</td><td class="mono">RunnableLambda</td><td>把普通 Python 函数包成 Runnable</td><td>自定义转换逻辑进入链</td></tr><tr><td class="mono">libs/core/langchain_core/runnables/passthrough.py</td><td class="mono">RunnablePassthrough</td><td>原样透传输入，并可 assign 新字段</td><td>在链中保留原始输入或补充字典键</td></tr></table>
+<h2>调用图：prompt | model | parser</h2>
+<p>最经典的 LCEL 链不是为了炫耀语法短，而是把“数据从哪里来、经过哪些变形、最终到哪里去”画成一条可执行的左到右路径。每一段都只看自己的输入，返回自己的输出，外层 Sequence 负责把它们接起来。</p>
+<div class="flow call-graph"><div class="node hl"><div class="nt">输入字典</div><div class="nd">{&#x27;question&#x27;: &#x27;LCEL 是什么&#x27;}</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">prompt</div><div class="nd">渲染系统提示和用户问题</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">model</div><div class="nd">根据消息生成 AIMessage</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">parser</div><div class="nd">提取 content 或校验 JSON</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">最终答案</div><div class="nd">字符串或结构化对象</div></div></div>
+<h2>管道不是 shell pipe：传的是对象，不是文本流</h2>
+<p>很多人第一次看到 <span class="mono">|</span> 会联想到 Unix shell：左边 stdout 的字节流喂给右边 stdin。LCEL 不一样。它传递的是 Python 对象，而且对象形状会随步骤变化。Prompt 输出可能是 PromptValue，模型输出可能是 AIMessage，parser 输出可能是字符串、字典或 Pydantic 对象。正因为传的是对象，LCEL 才能保留消息角色、tool_calls、response_metadata、usage_metadata 等结构化信息；也正因为传的是对象，类型不匹配会比纯文本管道更早、更明确地失败。</p>
+<p>因此读 LCEL 链要做“接口对账”：左边产物是否正好是右边能吃的东西？如果不是，需要哪一种胶水？例如模型后面接 <span class="mono">StrOutputParser</span> 很自然，因为 parser 会从消息里取文本；检索器输出文档列表后面不能直接接普通 prompt，通常要先 format_docs；一个返回 <span class="mono">{'context': ..., 'question': ...}</span> 的并行结构可以接需要这两个变量的 prompt，但不能直接接只接受字符串的 parser。</p>
 
-<h2>顺序组合：RunnableSequence</h2>
-<p>当你写 <span class="inline">a | b | c</span>，<span class="inline">__or__</span> 会把它们打包成一个
-<span class="inline">RunnableSequence</span>。它的 <span class="inline">invoke</span> 做的事极其朴素——<strong>依次调用、首尾相接</strong>：</p>
+<h2>RunnableSequence 的闭包性：链本身还是链的一块积木</h2>
+<p><span class="mono">prompt | model | parser</span> 的结果不是“立即执行后的答案”，而是一个新的 RunnableSequence。它拥有 invoke、stream、batch、with_config、with_retry 等同一套能力。这个闭包性是 LCEL 能规模化的关键：你可以把一条小链命名为 <span class="mono">answer_chain</span>，再把它放进更大的并行结构、分支结构或重试包装器里。没有闭包性，组合只能停留在一层；有了闭包性，复杂系统可以由多个小链分层拼装。</p>
 
-<div class="codefile">
-  <div class="cf-head"><span class="dot"></span><span class="path">core/langchain_core/runnables/base.py</span><span class="ln">class RunnableSequence</span></div>
-<pre><span class="kw">class</span> <span class="fn">RunnableSequence</span>(RunnableSerializable):
-    <span class="kw">def</span> <span class="fn">invoke</span>(self, input, config=None):
-        <span class="kw">for</span> step <span class="kw">in</span> self.steps:        <span class="cm"># 依次跑每一步</span>
-            input = step.invoke(input)   <span class="cm"># 上一步输出 = 下一步输入</span>
-        <span class="kw">return</span> input
-</pre>
-</div>
+<h2>coerce_to_runnable：为什么普通对象也能上管道</h2>
+<p>LCEL 让右侧对象在组合时被提升为 Runnable。普通函数会变成 <span class="mono">RunnableLambda</span>，字典会变成并行映射（通常是 <span class="mono">RunnableParallel</span>），已经是 Runnable 的对象保持原样。这是便利，但也是常见坑的来源。你写 <span class="mono">chain | {'a': r1, 'b': r2}</span> 时，意思不是“把字典作为常量传给下游”，而是“同一个输入同时送入 r1 和 r2，再把两个结果合并成字典”。如果你真的需要常量字典，要用 lambda、RunnablePassthrough.assign 或 prompt partial 等更明确的方式。</p>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. 组合</td><td>prompt | model</td><td>Runnable.__or__ 调用 coerce_to_runnable(model)</td><td>RunnableSequence([prompt, model])</td></tr><tr><td>2. 再组合</td><td>sequence | parser</td><td>已有 Sequence 追加 parser，保持顺序结构</td><td>RunnableSequence([prompt, model, parser])</td></tr><tr><td>3. invoke</td><td>{&#x27;question&#x27;: &#x27;...&#x27;}</td><td>Sequence 调 prompt.invoke</td><td>PromptValue</td></tr><tr><td>4. 中转</td><td>PromptValue</td><td>Sequence 把上一步输出原样交给 model.invoke</td><td>AIMessage</td></tr><tr><td>5. 结束</td><td>AIMessage</td><td>parser.invoke 解析 content</td><td>最终字符串或对象</td></tr></table>
+<h2>简化源码走读：| 如何变成 RunnableSequence</h2>
+<p>真实实现还会处理反向管道、名称、输入输出 schema、流式 transform、回调和序列化。教学版只展示核心：组合时先把右侧变成 Runnable，再把步骤列表交给 Sequence；运行时逐步把当前值替换为下一步输出。</p>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/core/langchain_core/runnables/base.py :: Runnable.__or__ / RunnableSequence</span><span class="ln">简化版</span></div><pre>class Runnable:
+    def __or__(self, other):
+        return RunnableSequence(self, coerce_to_runnable(other))
 
-<div class="flow">
-  <div class="node">input</div><div class="arrow">→</div>
-  <div class="node hl">step1</div><div class="arrow">→</div>
-  <div class="node hl">step2</div><div class="arrow">→</div>
-  <div class="node hl">step3</div><div class="arrow">→</div>
-  <div class="node">output</div>
-</div>
+class RunnableSequence(Runnable):
+    def invoke(self, input, config=None):
+        value = input
+        for step in self.steps:
+            value = step.invoke(value, config=config)
+        return value
 
-<h2>并行组合：RunnableParallel</h2>
-<p>当你把<strong>一个字典</strong>放进链里（值都是 Runnable），就得到 <span class="inline">RunnableParallel</span>：
-同一份输入<strong>同时</strong>喂给每个分支，结果合并成一个字典。</p>
+def coerce_to_runnable(obj):
+    if isinstance(obj, Runnable):
+        return obj
+    if callable(obj):
+        return RunnableLambda(obj)
+    if isinstance(obj, dict):
+        return RunnableParallel(obj)
+    raise TypeError(&quot;Expected a Runnable, callable or dict&quot;)
+</pre><div class="cw-note">这段伪代码刻意省略大量细节，但保留了 LCEL 的三个关键动作：重载 |、标准化右侧对象、顺序传递当前值。</div></div>
+<h2>RunnableLambda：胶水有用，但也会隐藏名字</h2>
+<p><span class="mono">RunnableLambda</span> 是把普通 Python 函数塞回 Runnable 世界的桥。它适合做轻量转换：把文档列表格式化成字符串、从字典里取某个字段、把模型输出包装成业务对象。问题是 lambda 很容易变成“匿名黑盒”。在 trace 中，匿名 lambda 的名字不如一个明确命名的函数或带 run_name 的 Runnable 清楚；出错时，你也更难知道是哪一步在改形状。生产链里推荐给关键转换命名，或者用 <span class="mono">with_config(run_name='format_docs')</span> 标注。</p>
 
-<pre class="code"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnableParallel
+<h2>RunnablePassthrough：保留原输入，而不是复制粘贴变量</h2>
+<p>顺序链有一个天然特性：下一步只看到上一步输出。若你既需要检索器的结果，又需要原始问题，就不能让检索器把问题“吃掉”后直接接 prompt。<span class="mono">RunnablePassthrough</span> 的作用是把原输入保留下来，或用 <span class="mono">assign</span> 在字典上补新字段。典型 RAG 链会把问题并行送给 retriever 生成 context，同时透传 question，最后 prompt 同时收到两者。这个模式会在下一课并行分支里展开。</p>
 
-parallel = RunnableParallel(
-    weather=get_weather_chain,   <span class="cm"># 分支 1</span>
-    news=get_news_chain,         <span class="cm"># 分支 2</span>
-)
-parallel.invoke(<span class="st">"北京"</span>)
-<span class="cm"># → {"weather": ..., "news": ...}  两条分支并发执行</span>
-</pre>
+<h2>类型错位：LCEL 最常见的调试路径</h2>
+<p>当链报错时，不要只看最后一行异常。先把整条链拆成步骤，逐段 invoke。第一步用真实输入跑 prompt，看输出是不是模型能接；第二步把 prompt 输出喂给 model，看模型返回的对象是不是 parser 能接；第三步把 parser 单独喂一个模拟 AIMessage，看解析失败是格式问题还是类型问题。LCEL 的优点是每段都是 Runnable，可以单独跑；不要把调试局限在整条链上。</p>
 
-<div class="flow" style="flex-direction:column;gap:.6rem;align-items:center">
-  <div class="node hl" style="flex:0 0 auto">同一份 input</div>
-  <div class="arrow" style="transform:rotate(90deg)">→</div>
-  <div style="display:flex;gap:1rem">
-    <div class="node">分支 weather</div>
-    <div class="node">分支 news</div>
-  </div>
-  <div class="arrow" style="transform:rotate(90deg)">→</div>
-  <div class="node hl" style="flex:0 0 auto">合并成 {weather, news}</div>
-</div>
+<h2>常见误解与边界情况</h2>
+<div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：LCEL 的 | 就是 shell pipe</div><div class="pf-correct">正确：LCEL 传递 Python 对象和结构化消息，不是无类型字节流。</div></div><div class="pitfall"><div class="pf-wrong">误解：字典在链里就是普通 dict 常量</div><div class="pf-correct">正确：dict 会被提升为并行映射，同一个输入送到多个分支再合并。</div></div><div class="pitfall"><div class="pf-wrong">误解：lambda 很方便，随便写就好</div><div class="pf-correct">正确：匿名 lambda 会隐藏 trace 名称和职责，关键转换应命名或配置 run_name。</div></div><div class="pitfall"><div class="pf-wrong">误解：parser 失败只影响最后一步</div><div class="pf-correct">正确：Sequence 任一步失败都会让整条 chain.invoke 失败，除非显式重试、修复或 fallback。</div></div></div>
+<h2>小结前的实验</h2>
+<div class="card lab"><div class="tag">🧪 小实验 · 拆开一条 LCEL 链调试</div><ol><li>写下 prompt | model | parser 中每段的输入和输出形状。</li><li>把一个普通函数接进链，观察它在 trace 中的名字，再用 with_config(run_name=...) 改名。</li><li>把 {&#x27;context&#x27;: retriever, &#x27;question&#x27;: RunnablePassthrough()} 接到 prompt 前，确认 dict 代表并行映射。</li><li>故意让 prompt 需要 context，但上游不提供该键，记录错误并定位缺口。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>LCEL 的核心符号仍在 langchain-core 的 runnables/base.py 与 passthrough.py。不同版本会调整内部字段名或流式实现，但 __or__、RunnableSequence、coerce_to_runnable 这条阅读主线稳定。</div>
 
-<h2>两个最常用的"胶水"</h2>
-<div class="cols">
-  <div class="col">
-    <h4>RunnableLambda</h4>
-    <p>把<strong>任意普通函数</strong>变成 Runnable，好塞进链里。</p>
-    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnableLambda
-upper = RunnableLambda(<span class="kw">lambda</span> x: x.upper())
-chain = upper | model</pre>
-  </div>
-  <div class="col">
-    <h4>RunnablePassthrough</h4>
-    <p>原样透传输入，常用于"<strong>保留原值 + 旁加一个新字段</strong>"。</p>
-    <pre class="code" style="margin:.4rem 0"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnablePassthrough
-RunnablePassthrough.assign(
-  weather=get_weather_chain)</pre>
-  </div>
-</div>
+<h2>深入拆解：Sequence 的可读性来自显式数据流</h2>
+<p>LCEL 的顺序组合最重要的收益是把数据流从嵌套调用里解放出来。命令式写法可能是 <span class="mono">parse(model(prompt(input)))</span>，短小但不容易插入观测、配置、重试和局部调试。LCEL 把每一步变成显式节点：prompt 负责渲染，model 负责生成，parser 负责校验。读者不需要猜哪一层调用了哪一层，顺着 <span class="mono">|</span> 从左到右就能看到执行路径。对教学链来说这是可读性；对生产链来说，这是可维护性和可观测性的基础。</p>
+<p>不过，可读性不是“越长越好”。一条二十多个 <span class="mono">|</span> 的链同样会变成难读的长句。好的做法是按语义分段：把“检索并格式化”命名为 retrieval_chain，把“生成并解析”命名为 answer_chain，把“审计包装”放在外层。因为 Sequence 本身仍是 Runnable，分段不会失去组合能力。相反，命名后的子链在 trace 中更容易理解，也更容易单独测试。</p>
+<h3>coercion 是便利，也是隐式复杂度</h3>
+<p><span class="mono">coerce_to_runnable</span> 是 LCEL 好用的原因之一：你可以把普通函数、字典映射直接写进链里，不必手动 new 一堆包装类。但它也是需要警惕的隐式复杂度。一个 dict 在 Python 里通常表示“这个值就是一个字典”，在 LCEL 组合语境里却表示“并行映射”。一个 callable 在普通代码里只是函数，在 LCEL 里会被包装成 RunnableLambda，并进入配置和回调体系。理解语境很关键：同样的对象，在“作为输入值”和“作为组合右侧”时语义不同。</p>
+<p>为了减少误会，团队可以形成约定：复杂的 dict 并行结构用变量名表达意图，例如 <span class="mono">rag_inputs = {'context': retriever | format_docs, 'question': RunnablePassthrough()}</span>；关键 callable 不写匿名 lambda，而写命名函数；需要常量时显式写 <span class="mono">lambda _: constant</span> 或使用 prompt partial。这样读者能一眼看出“这是并行分支”还是“这是常量值”，调试时也能在 trace 里看到更清楚的节点名。</p>
+<h3>类型错位的四步排查</h3>
+<p>LCEL 类型错位通常可以按四步排查。第一，列出每个节点的期望输入和实际输出，不要只看变量名。第二，单独 invoke 每个节点，用小样本确认形状。第三，在错位处加入最小转换，而不是在下游写复杂兼容逻辑。第四，给转换命名，防止以后维护者删掉它。比如 retriever 输出 Document 列表，prompt 需要字符串 context，正确补丁是添加 <span class="mono">format_docs</span>；不是让 prompt 模板自己理解 Document，也不是让 parser 猜测上游结构。</p>
+<p>另一个常见问题是 parser 被放错位置。parser 应该解析模型输出，而不是解析 prompt 输出、并行 dict 或检索结果。如果你看到 parser 报“没有 content 字段”或“输入不是字符串”，先检查它前面是不是模型。LCEL 不会阻止你把任意 Runnable 接在一起，因为框架无法静态知道所有动态类型；它会在运行时按协议调用，然后让具体组件暴露契约错误。</p>
+<h3>声明式链与手写函数的取舍</h3>
+<p>不是所有逻辑都必须写成 LCEL。非常短、只在一个地方使用、没有流式和追踪需求的纯 Python 逻辑，用普通函数可能更直接。LCEL 的优势出现在组件化、可替换、可观测、可批量和可配置的场景：同一条链要接不同模型，要给每一步打 tags，要把并行和 fallback 放进结构里，要在 LangSmith 看运行树，要让评测脚本批量调用。此时声明式链把运行结构变成一等对象，手写函数则容易把结构藏进控制流。</p>
+<p>健康的工程风格是混合使用。业务规则、字段转换、格式化函数可以保持普通 Python，但通过 RunnableLambda 或命名 Runnable 接入链；模型、prompt、parser、retriever 等可观测步骤用 LCEL 组合；复杂循环或状态机交给 LangGraph。这样既不把简单逻辑 DSL 化，也不把复杂编排埋在不可观察的函数里。</p>
 
-<div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应</div>
-  全部在 <span class="mono">core/langchain_core/runnables/</span> 下：
-  <table class="t" style="margin-top:.6rem">
-    <tr><th>类</th><th>文件</th><th>作用</th></tr>
-    <tr><td class="mono">RunnableSequence</td><td class="mono">base.py</td><td>顺序（<span class="mono">|</span> 的产物）</td></tr>
-    <tr><td class="mono">RunnableParallel</td><td class="mono">base.py</td><td>并行（别名 <span class="mono">RunnableMap</span>）</td></tr>
-    <tr><td class="mono">RunnableLambda</td><td class="mono">base.py</td><td>包装函数</td></tr>
-    <tr><td class="mono">RunnablePassthrough</td><td class="mono">passthrough.py</td><td>透传 / assign</td></tr>
-  </table>
-</div>
 
-<div class="card macro">
-  <div class="tag">🌍 宏观理解</div>
-  所有复杂的"链"，本质都是这几种基础 Runnable 的<strong>嵌套套娃</strong>：
-  顺序里套并行、并行的分支里又是顺序……因为<strong>组合的产物还是 Runnable</strong>，
-  所以可以无限拼下去，且整体永远支持 invoke/stream/batch。
-</div>
+<h2>组合前先写形状注释</h2>
+<p>在团队项目里，建议在复杂 LCEL 链旁边保留简短的形状注释，不是解释语法，而是解释每一步的数据形状。例如：输入是 question 字典；检索后得到 context 和 question；prompt 后得到消息；model 后得到 AIMessage；parser 后得到 Answer。真正容易出错的是形状对不上，而不是大家不知道模型会生成答案。</p>
+<p>形状注释还能帮助评审。评审者看到 dict 出现在链中，会立刻检查它是否表示并行映射；看到 lambda，会追问它是否应该命名；看到 parser，会检查它前面是不是模型输出；看到 passthrough，会确认原始输入是否真的需要保留。LCEL 的语法很短，短语法需要更强的结构意识，否则一行优雅代码可能隐藏很多隐式约定。</p>
+<h2>把长链拆成可测试单元</h2>
+<p>Sequence 的闭包性允许你把长链切成小 Runnable。每个小 Runnable 都能单独 invoke，这给测试带来很大便利。你可以用假 retriever 测 prompt 输入形状，用假 model 输出测 parser，用固定样本测 format_docs，而不必每次都真实调用 provider。这样测试更快、更稳定，也更容易定位失败。长链的端到端测试仍然需要，但不应该替代每段契约测试。</p>
+<p>拆分的粒度可以按责任来定：一个子链负责把用户问题变成 prompt 变量，一个子链负责模型生成，一个子链负责解析和校验。不要按技术层机械拆成很多无意义步骤，也不要把多个责任塞进一个巨大 lambda。好的子链名字应该能回答“它把什么变成什么”。例如 build_rag_inputs、generate_answer_message、parse_answer 都比 step1、helper 清楚。</p>
+<h2>LCEL 与普通 Python 的协作方式</h2>
+<p>有些开发者担心 LCEL 会把 Python 代码变成难调试的 DSL。实际更健康的看法是：LCEL 负责描述可观察的运行结构，Python 函数负责表达局部确定性逻辑。格式化文档、裁剪字符串、转换字段、构造引用编号，这些都可以先写成普通函数并配单元测试，再通过 RunnableLambda 接进链。这样既保留 Python 的清晰和测试便利，又获得 Runnable 的配置、追踪和组合能力。</p>
+<p>反过来，如果你把所有逻辑都塞进一个普通函数，外层只看到一个 RunnableLambda，那么 LangChain 的运行树就失去细节。trace 只能告诉你“lambda 失败了”，不知道是检索、模型、解析还是格式化失败。判断是否使用 LCEL 的标准不是“语法是否更短”，而是“这一步是否值得作为可观察、可替换、可配置的节点出现”。值得，就把它显式放进链；不值得，就留在普通函数里。</p>
 
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入两个常见实战问题。</p>
+<h2>链路演进：从一行示例到生产结构</h2>
+<p>教程里常写 <span class="mono">prompt | model | parser</span>，但生产里这行代码通常会演进出更多显式边界。prompt 前面会有输入清洗、权限过滤、检索上下文、历史裁剪；model 外面会有超时、重试、fallback、成本标记；parser 后面会有 schema 校验、业务规则检查、审计记录。LCEL 的价值不是让所有东西挤在一行，而是让这些边界都能保持 Runnable 形状，按需要组合、命名和测试。</p>
+<p>因此看到一条链时，要同时问“现在的数据从哪里来”和“以后可能在哪插入能力”。如果你把关键转换藏在普通函数内部，将来加 trace 和 fallback 会困难；如果你把每个微小表达式都拆成 Runnable，当前代码又会过度复杂。好的 LCEL 结构像清楚的段落：每段有主题，段与段之间顺序明确，必要时可以单独引用。</p>
 
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 一个 RAG 链如何用顺序 + 并行拼出来 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 经典 RAG 形状</div>
-      <div class="a">
-<pre class="code"><span class="cm"># 并行：同时"检索上下文"和"透传原问题"</span>
-setup = RunnableParallel(
-    context=retriever,                  <span class="cm"># 检索分支</span>
-    question=RunnablePassthrough(),     <span class="cm"># 原样透传问题</span>
-)
-<span class="cm"># 顺序：把上一步的 dict 灌进 prompt → model → parser</span>
-rag_chain = setup | prompt | model | parser</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么要并行那一步</div>
-      <div class="a">prompt 需要<strong>两样东西</strong>：检索到的上下文 + 用户原问题。
-        用 <span class="mono">RunnableParallel</span> 同时备齐这两者并打包成 dict，正好喂给下一步的 prompt。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">整条 RAG 用几个基础 Runnable 声明式拼出，无需手写胶水；检索与透传<strong>并发</strong>执行，更快。</div>
-    </div>
-  </div>
-</details>
+<h2>调试时保留中间值</h2>
+<p>LCEL 鼓励把链看成整体，但调试时要敢于拆开。把 prompt 输出打印成消息，把模型输出保留成 AIMessage，把 parser 输入单独保存成样本，可以让你区分“提示词没给够信息”“模型没按格式答”“解析器过严”三类问题。很多新手只盯最终异常，结果不断改 prompt，却没有发现 parser 前面拿到的根本不是模型消息。</p>
+<p>保留中间值也有助于回归测试。一次线上失败后，可以把脱敏后的 prompt 输出和模型输出变成固定样本，加入 parser 或格式化函数测试。这样下次改链时，即使不调用真实模型，也能验证曾经失败的形状不会再次破坏。LCEL 的每段 Runnable 都可单独 invoke，正是这种测试方式成立的原因。</p>
+<p>最后要记住，顺序链的“优雅”来自边界清楚，而不是代码最短。必要的命名、注释、校验和分段不会削弱 LCEL，反而让它从演示代码变成可靠工程结构。</p>
 
-<details class="accordion">
-  <summary><span class="badge-num">2</span> RunnableLambda vs RunnablePassthrough，别搞混 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 区别</div>
-      <div class="a">
-<pre class="code">RunnableLambda(f)            <span class="cm"># 把输入"变形"：output = f(input)</span>
-RunnablePassthrough()        <span class="cm"># 原样透传：output = input</span>
-RunnablePassthrough.assign(  <span class="cm"># 保留原 dict，再"旁加"一个新字段</span>
-    extra=some_runnable)</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 各自解决什么</div>
-      <div class="a"><span class="mono">Lambda</span> 用于"我要对数据做个小处理再往下传"；
-        <span class="mono">Passthrough</span> 用于"这一步我啥也不改，只是占位/保留"；
-        <span class="mono">assign</span> 用于"保留已有字段的同时再算一个新字段"（RAG 里常见）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 记忆法</div>
-      <div class="a">Lambda=变；Passthrough=不变；assign=加。三个胶水覆盖了链里 90% 的"数据搬运"需求。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> RunnableBranch：链里的 if / else 条件路由 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 按条件走不同分支</div>
-      <div class="a">前面的组合都是"固定流程"。要根据输入<strong>动态选路</strong>，用 <span class="mono">RunnableBranch</span>：
-<pre class="code"><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> RunnableBranch
-
-chain = RunnableBranch(
-    (<span class="kw">lambda</span> x: <span class="st">"代码"</span> <span class="kw">in</span> x[<span class="st">"q"</span>], code_chain),    <span class="cm"># 条件 → 分支</span>
-    (<span class="kw">lambda</span> x: <span class="st">"翻译"</span> <span class="kw">in</span> x[<span class="st">"q"</span>], translate_chain),
-    default_chain,                                  <span class="cm"># 都不满足 → 兜底</span>
-)</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 它解决什么</div>
-      <div class="a">同一个入口，按内容<strong>分流到不同子链</strong>（如"问代码走代码链、问翻译走翻译链"）。
-        每个 <span class="mono">(条件, 分支)</span> 依次判断，命中即走该分支；都不中走 <span class="mono">default</span>。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">RunnableBranch</span> 在 <span class="mono">core/langchain_core/runnables/branch.py</span>，本身也是 Runnable——
-        所以条件路由也能无缝拼进更大的链。</div>
-    </div>
-  </div>
-</details>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li>再复杂的链都只是几种基础 Runnable 的<strong>套娃</strong>：顺序里套并行、并行里套顺序、再加条件路由。</li>
-    <li>因为产物仍是 Runnable，<strong>组合没有尽头</strong>，invoke/stream/batch 永远可用。</li>
-  </ul>
-</div>
-
-<div class="card key">
+<h2>最后的判断标准</h2>
+<p>一条好的 Sequence 应该让读者不用运行代码，也能说清每一步把什么变成什么。如果读者必须跳进函数内部才能知道数据形状，说明链的边界还不够清楚。保持短链可读、长链分段、转换命名、错误可定位，是 LCEL 在生产里长期可维护的关键。</p>
+<p>如果链需要交给别人维护，请把每个子链的名字写得像接口说明，而不是临时变量。名字、形状、测试三者对齐，后续替换模型、增加 parser、插入 fallback 时才不会牵一发动全身。LCEL 的真正优势，是让这些改动发生在清晰节点之间。</p>
+<p>最后，别把 LCEL 当成只能展示在文档里的短语法。它的价值在于把运行结构变成可复用对象，让评测、观测、重试、并行和分支都能围绕同一条链工作。</p>
+<p>因此，写链时请先保证形状清楚，再追求语法漂亮。清晰的链会让后来者敢改，也知道改完该测哪里：先看契约，再看组合；先定位边界，再讨论优化。只要每个节点的职责、名字和输入输出都明确，LCEL 就不是难懂的 DSL，而是一张能运行、能追踪、能测试的数据流图。</p>
+<div class="card keypoints">
   <div class="tag">✅ 本课要点</div>
   <ul>
-    <li><span class="mono">a | b | c</span> 的产物是 <span class="mono">RunnableSequence</span>，invoke = 依次调用、首尾相接。</li>
-    <li>字典形式得到 <span class="mono">RunnableParallel</span>：同输入并发多分支，输出合并为字典。</li>
-    <li><span class="mono">RunnableLambda</span>（包函数）和 <span class="mono">RunnablePassthrough</span>（透传/assign）是最常用胶水；<span class="mono">RunnableBranch</span> 做条件路由。</li>
-    <li>下一课：补上 LCEL 的第三块拼图——<strong>输出解析器</strong>，把模型输出变成程序能用的数据。</li>
+    <li>LCEL 的 | 构造 RunnableSequence，不是立刻执行。</li>
+    <li>Sequence 从左到右把上一步输出交给下一步输入，类型契约必须对齐。</li>
+    <li>coerce_to_runnable 会把 callable、dict 等提升为 Runnable，其中 dict 表示并行映射。</li>
+    <li>RunnableLambda 和 RunnablePassthrough 是修补数据形状的胶水，但要保持 trace 可读。</li>
+    <li>链本身仍是 Runnable，所以可以继续并行、分支、重试、fallback 和追踪。</li>
   </ul>
 </div>
 <div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. <code>a | b | c</code> 得到 RunnableSequence，<code>{'x': a, 'y': b}</code> 得到 RunnableParallel。把“串行/并行”做成两种明确的组合原语，好处是？</div>
+  <div class="qn">1. <code>prompt | model | parser</code> 的顺序数据流是什么？</div>
   <ol class="opts">
-    <li>名字多</li>
-    <li>减少代码</li>
-    <li>运行更快</li>
-    <li>用最小的几种“组合方式”（顺序/并行/分支）就能拼出复杂数据流，心智模型简单且可预测</li>
+    <li>prompt 输出直接成为 model 输入，model 输出直接成为 parser 输入，整条 Sequence 返回 parser 结果</li>
+    <li>管道只传字符串，不保留消息对象</li>
+    <li>parser 先检查用户输入，再决定是否调用 prompt</li>
+    <li>三个组件并行执行，最后随机选一个结果</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。少数正交的组合原语 + 闭包性 = 强大的表达力。这是“用简单规则组合出复杂行为”的设计美学。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。RunnableSequence 的核心就是左到右传递当前值；每一步 output 变成下一步 input。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. RunnableParallel 让多分支“同输入并发执行、输出合并为字典”。为什么专门提供“并行”原语，而不让你自己开线程？</div>
+  <div class="qn">2. LCEL 中 <code>coerce_to_runnable</code> 的作用更接近哪一项？</div>
   <ol class="opts">
-    <li>线程不安全</li>
-    <li>Python 不支持并发</li>
-    <li>显得高级</li>
-    <li>把并发的复杂性（调度/收集/错误）收进框架，你只声明“这几支并行”，正确性和性能都不用自己操心</li>
+    <li>把所有异常吞掉并继续执行</li>
+    <li>把 callable、dict 等可组合对象提升为 Runnable，例如函数变 RunnableLambda、dict 变并行映射</li>
+    <li>把所有输出都转成 JSON</li>
+    <li>把 config 转成业务输入</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。又是“声明意图、框架负责实现”。把易错的并发编排变成一个声明式原语，是抽象在帮你避坑。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。coercion 让普通 Python 对象进入 Runnable 协议，但也带来 dict-as-parallel 等需要理解的语义。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. RunnableLambda（包普通函数）和 RunnablePassthrough（透传）被称为“胶水”。为什么要把“普通函数”也包成 Runnable？</div>
+  <div class="qn">3. 在 LCEL 组合右侧写 <code>{'context': retriever, 'question': RunnablePassthrough()}</code> 通常表示什么？</div>
   <ol class="opts">
-    <li>让函数更快</li>
-    <li>让任意自定义逻辑也能无缝接入管道——保持“一切皆 Runnable”的闭包性，不破坏链的可组合</li>
-    <li>防止函数报错</li>
-    <li>多此一举</li>
+    <li>把 retriever 和 question 串行执行两次</li>
+    <li>同一输入并行送到两个分支，再把结果合并成包含 context/question 的字典</li>
+    <li>让 parser 自动补齐缺失字段</li>
+    <li>把这个字典作为常量传给下游</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。有了 RunnableLambda，你的任意函数都能当积木拼进链，保证了抽象的“完备性”——不会因为“这步是自定义逻辑”就被迫跳出体系。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. RunnableBranch 做条件路由。把“if/else”也做成一个可组合的 Runnable，意图是？</div>
-  <ol class="opts">
-    <li>让“分支选择”也成为数据流的一部分，可声明、可嵌进链、可流式/异步——而不是散落在外部控制流里</li>
-    <li>没有意图</li>
-    <li>替代 if 语句</li>
-    <li>让代码更长</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。把控制流（分支）纳入可组合体系，整条管道就是自描述的，而非一半在链里、一半在外面的 if。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。dict 在 LCEL 组合语境中会被提升为 RunnableParallel / RunnableMap，而不是普通常量 dict。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li>“用少数正交原语（顺序/并行/分支）组合出一切”是很多系统的追求（Unix 管道、函数式组合子）。再举一个你见过的“小原语拼大系统”的例子。</li>
-    <li>把 if/else、并行都塞进“可组合的链”很统一，但有人觉得不如直接写 Python 直观。你站哪边？这种“声明式 DSL vs 朴素代码”的取舍你怎么看？</li>
+    <li>一条链报错：prompt 需要 <code>context</code>，但上游只返回字符串。你会如何逐段定位并修复类型/键不匹配？</li>
+    <li>比较 LCEL 链和一个手写 Python 函数：在哪些场景 LCEL 的可观测、可替换、可批量能力更值得？</li>
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="08-runnable.html"><div class="dir">← 上一课</div><div class="ttl">Runnable 万物之基</div></a><a class="next" href="10-output-parsers.html"><div class="dir">下一课 →</div><div class="ttl">输出解析器 Output Parsers</div></a></div>
+  <div class="footnav"><a class="prev" href="08-runnable.html"><div class="dir">← 上一课</div><div class="ttl">Runnable 协议</div></a><a class="next" href="12-runnable-parallel-branch.html"><div class="dir">下一课 →</div><div class="ttl">并行、分支与映射</div></a></div>
 </div>
 
 </body></html>

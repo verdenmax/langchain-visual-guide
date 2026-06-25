@@ -2,17 +2,17 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>07 · Agent 入门 — LangChain 图解教程</title>
-<meta name="description" content="第二部分 · 用户视角｜Agent 入门：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<title>27 · Agent 循环心智模型 — LangChain 图解教程</title>
+<meta name="description" content="第六部分 · Agent 内部｜Agent 循环心智模型：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="theme-color" content="#1a7f64">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LangChain 图解教程">
-<meta property="og:title" content="07 · Agent 入门 — LangChain 图解教程">
-<meta property="og:description" content="第二部分 · 用户视角｜Agent 入门：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta property="og:title" content="27 · Agent 循环心智模型 — LangChain 图解教程">
+<meta property="og:description" content="第六部分 · Agent 内部｜Agent 循环心智模型：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="07 · Agent 入门 — LangChain 图解教程">
-<meta name="twitter:description" content="第二部分 · 用户视角｜Agent 入门：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:title" content="27 · Agent 循环心智模型 — LangChain 图解教程">
+<meta name="twitter:description" content="第六部分 · Agent 内部｜Agent 循环心智模型：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -256,350 +256,125 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
   background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
   box-shadow:var(--shadow); transition:.15s; }
 .pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
 </style>
 </head><body>
 <div class="topbar">
   <div class="topbar-inner">
     <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
-    <span class="pill">第二部分 · 用户视角</span>
-    <span class="pill">07 / 27</span>
+    <span class="pill">第六部分 · Agent 内部</span>
+    <span class="pill">27 / 46</span>
   </div>
-  <div class="progress"><span style="width:25%"></span></div>
+  <div class="progress"><span style="width:58%"></span></div>
 </div>
 <div class="wrap">
   <div class="hero">
-    <div class="part">第二部分 · 用户视角</div>
-    <h1>Agent 入门</h1>
+    <div class="part">第六部分 · Agent 内部</div>
+    <h1>Agent 循环心智模型</h1>
   </div>
-  
-<p class="lead" style="font-size:1.06rem;color:var(--muted);margin-top:-.6rem">
-把前三课（消息 + 模型 + 工具）<strong>组装并自动化</strong>，就是 Agent。
-一个函数 <span class="inline">create_agent</span> 帮你编排"思考 → 调工具 → 看结果 → 再思考"的循环，直到任务完成。
-</p>
 
-<div class="card analogy">
-  <div class="tag">🕵️ 生活类比</div>
-  Agent 就像一个<strong>会用工具的助理</strong>：你交代任务，他自己判断"需要先查个天气"，
-  拿起工具电话拨号，看到结果后再决定"够了，可以回答了"还是"还得再查一个"。
-  你不用一步步指挥——<strong>循环由他自己跑</strong>。
-</div>
+<p class="lead">Agent 循环的最小骨架不是“模型会自己调用函数”，而是一条很朴素的状态机：用户消息先进入 model 节点，模型返回 <span class="mono">AIMessage</span>；如果这条消息带有 <span class="mono">tool_calls</span>，图就转到 tools 节点；工具执行后把结果包装成 <span class="mono">ToolMessage</span> 追加回消息历史；model 再读到这条观察结果并决定继续调用工具还是给出最终回答。本课把这个 model/tool loop 拆成可追踪的节点、消息和终止条件，重点看 <span class="mono">create_agent</span>、<span class="mono">ToolNode</span>、<span class="mono">tools_condition</span>、<span class="mono">AIMessage.tool_calls</span> 与 <span class="mono">ToolMessage</span> 如何配合。</p>
+<div class="card analogy"><div class="tag">🧩 生活类比</div>把 Agent 想成一个接线员，而工具像仓库、订单系统和日历。用户问“我的包裹什么时候到”，接线员先听问题，发现自己没有实时物流数据，于是写一张工单：调用查物流工具，参数是订单号。仓库同事处理工单并把结果贴回工单系统，这张回执就是 ToolMessage。接线员重新阅读完整工单记录，才能回答用户。真正的循环不是接线员脑内神秘发生的，而是“提出工具请求、收到工具回执、再判断是否足够回答”的外部化流程。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：Agent 循环如何在消息上前进</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">用户输入</div><div class="mn-desc">HumanMessage 进入 messages 状态，成为 model 节点本轮可见的上下文</div></div><div class="map-node now"><div class="mn-label">模型节点</div><div class="mn-desc">模型读取历史、系统提示和工具说明，输出 AIMessage；是否继续由 tool_calls 决定</div></div><div class="map-node now"><div class="mn-label">条件边</div><div class="mn-desc">tools_condition 检查最新 AIMessage.tool_calls，决定跳到 tools 还是结束</div></div><div class="map-node source"><div class="mn-label">工具节点</div><div class="mn-desc">ToolNode 按 tool_calls 找到工具、执行参数、生成 ToolMessage 观察结果</div></div><div class="map-node after"><div class="mn-label">回到模型</div><div class="mn-desc">ToolMessage 追加进 messages，模型用观察结果组织最终回答或继续调用工具</div></div></div></div>
+<h2>源码入口：文件 + 符号名</h2>
+<p>读 Agent 循环时要先抓住源码入口，而不是从任意示例开始猜。下面的 source map 使用“文件 + 符号名”作为可复查锚点：高层入口在哪里造图，条件边在哪里判断，工具节点在哪里把请求变成观察，消息对象如何保存请求与回执。</p>
+<table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/langchain_v1/langchain/agents/factory.py</td><td class="mono">create_agent</td><td>高层 Agent 工厂，把模型、工具、提示、中间件和上下文组装成可运行图</td><td>用户调用入口，内部把循环交给 LangGraph 编排</td></tr><tr><td class="mono">libs/prebuilt/langgraph/prebuilt/tool_node.py</td><td class="mono">ToolNode</td><td>预置工具节点，读取 AIMessage.tool_calls，执行匹配工具并返回 ToolMessage</td><td>位于 model -&gt; tools -&gt; model 的 tools 阶段</td></tr><tr><td class="mono">libs/prebuilt/langgraph/prebuilt/tool_node.py</td><td class="mono">tools_condition</td><td>条件路由函数，检查最新 AIMessage 是否还有工具调用</td><td>model 节点之后决定下一跳是 tools 还是 END</td></tr><tr><td class="mono">libs/core/langchain_core/messages/ai.py</td><td class="mono">AIMessage.tool_calls</td><td>模型请求调用工具的结构化字段，包含 name、args、id 等信息</td><td>由模型节点写入，供条件边和 ToolNode 读取</td></tr><tr><td class="mono">libs/core/langchain_core/messages/tool.py</td><td class="mono">ToolMessage</td><td>工具执行结果消息，用 tool_call_id 与原始请求配对</td><td>由 ToolNode 写回 messages，下一轮 model 读取</td></tr></table>
+<h2>状态流：一次 model/tool loop</h2>
+<div class="vflow state-flow"><div class="step"><div class="num">1</div><div class="sc"><h4>用户问题进入 messages</h4><p>用户问“北京明天会下雨吗，顺便给我一句出门建议”。状态里只有 HumanMessage，模型还没有事实数据。</p><div class="mono">messages=[HumanMessage(...)]</div></div></div><div class="step"><div class="num">2</div><div class="sc"><h4>model 节点产出工具请求</h4><p>模型看到可用天气工具，返回 AIMessage(content=&#x27;&#x27;, tool_calls=[{name:&#x27;get_weather&#x27;, args:{city:&#x27;北京&#x27;, date:&#x27;明天&#x27;}, id:&#x27;call_1&#x27;}])。</p><div class="mono">AIMessage.tool_calls -&gt; call_1</div></div></div><div class="step"><div class="num">3</div><div class="sc"><h4>tools_condition 选择 tools</h4><p>条件边只看最新 AIMessage 是否有 tool_calls；有就跳到 tools 节点，没有就结束。</p><div class="mono">route=&#x27;tools&#x27;</div></div></div><div class="step"><div class="num">4</div><div class="sc"><h4>ToolNode 执行并写回观察</h4><p>ToolNode 根据 name 找到 get_weather，传入 args，得到天气数据，并构造 ToolMessage(tool_call_id=&#x27;call_1&#x27;, content=&#x27;小雨，12℃&#x27;)。</p><div class="mono">messages += ToolMessage</div></div></div><div class="step"><div class="num">5</div><div class="sc"><h4>model 再读观察并终止</h4><p>模型读到 ToolMessage 后组织自然语言回答；这次 AIMessage 没有 tool_calls，条件边路由到 END。</p><div class="mono">AIMessage(content=&#x27;明天小雨...&#x27;)</div></div></div></div>
+<h2>Trace：用户问题到最终回答</h2>
+<table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. user question</td><td>HumanMessage: 查订单 42 的物流并告诉我是否需要联系仓库</td><td>图把消息追加到 messages，唤醒 model 节点</td><td>messages 包含用户问题</td></tr><tr><td>2. model node</td><td>messages + 工具说明 search_order(order_id)</td><td>模型没有直接编造物流，而是产出 AIMessage.tool_calls=[search_order({&#x27;order_id&#x27;:&#x27;42&#x27;})]</td><td>最新 AIMessage 带 tool_calls</td></tr><tr><td>3. condition</td><td>latest AIMessage.tool_calls 非空</td><td>tools_condition 返回 tools 分支</td><td>下一步执行 ToolNode</td></tr><tr><td>4. tools node</td><td>tool_call id=call_order_42, name=search_order, args={&#x27;order_id&#x27;:&#x27;42&#x27;}</td><td>ToolNode 查找工具、执行函数、捕获结果</td><td>ToolMessage(tool_call_id=&#x27;call_order_42&#x27;, content=&#x27;已出库，预计明天到&#x27;)</td></tr><tr><td>5. final model</td><td>完整历史：用户问题 + 工具请求 + 工具结果</td><td>模型综合观察，返回不含 tool_calls 的最终 AIMessage</td><td>条件边结束，用户收到回答</td></tr></table>
+<h2>简化源码走读：循环不是 while，而是条件图</h2>
+<div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/langchain_v1/langchain/agents/factory.py :: create_agent / model -&gt; tools</span><span class="ln">简化版</span></div><pre>state = {&quot;messages&quot;: [user_message]}
 
-<h2>一行创建 Agent</h2>
-<pre class="code"><span class="kw">from</span> langchain.agents <span class="kw">import</span> create_agent
+while True:  # 教学版；真实实现是 StateGraph 条件边
+    ai = model.invoke(state[&quot;messages&quot;], tools=tool_schemas)
+    state[&quot;messages&quot;] = add_messages(state[&quot;messages&quot;], [ai])
 
-agent = create_agent(
-    model=<span class="st">"openai:gpt-5.1"</span>,        <span class="cm"># 模型（字符串或模型对象都行）</span>
-    tools=[get_weather],            <span class="cm"># 一组工具</span>
-    system_prompt=<span class="st">"你是天气助手"</span>,  <span class="cm"># 可选的系统设定</span>
-)
+    if not ai.tool_calls:
+        return ai
 
-result = agent.invoke(
-    {<span class="st">"messages"</span>: [{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"北京和上海哪个更热？"</span>}]}
-)
-print(result[<span class="st">"messages"</span>][-1].content)   <span class="cm"># 最终答案</span>
-</pre>
-
-<div class="card detail">
-  <div class="tag">🔬 细节 / 代码对应</div>
-  <ul>
-    <li><span class="mono">create_agent</span> 在 <span class="mono">langchain_v1/langchain/agents/factory.py</span>，
-      由 <span class="mono">agents/__init__.py</span> 导出。</li>
-    <li>它的输入/输出都是一个带 <span class="mono">"messages"</span> 键的状态字典——即 <span class="mono">AgentState</span>。</li>
-    <li>核心签名（节选）：
-      <pre class="code" style="margin:.5rem 0"><span class="kw">def</span> <span class="fn">create_agent</span>(
-    model: str | BaseChatModel,
-    tools=None,
-    *,
-    system_prompt=None,
-    middleware=(),         <span class="cm"># 可插拔的中间件（第 13 课）</span>
-    response_format=None,  <span class="cm"># 结构化输出</span>
-    ...
-)</pre></li>
-  </ul>
-</div>
-
-<h2>Agent 循环：它到底在转什么？</h2>
-<p>这张图是 Agent 的灵魂。注意它<strong>就是第 6 课那个工具往返，只是自动重复</strong>，
-直到模型不再请求工具为止：</p>
-
-<div class="flow" style="flex-direction:column;gap:.7rem;align-items:center">
-  <div class="node hl" style="flex:0 0 auto;min-width:200px">① 模型思考<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">看当前消息，决定下一步</span></div>
-  <div class="arrow" style="transform:rotate(90deg)">→</div>
-  <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;justify-content:center">
-    <div class="node" style="min-width:200px;border-color:var(--amber)">要调工具？→ ② 执行工具<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">运行后把 ToolMessage 加回消息，<b>回到 ①</b></span></div>
-    <div class="node" style="min-width:160px;border-color:var(--accent)">不调工具？→ ③ 结束<br><span style="font-weight:400;font-size:.76rem;color:var(--muted)">返回最终 AIMessage</span></div>
-  </div>
-</div>
-
-<div class="card macro">
-  <div class="tag">🌍 宏观理解</div>
-  <ul>
-    <li>Agent = <strong>模型 + 工具 + 一个自动循环</strong>。循环的"判断条件"很简单：
-      <strong>模型回复里还有没有 <span class="mono">tool_calls</span></strong>？有就执行并继续，没有就结束。</li>
-    <li>你只管<strong>声明</strong>"用哪个模型、给哪些工具、什么系统设定"，循环的编排交给框架。</li>
-    <li>底层其实是一张 <strong>LangGraph 状态图</strong>（节点："model" 与 "tools"）——这是第 13 课的内容，现在只需理解它在转一个循环。</li>
-  </ul>
-</div>
-
-<h2>🔍 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，深入 create_agent 的三个常用能力。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> system_prompt：怎么给 Agent 定"人设"和规则 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">
-<pre class="code">agent = create_agent(
-    model, tools=[get_weather],
-    system_prompt=<span class="st">"你是严谨的天气助手。只用工具返回的数据，不要编造。"</span>,
-)</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">它会作为对话最前面的 <span class="mono">SystemMessage</span> 注入，约束 Agent 的<strong>语气、边界、调用工具的策略</strong>。
-        没有它，模型只能凭默认行为发挥，容易跑偏或乱编。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">一个字符串就能统一规范整个 Agent 的行为，无需在每条用户消息里重复叮嘱。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> response_format：让 Agent 最终输出结构化数据 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">
-<pre class="code"><span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel
-<span class="kw">class</span> <span class="fn">Answer</span>(BaseModel):
-    city: str
-    temp_c: float
-
-agent = create_agent(model, tools=[get_weather], response_format=Answer)
-<span class="cm"># Agent 跑完循环后，给你一个 Answer 对象，而不只是文本</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 与 with_structured_output 的区别</div>
-      <div class="a">第 5 课的 <span class="mono">with_structured_output</span> 约束<strong>单次模型调用</strong>的输出；
-        这里的 <span class="mono">response_format</span> 约束<strong>整个 Agent 循环跑完后</strong>的最终结果——适合"先用工具查、最后给结构化答案"的场景。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">Agent 既能多步用工具，又能把最终结论交成强类型对象，直接对接下游程序。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> middleware：在循环里插钩子（预告第 13 课） <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 用途举例</div>
-      <div class="a"><span class="mono">create_agent(..., middleware=[...])</span> 可以在"调用模型前后""执行工具前后"插入逻辑：
-        <strong>改写请求、人审(human-in-the-loop)、日志、限流、敏感词过滤</strong>等。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">真实产品需要在 Agent 的标准循环里加"非功能性"逻辑。若没有扩展点，就只能去改核心循环代码——既危险又难维护。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点 & 🔀 其他方案</div>
-      <div class="a">优点：行为可插拔，核心循环保持稳定（第 13 课看它如何映射到 LangGraph 节点）。
-        其他方案：用回调（callbacks，第 14 课）做观测，但 middleware 能真正<strong>改变</strong>流程，回调主要用于<strong>观察</strong>。</div>
-    </div>
-  </div>
-</details>
-
-<h2>🎛️ 进阶专题：如何"驯服"一个 Agent</h2>
-<p>自动循环很强，但生产环境需要给它装上<strong>刹车与护栏</strong>：限制循环次数、关键操作要人审、
-出错能重试或降级。这些大多通过<strong>中间件（middleware）</strong>声明式装上，全部来自 <span class="inline">langchain.agents.middleware</span>。</p>
-
-<table class="t">
-  <tr><th>需求</th><th>中间件 / 机制</th></tr>
-  <tr><td>防止无限循环 / 失控</td><td class="mono">ModelCallLimitMiddleware · ToolCallLimitMiddleware · recursion_limit</td></tr>
-  <tr><td>关键操作要人批准</td><td class="mono">HumanInTheLoopMiddleware</td></tr>
-  <tr><td>出错自动重试</td><td class="mono">ModelRetryMiddleware · ToolRetryMiddleware</td></tr>
-  <tr><td>主模型挂了降级备用</td><td class="mono">ModelFallbackMiddleware</td></tr>
-  <tr><td>工具太多先筛一遍</td><td class="mono">LLMToolSelectorMiddleware</td></tr>
-</table>
-
-<h2>🔍 Agent 控制 · 深入理解</h2>
-<p class="acc-intro" style="color:var(--muted);font-size:.92rem">展开下面的卡片，逐个吃透关键护栏。</p>
-
-<details class="accordion">
-  <summary><span class="badge-num">1</span> 防止失控：循环与调用次数上限 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 两道防线</div>
-      <div class="a">
-<pre class="code"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> (
-    ModelCallLimitMiddleware, ToolCallLimitMiddleware,
-)
-
-agent = create_agent(model, tools, middleware=[
-    ModelCallLimitMiddleware(run_limit=8),   <span class="cm"># 本次运行最多调 8 次模型（思考轮数）</span>
-    ToolCallLimitMiddleware(run_limit=3),    <span class="cm"># 本次运行最多调 3 次工具（防失控刷工具）</span>
-])
-<span class="cm"># 硬保护：图的递归上限（兜底，超过直接报错）</span>
-agent.invoke(input, config={<span class="st">"recursion_limit"</span>: 25})</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ Model 上限 vs Tool 上限</div>
-      <div class="a"><span class="mono">ModelCallLimitMiddleware</span> 限"<strong>总共思考几轮</strong>"（模型被调用次数）；
-        <span class="mono">ToolCallLimitMiddleware</span> 限"<strong>某个/某类工具最多被调几次</strong>"，防止模型对同一工具反复刷。
-        二者可叠加，分别防"想太久"和"刷某工具"。</div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">模型可能陷入"反复调同一个工具"的死循环，既烧钱又卡死。
-        <span class="mono">recursion_limit</span> 是 LangGraph 的兜底硬上限；<span class="mono">ModelCallLimit / ToolCallLimit</span>
-        则是更贴业务的软上限，可控制"最多思考几轮、某工具最多调几次"。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">两层防线：软上限给出友好行为（如到达上限就收尾回答），硬上限保证绝不无限跑。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">2</span> 人在回路（HITL）：危险操作前先批准 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">
-<pre class="code"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> HumanInTheLoopMiddleware
-
-agent = create_agent(model, tools=[delete_database], middleware=[
-    HumanInTheLoopMiddleware(...),   <span class="cm"># 调用敏感工具前暂停，等人确认</span>
-], checkpointer=saver)               <span class="cm"># HITL 需要可暂停/恢复，故要 checkpointer</span></pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">有些工具是<strong>不可逆的高风险操作</strong>（删数据、转账、发邮件）。让 Agent 在执行前<strong>暂停等人点头</strong>，
-        是生产环境的安全底线。它依赖图的"中断/恢复"能力（第 13 课）。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点</div>
-      <div class="a">把"自动"与"可控"结合：日常自动跑，关键节点交回人类决策，且暂停期间状态被持久化、可随时恢复。</div>
-    </div>
-  </div>
-</details>
-
-<details class="accordion">
-  <summary><span class="badge-num">3</span> 健壮性：重试与模型降级 <span class="hint">点击展开详解</span></summary>
-  <div class="acc-body">
-    <div class="qa">
-      <div class="q">🧪 示例</div>
-      <div class="a">
-<pre class="code"><span class="kw">from</span> langchain.agents.middleware <span class="kw">import</span> (
-    ToolRetryMiddleware, ModelFallbackMiddleware,
-)
-agent = create_agent(primary_model, tools, middleware=[
-    ToolRetryMiddleware(max_retries=2),        <span class="cm"># 工具抖动自动重试</span>
-    ModelFallbackMiddleware(backup_model),     <span class="cm"># 主模型失败→切备用</span>
-])</pre>
-      </div>
-    </div>
-    <div class="qa">
-      <div class="q">❓ 为什么必要</div>
-      <div class="a">网络抖动、限流 429、厂商宕机都会偶发。<span class="mono">Retry</span> 吸收瞬时错误，
-        <span class="mono">Fallback</span> 在主模型彻底不可用时切到备用，保证服务连续。</div>
-    </div>
-    <div class="qa">
-      <div class="q">✅ 优点 & 🔀 其他方案</div>
-      <div class="a">优点：健壮性以"装中间件"的方式声明式获得，核心逻辑不变。
-        其他方案：在单次模型调用层用 <span class="mono">model.with_retry()</span>（第 5 课），但 Agent 级中间件覆盖整个循环更全面。</div>
-    </div>
-  </div>
-</details>
-
-<div class="card spark">
-  <div class="tag">💡 设计亮点</div>
-  <ul>
-    <li>Agent = 模型 + 工具 + 循环，判据简单到只有一句话：<strong>还有没有 tool_calls</strong>。</li>
-    <li>你只<strong>声明</strong>"用什么"，循环的编排交给框架——这就是声明式的威力。</li>
-  </ul>
-</div>
-
-<div class="card key">
-  <div class="tag">✅ 本课要点</div>
-  <ul>
-    <li>输入/输出都是 <span class="mono">{"messages": [...]}</span> 状态字典（<span class="mono">AgentState</span>）。</li>
-    <li>循环判据：<strong>AIMessage 里还有没有 tool_calls</strong>。这把第 4–6 课串成了闭环。</li>
-    <li><strong>第二部分（用户视角）到此结束</strong>。接下来掀开盖子，看这些便利背后的源码机制。</li>
-  </ul>
-</div>
-<div class="selftest">
+    tool_messages = ToolNode(tools).invoke({&quot;messages&quot;: state[&quot;messages&quot;]})
+    state[&quot;messages&quot;] = add_messages(state[&quot;messages&quot;], tool_messages)
+</pre><div class="cw-note">真实 create_agent 不一定写成 Python while；它把 model 节点、tools 节点和条件边编进 StateGraph。教学版保留了核心语义：AIMessage.tool_calls 是请求，ToolMessage 是观察，messages reducer 负责把每轮增量接回历史。</div></div><h2>为什么终止条件要落在消息字段上</h2><p>很多初学者以为 Agent 循环的停止依赖“模型觉得完成了”这种不可见判断。框架真正使用的是更可审计的结构化信号：最新 AIMessage 的 tool_calls 是否为空。模型当然参与了决定，因为它选择是否输出工具调用；但一旦输出变成消息对象，控制流就由确定的字段驱动。这样做让 trace 很好读：看最新消息有没有工具请求，就知道下一步为什么跑 tools 或为什么结束。</p><p>把终止条件放在消息字段上还有一个工程收益：它自然支持多工具和并行工具。AIMessage.tool_calls 可以是列表，ToolNode 可以逐个或并行执行，返回的每个 ToolMessage 再用 tool_call_id 配对。若终止条件只是解析自然语言里的“我需要调用工具”，就很难可靠地区分一个工具、三个工具、工具失败后是否需要重试。结构化字段把控制流从文字猜测中解放出来。</p><p>这也解释了为什么 ToolMessage 不是普通 AIMessage 或 HumanMessage。它代表工具观察，是模型上一轮请求的结果，必须用 tool_call_id 回连原请求。没有这个连接键，模型下一轮虽然能看到一段文字，却不知道它对应哪个工具、哪组参数、哪个失败或重试。Agent 循环靠消息历史维持因果链，ToolMessage 是这条链上最容易被低估的一环。</p><h2>模型负责选择，图负责守纪律</h2><p>Agent 的“智能”主要发生在 model 节点：模型读系统提示、用户消息、工具说明和工具观察，决定下一步是否调用工具、调用哪个工具、填什么参数。图运行时不理解业务问题，也不会判断天气答案是否正确。它只负责把模型输出的结构化动作执行出来，并把结果按规则放回状态。这样的分工让框架既能支持开放式问题，又能保持执行层可预测。</p><p>如果把工具执行也交给模型自由描述，系统会变得不可控：模型可能拼错工具名、漏参数、把敏感参数放进自然语言、把多个工具结果混成一段文本。ToolNode 的价值就在于把工具调用收束到一套可验证路径：按 name 找工具，按 schema 传 args，按 id 生成 ToolMessage，失败时按策略抛错或回填错误消息。模型可以选择动作，但动作必须经过工具节点的契约。</p><p>在生产里，这个分工尤其重要。你可以在模型前后加 middleware、在工具节点前做人审、给图加 recursion_limit、给模型调用加 retry/fallback，但核心循环仍然是同一条消息驱动路径。系统越复杂，越需要一个简单稳定的骨架。否则每个业务场景都会手写一套循环，调试和审计成本会迅速失控。</p><h2>常见误解与边界情况</h2><p>Agent 循环很短，但误解很多。最常见的是把 tool_calls 当成工具执行结果。tool_calls 只是模型发出的请求，相当于“我要查订单 42”；ToolMessage 才是执行后的观察，相当于“订单 42 已出库”。请求和结果混淆后，日志会看起来像模型已经知道事实，实际只是模型提出了一个待执行动作。</p><p>另一个边界是终止。没有 tool_calls 不代表答案一定正确，只代表模型没有继续请求工具。模型可能因为提示不清、工具描述不好或上下文太长而提前停止。框架只能保证控制流停下，不能保证业务事实一定足够。因此关键业务应配合评测、后置校验或人审，而不是把“无 tool_calls”误读成“任务成功”。</p><h2>工程复盘：把循环 trace 变成排障证据</h2><p>真正上线后，Agent 循环的问题很少表现为“完全不能跑”，更多表现为偶发编造、重复查工具、工具结果被模型忽略、最终回答没有引用刚拿到的观察。排查时不要先改 prompt，而要先把一次运行拆成消息序列：第几条是 HumanMessage，第几条是 AIMessage，第几条带 tool_calls，第几条是 ToolMessage，最后一条 AIMessage 是否仍有工具请求。只要消息序列清楚，控制流就不再神秘。</p><p>建议把每个工具调用记录成四列：tool_call_id、工具名、参数摘要、ToolMessage 摘要。模型请求阶段和工具观察阶段必须能一一配对。如果日志里只有工具名没有 id，并行工具一多就会混乱；如果只有 ToolMessage 文本没有原始参数，后来很难判断模型到底查了哪个订单、哪个城市或哪个用户。id 是调试工具循环的主键，不是可选装饰。</p><p>当模型拿到工具结果却继续重复调用同一个工具时，先检查 ToolMessage 内容是否对模型可用。很多工具返回的是内部 JSON、错误码或缩写字段，程序员看得懂，模型不一定能把它转成完成条件。工具观察应该简洁、明确、包含模型下一步需要的事实，例如“订单已出库，预计明天到，无需联系仓库”，而不是只返回 status=3。</p><p>当模型过早结束时，先看工具说明和系统提示是否让它知道什么时候必须查工具。模型没有 tool_calls 并不说明工具不可用，也不说明事实足够；它可能认为用户问题是常识题，或者工具描述没有覆盖这个场景。此时应改工具 docstring、系统提示和少量评测样例，而不是在外层强行调用工具。强行调用会破坏 Agent 自主决策边界。</p><p>工具边界的设计也会影响循环稳定性。一个工具如果既查询订单、又判断是否联系仓库、又生成回复，模型会失去中间观察，后续很难纠错。更好的边界是让工具返回可信事实，把策略判断留给模型或后置规则。反过来，支付、退款、发邮件这类副作用工具不应只返回模糊文本，必须返回业务 id、状态和是否可重试。</p><p>多工具场景要额外关注顺序和独立性。天气查询和日历查询可能并行；先查用户权限再退款则不能并行。AIMessage.tool_calls 只是模型提出多个请求，不代表这些请求都安全并发。框架能执行并行工具，但业务仍要定义哪些工具无副作用、哪些工具必须串行、哪些工具需要中间件审批。</p><p>如果你在 UI 上展示 Agent 运行过程，建议展示“模型正在思考”不如展示“模型请求查询订单”“工具返回已出库”“模型生成最终建议”这样的阶段化信息。用户不需要看内部类名，但需要知道系统是否真的查了数据。把 tool_calls 和 ToolMessage 映射成可读事件，会显著提升用户信任，也方便客服或开发排查。</p><p>最后要把循环测试写成消息级断言，而不是只断言最终文本包含某个词。一个健壮测试可以检查第一轮模型必须产生 search_order 工具请求，ToolMessage 的 id 必须配对，第二轮模型不得再请求同一工具，并且最终回答引用工具事实。这样测试锁定的是 Agent 结构行为，而不是某个随机措辞。</p><div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：tool_calls 就是工具返回值</div><div class="pf-correct">正确：tool_calls 是模型请求；ToolMessage 才是工具返回值，二者靠 id 配对。</div></div><div class="pitfall"><div class="pf-wrong">误解：Agent 循环是模型内部自动完成</div><div class="pf-correct">正确：循环由图运行时执行，模型只输出下一步动作或最终回答。</div></div><div class="pitfall"><div class="pf-wrong">误解：没有 tool_calls 就说明业务完成</div><div class="pf-correct">正确：它只说明控制流终止；事实正确性还要靠观察、校验和评测。</div></div><div class="pitfall"><div class="pf-wrong">误解：工具节点只负责调用函数</div><div class="pf-correct">正确：ToolNode 还负责参数绑定、消息包装、错误策略和与消息历史的因果连接。</div></div></div><h2>源码阅读练习：用五个问题定位循环</h2><p>第一问：最新消息是谁写的？如果最新消息是 HumanMessage，下一步通常应进 model；如果最新消息是带 tool_calls 的 AIMessage，下一步应进 tools；如果最新消息是不带 tool_calls 的 AIMessage，循环应结束；如果最新消息是 ToolMessage，下一步应回 model。这个判断比阅读一大段日志更快。</p><p>第二问：工具请求和工具结果是否配对？检查 AIMessage.tool_calls 里的 id，确认 ToolMessage.tool_call_id 完全一致。配对失败时，模型下一轮可能看见一条观察，却无法可靠知道它对应哪个请求。并行工具、重试工具和工具错误都会放大这个问题。</p><p>第三问：工具参数是否来自模型应该负责的范围？城市、日期、订单号通常可以让模型填；user_id、tenant、权限范围不应由模型填。把业务参数和安全参数分开，是后面 Runtime Context 课程的基础，也能减少提示注入风险。</p><p>第四问：ToolMessage 内容是否足以让模型停止？如果工具只返回机器码，模型可能继续查；如果工具明确返回事实、缺失原因和下一步建议，模型更容易形成最终回答。工具输出不是给人类后端看的日志，而是给下一轮模型读的观察。</p><p>第五问：如果循环继续，继续的理由是什么？有时继续是合理的，例如先查订单再查仓库；有时继续是失控，例如同一参数反复查同一工具。把每轮继续的原因写下来，就能区分正常多步推理和 runaway loop。</p><div class="card lab"><div class="tag">🧪 小实验 · 手工追踪一次工具循环</div><ol><li>写下一个用户问题，并列出模型可用的两个工具名称、参数和用途。</li><li>手写第一轮 AIMessage：content 可以为空，但必须包含 tool_calls 的 name、args、id。</li><li>根据工具执行结果写一个 ToolMessage，确认 tool_call_id 与上一步 id 完全一致。</li><li>再写第二轮 AIMessage：如果还需要工具，解释为什么；如果结束，确认 tool_calls 为空。</li><li>检查每一步是否只依赖 messages 中已经出现的事实，不允许模型凭空知道工具结果。</li></ol></div><h2>课堂检查清单：确认你真的理解 Agent 循环</h2><p>能不用框架名解释循环：模型先读消息，输出工具请求；工具节点执行请求，写回工具观察；模型再读观察，直到不再请求工具。</p><p>能指出每轮循环的最新消息类型，并据此判断下一步应该进模型、进工具还是结束，而不是凭最终文本猜运行路径。</p><p>能说明工具请求不是工具结果。请求由模型写在 AIMessage.tool_calls，结果由工具节点写成 ToolMessage，二者职责不同。</p><p>能解释为什么 tool_call_id 必须保留。没有它，并行工具、失败重试和审计日志都会失去因果连接。</p><p>能区分控制流终止和业务成功。没有 tool_calls 只表示模型没有继续请求工具，不表示事实已经充分或回答一定正确。</p><p>能判断一个工具是否应该被模型调用。需要实时数据、外部状态或副作用时应走工具；常识解释和文本整理不一定需要工具。</p><p>能读懂 trace 中的空 content AIMessage。很多模型在请求工具时正文为空，这不是错误，真正动作在 tool_calls 字段。</p><p>能说明 ToolNode 的价值不只是调用函数，还包括参数绑定、错误处理、结果包装和消息历史回填。</p><p>能为一个多工具问题判断哪些工具可并行，哪些必须等待前一个工具结果，哪些需要人审。</p><p>能用消息级测试验证循环，而不是只断言最终回答包含某个关键词。</p><p>能在模型重复调用同一工具时，检查工具观察是否足够明确、提示是否要求继续、recursion_limit 是否只是兜底。</p><p>能把 UI 里的进度提示映射到内部阶段，让用户知道系统正在请求工具、等待结果还是生成最终回答。</p><h2>复盘提问：循环课后自检</h2><p>如果你只能保留一个调试习惯，请保留消息时间线。把每轮输入输出按顺序写成用户消息、模型消息、工具请求、工具结果、最终模型消息，就能看见控制流的真实形状。很多看似模型能力不足的问题，其实是工具结果没有回到消息历史，或者工具请求和工具结果没有配对。</p><p>学习本课不要只记住两个类名，而要记住请求和观察的分离。请求表示模型想做什么，观察表示外部世界实际返回了什么。只有把二者分开，系统才能审计、重试、并行和恢复，也才能让模型在下一轮基于事实而不是想象继续推理。</p><p>设计工具时也要服务循环。工具名称要像动作，参数要像业务输入，返回要像清晰观察。含糊的工具名会让模型误选，含糊的参数会让工具失败，含糊的返回会让模型继续追问或编造。一个好工具不是函数能跑，而是能让循环向结束前进。</p><p>最终回答出现问题时，先问模型有没有机会看到正确观察。如果 ToolMessage 不存在，模型是在猜；如果 ToolMessage 太晚写入，模型本轮看不到；如果 ToolMessage 内容缺事实，模型只能补脑。沿着这条线检查，往往比继续调整温度和模型名称更有效。</p><h2>Agent loop 终止与 transcript 审计</h2><p>审计一次 Agent loop 时，先把 transcript 分成四种事实：用户输入、模型请求、工具观察、最终模型消息。终止只看最新 AIMessage 是否仍有 tool_calls；业务是否成功则要继续检查最后回答是否引用了必要 ToolMessage。这样能避免把“图停了”误读成“任务完成了”。</p><p>每一轮都应记录 step、message type、tool_call_id、tool name、参数摘要和观察摘要。若出现重复调用同一工具，先比对前一轮 ToolMessage 是否包含足够信息，而不是直接调大 recursion_limit。若最新消息不是 AIMessage，就要解释为什么控制流还会进入条件边。</p><p>生产 trace 建议保留两条视图：一条给工程师看完整消息因果链，一条给客服或用户看阶段化事件。前者用于确认 AIMessage.tool_calls 与 ToolMessage.tool_call_id 是否配对，后者用于说明系统确实查了数据、等待了工具、再生成回答。</p><h2>tool_call 与 ToolMessage 配对核查表</h2><p>第一项，检查每个 tool_call id 是否恰好有一个对应 ToolMessage；并行工具可以有多个 id，但不能缺失、重复或错配。第二项，检查 ToolMessage 内容是否脱敏、可行动、包含模型结束任务所需事实。第三项，检查工具错误是否明确写成观察，还是被日志吞掉导致模型只能继续猜。</p><p>第四项，检查工具参数来源。业务参数可以由模型填写，身份、租户、权限、幂等键等安全参数不应从用户文本或模型输出进入工具。第五项，检查最终 AIMessage 是否还带 tool_calls；若带有请求却被 UI 当成最终回答，就是 transcript 消费方的 bug。</p><p>这张表也适合写成测试夹具：给假模型固定输出 tool_calls，给假工具固定返回 ToolMessage，断言第二轮模型收到配对观察后停止。测试目标不是某句回答，而是循环结构确实按请求、观察、再判断的顺序推进。</p><div class="card version"><div class="tag">📌 版本锚点</div>本课按 LangChain v1 Agent 与 LangGraph prebuilt ToolNode 的心智模型讲解。具体模块行号会随版本移动，但 create_agent、ToolNode、tools_condition、AIMessage.tool_calls、ToolMessage 这组源码锚点是阅读 Agent 循环的稳定入口。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>Agent loop 的核心是 model 节点、tools 条件分支、ToolNode 和回到 model 的消息闭环。</li><li>AIMessage.tool_calls 表示工具请求，ToolMessage 表示工具观察，不能混为一谈。</li><li>终止条件是最新 AIMessage 没有 tool_calls；这只说明循环结束，不等于业务一定正确。</li><li>图运行时守控制流纪律，模型负责选择下一步动作，工具节点负责把动作变成可审计结果。</li></ul></div><div class="selftest">
 <h2>🧪 自测 · 想一想为什么这么设计</h2>
 <div class="quiz">
-  <div class="qn">1. <code>create_agent</code> 把“调用→判断→执行工具→回灌→再调用”这个循环自动化。它体现的核心设计哲学是？</div>
+  <div class="qn">1. 一次标准 Agent model/tool loop 的阶段顺序，哪一个最准确？</div>
   <ol class="opts">
-    <li>函数式</li>
-    <li>面向对象</li>
-    <li>命令式：你写每一步</li>
-    <li>声明式：你只声明“用什么（模型/工具/护栏）”，循环的编排交给框架</li>
+    <li>用户问题 → ToolMessage → model 节点 → tools_condition → 最终回答</li>
+    <li>用户问题 → model 节点 → AIMessage.tool_calls → tools 节点 → ToolMessage → model 最终回答</li>
+    <li>用户问题 → model 节点直接执行 Python 函数 → 最终回答，不需要消息回填</li>
+    <li>用户问题 → tools 节点 → model 节点 → ToolMessage → tool_calls → 最终回答</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。“声明用什么、而非手写怎么循环”是本课灵魂。便利来自把易错的循环编排收进框架——也因此后面要掀开盖子看它其实是张图。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。Agent 循环靠消息推进：模型先发出结构化工具请求，ToolNode 执行后写回 ToolMessage，模型再基于观察结果回答或继续请求工具。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">2. Agent 是否继续循环，判据简单到只有一句：“最新 AIMessage 还有没有 <code>tool_calls</code>”。把复杂行为压成这么简单的判据，好处是？</div>
+  <div class="qn">2. <code>AIMessage.tool_calls</code> 与 <code>ToolMessage</code> 的区别是什么？</div>
   <ol class="opts">
-    <li>终止逻辑清晰、可预测、好调试：复杂度都在“模型决定要不要调工具”，而控制流本身极简</li>
-    <li>显得简单</li>
-    <li>限制了能力</li>
-    <li>纯属巧合</li>
+    <li><code>tool_calls</code> 是模型提出的工具请求；<code>ToolMessage</code> 是工具执行后的观察结果，并用 <code>tool_call_id</code> 配对</li>
+    <li>二者都是工具结果，只是名字不同</li>
+    <li><code>ToolMessage</code> 只能由用户手写，不能由 ToolNode 产生</li>
+    <li><code>tool_calls</code> 表示循环已经结束，<code>ToolMessage</code> 表示循环开始</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。把“智能”（要不要继续）交给模型、把“控制流”做到极简，是关注点分离的漂亮例子——引擎简单，灵活性来自模型输出。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：A</strong>。请求和观察必须分开。tool_calls 告诉运行时要执行什么；ToolMessage 把执行结果带回消息历史，供下一轮模型读取。</div></div></div>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. 生产里给 Agent 装“刹车与护栏”（限次/人审/重试/降级），做成可插拔的 middleware 而非写进核心循环。为什么？</div>
+  <div class="qn">3. Agent 循环何时终止？</div>
   <ol class="opts">
-    <li>强制都用上</li>
-    <li>显得模块多</li>
-    <li>让 Agent 更慢</li>
-    <li>核心循环保持稳定纯净，安全/健壮性按需声明式叠加，不同项目装不同护栏、互不污染</li>
+    <li>只要用户问题包含问号就终止</li>
+    <li>只要工具返回了任意字符串就终止</li>
+    <li>最新 <code>AIMessage</code> 不再包含 <code>tool_calls</code>，条件边路由到结束</li>
+    <li>只要达到一次模型调用就终止</li>
   </ol>
   <details class="accordion">
     <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。把横切的护栏与核心循环解耦，你能像配置一样增减能力（第 18 课看机制）。核心不变、外围灵活，又是分离思想。</div></div></div>
-  </details>
-</div>
-<div class="quiz">
-  <div class="qn">4. <code>ModelCallLimitMiddleware</code> 限“思考几轮”、<code>recursion_limit</code> 是“图的硬上限”。同时有软上限和硬上限两道防线，图什么？</div>
-  <ol class="opts">
-    <li>没有意义</li>
-    <li>重复造轮子</li>
-    <li>让配置更复杂</li>
-    <li>软上限给友好行为（到点收尾），硬上限做最后兜底（绝不无限跑）；分层防御，体验与安全兼顾</li>
-  </ol>
-  <details class="accordion">
-    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
-    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。软硬两道防线分工不同：一个为“优雅降级”，一个为“绝对安全”。关键系统常用这种“多层兜底”。</div></div></div>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：C</strong>。终止信号是结构化字段，而不是自然语言猜测。没有 tool_calls 表示模型没有请求下一轮工具，图可以结束。</div></div></div>
   </details>
 </div>
 <div class="card spark">
   <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
   <ul>
-    <li><code>create_agent</code> 把循环“自动化”了，但也“藏起来”了。什么情况下这种“便利的黑盒”反而会成为问题？什么时候你宁愿自己用 LangGraph 手搭图？</li>
-    <li>给 Agent 加护栏几乎总是对的，但每道护栏都增加复杂度与延迟。如果只能选<strong>一道</strong>护栏上生产，你会选哪个、为什么？</li>
+    <li>按“用户问题 → model → tool_calls → ToolNode → ToolMessage → final”的顺序，追踪一个查订单 Agent 的完整循环，并写出每一步消息类型。</li>
+    <li>为一个业务动作判断工具边界：哪些信息应由模型直接回答，哪些必须通过工具查询或执行？说明你的依据。</li>
   </ul>
 </div>
 </div>
-  <div class="footnav"><a class="prev" href="06-tools.html"><div class="dir">← 上一课</div><div class="ttl">工具 Tools</div></a><a class="next" href="08-runnable.html"><div class="dir">下一课 →</div><div class="ttl">Runnable 万物之基</div></a></div>
+  <div class="footnav"><a class="prev" href="34-langgraph-time-travel-debug.html"><div class="dir">← 上一课</div><div class="ttl">时间旅行、回放与调试</div></a><a class="next" href="13-agent-internals.html"><div class="dir">下一课 →</div><div class="ttl">create_agent 构图内部</div></a></div>
 </div>
 
 </body></html>

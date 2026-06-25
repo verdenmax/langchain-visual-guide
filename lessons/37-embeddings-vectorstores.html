@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>34 · Embeddings 与 VectorStore — LangChain 图解教程</title>
+<meta name="description" content="第七部分 · RAG 与记忆｜Embeddings 与 VectorStore：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="theme-color" content="#1a7f64">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMiAzMic+PHJlY3Qgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJyByeD0nNycgZmlsbD0nIzFhN2Y2NCcvPjx0ZXh0IHg9JzE2JyB5PScyMycgZm9udC1mYW1pbHk9J3N5c3RlbS11aSxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIwJyBmb250LXdlaWdodD0nNzAwJyBmaWxsPScjZmZmJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJz7OuzwvdGV4dD48L3N2Zz4=">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="LangChain 图解教程">
+<meta property="og:title" content="34 · Embeddings 与 VectorStore — LangChain 图解教程">
+<meta property="og:description" content="第七部分 · RAG 与记忆｜Embeddings 与 VectorStore：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="34 · Embeddings 与 VectorStore — LangChain 图解教程">
+<meta name="twitter:description" content="第七部分 · RAG 与记忆｜Embeddings 与 VectorStore：面向新手的 LangChain 图解教程，配真实源码对应、折叠深挖与设计亮点。">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #f0f2f5; --ink: #1d2129;
+  --muted: #5b6470; --faint: #8a939f; --line: #e1e5ea;
+  --accent: #1a7f64; --accent-soft: #e4f3ee; --accent-ink: #0f5c48;
+  --blue: #2563eb; --blue-soft: #e7efff; --amber: #b4690e; --amber-soft: #fdf1dd;
+  --purple: #7c3aed; --purple-soft: #f0e9ff; --red: #d23f3f; --red-soft: #fbe6e6;
+  --code-bg: #0f172a; --code-ink: #e2e8f0; --code-line: #1e293b;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116; --panel: #161b22; --panel-2: #1c232c; --ink: #e6edf3;
+    --muted: #9aa6b2; --faint: #6e7a86; --line: #2a323c;
+    --accent: #3fb892; --accent-soft: #14302a; --accent-ink: #8ee0c6;
+    --blue: #6ea8fe; --blue-soft: #16243f; --amber: #e0a44a; --amber-soft: #33270f;
+    --purple: #b794f6; --purple-soft: #271a40; --red: #f08080; --red-soft: #3a1a1a;
+    --code-bg: #0a0f1a; --code-ink: #d8e2f0; --code-line: #14202f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+    "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--bg); color: var(--ink); line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+code, .mono { font-family: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; overflow-wrap: break-word; }
+
+/* ---- top progress bar ---- */
+.topbar {
+  position: sticky; top: 0; z-index: 50; background: var(--panel);
+  border-bottom: 1px solid var(--line); backdrop-filter: blur(8px);
+}
+.topbar-inner {
+  max-width: 960px; margin: 0 auto; padding: .7rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.topbar .home { font-size: .82rem; color: var(--muted); font-weight: 600; display:flex; gap:.5rem; align-items:center; }
+.topbar .home b { color: var(--accent); }
+.topbar .pill { font-size: .72rem; color: var(--muted); background: var(--panel-2);
+  padding: .2rem .6rem; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.progress { height: 3px; background: var(--panel-2); }
+.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue)); }
+
+.wrap { max-width: 820px; margin: 0 auto; padding: 2.4rem 1.25rem 5rem; }
+
+/* ---- hero ---- */
+.hero { margin-bottom: 2rem; }
+.hero .part { font-size: .76rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin-bottom: .55rem; }
+.hero h1 { font-size: 2.05rem; line-height: 1.2; letter-spacing: -.01em; font-weight: 750; }
+.hero .lead { margin-top: .9rem; font-size: 1.06rem; color: var(--muted); }
+
+h2 { font-size: 1.32rem; margin: 2.4rem 0 .9rem; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: .55rem; }
+h2::before { content: ""; width: 4px; height: 1.05em; background: var(--accent); border-radius: 3px; display: inline-block; }
+h3 { font-size: 1.05rem; margin: 1.4rem 0 .5rem; }
+p { margin: .7rem 0; }
+ul, ol { margin: .6rem 0 .6rem 1.3rem; }
+li { margin: .3rem 0; }
+strong { color: var(--ink); font-weight: 680; }
+.inline { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: .08em .4em; font-size: .9em; color: var(--accent-ink); }
+
+/* ---- callout cards ---- */
+.card { border-radius: var(--radius); padding: 1.05rem 1.2rem; margin: 1.2rem 0;
+  border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+.card .tag { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+.card.macro { border-left: 4px solid var(--blue); }
+.card.macro .tag { color: var(--blue); }
+.card.detail { border-left: 4px solid var(--purple); }
+.card.detail .tag { color: var(--purple); }
+.card.analogy { border-left: 4px solid var(--amber); background: var(--amber-soft); }
+.card.analogy .tag { color: var(--amber); }
+.card.key { border-left: 4px solid var(--accent); background: var(--accent-soft); }
+.card.key .tag { color: var(--accent-ink); }
+.card.warn { border-left: 4px solid var(--red); background: var(--red-soft); }
+.card.warn .tag { color: var(--red); }
+.card.spark { border-left: 4px solid #e0a000;
+  background: linear-gradient(100deg, rgba(224,160,0,.12), transparent 70%); }
+.card.spark .tag { color: #c98a00; }
+@media (prefers-color-scheme: dark) { .card.spark .tag { color: #f0c050; } }
+
+/* ---- code file callout ---- */
+.codefile { margin: 1.2rem 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
+  box-shadow: var(--shadow); }
+.codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
+  background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
+.codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
+.codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
+  overflow-x: auto; font-size: .82rem; line-height: 1.6; }
+.codefile pre .cm { color: #7d8aa3; }
+.codefile pre .kw { color: #c792ea; }
+.codefile pre .fn { color: #82aaff; }
+.codefile pre .st { color: #c3e88d; }
+.codefile pre .nb { color: #f78c6c; }
+
+pre.code { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem; border-radius: 12px;
+  overflow-x: auto; font-size: .83rem; line-height: 1.6; margin: 1.1rem 0; box-shadow: var(--shadow); }
+pre.code .cm { color: #7d8aa3; } pre.code .kw { color: #c792ea; }
+pre.code .fn { color: #82aaff; } pre.code .st { color: #c3e88d; } pre.code .nb { color: #f78c6c; }
+
+/* ---- collapsible accordion (details/summary) ---- */
+.accordion { border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+  margin: .7rem 0; box-shadow: var(--shadow); overflow: hidden; }
+.accordion > summary { cursor: pointer; padding: .85rem 1.1rem; font-weight: 650; font-size: .96rem;
+  list-style: none; display: flex; align-items: center; gap: .6rem; user-select: none; }
+.accordion > summary::-webkit-details-marker { display: none; }
+.accordion > summary::after { content: "▶"; font-size: .68rem; color: var(--accent);
+  margin-left: auto; transition: transform .15s ease; }
+.accordion[open] > summary::after { transform: rotate(90deg); }
+.accordion > summary:hover { background: var(--panel-2); }
+.accordion[open] > summary { border-bottom: 1px solid var(--line); }
+.accordion .badge-num { background: var(--accent-soft); color: var(--accent-ink);
+  width: 1.6rem; height: 1.6rem; border-radius: 7px; display: inline-flex; align-items: center;
+  justify-content: center; font-size: .82rem; font-weight: 700; flex-shrink: 0; }
+.accordion .hint { font-size: .72rem; color: var(--faint); font-weight: 400; }
+.acc-body { padding: .9rem 1.1rem 1.1rem; }
+.acc-intro { color: var(--muted); font-size: .9rem; margin: .2rem 0 .4rem; }
+.qa { margin: 1rem 0; }
+.qa:first-child { margin-top: .3rem; }
+.qa .q { font-weight: 680; font-size: .9rem; display: flex; gap: .45rem; align-items: center; margin-bottom: .3rem; }
+.qa .a { color: var(--muted); font-size: .9rem; }
+.qa .a strong { color: var(--ink); }
+.qa pre.code { margin: .5rem 0 0; font-size: .78rem; }
+
+/* ---- flow diagram ---- */
+.flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 1.3rem 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1.2rem 1rem; box-shadow: var(--shadow); }
+.flow .node { flex: 1 1 0; min-width: 110px; text-align: center; padding: .7rem .5rem;
+  border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.flow .node .nt { font-weight: 700; font-size: .92rem; }
+.flow .node .nd { font-size: .76rem; color: var(--muted); margin-top: .2rem; }
+.flow .node.hl { background: var(--accent-soft); border-color: var(--accent); }
+.flow .arrow { align-self: center; color: var(--faint); font-size: 1.3rem; padding: 0 .35rem; }
+
+/* vertical flow */
+.vflow { margin: 1.3rem 0; }
+.vflow .step { display: flex; gap: .9rem; position: relative; padding-bottom: 1.1rem; }
+.vflow .step:not(:last-child)::before { content:""; position:absolute; left: 15px; top: 34px; bottom: -2px;
+  width: 2px; background: var(--line); }
+.vflow .num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; z-index:1; }
+.vflow .sc h4 { margin: .25rem 0 .2rem; font-size: 1rem; }
+.vflow .sc p { margin: .15rem 0; font-size: .92rem; color: var(--muted); }
+.vflow .sc .mono { font-size: .8rem; color: var(--accent-ink); }
+
+/* layered architecture */
+.layers { margin: 1.3rem 0; display: flex; flex-direction: column; gap: .55rem; }
+.layer { border-radius: 12px; padding: .85rem 1.1rem; border: 1px solid var(--line); background: var(--panel);
+  box-shadow: var(--shadow); }
+.layer .lh { display: flex; align-items: center; gap: .6rem; }
+.layer .lh .badge { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; }
+.layer .lh .name { font-weight: 700; font-family: ui-monospace, monospace; }
+.layer .ld { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.layer.l-core { border-left: 4px solid var(--accent); } .layer.l-core .badge { background: var(--accent-soft); color: var(--accent-ink); }
+.layer.l-main { border-left: 4px solid var(--blue); } .layer.l-main .badge { background: var(--blue-soft); color: var(--blue); }
+.layer.l-part { border-left: 4px solid var(--purple); } .layer.l-part .badge { background: var(--purple-soft); color: var(--purple); }
+.layer.l-app { border-left: 4px solid var(--amber); } .layer.l-app .badge { background: var(--amber-soft); color: var(--amber); }
+
+/* two-column compare */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+.col { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: var(--shadow); min-width: 0; }
+.col h4 { margin: 0 0 .4rem; font-size: .95rem; }
+
+table.t { width: 100%; border-collapse: collapse; margin: 1.1rem 0; font-size: .9rem;
+  background: var(--panel); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+table.t th, table.t td { padding: .6rem .8rem; text-align: left; border-bottom: 1px solid var(--line); }
+table.t th { background: var(--panel-2); font-size: .8rem; letter-spacing: .02em; }
+table.t tr:last-child td { border-bottom: none; }
+table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-size: .82rem; color: var(--accent-ink); }
+@media (max-width: 640px) {
+  /* Wide multi-column tables: scroll within their own box instead of
+     forcing page-level horizontal overflow (which clipped right columns). */
+  table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.t th, table.t td { padding: .5rem .6rem; }
+  /* Code-file header: let a long path wrap and the right-side caption drop to
+     its own line instead of being pushed off-screen and silently clipped by
+     html{overflow-x:hidden}. */
+  .codefile .cf-head { flex-wrap: wrap; }
+  .codefile .cf-head .ln { margin-left: 0; }
+}
+.selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
+.selftest > h2 { margin-top: .2rem; }
+.quiz { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: 12px; padding: .9rem 1.1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.quiz .qn { font-weight: 650; }
+.quiz ol.opts { list-style: upper-alpha; margin: .55rem 0 .6rem 1.5rem; padding: 0; }
+.quiz ol.opts li { margin: .3rem 0; padding-left: .15rem; }
+.quiz details.accordion { margin: .5rem 0 0; }
+.selftest code { font-family: ui-monospace, monospace; font-size: .9em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 0 .28em; border-radius: 4px; }
+
+/* footer nav */
+.footnav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem;
+  padding-top: 1.4rem; border-top: 1px solid var(--line); }
+.footnav a { flex: 1; padding: .85rem 1.1rem; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--panel); box-shadow: var(--shadow); transition: .15s; }
+.footnav a:hover { border-color: var(--accent); transform: translateY(-1px); }
+.footnav a.next { text-align: right; }
+.footnav .dir { font-size: .72rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.footnav .ttl { font-weight: 700; color: var(--ink); margin-top: .15rem; }
+.footnav a.disabled { opacity: .35; pointer-events: none; }
+
+/* index page */
+.toc { display: grid; gap: .7rem; margin-top: 1.6rem; }
+.toc-part { font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--accent); margin: 1.4rem 0 .2rem; }
+.toc a { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.05rem; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); transition: .15s; }
+.toc a:hover { border-color: var(--accent); transform: translateX(3px); }
+.toc .n { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; flex-shrink: 0; }
+.toc .tt { font-weight: 650; color: var(--ink); }
+.toc .ts { font-size: .8rem; color: var(--muted); margin-left: auto; text-align: right; }
+.toc-search { position: relative; margin: 1.6rem 0 -.4rem; }
+.toc-search input { width: 100%; box-sizing: border-box; padding: .75rem 2.8rem .75rem 1rem;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font-size: .98rem; box-shadow: var(--shadow); }
+.toc-search input:focus { outline: none; border-color: var(--accent); }
+.toc-search .qcount { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+  color: var(--faint); font-size: .8rem; pointer-events: none; }
+.toc a.hide, .toc .toc-part.hide { display: none; }
+.toc-empty { display: none; color: var(--muted); padding: 1rem; text-align: center; }
+.toc-empty.show { display: block; }
+.hero.index h1 { font-size: 2.3rem; }
+.legend { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1rem; font-size:.8rem; color:var(--muted); }
+.legend span { display:flex; align-items:center; gap:.4rem; }
+.legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }
+.pdf-btn { display:inline-flex; align-items:center; gap:.4rem; padding:.55rem 1.1rem;
+  background:var(--accent); color:#fff; border-radius:10px; font-size:.9rem; font-weight:650;
+  box-shadow:var(--shadow); transition:.15s; }
+.pdf-btn:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+/* ---- C-level expansion components ---- */
+.lesson-map { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem 1.1rem; margin: 1.25rem 0; }
+.lesson-map .lm-title { font-weight: 750; color: var(--accent-ink); margin-bottom: .75rem; }
+.lm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+@media (max-width: 760px) { .lm-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .lm-grid { grid-template-columns: 1fr; } }
+.map-node { border: 1px solid var(--line); border-radius: 11px; padding: .7rem .75rem; background: var(--panel-2); }
+.map-node.now { border-color: var(--accent); background: var(--accent-soft); }
+.map-node.before { border-left: 4px solid var(--blue); }
+.map-node.after { border-left: 4px solid var(--purple); }
+.map-node.source { border-left: 4px solid var(--amber); }
+.mn-label { font-weight: 720; font-size: .9rem; }
+.mn-desc { color: var(--muted); font-size: .78rem; margin-top: .2rem; }
+.source-map td:first-child, .source-map td:nth-child(2) { white-space: nowrap; }
+.trace-table td:first-child { font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+.code-walkthrough .cw-note { padding: .55rem .85rem; background: var(--panel-2); border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .82rem; }
+.pitfall-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+@media (max-width: 640px) { .pitfall-grid { grid-template-columns: 1fr; } }
+.pitfall { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+.pf-wrong { padding: .65rem .8rem; background: var(--red-soft); color: var(--red); font-weight: 680; }
+.pf-correct { padding: .65rem .8rem; color: var(--muted); }
+.card.lab { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.card.lab .tag { color: var(--blue); }
+.card.version { border-left: 4px solid var(--purple); background: var(--purple-soft); }
+.card.version .tag { color: var(--purple); }
+.svg-diagram { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  box-shadow: var(--shadow); padding: 1rem; margin: 1.3rem 0; overflow-x: auto; }
+.svg-diagram figcaption { font-weight: 720; color: var(--accent-ink); margin-bottom: .6rem; }
+.svg-diagram svg { max-width: 100%; height: auto; display: block; }
+</style>
+</head><body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="home" href="../index.html">📘 LangChain 图解教程 · <b>目录</b></a>
+    <span class="pill">第七部分 · RAG 与记忆</span>
+    <span class="pill">34 / 46</span>
+  </div>
+  <div class="progress"><span style="width:73%"></span></div>
+</div>
+<div class="wrap">
+  <div class="hero">
+    <div class="part">第七部分 · RAG 与记忆</div>
+    <h1>Embeddings 与 VectorStore</h1>
+  </div>
+<p class="lead">Embeddings 与 VectorStore 是 RAG 的检索引擎层。Embedding 模型把 chunk 文本变成数字向量；VectorStore 保存向量、原始 Document 和 metadata；similarity_search 或 VectorStoreRetriever 根据 query 向量找回相似文档；indexing.index 则提供更系统的增量索引、去重和清理语义。本课追踪 chunks → vectors → add_documents → similarity_search → docs，并把 indexing/upsert 的版本问题讲清楚。</p><div class="card analogy"><div class="tag">🧩 生活类比</div>把向量库想成一座按“意思”而不是按字母排序的仓库。Embedding 模型给每张资料卡一个空间坐标，意思接近的卡片放得近。用户提问时，系统也给问题一个坐标，然后找附近卡片。仓库管理员 VectorStore 不负责判断答案，只负责把卡片、坐标、标签和编号存好，并在查询时按距离交出候选。</div><div class="lesson-map"><div class="lm-title">🗺️ 本课地图：从 chunk 到相似文档</div><div class="lm-grid"><div class="map-node before"><div class="mn-label">Chunks</div><div class="mn-desc">splitter 产出的 Document 列表，带 source 和 chunk id</div></div><div class="map-node now"><div class="mn-label">Embeddings</div><div class="mn-desc">embed_documents / embed_query 把文本映射为同维向量</div></div><div class="map-node now"><div class="mn-label">VectorStore</div><div class="mn-desc">保存向量、Document、metadata 和外部 id</div></div><div class="map-node source"><div class="mn-label">Retriever</div><div class="mn-desc">as_retriever 暴露 Runnable 检索接口</div></div><div class="map-node after"><div class="mn-label">Docs</div><div class="mn-desc">similarity_search 返回候选文档，进入 context 格式化</div></div></div></div><h2>源码入口：文件 + 符号名</h2><p>FAISS 的真实实现位于独立 langchain-community 包的 langchain_community.vectorstores.faiss；monorepo 中的 libs/langchain/langchain_classic/vectorstores/faiss.py 是弃用期 re-export shim，不是实现文件。本课因此把 core 的 InMemoryVectorStore 作为 source-verified concrete anchor，用它说明 VectorStore 契约，再提醒生产可替换为专用向量库。</p><table class="t source-map"><tr><th>文件</th><th>符号</th><th>职责</th><th>调用方向</th></tr><tr><td class="mono">libs/core/langchain_core/embeddings/embeddings.py</td><td class="mono">Embeddings</td><td>定义 embed_documents 和 embed_query 的向量化契约</td><td>索引阶段和查询阶段都必须使用兼容模型</td></tr><tr><td class="mono">libs/core/langchain_core/vectorstores/base.py</td><td class="mono">VectorStore</td><td>定义 add_documents、similarity_search、as_retriever 等接口</td><td>连接索引写入和运行时检索</td></tr><tr><td class="mono">libs/core/langchain_core/vectorstores/base.py</td><td class="mono">VectorStoreRetriever</td><td>把 VectorStore 包装成 BaseRetriever/Runnable</td><td>RAG 链运行时调用</td></tr><tr><td class="mono">libs/core/langchain_core/indexing/api.py</td><td class="mono">index</td><td>提供基于 record manager 的增量索引、去重和 cleanup 流程</td><td>构建/更新知识库时使用</td></tr><tr><td class="mono">libs/core/langchain_core/vectorstores/in_memory.py</td><td class="mono">InMemoryVectorStore</td><td>核心包内可验证的具体向量库实现，适合教学和小规模实验</td><td>实现 VectorStore 契约，可替换为生产向量库</td></tr></table><h2>调用图：索引写入与相似搜索</h2><div class="flow call-graph"><div class="node"><div class="nt">chunks</div><div class="nd">Document 列表携带 chunk 文本和 metadata</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">embed_documents</div><div class="nd">Embedding 模型批量生成向量</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">add_documents</div><div class="nd">VectorStore 保存向量、文本、metadata、id</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">embed_query</div><div class="nd">运行时把用户 query 变成同空间向量</div></div><div class="arrow">-&gt;</div><div class="node hl"><div class="nt">similarity_search</div><div class="nd">按距离/相似度返回 top-k Document</div></div><div class="arrow">-&gt;</div><div class="node"><div class="nt">context</div><div class="nd">候选文档被格式化进 RAG prompt</div></div></div><h2>Trace：把一次运行摊平成证据链</h2><table class="t trace-table"><tr><th>步骤</th><th>输入/状态</th><th>发生了什么</th><th>输出/新状态</th></tr><tr><td>1. chunks</td><td>5 个 chunk Document</td><td>读取 page_content 和 metadata</td><td>待嵌入文本批次</td></tr><tr><td>2. vectors</td><td>文本批次 + embedding model</td><td>embed_documents 生成同维向量</td><td>vectors shape = n × d</td></tr><tr><td>3. add</td><td>Document + vector + stable id</td><td>VectorStore 写入索引和 docstore</td><td>返回 ids 或更新已有记录</td></tr><tr><td>4. query</td><td>用户问题</td><td>embed_query 使用同一 embedding 空间</td><td>query vector</td></tr><tr><td>5. search</td><td>query vector + k/filter</td><td>similarity_search 找近邻并取回 Document</td><td>top-k docs with metadata</td></tr></table><h2>简化源码走读：保留契约，不背实现</h2><div class="codefile code-walkthrough"><div class="cf-head"><span class="dot"></span><span class="path">libs/core/langchain_core/vectorstores/base.py :: VectorStore.as_retriever</span><span class="ln">简化版</span></div><pre>vectorstore.add_documents(chunks, ids=[chunk.metadata[&quot;chunk_id&quot;] for chunk in chunks])
+retriever = vectorstore.as_retriever(search_kwargs={&quot;k&quot;: 4})
+
+docs = retriever.invoke(&quot;如何配置 checkpoint？&quot;)
+for doc in docs:
+    print(doc.metadata[&quot;source&quot;], doc.page_content[:80])
+</pre><div class="cw-note">教学版保留两个关键点：写入时使用稳定 id，查询时通过 as_retriever 暴露 Runnable 检索接口。真实系统还要记录 embedding 模型版本、命名空间、权限过滤和 cleanup 策略。</div></div><h2>Embedding 契约：同一空间才可比较</h2><p>Embeddings 的核心约束是文档向量和查询向量必须来自兼容模型、相同维度和相同归一化约定。换模型、换服务版本、换预处理方式，都可能让向量空间改变。旧向量和新查询看似都是数字列表，但距离已经没有业务意义。因此索引记录应保存 embedding_model、dimension、normalize 约定和生成时间。</p><p>距离指标也会改变排序。cosine 更关注方向，dot product 可能受向量长度影响，L2 关注欧氏距离；有些向量库会在内部做归一化，有些要求调用方先处理。课程不要求记公式，但要知道 metric 是索引配置的一部分。线上发现相似度异常时，要检查模型、维度、归一化和 metric 是否一致，而不是只调 top_k。</p><p>上线后还要把 embedding 版本当成索引版本管理。模型供应商静默升级、清洗规则改变或标题拼接策略调整，都会造成 embedding drift；发现召回突然变差时，不要只调阈值，应先比对固定评测集里新旧 query 的邻居、分数分布和命中版本，再决定全量重嵌入、双索引灰度还是回滚旧 namespace。若 metadata filter 同时变化，要分开记录，否则会把模型漂移误判成过滤过严。</p><h2>VectorStore 保存的不只是向量</h2><p>一个有用的 VectorStore 至少要同时保存四类信息：向量、原始文本、metadata、外部 id。向量用于近邻搜索，文本用于返回给模型，metadata 用于过滤和引用，id 用于更新和删除。若只保存向量，检索命中后还要去别处找正文；若没有 id，同一文档更新时只能追加，无法可靠 upsert。</p><p>InMemoryVectorStore 适合教学、测试和小规模临时检索，因为它让契约可见且无需外部服务。生产环境常换成 FAISS、pgvector、Milvus、Pinecone、Elasticsearch hybrid 或云厂商向量检索。只要业务依赖 VectorStore/VectorStoreRetriever 契约，上层 RAG 链不应关心底层索引文件、连接池或分片细节。</p><h2>indexing.index 解决增量同步问题</h2><p>简单 add_documents 适合一次性实验，生产知识库更关心增量：某个 source 更新了，旧 chunk 是否删除；某个 source 消失了，索引是否 cleanup；同一内容重复摄取，是否跳过。langchain_core.indexing.api.index 的设计目标就是把 loader 输出、record manager 和 vector store 写入连接起来，记录哪些文档已经索引过。</p><p>理解 index 时要抓住 source_id 和 cleanup。source_id 把多个 chunk 归到同一原始来源；record manager 记录每个 chunk 的写入状态；cleanup 决定全量或增量同步后如何处理旧记录。没有这些信息，向量库会越用越脏，用户问到已经删除或更新的政策时，系统仍可能返回旧 chunk。</p><h2>Upsert 策略要先于写入设计</h2><p>稳定 id 可以来自 source_id + chunk_index，也可以来自内容哈希 + 版本。前者便于覆盖同一位置的更新，后者便于识别内容是否变化。选择哪种取决于业务：政策文档常需要按版本替换，审计场景可能要保留历史版本并在 metadata 中标注有效期。无论哪种，都不应让向量库随机生成唯一 id 后就失去来源关系。</p><p>写入失败也要定义行为。若 embedding 批次中途失败，已经写入的部分是否回滚？若向量库写入成功但 record manager 记录失败，下次同步会不会重复写入？这些问题在小 demo 中看不到，但生产索引必须处理。至少要有幂等 id、批次日志和可重跑流程。</p><h2>过滤、混合检索和重排</h2><p>向量相似度只说明语义接近，不说明权限正确、时间有效或类型匹配。metadata filter 应在搜索时限制 tenant、language、doc_type、version 或 effective_date。过滤太晚会浪费候选名额，甚至把无权内容交给后续模型。过滤太严则可能漏召回，所以要用评测集观察每个 filter 的影响。</p><p>纯向量检索对数字、代码符号、专有名词和精确短语不总是稳定。很多系统会加入 BM25 或关键词过滤形成 hybrid retrieval，再用 reranker 精排。VectorStoreRetriever 提供的是统一入口，不意味着底层只能做单一向量近邻。课程把这一层放在 M7，是为了让你看到 embeddings 是基础，但不是检索质量的全部。</p><h2>排查 stale index 的顺序</h2><p>当用户看到旧答案，先确认返回 Document 的 metadata：source_id 是谁，version 是不是最新，embedding_model 是否当前，index_time 是否晚于文档更新时间。再检查查询是否命中旧命名空间，是否有缓存，cleanup 是否真的删除旧 ids。很多 stale 问题不是模型幻觉，而是索引里确实还躺着旧块。</p><p>如果相似度分数异常低或排序怪异，检查维度和 metric；如果同一来源重复出现，检查 chunk id 和 upsert；如果权限错误，检查 metadata filter 是否进入 retriever；如果新文档完全搜不到，检查 loader 是否产出 Document、embedding 是否成功、add_documents 是否返回 id。按阶段排查，比直接重建全库更节省时间。</p><h2>常见误解与边界情况：相似不等于正确</h2><p>常见误解是把最高相似度当成答案依据。向量相似度只说明 query 和 chunk 在 embedding 空间里接近，不说明 chunk 最新、不说明用户有权访问、不说明足以回答完整问题。一个段落可能和问题语义很像，却来自旧版本或只覆盖部分条件。最终 context 应结合 score、metadata、版本和可回答性判断。</p><p>边界情况包括数字、代码符号、产品型号和否定语句。Embedding 对“支持”和“不支持”有时距离很近，对 v1 和 v2 这种短符号也不一定敏感。遇到这类资料，单纯向量检索风险较高，应加入关键词过滤、结构化 metadata filter 或 reranker。</p><h2>源码排障清单：embedding 到 search</h2><p>如果所有查询都返回奇怪结果，先检查文档向量和查询向量维度是否一致、是否使用同一 embedding 模型、是否同一 normalize 设置。若只有某类问题失败，检查这些问题是否包含精确术语、数字或权限条件。不要一开始就怀疑模型回答，先确认向量空间本身可比较。</p><p>如果新写入文档搜不到，检查 add_documents 是否被调用、ids 是否唯一、向量库命名空间是否正确、metadata filter 是否过严。若写入后立刻查询仍旧返回旧版本，检查缓存、record manager 和 cleanup。向量库问题通常可以通过列出 ids 和 metadata 直接验证。</p><h2>距离指标与归一化</h2><p>cosine similarity 常用于比较方向，适合很多文本 embedding；dot product 可能受向量长度影响；L2 距离在某些索引实现中更自然。不同 provider 和向量库对 metric 的默认值不同，有的会自动归一化，有的不会。迁移向量库时必须确认 metric，不然相同向量会得到不同排序。</p><p>归一化还影响阈值。一个在 cosine 下合理的 score_threshold，换成 dot product 后可能完全失效。阈值不是可随意复制的魔法数字，必须和模型、metric、索引库、语料分布一起评估。上线前应从验证集统计正负样本分数分布，再决定阈值。</p><h2>indexing.index 的实际价值</h2><p>indexing.index 不是为了让 demo 更复杂，而是为了解决“知识库持续变化”这个生产问题。它通过 record manager 记录哪些来源和 chunk 已经写入，帮助跳过未变化内容，并在 cleanup 时删除不再存在的记录。没有这层记录，向量库只知道一堆向量，不知道它们对应的源文档生命周期。</p><p>使用 index 时要设计 source_id。一个 PDF 的多个 chunk 共享同一 source_id；网页更新后仍然是同一 source_id 的新版本；复制到另一个租户则可能是不同命名空间。source_id 设计错误会导致 cleanup 删除不该删的内容，或保留应该删除的旧内容。</p><h2>向量库选择</h2><p>InMemoryVectorStore 让学生看清契约，但它不适合多进程持久化和大规模检索。FAISS 适合本地高性能实验，但权限过滤和分布式运维要自己处理；pgvector 适合已有 PostgreSQL 团队，事务和权限集成方便；托管向量库提供扩展和运维能力，但成本、锁定和数据合规要评估。</p><p>选择时不要只问“哪个更准”。准确率更多来自 embedding、切块、过滤和 rerank；向量库主要影响规模、延迟、过滤能力、持久化、运维和成本。先定义数据量、更新频率、权限模型和部署环境，再选择实现。VectorStore 契约让早期可以从简单实现开始，后续再替换。</p><h2>Hybrid retrieval 与 rerank</h2><p>很多真实知识库需要混合检索。关键词检索擅长精确符号、编号、错误码和短语；向量检索擅长语义近似和同义表达。混合检索先扩大候选，再用 reranker 合并排序，常比单一路线稳定。课程把向量库作为主线，但不应误解成只能用向量。</p><p>混合结果需要统一去重和记录来源。一个 chunk 可能同时被 BM25 和向量检索命中，最终候选应合并分数而不是重复出现。日志里应标记命中通道，方便判断某类问题到底依赖关键词还是向量。这样的信息能指导后续优化索引和查询改写。</p><h2>批量嵌入的工程细节</h2><p>Embedding 服务通常有批量大小、速率限制和超时。批量太小成本高，批量太大容易超时或触发限流。索引管道应把 chunk 分批，记录每批输入数量、失败重试和 provider 响应。若某批失败，不应让整个知识库处于半更新但无记录的状态。</p><p>还要处理空文本和极短文本。空 chunk 不应嵌入；只有标题或导航的短 chunk 可能产生噪声向量。摄取阶段可以过滤低质量 chunk，或把短标题和正文合并。向量库里的垃圾数据越少，后续 retriever 和 reranker 越轻松。</p><h2>命名空间与多租户</h2><p>多租户系统不能只靠 metadata 约定，最好在向量库层使用 namespace、collection 或索引分区隔离。metadata filter 是重要防线，但命名空间能降低误配置时的影响范围。不同租户使用不同 embedding 模型或不同数据保留策略时，命名空间也能表达这些差异。</p><p>命名空间设计要和 source_id 配合。同一个公共文档可能被多个租户共享，也可能按租户复制并带不同权限。共享能省存储，但权限和删除更复杂；复制更隔离，但更新成本高。VectorStore 抽象不替你做这个决定，架构层必须明确。</p><h2>分数阈值的校准</h2><p>score_threshold 只有经过校准才有意义。不同 embedding 模型、不同 metric、不同语料规模会产生不同分数分布。一个项目里 0.78 可能很高，另一个项目里只是普通相似。用少量人工标注的正负样本统计分数区间，比照搬教程阈值可靠。</p><p>阈值还会影响拒答率。阈值过高，系统经常说没资料；阈值过低，噪声进入 prompt。可以按文档类型设置阈值，也可以把低分结果标记为“低置信”交给后续 reranker 或模型核验。关键是让阈值变化有评测记录。</p><h2>索引回滚与迁移</h2><p>换 embedding 模型或向量库时，不要在原索引上直接覆盖。更安全的做法是建立新 namespace，双写或离线重建，然后用评测集比较新旧召回，再切流量。若新模型表现变差，可以快速回滚到旧 namespace。</p><p>迁移还要考虑引用稳定性。用户收藏的引用链接、评测集里的 doc_id、缓存里的 chunk_id 是否仍有效？如果 chunk 边界变化，旧引用可能需要映射到新 chunk。索引迁移不只是数据复制，也影响用户可见证据。</p><h2>向量维度与存储成本</h2><p>向量维度越高，单条记录占用越多，索引构建和搜索成本也可能增加。更高维不自动意味着更准，模型训练数据、任务匹配度和检索策略同样重要。选择 embedding 模型时要同时看质量、维度、价格、吞吐、语言覆盖和数据合规。</p><p>成本还来自重复 chunk 和多版本索引。若摄取阶段没有去重，向量库存储会被重复页面放大；若迁移模型时长期双写，也要计划旧索引下线。VectorStore 运维不是只加机器，还包括数据生命周期管理。</p><h2>相似度结果的解释</h2><p>向量库返回的 score 要解释给工程团队，而不一定直接展示给用户。用户需要看到来源和关键片段，工程需要看到分数、metric、rank 和 filter。若把原始分数直接展示为“可信度”，可能误导用户，因为相似度不等于事实可信度。</p><p>更好的解释是组合信号：来源是否权威、版本是否最新、是否多来源支持、reranker 是否高分、引用核验是否通过。Embedding score 是候选排序信号之一，不应被包装成最终答案置信度。</p><h2>删除与合规</h2><p>向量库删除必须能从业务对象追溯到所有 chunk id。用户要求删除某份文档或某个租户数据时，系统不能只删除原始文件，还要删除向量、docstore 文本、record manager 记录和相关缓存。若没有 source_id 到 chunk ids 的映射，删除会变成全库扫描。</p><p>合规场景还要证明删除已经发生。记录删除请求、匹配的 ids、执行时间、失败重试和验证查询结果。VectorStore 抽象提供接口，但删除策略和审计属于应用责任。没有删除闭环，RAG 知识库会积累无法治理的历史数据。</p><h2>查询向量也要观察</h2><p>很多排障只看文档索引，却忘了 query embedding。用户问题如果被改写得过长、夹带无关历史或混入多个意图，query vector 会偏离目标。记录原问题、改写 query 和相似结果，可以判断问题在查询侧还是文档侧。</p><p>对于多意图问题，可以拆成多个 query 分别检索，再合并候选。一个向量同时代表两个问题时，可能两个方向都不够近。拆 query 增加成本，但能显著改善复杂问答的召回覆盖。</p><p>查询侧还要避免把历史摘要无脑拼进去。摘要能补充指代，但过长摘要会把 query vector 拉向旧话题。更稳妥的做法是先用对话上下文生成独立查询，再只把独立查询送入 embed_query，并把两者都清晰记录到 trace。</p><div class="pitfall-grid"><div class="pitfall"><div class="pf-wrong">误解：换 embedding 模型不用重建索引</div><div class="pf-correct">正确：向量空间变了，旧向量不可比较，通常需要重嵌入。</div></div><div class="pitfall"><div class="pf-wrong">误解：add_documents 永远只是追加</div><div class="pf-correct">正确：生产索引要考虑 upsert、去重、删除过期和 source_id 稳定性。</div></div><div class="pitfall"><div class="pf-wrong">误解：相似度最高就一定正确</div><div class="pf-correct">正确：相似不等于可回答；仍需 metadata、rerank、引用核验和拒答策略。</div></div><div class="pitfall"><div class="pf-wrong">误解：VectorStore 负责所有权限</div><div class="pf-correct">正确：权限字段可用于过滤，但策略和租户边界应由业务层明确传入。</div></div></div><div class="card lab"><div class="tag">🧪 小实验 · 排查一个 stale index</div><ol><li>列出一个文档的 source_id、chunk_id、version 和 embedding_model。</li><li>模拟第一次 add_documents，记录返回 id 和索引时间。</li><li>修改原文后再次索引，决定是 upsert 同 id、写新版本还是删除旧版本。</li><li>执行一次 similarity_search，检查返回结果是否来自最新 version。</li><li>写下如果旧结果仍出现，你会检查 record manager、cleanup、命名空间还是缓存。</li></ol></div><div class="card version"><div class="tag">📌 版本锚点</div>当前 core 包提供 langchain_core.vectorstores.in_memory.InMemoryVectorStore；FAISS 的真实实现位于独立 langchain-community 包 langchain_community.vectorstores.faiss。monorepo 中 libs/langchain/langchain_classic/vectorstores/faiss.py 只是 deprecation re-export shim，不是实现文件。课程用 core InMemoryVectorStore 作可验证主锚点。</div><div class="card keypoints"><div class="tag">✅ 本课要点</div><ul><li>Embeddings 必须保证文档和查询进入同一向量空间。</li><li>VectorStore 保存向量、文档和 metadata，不只是一个距离计算器。</li><li>VectorStoreRetriever 把向量库包装成 Runnable 检索器。</li><li>稳定 id、source_id 和版本是 upsert/cleanup 的基础。</li><li>相似度搜索需要配合过滤、rerank、引用核验和评测。</li></ul></div><div class="selftest">
+<h2>🧪 自测 · 想一想为什么这么设计</h2>
+<div class="quiz">
+  <div class="qn">1. Embeddings 契约中最关键的一致性要求是什么？</div>
+  <ol class="opts">
+    <li>metadata 必须为空，避免影响向量维度</li>
+    <li>每次查询都必须重新训练模型</li>
+    <li>VectorStore 只能保存一个文档</li>
+    <li>文档和查询必须使用兼容的 embedding 模型与向量空间，否则相似度不可比较</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。换 embedding 模型通常意味着向量空间改变，旧索引需要重建或隔离命名空间。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">2. <code>VectorStoreRetriever</code> 的价值是什么？</div>
+  <ol class="opts">
+    <li>自动删除所有旧索引且无法关闭</li>
+    <li>把向量库包装成 BaseRetriever/Runnable，让 RAG 链按统一检索接口调用</li>
+    <li>把所有 Document 变成 SystemMessage</li>
+    <li>替代 ChatPromptTemplate 生成最终答案</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：B</strong>。as_retriever 暴露 query -> Document 的接口，屏蔽具体向量库实现，便于组合和替换。</div></div></div>
+  </details>
+</div>
+<div class="quiz">
+  <div class="qn">3. 为什么生产索引需要 stable id / source_id？</div>
+  <ol class="opts">
+    <li>为了让模型跳过检索</li>
+    <li>为了让 chunk_overlap 自动为 0</li>
+    <li>为了让答案押韵</li>
+    <li>为了支持 upsert、去重、cleanup 和排查 stale index</li>
+  </ol>
+  <details class="accordion">
+    <summary>看答案与解析 <span class="hint">点击展开</span></summary>
+    <div class="acc-body"><div class="qa"><div class="a"><strong>答案：D</strong>。没有稳定标识，更新同一来源时无法判断追加、覆盖还是删除旧版本，过期内容会长期留在检索结果里。</div></div></div>
+  </details>
+</div>
+<div class="card spark">
+  <div class="tag">💭 发散思考（没有标准答案，动手或动脑想想）</div>
+  <ul>
+    <li>为一个小型知识库选择向量库：比较 InMemory、FAISS/本地库、托管向量库在规模、持久化、权限过滤和运维上的取舍。</li>
+    <li>排查 stale index：用户问到旧政策，请设计检查顺序，包括 source_id、version、embedding_model、cleanup 和缓存。</li>
+  </ul>
+</div>
+</div>
+  <div class="footnav"><a class="prev" href="36-documents-splitters.html"><div class="dir">← 上一课</div><div class="ttl">Document、Loader 与 Splitter</div></a><a class="next" href="38-retrievers-rerankers.html"><div class="dir">下一课 →</div><div class="ttl">Retriever、压缩与 Rerank</div></a></div>
+</div>
+
+</body></html>

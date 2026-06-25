@@ -32,8 +32,9 @@ TOTAL = len(PAGES)
 
 # Substrings that must never appear in any generated HTML (stale counts/wording).
 STALE = [
-    "全 20 课", "全 23 课", "共 20 课", "5 部分 20 课",
-    "六个钩子", "第六部分 · 横向对比",
+    "全 20 课", "全 23 课", "全 27 课", "共 20 课", "5 部分 20 课",
+    "8 部分 · 27 课", "六个钩子", "第六部分 · 横向对比",
+    "第八部分 · 速查",
 ]
 
 # Inline tags allowed (unescaped) inside <pre> code blocks.
@@ -56,6 +57,12 @@ def check_balance(name, html, tag):
         add("ERR", name, f"<{tag}> unbalanced: {o} open / {c} close")
 
 
+def check_stale(name, html):
+    for bad in STALE:
+        if bad in html:
+            add("ERR", name, f"stale text: {bad!r}")
+
+
 def check_lesson(fname, html):
     for tag in ("div", "details", "table", "pre", "summary"):
         check_balance(fname, html, tag)
@@ -76,9 +83,7 @@ def check_lesson(fname, html):
         if "card analogy" not in html:
             add("WARN", fname, "no analogy card")
 
-    for bad in STALE:
-        if bad in html:
-            add("ERR", fname, f"stale text: {bad!r}")
+    check_stale(fname, html)
 
     # unescaped '<' inside <pre>
     for pre in re.findall(r"<pre[^>]*>(.*?)</pre>", html, re.S):
@@ -114,6 +119,7 @@ def main():
 
     index_path = os.path.join(ROOT, shell.INDEX_FILE)
     idx = open(index_path, encoding="utf-8").read()
+    check_stale("index.html", idx)
     for fname, title, _part in PAGES:
         if fname not in idx:
             add("ERR", "index.html", f"TOC missing entry {fname}")
