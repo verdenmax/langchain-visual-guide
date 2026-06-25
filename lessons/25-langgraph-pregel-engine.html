@@ -108,7 +108,7 @@ strong { color: var(--ink); font-weight: 680; }
 .codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
   background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
 .codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
-.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
 .codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
 .codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
   overflow-x: auto; font-size: .82rem; line-height: 1.6; }
@@ -199,6 +199,11 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
      forcing page-level horizontal overflow (which clipped right columns). */
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
+  /* Code-file header: let a long path wrap and the right-side caption drop to
+     its own line instead of being pushed off-screen and silently clipped by
+     html{overflow-x:hidden}. */
+  .codefile .cf-head { flex-wrap: wrap; }
+  .codefile .cf-head .ln { margin-left: 0; }
 }
 .selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
 .selftest > h2 { margin-top: .2rem; }
@@ -403,7 +408,7 @@ LangGraph 内置了几种（来自 Pregel 文档）：</p>
 </details>
 
 <div class="card spark">
-  <div class="tag">💡 设计亮点：借一套 20 年的成熟模型来跑 Agent</div>
+  <div class="tag">💡 设计亮点：借一套十余年的成熟模型来跑 Agent</div>
   LangGraph 没有自己发明轮子，而是把 Google <strong>Pregel（大规模图计算）</strong>的 <strong>BSP 超步模型</strong>搬过来——
   "actors 读写 channels、逐超步推进、写入延迟到下一步可见"。这套范式天生<strong>确定、可并行、可在任意一步存档</strong>，
   正好满足 Agent 对"可控 + 可持久化"的需求。
@@ -448,7 +453,7 @@ LangGraph 内置了几种（来自 Pregel 文档）：</p>
   </details>
 </div>
 <div class="quiz">
-  <div class="qn">3. LangGraph 没自己发明执行模型，而是搬来 20 年前 Google Pregel 的成熟图计算范式。这种“借用成熟模型”好在哪？</div>
+  <div class="qn">3. LangGraph 没自己发明执行模型，而是搬来十余年前 Google Pregel 的成熟图计算范式。这种“借用成熟模型”好在哪？</div>
   <ol class="opts">
     <li>没好处</li>
     <li>显得有学问</li>

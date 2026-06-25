@@ -108,7 +108,7 @@ strong { color: var(--ink); font-weight: 680; }
 .codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
   background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
 .codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
-.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
 .codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
 .codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
   overflow-x: auto; font-size: .82rem; line-height: 1.6; }
@@ -199,6 +199,11 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
      forcing page-level horizontal overflow (which clipped right columns). */
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
+  /* Code-file header: let a long path wrap and the right-side caption drop to
+     its own line instead of being pushed off-screen and silently clipped by
+     html{overflow-x:hidden}. */
+  .codefile .cf-head { flex-wrap: wrap; }
+  .codefile .cf-head .ln { margin-left: 0; }
 }
 .selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
 .selftest > h2 { margin-top: .2rem; }
@@ -437,8 +442,8 @@ agent = create_agent(model, tools=[get_weather], response_format=Answer)
 )
 
 agent = create_agent(model, tools, middleware=[
-    ModelCallLimitMiddleware(max_calls=8),   <span class="cm"># 整体：最多调 8 次模型（思考轮数）</span>
-    ToolCallLimitMiddleware(max_calls=3),    <span class="cm"># 单类工具最多调 3 次（防刷某工具）</span>
+    ModelCallLimitMiddleware(run_limit=8),   <span class="cm"># 本次运行最多调 8 次模型（思考轮数）</span>
+    ToolCallLimitMiddleware(run_limit=3),    <span class="cm"># 本次运行最多调 3 次工具（防失控刷工具）</span>
 ])
 <span class="cm"># 硬保护：图的递归上限（兜底，超过直接报错）</span>
 agent.invoke(input, config={<span class="st">"recursion_limit"</span>: 25})</pre>
@@ -526,6 +531,7 @@ agent = create_agent(primary_model, tools, middleware=[
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
+  <ul>
     <li>输入/输出都是 <span class="mono">{"messages": [...]}</span> 状态字典（<span class="mono">AgentState</span>）。</li>
     <li>循环判据：<strong>AIMessage 里还有没有 tool_calls</strong>。这把第 4–6 课串成了闭环。</li>
     <li><strong>第二部分（用户视角）到此结束</strong>。接下来掀开盖子，看这些便利背后的源码机制。</li>

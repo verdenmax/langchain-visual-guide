@@ -108,7 +108,7 @@ strong { color: var(--ink); font-weight: 680; }
 .codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
   background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
 .codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
-.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
 .codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
 .codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
   overflow-x: auto; font-size: .82rem; line-height: 1.6; }
@@ -199,6 +199,11 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
      forcing page-level horizontal overflow (which clipped right columns). */
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
+  /* Code-file header: let a long path wrap and the right-side caption drop to
+     its own line instead of being pushed off-screen and silently clipped by
+     html{overflow-x:hidden}. */
+  .codefile .cf-head { flex-wrap: wrap; }
+  .codefile .cf-head .ln { margin-left: 0; }
 }
 .selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
 .selftest > h2 { margin-top: .2rem; }
@@ -367,7 +372,7 @@ result = chain.invoke({<span class="st">"city"</span>: <span class="st">"北京"
       <div class="a">
 <pre class="code"><span class="cm"># 基类 Runnable 里（概念示意）：</span>
 <span class="kw">def</span> <span class="fn">batch</span>(self, inputs):
-    <span class="kw">return</span> [self.invoke(x) <span class="kw">for</span> x <span class="kw">in</span> inputs]   <span class="cm"># 用线程池并发</span>
+    <span class="kw">return</span> [self.invoke(x) <span class="kw">for</span> x <span class="kw">in</span> inputs]   <span class="cm"># 默认用线程池并发，这里简化为顺序</span>
 
 <span class="kw">def</span> <span class="fn">stream</span>(self, input):
     <span class="kw">yield</span> self.invoke(input)   <span class="cm"># 退化：一次性产出一块</span></pre>

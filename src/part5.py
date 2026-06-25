@@ -685,7 +685,7 @@ graph.add_node(f<span class="st">"{m.name}.after_model"</span>,  after_node,  ..
     <li><strong>状态型钩子</strong>（<span class="mono">before_agent/before_model/after_model/after_agent</span>）：返回一个 state 更新，
       被编译成<strong>图里的真实节点</strong>，按顺序执行。</li>
     <li><strong>包裹型钩子</strong>（<span class="mono">wrap_model_call/wrap_tool_call</span>）：不是节点，而是被
-      <span class="mono">_chain_model_call_handlers</span> 组合成<strong>层层嵌套的函数</strong>，每层拿到 <span class="mono">handler</span> 去调内层。</li>
+      <span class="mono">_chain_model_call_handlers</span> 组合成<strong>层层嵌套的函数</strong>，每层拿到 <span class="mono">handler</span> 去调内层。（<span class="mono">dynamic_prompt</span> 本质上也属此类——包裹模型调用、生成 system prompt 的便捷写法。）</li>
     <li>哪些钩子被启用？框架检查<strong>子类是否覆盖了该方法</strong>（基类默认是 no-op，返回 <span class="mono">None</span>），没覆盖就<strong>不进图</strong>。</li>
   </ul>
 </div>
@@ -729,7 +729,10 @@ LESSON_18 = r"""
 但工具和中间件又需要它。用 <span class="inline">context_schema</span> 声明，再在 invoke 时通过 <span class="inline">context=</span> 传入：</p>
 
 <pre class="code"><span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass
+<span class="kw">from</span> langchain_core.tools <span class="kw">import</span> tool
 <span class="kw">from</span> langchain.tools <span class="kw">import</span> ToolRuntime
+<span class="kw">from</span> langchain.chat_models <span class="kw">import</span> init_chat_model
+<span class="kw">from</span> langchain.agents <span class="kw">import</span> create_agent
 
 <span class="nb">@dataclass</span>
 <span class="kw">class</span> <span class="fn">Context</span>:
@@ -740,6 +743,7 @@ LESSON_18 = r"""
     <span class="st">&quot;&quot;&quot;查询当前用户的订单。&quot;&quot;&quot;</span>
     <span class="kw">return</span> db.query(runtime.context.user_id)   <span class="cm"># 工具读到 user_id，但模型看不到这个参数</span>
 
+model = init_chat_model(<span class="st">"openai:gpt-5.1"</span>)
 agent = create_agent(model, tools=[my_orders], context_schema=Context)
 agent.invoke({<span class="st">"messages"</span>: [...]}, context={<span class="st">"user_id"</span>: <span class="st">"u1"</span>})   <span class="cm"># 每次运行传入</span>
 </pre>

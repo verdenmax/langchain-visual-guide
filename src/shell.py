@@ -158,7 +158,7 @@ strong { color: var(--ink); font-weight: 680; }
 .codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
   background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
 .codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
-.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
 .codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
 .codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
   overflow-x: auto; font-size: .82rem; line-height: 1.6; }
@@ -249,6 +249,11 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
      forcing page-level horizontal overflow (which clipped right columns). */
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
+  /* Code-file header: let a long path wrap and the right-side caption drop to
+     its own line instead of being pushed off-screen and silently clipped by
+     html{overflow-x:hidden}. */
+  .codefile .cf-head { flex-wrap: wrap; }
+  .codefile .cf-head .ln { margin-left: 0; }
 }
 .selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
 .selftest > h2 { margin-top: .2rem; }
@@ -486,6 +491,8 @@ def index_page(standalone=False, lesson_prefix=""):
       <span><i style="background:var(--purple)"></i>细节 / 源码</span>
       <span><i style="background:var(--amber)"></i>生活类比</span>
       <span><i style="background:var(--accent)"></i>关键要点</span>
+      <span><i style="background:var(--red)"></i>注意 / 坑</span>
+      <span><i style="background:#e0a000"></i>设计亮点</span>
     </div>
     <div style="margin-top:1.1rem">
       <a href="langchain-visual-guide.pdf" class="pdf-btn">📄 下载完整 PDF（全 {len(PAGES)} 课）</a>

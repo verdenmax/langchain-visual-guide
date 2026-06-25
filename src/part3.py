@@ -102,7 +102,7 @@ result = chain.invoke({<span class="st">"city"</span>: <span class="st">"北京"
       <div class="a">
 <pre class="code"><span class="cm"># 基类 Runnable 里（概念示意）：</span>
 <span class="kw">def</span> <span class="fn">batch</span>(self, inputs):
-    <span class="kw">return</span> [self.invoke(x) <span class="kw">for</span> x <span class="kw">in</span> inputs]   <span class="cm"># 用线程池并发</span>
+    <span class="kw">return</span> [self.invoke(x) <span class="kw">for</span> x <span class="kw">in</span> inputs]   <span class="cm"># 默认用线程池并发，这里简化为顺序</span>
 
 <span class="kw">def</span> <span class="fn">stream</span>(self, input):
     <span class="kw">yield</span> self.invoke(input)   <span class="cm"># 退化：一次性产出一块</span></pre>
@@ -394,7 +394,7 @@ chain = RunnableBranch(
     </div>
     <div class="qa">
       <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">RunnableBranch</span> 在 <span class="mono">core/runnables/branch.py</span>，本身也是 Runnable——
+      <div class="a"><span class="mono">RunnableBranch</span> 在 <span class="mono">core/langchain_core/runnables/branch.py</span>，本身也是 Runnable——
         所以条件路由也能无缝拼进更大的链。</div>
     </div>
   </div>
@@ -1030,6 +1030,7 @@ agent = create_agent(model, tools, store=my_store)</pre>
 
 <div class="card key">
   <div class="tag">✅ 本课要点</div>
+  <ul>
     <li>两个节点：<span class="mono">"model"</span>（调模型）、<span class="mono">"tools"</span>（ToolNode 执行工具）；条件边按 <span class="mono">tool_calls</span> 决定走向。</li>
     <li>流动的状态是 <span class="mono">AgentState</span>（含 <span class="mono">messages</span>，靠 <span class="mono">add_messages</span> reducer <strong>合并</strong>而非覆盖）；<span class="mono">middleware</span> 可在循环中插钩子。</li>
     <li>它<strong>直接复用 LangGraph 的零件</strong>：<span class="mono">StateGraph / ToolNode / Send（并行）/ Command（handoff）/ checkpointer / interrupt</span>——LangChain 组装、LangGraph 运行。</li>
@@ -1222,7 +1223,7 @@ LESSON_13 = r"""
     </div>
     <div class="qa">
       <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">StreamEvent</span> / <span class="mono">EventData</span> 在 <span class="mono">runnables/schema.py</span>（<span class="mono">StreamEvent</span> 约 :188、<span class="mono">EventData</span> :13）；
+      <div class="a"><span class="mono">StreamEvent</span> / <span class="mono">EventData</span> 在 <span class="mono">runnables/schema.py</span>；
         v2 实现 <span class="mono">tracers/event_stream.py</span>。</div>
     </div>
   </div>
@@ -1387,7 +1388,7 @@ chain = prompt | model | parser   <span class="cm"># 模型按要求输出 → p
     </div>
     <div class="qa">
       <div class="q">✅ 关系</div>
-      <div class="a">其实 <span class="mono">with_structured_output</span> 内部也用到 tool/JSON 解析器（第 11 课）。解析器是更底层、更通用的一层。</div>
+      <div class="a">其实 <span class="mono">with_structured_output</span> 内部也用到 tool/JSON 解析器（第 12 课）。解析器是更底层、更通用的一层。</div>
     </div>
   </div>
 </details>

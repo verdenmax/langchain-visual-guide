@@ -108,7 +108,7 @@ strong { color: var(--ink); font-weight: 680; }
 .codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
   background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
 .codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
-.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
 .codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
 .codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
   overflow-x: auto; font-size: .82rem; line-height: 1.6; }
@@ -199,6 +199,11 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
      forcing page-level horizontal overflow (which clipped right columns). */
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
+  /* Code-file header: let a long path wrap and the right-side caption drop to
+     its own line instead of being pushed off-screen and silently clipped by
+     html{overflow-x:hidden}. */
+  .codefile .cf-head { flex-wrap: wrap; }
+  .codefile .cf-head .ln { margin-left: 0; }
 }
 .selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
 .selftest > h2 { margin-top: .2rem; }
@@ -339,7 +344,7 @@ print(get_weather.invoke({<span class="st">"city"</span>: <span class="st">"北�
 <pre class="code"><span class="kw">from</span> langchain.chat_models <span class="kw">import</span> init_chat_model
 <span class="kw">from</span> langchain_core.messages <span class="kw">import</span> HumanMessage, ToolMessage
 
-model = init_chat_model(<span class="st">"gpt-5.1"</span>).bind_tools([get_weather])
+model = init_chat_model(<span class="st">"openai:gpt-5.1"</span>).bind_tools([get_weather])
 
 msgs = [HumanMessage(<span class="st">"北京天气怎么样？"</span>)]
 ai = model.invoke(msgs)                    <span class="cm"># ① 模型请求调用工具</span>
@@ -509,8 +514,8 @@ final = model.invoke(msgs)                 <span class="cm"># ④ 再问 → 自
     </div>
     <div class="qa">
       <div class="q">✅ 代码对应</div>
-      <div class="a"><span class="mono">InjectedState / InjectedToolCallId</span> 从 <span class="mono">langchain.tools</span> 导出
-        （底层来自 <span class="mono">langgraph.prebuilt</span>）。</div>
+      <div class="a"><span class="mono">InjectedState / InjectedToolCallId</span> 都从 <span class="mono">langchain.tools</span> 统一导出
+        （<span class="mono">InjectedState</span> 来自 <span class="mono">langgraph.prebuilt</span>，<span class="mono">InjectedToolCallId</span> 来自 <span class="mono">langchain_core.tools</span>）。</div>
     </div>
   </div>
 </details>
@@ -556,8 +561,8 @@ agent = create_agent(model, tools=toolkit.get_tools())   <span class="cm"># 一�
     </div>
     <div class="qa">
       <div class="q">❓ InjectedToolArg 是什么</div>
-      <div class="a">它是<strong>所有"注入参数"的基类</strong>（<span class="mono">tools/base.py</span>）：第 6 课的
-        <span class="mono">InjectedState</span>、<span class="mono">InjectedToolCallId</span>（:1404）都继承它。
+      <div class="a">它是<strong>所有"注入参数"的基类</strong>（<span class="mono">tools/base.py</span>）：本课的
+        <span class="mono">InjectedState</span>、<span class="mono">InjectedToolCallId</span> 都继承它。
         被它标记的参数<strong>由框架注入、不出现在给模型的 schema 里</strong>。</div>
     </div>
     <div class="qa">

@@ -10,7 +10,7 @@ LESSON_CMP = r"""
 对照才能真正看清 LangChain 的设计取舍：两者解决的是同一类问题，路径却截然不同。
 </p>
 
-<div class="card warn">
+<div class="card macro">
   <div class="tag">ℹ️ 先说现状</div>
   AutoGen <strong>自 2025 年起</strong>进入<strong>维护模式</strong>（不再加新功能），微软推荐新项目用其继任者
   <strong>Microsoft Agent Framework</strong>。但 AutoGen 的<strong>设计思想</strong>非常有代表性，

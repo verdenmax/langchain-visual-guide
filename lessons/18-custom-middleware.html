@@ -108,7 +108,7 @@ strong { color: var(--ink); font-weight: 680; }
 .codefile .cf-head { display: flex; align-items: center; gap: .55rem; padding: .5rem .85rem;
   background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: .8rem; }
 .codefile .cf-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex-shrink:0; }
-.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; }
+.codefile .cf-head .path { font-family: ui-monospace, monospace; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
 .codefile .cf-head .ln { margin-left: auto; color: var(--faint); font-size: .72rem; }
 .codefile pre { background: var(--code-bg); color: var(--code-ink); padding: .9rem 1rem;
   overflow-x: auto; font-size: .82rem; line-height: 1.6; }
@@ -199,6 +199,11 @@ table.t td.mono, table.t td .mono { font-family: ui-monospace, monospace; font-s
      forcing page-level horizontal overflow (which clipped right columns). */
   table.t { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.t th, table.t td { padding: .5rem .6rem; }
+  /* Code-file header: let a long path wrap and the right-side caption drop to
+     its own line instead of being pushed off-screen and silently clipped by
+     html{overflow-x:hidden}. */
+  .codefile .cf-head { flex-wrap: wrap; }
+  .codefile .cf-head .ln { margin-left: 0; }
 }
 .selftest { margin: 2.2rem 0 0; border-top: 2px dashed var(--line); padding-top: 1.2rem; }
 .selftest > h2 { margin-top: .2rem; }
@@ -487,7 +492,7 @@ graph.add_node(f<span class="st">"{m.name}.after_model"</span>,  after_node,  ..
     <li><strong>状态型钩子</strong>（<span class="mono">before_agent/before_model/after_model/after_agent</span>）：返回一个 state 更新，
       被编译成<strong>图里的真实节点</strong>，按顺序执行。</li>
     <li><strong>包裹型钩子</strong>（<span class="mono">wrap_model_call/wrap_tool_call</span>）：不是节点，而是被
-      <span class="mono">_chain_model_call_handlers</span> 组合成<strong>层层嵌套的函数</strong>，每层拿到 <span class="mono">handler</span> 去调内层。</li>
+      <span class="mono">_chain_model_call_handlers</span> 组合成<strong>层层嵌套的函数</strong>，每层拿到 <span class="mono">handler</span> 去调内层。（<span class="mono">dynamic_prompt</span> 本质上也属此类——包裹模型调用、生成 system prompt 的便捷写法。）</li>
     <li>哪些钩子被启用？框架检查<strong>子类是否覆盖了该方法</strong>（基类默认是 no-op，返回 <span class="mono">None</span>），没覆盖就<strong>不进图</strong>。</li>
   </ul>
 </div>

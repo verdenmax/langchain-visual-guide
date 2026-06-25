@@ -319,7 +319,7 @@ LangGraph 内置了几种（来自 Pregel 文档）：</p>
 </details>
 
 <div class="card spark">
-  <div class="tag">💡 设计亮点：借一套 20 年的成熟模型来跑 Agent</div>
+  <div class="tag">💡 设计亮点：借一套十余年的成熟模型来跑 Agent</div>
   LangGraph 没有自己发明轮子，而是把 Google <strong>Pregel（大规模图计算）</strong>的 <strong>BSP 超步模型</strong>搬过来——
   "actors 读写 channels、逐超步推进、写入延迟到下一步可见"。这套范式天生<strong>确定、可并行、可在任意一步存档</strong>，
   正好满足 Agent 对"可控 + 可持久化"的需求。
